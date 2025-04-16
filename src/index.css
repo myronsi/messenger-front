@@ -13,12 +13,14 @@
     --popover-foreground: 210 40% 98%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-darker: 217.2 91.2% 49.8%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
+    --accent-darker: 217.2 32.6% 12.5%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
@@ -45,6 +47,39 @@
 
   .chat-slide-in {
     animation: chatSlideIn 0.3s ease-out;
+  }
+
+  /* Message tails */
+  .message-tail-right {
+    position: relative;
+  }
+
+  .message-tail-right::after {
+    content: "";
+    position: absolute;
+    right: -8px;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    background: hsl(var(--primary));
+    clip-path: polygon(0 0, 0% 100%, 100% 100%);
+    border-bottom-right-radius: 8px;
+  }
+
+  .message-tail-left {
+    position: relative;
+  }
+
+  .message-tail-left::after {
+    content: "";
+    position: absolute;
+    left: -8px;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    background: hsl(var(--accent));
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
+    border-bottom-left-radius: 8px;
   }
 
   @keyframes fadeIn {

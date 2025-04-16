@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, forwardRef } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, LogOut } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 interface ProfileComponentProps {
@@ -14,10 +14,12 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
   const [bio, setBio] = useState('');
+  const [newBio, setNewBio] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUpdatingBio, setIsUpdatingBio] = useState(false);
   const [modal, setModal] = useState<{
-    type: 'deleteAccount' | 'error' | 'success';
+    type: 'deleteAccount' | 'error' | 'success' | 'logout';
     message: string;
     onConfirm?: () => void;
   } | null>(null);
@@ -34,6 +36,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
           setUsername(data.username);
           setAvatarUrl(data.avatar_url || DEFAULT_AVATAR);
           setBio(data.bio || '');
+          setNewBio(data.bio || '');
         } else {
           throw new Error('Ошибка загрузки профиля');
         }
@@ -79,6 +82,51 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleUpdateBio = async () => {
+    if (newBio === bio || !token) return;
+
+    setIsUpdatingBio(true);
+    try {
+      const response = await fetch(`${BASE_URL}/auth/me/bio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ bio: newBio }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setBio(newBio);
+        setModal({
+          type: 'success',
+          message: 'Описание профиля обновлено!',
+        });
+        setTimeout(() => setModal(null), 1500);
+      } else {
+        throw new Error(data.detail || 'Ошибка при обновлении описания');
+      }
+    } catch (err) {
+      setModal({
+        type: 'error',
+        message: 'Не удалось обновить описание. Попробуйте снова.',
+      });
+    } finally {
+      setIsUpdatingBio(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setModal({
+      type: 'logout',
+      message: 'Вы уверены, что хотите выйти?',
+      onConfirm: () => {
+        localStorage.removeItem('access_token');
+        window.location.reload();
+      },
+    });
   };
 
   const handleDeleteAccount = () => {
@@ -143,6 +191,23 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Описание профиля</label>
+            <textarea
+              value={newBio}
+              onChange={(e) => setNewBio(e.target.value)}
+              className="w-full p-2 bg-background text-foreground border border-input rounded-md resize-none h-24 focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Расскажите о себе..."
+            />
+            <button
+              onClick={handleUpdateBio}
+              disabled={isUpdatingBio || newBio === bio}
+              className="w-full py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {isUpdatingBio ? 'Обновление...' : 'Сохранить описание'}
+            </button>
+          </div>
+
           {avatarFile && (
             <button
               onClick={handleAvatarUpload}
@@ -152,6 +217,14 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
               {isUploading ? 'Загрузка...' : 'Сохранить фото'}
             </button>
           )}
+
+          <button
+            onClick={handleLogout}
+            className="w-full py-2 flex items-center justify-center gap-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Выйти из аккаунта
+          </button>
 
           <button
             onClick={handleDeleteAccount}
@@ -169,6 +242,8 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
               ? 'Удаление аккаунта'
               : modal.type === 'success'
               ? 'Успех'
+              : modal.type === 'logout'
+              ? 'Выход'
               : 'Ошибка'
           }
           message={modal.message}

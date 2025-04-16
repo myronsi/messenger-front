@@ -367,16 +367,16 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
                       </span>
                     )}
                     <div
-                      className={`px-4 py-2 rounded-lg ${
+                      className={`relative px-4 py-2 rounded-2xl ${
                         isMine 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-accent text-accent-foreground'
+                          ? 'bg-primary text-primary-foreground message-tail-right' 
+                          : 'bg-accent text-accent-foreground message-tail-left'
                       }`}
                     >
                       {message.reply_to && (
                         <div 
                           className={`mb-2 p-2 rounded text-sm ${
-                            isMine ? 'bg-primary/80' : 'bg-accent/80'
+                            isMine ? 'bg-primary-darker' : 'bg-accent-darker'
                           } cursor-pointer hover:bg-opacity-70 transition-all`}
                           onClick={(e) => {
                             e.stopPropagation();

@@ -135,14 +135,6 @@ const App = () => {
               )}
             </div>
           </div>
-          {isLoggedIn && (
-            <button
-              className="fixed bottom-4 right-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground px-4 py-2 rounded-lg transition-colors"
-              onClick={handleLogout}
-            >
-              Выйти
-            </button>
-          )}
           {isProfileOpen && <ProfileComponent onClose={() => setIsProfileOpen(false)} />}
         </div>
       )}
