@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Plus, Menu } from 'lucide-react';
 import { Chat } from '../types';
@@ -277,7 +278,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
           chats.map((chat) => (
             <div
               key={chat.id}
-              onClick={() => onChatOpen(chat.id, chat.interlocutor_name, chat.interlocutor_deleted)}
+              onClick={() => handleChatClick(chat.id, chat.interlocutor_name, chat.interlocutor_deleted)}
               className={`flex items-center p-3 rounded-lg cursor-pointer transition-all ${
                 chat.id === activeChatId
                   ? 'bg-primary text-primary-foreground'
@@ -290,6 +291,10 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
                 className={`w-10 h-10 rounded-full mr-3 ${
                   chat.interlocutor_deleted ? 'opacity-50' : ''
                 }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUserClick(chat.interlocutor_name, chat.interlocutor_deleted);
+                }}
               />
               <span className="font-medium">{chat.interlocutor_name}</span>
             </div>

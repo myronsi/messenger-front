@@ -330,24 +330,27 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
                   // На мобильных устройствах открываем контекстное меню по клику
                   if (window.innerWidth < 768) {
                     e.preventDefault();
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setContextMenu({
-                      x: e.clientX - rect.left,
-                      y: e.clientY - rect.top,
-                      messageId: message.id,
-                      isMine,
-                    });
+                    if (!interlocutorDeleted) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        messageId: message.id,
+                        isMine,
+                      });
+                    }
                   }
                 }}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setContextMenu({
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top,
-                    messageId: message.id,
-                    isMine,
-                  });
+                  if (!interlocutorDeleted) {
+                    setContextMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      messageId: message.id,
+                      isMine,
+                    });
+                  }
                 }}
               >
                 <div className={`flex items-end space-x-2 max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
