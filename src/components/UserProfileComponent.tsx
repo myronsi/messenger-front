@@ -1,0 +1,103 @@
+
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
+
+interface UserProfileComponentProps {
+  username: string;
+  onClose: () => void;
+}
+
+const BASE_URL = "http://192.168.178.29:8000";
+const DEFAULT_AVATAR = "/static/avatars/default.jpg";
+
+const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, onClose }) => {
+  const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
+  const [bio, setBio] = useState('');
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/users/users/${username}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.is_deleted) {
+            setIsDeleted(true);
+          } else {
+            setAvatarUrl(data.avatar_url || DEFAULT_AVATAR);
+            setBio(data.bio || '');
+          }
+        } else if (response.status === 404) {
+          setIsDeleted(true);
+        } else {
+          throw new Error(`HTTP ошибка: ${response.status}`);
+        }
+      } catch (err) {
+        console.error('Ошибка при загрузке профиля:', err);
+        setIsDeleted(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUserProfile();
+  }, [username]);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-card w-full max-w-md p-6 rounded-lg shadow-lg border border-border">
+          <div className="text-center text-muted-foreground">Загрузка...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isDeleted) {
+    return (
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-card w-full max-w-md p-6 rounded-lg shadow-lg border border-border relative">
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 p-2 hover:bg-accent rounded-full transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <h3 className="text-lg font-semibold mb-4">Профиль пользователя</h3>
+          <p className="text-muted-foreground">Аккаунт удален или недоступен</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-card w-full max-w-md p-6 rounded-lg shadow-lg border border-border relative">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 p-2 hover:bg-accent rounded-full transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Профиль пользователя</h3>
+          
+          <div className="flex items-center space-x-4">
+            <img
+              src={`${BASE_URL}${avatarUrl}`}
+              alt={username}
+              className="w-16 h-16 rounded-full object-cover"
+            />
+            <div>
+              <h4 className="font-medium">{username}</h4>
+              <p className="text-muted-foreground">{bio || 'Нет описания'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default UserProfileComponent;
