@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, X } from 'lucide-react';
 import { Message } from '../types';
@@ -35,10 +36,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
     message: string;
     onConfirm?: () => void;
   } | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
   const token = localStorage.getItem('access_token');
   const hasFetchedMessages = useRef(false);
 
@@ -86,6 +89,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
 
     if (token) {
       loadMessages();
+      
+      // Пропускаем подключение WebSocket для чатов с удаленными пользователями
+      if (interlocutorDeleted) {
+        console.log('Собеседник удалён, WebSocket не подключается для чата', chatId);
+        return;
+      }
+      
       const connectWebSocket = () => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           console.log('WebSocket уже подключён для чата', chatId);
@@ -178,7 +188,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
       }
       hasFetchedMessages.current = false;
     };
-  }, [chatId, token, onBack]);
+  }, [chatId, token, onBack, interlocutorDeleted]);
 
   const scrollToBottom = () => {
     if (chatWindowRef.current) {
@@ -186,6 +196,15 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
         top: chatWindowRef.current.scrollHeight,
         behavior: 'smooth',
       });
+    }
+  };
+
+  const scrollToMessage = (messageId: number) => {
+    const messageElement = messageRefs.current[messageId];
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(messageId);
+      setTimeout(() => setHighlightedMessageId(null), 1500);
     }
   };
 
@@ -303,7 +322,23 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
               )}
               
               <div
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                ref={el => messageRefs.current[message.id] = el}
+                className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${
+                  highlightedMessageId === message.id ? 'highlighted-message' : ''
+                }`}
+                onClick={(e) => {
+                  // На мобильных устройствах открываем контекстное меню по клику
+                  if (window.innerWidth < 768) {
+                    e.preventDefault();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setContextMenu({
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                      messageId: message.id,
+                      isMine,
+                    });
+                  }
+                }}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -325,7 +360,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
                   <div className={`group relative flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                     {!isMine && (
                       <span className="text-sm text-muted-foreground mb-1">
-                        {message.sender}
+                        {interlocutorDeleted ? 'Удаленный пользователь' : message.sender}
                       </span>
                     )}
                     <div
@@ -336,9 +371,15 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
                       }`}
                     >
                       {message.reply_to && (
-                        <div className={`mb-2 p-2 rounded text-sm ${
-                          isMine ? 'bg-primary/80' : 'bg-accent/80'
-                        }`}>
+                        <div 
+                          className={`mb-2 p-2 rounded text-sm ${
+                            isMine ? 'bg-primary/80' : 'bg-accent/80'
+                          } cursor-pointer hover:bg-opacity-70 transition-all`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollToMessage(message.reply_to);
+                          }}
+                        >
                           {messages.find(m => m.id === message.reply_to)?.content || '[Сообщение удалено]'}
                         </div>
                       )}
@@ -355,7 +396,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
         })}
       </div>
 
-      {!interlocutorDeleted && (
+      {!interlocutorDeleted ? (
         <div className="p-4 border-t border-border">
           {(replyTo || editingMessage) && (
             <div className="flex items-center mb-2 p-2 bg-accent rounded-lg">
@@ -392,6 +433,15 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
               <Send className="w-5 h-5" />
             </button>
           </div>
+        </div>
+      ) : (
+        <div className="p-4 border-t border-border">
+          <button
+            onClick={handleDeleteChat}
+            className="w-full p-3 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
+          >
+            Удалить чат
+          </button>
         </div>
       )}
 

@@ -43,6 +43,10 @@
     animation: slideIn 0.3s ease-out;
   }
 
+  .chat-slide-in {
+    animation: chatSlideIn 0.3s ease-out;
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -51,6 +55,23 @@
   @keyframes slideIn {
     from { transform: translateX(-10px); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes chatSlideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Highlighted message effect */
+  .highlighted-message {
+    animation: highlightMessage 1.5s ease-out;
+  }
+
+  @keyframes highlightMessage {
+    0% { background-color: transparent; }
+    20% { background-color: hsl(var(--accent)/0.25); }
+    80% { background-color: hsl(var(--accent)/0.25); }
+    100% { background-color: transparent; }
   }
 
   /* Custom scrollbar */
@@ -69,5 +90,27 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground));
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    background-color: hsl(var(--background));
+  }
+
+  .chats-list-container {
+    transform: translateX(0);
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  }
+
+  .chats-list-container.collapsed {
+    transform: translateX(-100%);
+    opacity: 0.5;
   }
 }

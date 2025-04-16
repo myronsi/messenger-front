@@ -6,6 +6,7 @@ import LoginComponent from './components/LoginComponent';
 import ChatsListComponent from './components/ChatsListComponent';
 import ChatComponent from './components/ChatComponent';
 import ProfileComponent from './components/ProfileComponent';
+import { useIsMobile } from './hooks/use-mobile';
 
 interface CurrentChat {
   id: number;
@@ -20,6 +21,7 @@ const App = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const hasFetchedUser = useRef(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (hasFetchedUser.current) return;
@@ -108,7 +110,7 @@ const App = () => {
       ) : (
         <div className="container mx-auto min-h-screen p-4">
           <div className="grid grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
-            <div className="col-span-1 bg-card rounded-lg shadow-lg overflow-hidden">
+            <div className={`${isMobile && currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4' : 'col-span-1'} bg-card rounded-lg shadow-lg overflow-hidden`}>
               <ChatsListComponent
                 username={username}
                 onChatOpen={openChat}
@@ -116,7 +118,7 @@ const App = () => {
                 activeChatId={currentChat?.id}
               />
             </div>
-            <div className="col-span-3 bg-card rounded-lg shadow-lg overflow-hidden">
+            <div className={`${isMobile && !currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4 chat-slide-in' : 'col-span-3'} bg-card rounded-lg shadow-lg overflow-hidden`}>
               {currentChat ? (
                 <ChatComponent
                   key={currentChat.id}
