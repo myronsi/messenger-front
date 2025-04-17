@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, forwardRef } from 'react';
-import { Upload, X, LogOut, Users } from 'lucide-react';
+import { Upload, X, LogOut, Users, Globe } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import GroupCreateModal from './GroupCreateModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ProfileComponentProps {
   onClose: () => void;
@@ -11,6 +13,7 @@ const BASE_URL = "http://192.168.178.29:8000";
 const DEFAULT_AVATAR = "/static/avatars/default.jpg";
 
 const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ onClose }, ref) => {
+  const { translations, language, setLanguage } = useLanguage();
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
   const [bio, setBio] = useState('');
@@ -39,17 +42,17 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
           setBio(data.bio || '');
           setNewBio(data.bio || '');
         } else {
-          throw new Error('Ошибка загрузки профиля');
+          throw new Error(translations.errorLoading);
         }
       } catch (err) {
         setModal({
           type: 'error',
-          message: 'Не удалось загрузить профиль. Попробуйте снова.',
+          message: translations.errorLoading,
         });
       }
     };
     if (token) fetchProfile();
-  }, [token]);
+  }, [token, translations]);
 
   const handleAvatarUpload = async () => {
     if (!avatarFile || !token) return;
@@ -69,16 +72,16 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         setAvatarUrl(data.avatar_url);
         setModal({
           type: 'success',
-          message: 'Фото профиля обновлено!',
+          message: translations.uploading,
         });
         setAvatarFile(null);
       } else {
-        throw new Error(data.detail || 'Ошибка при загрузке фото');
+        throw new Error(data.detail || translations.errorUpdating);
       }
     } catch (err) {
       setModal({
         type: 'error',
-        message: 'Не удалось загрузить фото. Попробуйте снова.',
+        message: translations.errorUpdating,
       });
     } finally {
       setIsUploading(false);
@@ -103,16 +106,16 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         setBio(newBio);
         setModal({
           type: 'success',
-          message: 'Описание профиля обновлено!',
+          message: translations.updating,
         });
         setTimeout(() => setModal(null), 1500);
       } else {
-        throw new Error(data.detail || 'Ошибка при обновлении описания');
+        throw new Error(data.detail || translations.errorUpdating);
       }
     } catch (err) {
       setModal({
         type: 'error',
-        message: 'Не удалось обновить описание. Попробуйте снова.',
+        message: translations.errorUpdating,
       });
     } finally {
       setIsUpdatingBio(false);
@@ -122,7 +125,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   const handleLogout = () => {
     setModal({
       type: 'logout',
-      message: 'Вы уверены, что хотите выйти?',
+      message: translations.logoutConfirm,
       onConfirm: () => {
         localStorage.removeItem('access_token');
         window.location.reload();
@@ -133,7 +136,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   const handleDeleteAccount = () => {
     setModal({
       type: 'deleteAccount',
-      message: 'Вы уверены, что хотите удалить аккаунт? Это действие нельзя отменить.',
+      message: translations.deleteConfirm,
       onConfirm: async () => {
         try {
           const response = await fetch(`${BASE_URL}/auth/me`, {
@@ -144,12 +147,12 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
             localStorage.removeItem('access_token');
             window.location.reload();
           } else {
-            throw new Error('Ошибка при удалении аккаунта');
+            throw new Error(translations.errorDeleting);
           }
         } catch (err) {
           setModal({
             type: 'error',
-            message: 'Не удалось удалить аккаунт. Попробуйте снова.',
+            message: translations.errorDeleting,
           });
         }
       },
@@ -157,26 +160,26 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div ref={ref} className="bg-card w-full max-w-md p-6 rounded-lg shadow-lg border border-border relative">
+    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <div ref={ref} className="bg-white w-full max-w-md p-6 rounded-lg shadow-lg border border-gray-200 relative">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 hover:bg-accent rounded-full transition-colors"
+          className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5 text-gray-500" />
         </button>
 
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Профиль</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">{translations.profile}</h2>
           
           <div className="flex items-center space-x-4">
             <div className="relative">
               <img
                 src={`${BASE_URL}${avatarUrl}`}
                 alt={username}
-                className="w-20 h-20 rounded-full object-cover"
+                className="w-20 h-20 rounded-full object-cover border border-gray-200"
               />
-              <label className="absolute bottom-0 right-0 p-1 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors">
+              <label className="absolute bottom-0 right-0 p-1 bg-blue-500 text-white rounded-full cursor-pointer hover:bg-blue-600 transition-colors">
                 <Upload className="w-4 h-4" />
                 <input
                   type="file"
@@ -187,25 +190,25 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
               </label>
             </div>
             <div>
-              <h3 className="font-medium text-lg">{username}</h3>
-              <p className="text-muted-foreground">{bio || 'Нет описания'}</p>
+              <h3 className="font-medium text-lg text-gray-900">{username}</h3>
+              <p className="text-gray-500">{bio || translations.bio}</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Описание профиля</label>
+            <label className="text-sm font-medium text-gray-700">{translations.bio}</label>
             <textarea
               value={newBio}
               onChange={(e) => setNewBio(e.target.value)}
-              className="w-full p-2 bg-background text-foreground border border-input rounded-md resize-none h-24 focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Расскажите о себе..."
+              className="w-full p-2 bg-white text-gray-900 border border-gray-300 rounded-md resize-none h-24 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={translations.bio}
             />
             <button
               onClick={handleUpdateBio}
               disabled={isUpdatingBio || newBio === bio}
-              className="w-full py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUpdatingBio ? 'Обновление...' : 'Сохранить описание'}
+              {isUpdatingBio ? translations.updating : translations.saveBio}
             </button>
           </div>
 
@@ -213,18 +216,46 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
             <button
               onClick={handleAvatarUpload}
               disabled={isUploading}
-              className="w-full py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUploading ? 'Загрузка...' : 'Сохранить фото'}
+              {isUploading ? translations.uploading : translations.savePhoto}
             </button>
           )}
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Language / Язык</label>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setLanguage('en')}
+                className={`flex-1 py-2 px-4 rounded-md border ${
+                  language === 'en'
+                    ? 'bg-blue-500 text-white border-blue-500'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <Globe className="w-4 h-4 inline-block mr-2" />
+                English
+              </button>
+              <button
+                onClick={() => setLanguage('ru')}
+                className={`flex-1 py-2 px-4 rounded-md border ${
+                  language === 'ru'
+                    ? 'bg-blue-500 text-white border-blue-500'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <Globe className="w-4 h-4 inline-block mr-2" />
+                Русский
+              </button>
+            </div>
+          </div>
+
           <button
             onClick={() => setIsGroupModalOpen(true)}
-            className="w-full py-2 flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            className="w-full py-2 flex items-center justify-center gap-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
           >
             <Users className="w-4 h-4" />
-            Создать группу
+            {translations.createGroup}
           </button>
 
           <button
@@ -232,14 +263,14 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
             className="w-full py-2 flex items-center justify-center gap-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Выйти из аккаунта
+            {translations.logout}
           </button>
 
           <button
             onClick={handleDeleteAccount}
-            className="w-full py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
+            className="w-full py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
           >
-            Удалить аккаунт
+            {translations.deleteAccount}
           </button>
         </div>
       </div>
@@ -276,17 +307,17 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         <ConfirmModal
           title={
             modal.type === 'deleteAccount'
-              ? 'Удаление аккаунта'
+              ? translations.deleteAccount
               : modal.type === 'success'
               ? 'Успех'
               : modal.type === 'logout'
-              ? 'Выход'
-              : 'Ошибка'
+              ? translations.logout
+              : translations.error
           }
           message={modal.message}
           onConfirm={modal.onConfirm || (() => setModal(null))}
           onCancel={() => setModal(null)}
-          confirmText={modal.type === 'success' || modal.type === 'error' ? 'OK' : 'Подтвердить'}
+          confirmText={modal.type === 'success' || modal.type === 'error' ? 'OK' : translations.confirm}
           isError={modal.type === 'error'}
         />
       )}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import RegisterComponent from './components/RegisterComponent';
@@ -6,6 +7,8 @@ import ChatsListComponent from './components/ChatsListComponent';
 import ChatComponent from './components/ChatComponent';
 import GroupComponent from './components/GroupComponent';
 import ProfileComponent from './components/ProfileComponent';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { useLanguage } from './contexts/LanguageContext';
 import { useIsMobile } from './hooks/use-mobile';
 
 interface CurrentChat {
@@ -15,7 +18,7 @@ interface CurrentChat {
   type: 'one-on-one' | 'group';
 }
 
-const App = () => {
+const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
@@ -23,6 +26,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const hasFetchedUser = useRef(false);
   const isMobile = useIsMobile();
+  const { translations } = useLanguage();
 
   useEffect(() => {
     if (hasFetchedUser.current) return;
@@ -85,30 +89,30 @@ const App = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 to-background">
-        <div className="animate-pulse text-primary text-lg">Загрузка...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-white">
+        <div className="animate-pulse text-blue-500 text-lg">{translations.loading}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/20 to-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white">
       <Toaster />
       {!isLoggedIn ? (
         <div className="container mx-auto min-h-screen flex flex-col items-center justify-center space-y-8 p-4">
           <div className="w-full max-w-md space-y-8 animate-fade-in">
             <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold text-foreground">Messenger</h1>
-              <p className="text-muted-foreground">Войдите или зарегистрируйтесь</p>
+              <h1 className="text-3xl font-bold text-gray-900">Messenger</h1>
+              <p className="text-gray-500">{translations.login}</p>
             </div>
             <div className="space-y-6">
               <LoginComponent onLoginSuccess={handleLoginSuccess} />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
+                  <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Или</span>
+                  <span className="bg-white px-2 text-gray-500">{translations.or}</span>
                 </div>
               </div>
               <RegisterComponent onLoginSuccess={handleLoginSuccess} />
@@ -118,7 +122,7 @@ const App = () => {
       ) : (
         <div className="container mx-auto min-h-screen p-4">
           <div className="grid grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
-            <div className={`${isMobile && currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4' : 'col-span-1'} bg-card rounded-lg shadow-lg overflow-hidden`}>
+            <div className={`${isMobile && currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4' : 'col-span-1'} bg-white rounded-lg shadow-lg overflow-hidden`}>
               <ChatsListComponent
                 username={username}
                 onChatOpen={openChat}
@@ -127,7 +131,7 @@ const App = () => {
                 onChatDeleted={handleChatDeleted}
               />
             </div>
-            <div className={`${isMobile && !currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4 chat-slide-in' : 'col-span-3'} bg-card rounded-lg shadow-lg overflow-hidden`}>
+            <div className={`${isMobile && !currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4 chat-slide-in' : 'col-span-3'} bg-white rounded-lg shadow-lg overflow-hidden`}>
               {currentChat ? (
                 currentChat.type === 'group' ? (
                   <GroupComponent
@@ -149,7 +153,7 @@ const App = () => {
                 )
               ) : (
                 <div className="h-full flex items-center justify-center">
-                  <p className="text-muted-foreground">Выберите чат для начала общения</p>
+                  <p className="text-gray-500">{translations.selectChat}</p>
                 </div>
               )}
             </div>
@@ -158,6 +162,14 @@ const App = () => {
         </div>
       )}
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 };
 
