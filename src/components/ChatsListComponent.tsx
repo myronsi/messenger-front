@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Plus, Menu } from 'lucide-react';
 import { Chat } from '../types';
@@ -7,7 +6,7 @@ import ConfirmModal from './ConfirmModal';
 
 interface ChatsListComponentProps {
   username: string;
-  onChatOpen: (chatId: number, chatName: string, interlocutorDeleted: boolean) => void;
+  onChatOpen: (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => void;
   setIsProfileOpen: (open: boolean) => void;
   activeChatId?: number;
 }
@@ -15,10 +14,11 @@ interface ChatsListComponentProps {
 const BASE_URL = "http://192.168.178.29:8000";
 const WS_URL = "ws://192.168.178.29:8000";
 const DEFAULT_AVATAR = "/static/avatars/default.jpg";
+const DEFAULT_GROUP_AVATAR = "/static/avatars/group.png";
 
 // Интерфейс для сообщений WebSocket
 interface WebSocketMessage {
-  type: 'chat_created' | 'chat_deleted' | 'error';
+  type: 'chat_created' | 'chat_deleted' | 'group_created' | 'error';
   message?: string;
   chat?: {
     chat_id: number;
@@ -27,6 +27,11 @@ interface WebSocketMessage {
     user2: string;
     user1_avatar_url?: string;
     user2_avatar_url?: string;
+  };
+  group?: {
+    chat_id: number;
+    name: string;
+    participants: string[];
   };
   chat_id?: number;
 }
@@ -54,30 +59,57 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
       if (hasFetchedChats.current) return;
       hasFetchedChats.current = true;
       try {
-        const response = await fetch(`${BASE_URL}/chats/list/${username}`, {
+        // Fetch one-on-one chats
+        const chatsResponse = await fetch(`${BASE_URL}/chats/list/${username}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!response.ok) {
-          if (response.status === 401) {
-            setModal({
-              type: 'error',
-              message: 'Сессия истекла. Войдите снова.',
-              onConfirm: () => {
-                localStorage.removeItem('access_token');
-                window.location.href = '/';
-              },
-            });
-            return;
-          }
-          throw new Error('Ошибка загрузки чатов');
+        if (!chatsResponse.ok) {
+          throw new Error(`Ошибка загрузки чатов: ${chatsResponse.status}`);
         }
-        const data = await response.json();
-        setChats(data.chats);
-      } catch (err) {
+        const chatsData = await chatsResponse.json();
+
+        // Fetch group chats
+        const groupsResponse = await fetch(`${BASE_URL}/groups/list/${username}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!groupsResponse.ok) {
+          throw new Error(`Ошибка загрузки групп: ${groupsResponse.status}`);
+        }
+        const groupsData = await groupsResponse.json();
+
+        // Combine one-on-one and group chats
+        const oneOnOneChats: Chat[] = (chatsData.chats || []).map((chat: any) => ({
+          id: chat.id,
+          name: chat.interlocutor_name,
+          interlocutor_name: chat.interlocutor_name,
+          avatar_url: chat.avatar_url || DEFAULT_AVATAR,
+          interlocutor_deleted: chat.interlocutor_deleted || false,
+          type: 'one-on-one',
+        }));
+
+        const groupChats: Chat[] = (groupsData.groups || []).map((group: any) => ({
+          id: group.chat_id,
+          name: group.name,
+          interlocutor_name: group.name,
+          avatar_url: DEFAULT_GROUP_AVATAR,
+          interlocutor_deleted: false,
+          type: 'group',
+        }));
+
+        setChats([...oneOnOneChats, ...groupChats]);
+      } catch (err: any) {
         console.error('Ошибка при загрузке чатов:', err);
         setModal({
           type: 'error',
-          message: 'Не удалось загрузить чаты. Попробуйте снова.',
+          message: err.message?.includes('401')
+            ? 'Сессия истекла. Войдите снова.'
+            : 'Не удалось загрузить чаты. Попробуйте снова.',
+          onConfirm: err.message?.includes('401')
+            ? () => {
+                localStorage.removeItem('access_token');
+                window.location.href = '/';
+              }
+            : undefined,
         });
       }
     };
@@ -92,7 +124,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
       }
     }, 30000);
 
-    // Подключение WebSocket для уведомлений о чатах
+    // Подключение WebSocket для уведомлений
     const connectWebSocket = () => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         console.log('WebSocket уже подключён для списка чатов');
@@ -115,19 +147,17 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
           return;
         }
 
-        const { type, message, chat } = parsedData;
+        const { type, message, chat, group } = parsedData;
 
         if (type === 'chat_created' && chat) {
           console.log('Received chat_created:', chat);
           setChats((prev) => {
             if (prev.some((c) => c.id === chat.chat_id)) return prev;
             const interlocutor_name = chat.user1 === username ? chat.user2 : chat.user1;
-            // Проверяем, что пользователь является участником чата
             if (![chat.user1, chat.user2].includes(username)) {
               console.log('Ignoring chat_created: user not a participant');
               return prev;
             }
-            // Выбираем аватарку собеседника
             const avatar_url =
               chat.user1 === username
                 ? chat.user2_avatar_url || DEFAULT_AVATAR
@@ -136,10 +166,31 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
               ...prev,
               {
                 id: chat.chat_id,
-                name: chat.name,
+                name: interlocutor_name,
                 interlocutor_name,
                 avatar_url,
                 interlocutor_deleted: false,
+                type: 'one-on-one',
+              },
+            ];
+          });
+        } else if (type === 'group_created' && group) {
+          console.log('Received group_created:', group);
+          setChats((prev) => {
+            if (prev.some((c) => c.id === group.chat_id)) return prev;
+            if (!group.participants.includes(username)) {
+              console.log('Ignoring group_created: user not a participant');
+              return prev;
+            }
+            return [
+              ...prev,
+              {
+                id: group.chat_id,
+                name: group.name,
+                interlocutor_name: group.name,
+                avatar_url: DEFAULT_GROUP_AVATAR,
+                interlocutor_deleted: false,
+                type: 'group',
               },
             ];
           });
@@ -220,12 +271,12 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
     }
   };
 
-  const handleChatClick = (chatId: number, chatName: string, interlocutorDeleted: boolean) => {
+  const handleChatClick = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
     if (chatId === activeChatId) {
       console.log('Чат уже активен, повторное подключение не требуется');
       return;
     }
-    onChatOpen(chatId, chatName, interlocutorDeleted);
+    onChatOpen(chatId, chatName, interlocutorDeleted, type);
   };
 
   const handleUserClick = (user: string, interlocutorDeleted: boolean) => {
@@ -278,7 +329,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
           chats.map((chat) => (
             <div
               key={chat.id}
-              onClick={() => handleChatClick(chat.id, chat.interlocutor_name, chat.interlocutor_deleted)}
+              onClick={() => handleChatClick(chat.id, chat.name, chat.interlocutor_deleted, chat.type)}
               className={`flex items-center p-3 rounded-lg cursor-pointer transition-all ${
                 chat.id === activeChatId
                   ? 'bg-primary text-primary-foreground'
@@ -286,17 +337,21 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
               }`}
             >
               <img
-                src={`${BASE_URL}${chat.avatar_url || DEFAULT_AVATAR}`}
-                alt={chat.interlocutor_name}
+                src={`${BASE_URL}${chat.avatar_url}`}
+                alt={chat.name}
                 className={`w-10 h-10 rounded-full mr-3 ${
                   chat.interlocutor_deleted ? 'opacity-50' : ''
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (chat.type === 'group') return;
                   handleUserClick(chat.interlocutor_name, chat.interlocutor_deleted);
                 }}
               />
-              <span className="font-medium">{chat.interlocutor_name}</span>
+              <span className="font-medium">{chat.name}</span>
+              {chat.type === 'group' && (
+                <span className="ml-2 text-xs text-muted-foreground">(Группа)</span>
+              )}
             </div>
           ))
         )}

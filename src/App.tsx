@@ -1,10 +1,10 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import RegisterComponent from './components/RegisterComponent';
 import LoginComponent from './components/LoginComponent';
 import ChatsListComponent from './components/ChatsListComponent';
 import ChatComponent from './components/ChatComponent';
+import GroupComponent from './components/GroupComponent';
 import ProfileComponent from './components/ProfileComponent';
 import { useIsMobile } from './hooks/use-mobile';
 
@@ -12,6 +12,7 @@ interface CurrentChat {
   id: number;
   name: string;
   interlocutorDeleted: boolean;
+  type: 'one-on-one' | 'group';
 }
 
 const App = () => {
@@ -67,12 +68,19 @@ const App = () => {
     setIsProfileOpen(false);
   };
 
-  const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean) => {
-    setCurrentChat({ id: chatId, name: chatName, interlocutorDeleted });
+  const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
+    setCurrentChat({ id: chatId, name: chatName, interlocutorDeleted, type });
   };
 
   const backToChats = () => {
     setCurrentChat(null);
+  };
+
+  const handleChatDeleted = (chatId: number) => {
+    if (currentChat && currentChat.id === chatId) {
+      console.log(`Active chat ${chatId} deleted, clearing currentChat`);
+      setCurrentChat(null);
+    }
   };
 
   if (isLoading) {
@@ -116,18 +124,29 @@ const App = () => {
                 onChatOpen={openChat}
                 setIsProfileOpen={setIsProfileOpen}
                 activeChatId={currentChat?.id}
+                onChatDeleted={handleChatDeleted}
               />
             </div>
             <div className={`${isMobile && !currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4 chat-slide-in' : 'col-span-3'} bg-card rounded-lg shadow-lg overflow-hidden`}>
               {currentChat ? (
-                <ChatComponent
-                  key={currentChat.id}
-                  chatId={currentChat.id}
-                  chatName={currentChat.name}
-                  username={username}
-                  interlocutorDeleted={currentChat.interlocutorDeleted}
-                  onBack={backToChats}
-                />
+                currentChat.type === 'group' ? (
+                  <GroupComponent
+                    key={currentChat.id}
+                    chatId={currentChat.id}
+                    groupName={currentChat.name}
+                    username={username}
+                    onBack={backToChats}
+                  />
+                ) : (
+                  <ChatComponent
+                    key={currentChat.id}
+                    chatId={currentChat.id}
+                    chatName={currentChat.name}
+                    username={username}
+                    interlocutorDeleted={currentChat.interlocutorDeleted}
+                    onBack={backToChats}
+                  />
+                )
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <p className="text-muted-foreground">Выберите чат для начала общения</p>

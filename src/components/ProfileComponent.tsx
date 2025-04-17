@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, forwardRef } from 'react';
-import { Upload, X, LogOut } from 'lucide-react';
+import { Upload, X, LogOut, Users } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import GroupCreateModal from './GroupCreateModal';
 
 interface ProfileComponentProps {
   onClose: () => void;
@@ -18,6 +18,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdatingBio, setIsUpdatingBio] = useState(false);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [modal, setModal] = useState<{
     type: 'deleteAccount' | 'error' | 'success' | 'logout';
     message: string;
@@ -219,6 +220,14 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
           )}
 
           <button
+            onClick={() => setIsGroupModalOpen(true)}
+            className="w-full py-2 flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            <Users className="w-4 h-4" />
+            Создать группу
+          </button>
+
+          <button
             onClick={handleLogout}
             className="w-full py-2 flex items-center justify-center gap-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
           >
@@ -234,6 +243,34 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
           </button>
         </div>
       </div>
+
+      {isGroupModalOpen && (
+        <GroupCreateModal
+          onClose={() => setIsGroupModalOpen(false)}
+          onCreate={async (groupName, participants) => {
+            try {
+              const response = await fetch(`${BASE_URL}/groups/create`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: groupName, participants }),
+              });
+              if (response.ok) {
+                setIsGroupModalOpen(false);
+                setModal({ type: 'success', message: 'Группа создана!' });
+                setTimeout(() => setModal(null), 1500);
+              } else {
+                const data = await response.json();
+                throw new Error(data.detail || 'Ошибка при создании группы');
+              }
+            } catch (err) {
+              setModal({ type: 'error', message: 'Не удалось создать группу. Попробуйте снова.' });
+            }
+          }}
+        />
+      )}
 
       {modal && (
         <ConfirmModal

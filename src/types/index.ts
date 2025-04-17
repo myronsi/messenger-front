@@ -13,6 +13,7 @@ export interface Chat {
   id: number;
   name: string;
   interlocutor_name: string;
-  avatar_url?: string;
+  avatar_url: string;
   interlocutor_deleted: boolean;
+  type: 'one-on-one' | 'group';
 }
