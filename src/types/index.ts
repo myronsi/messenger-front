@@ -7,7 +7,6 @@ export interface Message {
   avatar_url?: string;
   reply_to?: number | null;
   is_deleted?: boolean;
-  sender_deleted?: boolean; // Add this to track if the sender account is deleted
 }
 
 export interface Chat {

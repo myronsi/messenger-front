@@ -9,7 +9,6 @@ interface ChatsListComponentProps {
   onChatOpen: (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => void;
   setIsProfileOpen: (open: boolean) => void;
   activeChatId?: number;
-  onChatDeleted?: (chatId: number) => void;
 }
 
 const BASE_URL = "http://192.168.178.29:8000";
@@ -17,6 +16,7 @@ const WS_URL = "ws://192.168.178.29:8000";
 const DEFAULT_AVATAR = "/static/avatars/default.jpg";
 const DEFAULT_GROUP_AVATAR = "/static/avatars/group.png";
 
+// Интерфейс для сообщений WebSocket
 interface WebSocketMessage {
   type: 'chat_created' | 'chat_deleted' | 'group_created' | 'error';
   message?: string;
@@ -41,7 +41,6 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
   onChatOpen,
   setIsProfileOpen,
   activeChatId,
-  onChatDeleted,
 }) => {
   const [chats, setChats] = useState<Chat[]>([]);
   const [targetUser, setTargetUser] = useState('');
@@ -60,6 +59,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
       if (hasFetchedChats.current) return;
       hasFetchedChats.current = true;
       try {
+        // Fetch one-on-one chats
         const chatsResponse = await fetch(`${BASE_URL}/chats/list/${username}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -68,6 +68,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         }
         const chatsData = await chatsResponse.json();
 
+        // Fetch group chats
         const groupsResponse = await fetch(`${BASE_URL}/groups/list/${username}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -76,6 +77,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         }
         const groupsData = await groupsResponse.json();
 
+        // Combine one-on-one and group chats
         const oneOnOneChats: Chat[] = (chatsData.chats || []).map((chat: any) => ({
           id: chat.id,
           name: chat.interlocutor_name,
@@ -114,6 +116,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
 
     if (token) fetchChats();
 
+    // Периодический опрос каждые 30 секунд
     const interval = setInterval(() => {
       if (token) {
         hasFetchedChats.current = false;
@@ -121,6 +124,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
       }
     }, 30000);
 
+    // Подключение WebSocket для уведомлений
     const connectWebSocket = () => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         console.log('WebSocket уже подключён для списка чатов');
@@ -193,9 +197,6 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         } else if (type === 'chat_deleted' && parsedData.chat_id !== undefined) {
           console.log('Received chat_deleted:', parsedData.chat_id);
           setChats((prev) => prev.filter((c) => c.id !== parsedData.chat_id));
-          if (onChatDeleted) {
-            onChatDeleted(parsedData.chat_id);
-          }
         } else if (type === 'error' && message) {
           console.error('Server error:', message);
           setModal({
@@ -229,7 +230,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         wsRef.current.close();
       }
     };
-  }, [username, token, onChatDeleted]);
+  }, [username, token]);
 
   const handleCreateChat = async () => {
     if (!targetUser.trim()) {
