@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface RegisterComponentProps {
   onLoginSuccess: (username: string) => void;
@@ -11,6 +12,7 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess })
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const { translations } = useLanguage();
 
   const handleRegister = async () => {
     try {
@@ -27,23 +29,23 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess })
         setMessage(data.detail);
       }
     } catch (err) {
-      setMessage('Ошибка сети. Проверьте подключение.');
+      setMessage(translations.networkError);
     }
   };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-foreground">Регистрация</h2>
+      <h2 className="text-xl font-semibold text-foreground">{translations.register}</h2>
       <input
         type="text"
-        placeholder="Имя пользователя"
+        placeholder={translations.username}
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
       />
       <input
         type="password"
-        placeholder="Пароль"
+        placeholder={translations.password}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
@@ -52,7 +54,7 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess })
         onClick={handleRegister}
         className="w-full py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
       >
-        Зарегистрироваться
+        {translations.register}
       </button>
       {message && <p className="text-destructive text-sm">{message}</p>}
     </div>

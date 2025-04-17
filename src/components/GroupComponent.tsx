@@ -277,10 +277,12 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
                 className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${highlightedMessageId === message.id ? 'bg-yellow-100/10 rounded-xl p-2 transition-colors duration-300' : ''}`}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const y = e.clientY - rect.top;
-                  setContextMenu({ x, y, messageId: message.id, isMine });
+                  setContextMenu({
+                    x: e.clientX,
+                    y: e.clientY,
+                    messageId: message.id,
+                    isMine
+                  });
                 }}
               >
                 <div className={`flex items-end space-x-2 max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>

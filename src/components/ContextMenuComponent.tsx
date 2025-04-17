@@ -60,4 +60,6 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
   }
 );
 
+ContextMenuComponent.displayName = 'ContextMenuComponent';
+
 export default ContextMenuComponent;
