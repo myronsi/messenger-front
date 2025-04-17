@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, X } from 'lucide-react';
 import { Message } from '../types';
@@ -163,7 +164,12 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   }, [chatId, token, onBack, isChatValid]);
 
   const scrollToBottom = () => {
-    chatWindowRef.current?.scrollTo({ top: chatWindowRef.current.scrollHeight, behavior: 'smooth' });
+    if (chatWindowRef.current) {
+      chatWindowRef.current.scrollTo({
+        top: chatWindowRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   const scrollToMessage = (messageId: number) => {
@@ -231,7 +237,9 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const getMessageTime = (timestamp: string) => new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const getMessageTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -264,26 +272,33 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
               )}
               <div
                 ref={(el) => (messageRefs.current[message.id] = el)}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${highlightedMessageId === message.id ? 'bg-yellow-100' : ''}`}
+                className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${highlightedMessageId === message.id ? 'bg-yellow-100/10 rounded-xl p-2 transition-colors duration-300' : ''}`}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine });
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const y = e.clientY - rect.top;
+                  setContextMenu({ x, y, messageId: message.id, isMine });
                 }}
               >
                 <div className={`flex items-end space-x-2 max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
                   <img
                     src={`${BASE_URL}${message.avatar_url}`}
                     alt={message.sender}
-                    className="w-8 h-8 rounded-full cursor-pointer"
+                    className="w-8 h-8 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={() => setSelectedUser(message.sender)}
                   />
                   <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                     {!isMine && <span className="text-sm text-muted-foreground mb-1">{message.sender}</span>}
-                    <div className={`px-4 py-2 rounded-2xl ${isMine ? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}>
+                    <div className={`relative px-4 py-2 rounded-2xl ${isMine ? 'bg-primary text-primary-foreground message-tail-right' : 'bg-accent text-accent-foreground message-tail-left'}`}>
                       {message.reply_to && (
                         <div
-                          className={`mb-2 p-2 rounded text-sm ${isMine ? 'bg-primary/80' : 'bg-accent/80'} cursor-pointer`}
-                          onClick={() => scrollToMessage(message.reply_to)}
+                          onClick={() => scrollToMessage(message.reply_to!)}
+                          className={`mb-2 p-2 rounded text-sm cursor-pointer ${
+                            isMine 
+                              ? 'bg-primary-darker/50 hover:bg-primary-darker/70'
+                              : 'bg-accent-darker/50 hover:bg-accent-darker/70'
+                          } transition-colors`}
                         >
                           {messages.find(m => m.id === message.reply_to)?.content || '[Сообщение удалено]'}
                         </div>
@@ -305,7 +320,10 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             <span className="flex-1 text-sm text-muted-foreground">
               {replyTo ? `Ответ на: ${replyTo.content}` : `Редактирование: ${editingMessage!.content}`}
             </span>
-            <button onClick={() => { setReplyTo(null); setEditingMessage(null); setMessageInput(''); }} className="p-1 hover:bg-accent rounded-full">
+            <button 
+              onClick={() => { setReplyTo(null); setEditingMessage(null); setMessageInput(''); }} 
+              className="p-1 hover:bg-accent rounded-full transition-colors"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -316,8 +334,8 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             placeholder={editingMessage ? "Редактировать сообщение..." : "Написать сообщение..."}
-            className="flex-1 px-4 py-2 bg-background text-foreground border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            className="flex-1 px-4 py-2 bg-background text-foreground border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
           />
           <button
             onClick={handleSendMessage}
