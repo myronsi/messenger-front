@@ -5,6 +5,7 @@ import { Message } from '../types';
 import ContextMenuComponent from './ContextMenuComponent';
 import UserProfileComponent from './UserProfileComponent';
 import ConfirmModal from './ConfirmModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ChatComponentProps {
   chatId: number;
@@ -37,6 +38,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
     onConfirm?: () => void;
   } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+  const { translations } = useLanguage();
   
   const wsRef = useRef<WebSocket | null>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -73,16 +75,16 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
         } else if (response.status === 401) {
           setModal({
             type: 'error',
-            message: 'Сессия истекла. Войдите снова.',
+            message: translations.loginRequired,
           });
           setTimeout(onBack, 2000);
         } else {
-          throw new Error('Ошибка загрузки сообщений');
+          throw new Error(translations.errorLoading);
         }
       } catch (err) {
         setModal({
           type: 'error',
-          message: 'Ошибка при загрузке сообщений.',
+          message: translations.errorLoadingMessages,
         });
       }
     };
@@ -156,7 +158,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
             if (chat_id === chatId) {
               setModal({
                 type: 'error',
-                message: 'Чат был удалён.',
+                message: translations.chatDeleted,
               });
               setTimeout(onBack, 1000);
             }
@@ -188,7 +190,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
       }
       hasFetchedMessages.current = false;
     };
-  }, [chatId, token, onBack, interlocutorDeleted]);
+  }, [chatId, token, onBack, interlocutorDeleted, translations]);
 
   const scrollToBottom = () => {
     if (chatWindowRef.current) {
@@ -237,7 +239,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
   const handleDeleteChat = () => {
     setModal({
       type: 'deleteChat',
-      message: 'Вы уверены, что хотите удалить этот чат?',
+      message: translations.deleteChatConfirm,
       onConfirm: async () => {
         try {
           const response = await fetch(`${BASE_URL}/chats/delete/${chatId}`, {
@@ -247,12 +249,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
           if (response.ok) {
             onBack();
           } else {
-            throw new Error('Не удалось удалить чат');
+            throw new Error(translations.errorDeleting);
           }
         } catch (err) {
           setModal({
             type: 'error',
-            message: 'Ошибка при удалении чата.',
+            message: translations.errorDeletingChat,
           });
         }
       },
@@ -265,8 +267,8 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) return 'Сегодня';
-    if (date.toDateString() === yesterday.toDateString()) return 'Вчера';
+    if (date.toDateString() === today.toDateString()) return translations.today;
+    if (date.toDateString() === yesterday.toDateString()) return translations.yesterday;
     
     const options: Intl.DateTimeFormatOptions = {
       day: 'numeric',
@@ -291,13 +293,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-semibold">{chatName}</h2>
+          <h2 className="text-lg font-semibold">{interlocutorDeleted ? translations.deletedUser : chatName}</h2>
         </div>
         <button
           onClick={handleDeleteChat}
           className="text-destructive hover:text-destructive/90 transition-colors"
         >
-          Удалить чат
+          {translations.deleteChat}
         </button>
       </div>
 
@@ -363,7 +365,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
                   <div className={`group relative flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                     {!isMine && (
                       <span className="text-sm text-muted-foreground mb-1">
-                        {interlocutorDeleted ? 'Удаленный пользователь' : message.sender}
+                        {interlocutorDeleted ? translations.deletedUser : message.sender}
                       </span>
                     )}
                     <div
@@ -383,7 +385,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
                             scrollToMessage(message.reply_to);
                           }}
                         >
-                          {messages.find(m => m.id === message.reply_to)?.content || '[Сообщение удалено]'}
+                          {messages.find(m => m.id === message.reply_to)?.content || translations.messageDeleted}
                         </div>
                       )}
                       <div>{message.content}</div>
@@ -404,7 +406,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
           {(replyTo || editingMessage) && (
             <div className="flex items-center mb-2 p-2 bg-accent rounded-lg">
               <span className="flex-1 text-sm text-muted-foreground">
-                {replyTo ? `Ответ: ${replyTo.content}` : `Редактирование: ${editingMessage!.content}`}
+                {replyTo ? `${translations.replyTo}: ${replyTo.content}` : `${translations.editing}: ${editingMessage!.content}`}
               </span>
               <button
                 onClick={() => {
@@ -424,7 +426,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
               type="text"
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
-              placeholder={editingMessage ? "Редактировать сообщение..." : "Написать сообщение..."}
+              placeholder={editingMessage ? translations.editMessagePlaceholder : translations.writeMessage}
               className="flex-1 px-4 py-2 bg-background text-foreground border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             />
@@ -443,7 +445,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
             onClick={handleDeleteChat}
             className="w-full p-3 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
           >
-            Удалить чат
+            {translations.deleteChat}
           </button>
         </div>
       )}
@@ -466,7 +468,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
           onDelete={() => {
             setModal({
               type: 'deleteMessage',
-              message: 'Удалить сообщение?',
+              message: translations.deleteMessageConfirm,
               onConfirm: () => {
                 if (wsRef.current) {
                   wsRef.current.send(JSON.stringify({
@@ -485,7 +487,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
               navigator.clipboard.writeText(message.content);
               setModal({
                 type: 'copy',
-                message: 'Сообщение скопировано!',
+                message: translations.messageCopied,
               });
               setTimeout(() => setModal(null), 1500);
             }
@@ -514,12 +516,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
         <ConfirmModal
           title={
             modal.type === 'deleteMessage'
-              ? 'Удаление сообщения'
+              ? translations.deleteMessage
               : modal.type === 'deleteChat'
-              ? 'Удаление чата'
+              ? translations.deleteChat
               : modal.type === 'copy'
-              ? 'Успех'
-              : 'Ошибка'
+              ? translations.success
+              : translations.error
           }
           message={modal.message}
           onConfirm={modal.onConfirm || (() => setModal(null))}
@@ -527,7 +529,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
           confirmText={
             modal.type === 'copy' || modal.type === 'error'
               ? 'OK'
-              : 'Подтвердить'
+              : translations.confirm
           }
           isError={modal.type === 'error'}
         />

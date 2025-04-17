@@ -5,6 +5,7 @@ import { Message } from '../types';
 import ContextMenuComponent from './ContextMenuComponent';
 import UserProfileComponent from './UserProfileComponent';
 import ConfirmModal from './ConfirmModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GroupComponentProps {
   chatId: number;
@@ -31,6 +32,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const [isChatValid, setIsChatValid] = useState(true);
+  const { translations } = useLanguage();
 
   const wsRef = useRef<WebSocket | null>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -65,16 +67,16 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             reply_to: msg.reply_to || null,
           })));
         } else if (response.status === 401) {
-          setModal({ type: 'error', message: 'Сессия истекла. Войдите снова.' });
+          setModal({ type: 'error', message: translations.loginRequired });
           setTimeout(() => {
             localStorage.removeItem('access_token');
             window.location.href = '/';
           }, 2000);
         } else {
-          throw new Error('Ошибка загрузки сообщений');
+          throw new Error(translations.errorLoading);
         }
       } catch (err) {
-        setModal({ type: 'error', message: 'Ошибка при загрузке сообщений.' });
+        setModal({ type: 'error', message: translations.errorLoadingMessages });
         setIsChatValid(false);
       }
     };
@@ -122,14 +124,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         } else if (type === "chat_deleted" && parsedData.chat_id === chatId) {
           console.log(`Chat ${chatId} deleted, closing WebSocket`);
           setIsChatValid(false);
-          setModal({ type: 'error', message: 'Группа была удалена.' });
+          setModal({ type: 'error', message: translations.groupDeleted });
           if (wsRef.current) wsRef.current.close(1000);
           setTimeout(onBack, 1000);
         } else if (type === "error") {
           if (parsedData.message === "Chat does not exist" || parsedData.message === "You are not a member of this chat") {
             console.log(`WebSocket error: ${parsedData.message}, closing WebSocket`);
             setIsChatValid(false);
-            setModal({ type: 'error', message: 'Группа была удалена или недоступна.' });
+            setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
             if (wsRef.current) wsRef.current.close(1000);
             setTimeout(onBack, 1000);
           } else {
@@ -161,7 +163,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
       }
       hasFetchedMessages.current = false;
     };
-  }, [chatId, token, onBack, isChatValid]);
+  }, [chatId, token, onBack, isChatValid, translations]);
 
   const scrollToBottom = () => {
     if (chatWindowRef.current) {
@@ -208,7 +210,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   const handleDeleteGroup = () => {
     setModal({
       type: 'deleteGroup',
-      message: 'Вы уверены, что хотите удалить эту группу?',
+      message: translations.deleteGroupConfirm,
       onConfirm: async () => {
         try {
           const response = await fetch(`${BASE_URL}/groups/delete/${chatId}`, {
@@ -219,10 +221,10 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             setIsChatValid(false);
             onBack();
           } else {
-            throw new Error('Не удалось удалить группу');
+            throw new Error(translations.errorDeleting);
           }
         } catch (err) {
-          setModal({ type: 'error', message: 'Ошибка при удалении группы.' });
+          setModal({ type: 'error', message: translations.errorDeletingGroup });
         }
       },
     });
@@ -231,9 +233,9 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   const formatDateLabel = (timestamp: string) => {
     const date = new Date(timestamp);
     const today = new Date();
-    if (date.toDateString() === today.toDateString()) return 'Сегодня';
+    if (date.toDateString() === today.toDateString()) return translations.today;
     const yesterday = new Date(today.setDate(today.getDate() - 1));
-    if (date.toDateString() === yesterday.toDateString()) return 'Вчера';
+    if (date.toDateString() === yesterday.toDateString()) return translations.yesterday;
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
@@ -251,7 +253,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           <h2 className="text-lg font-semibold">{groupName}</h2>
         </div>
         <button onClick={handleDeleteGroup} className="text-destructive hover:text-destructive/90 transition-colors">
-          Удалить группу
+          {translations.deleteGroup}
         </button>
       </div>
 
@@ -300,7 +302,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
                               : 'bg-accent-darker/50 hover:bg-accent-darker/70'
                           } transition-colors`}
                         >
-                          {messages.find(m => m.id === message.reply_to)?.content || '[Сообщение удалено]'}
+                          {messages.find(m => m.id === message.reply_to)?.content || translations.messageDeleted}
                         </div>
                       )}
                       <div>{message.content}</div>
@@ -318,7 +320,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         {(replyTo || editingMessage) && (
           <div className="flex items-center mb-2 p-2 bg-accent rounded-lg">
             <span className="flex-1 text-sm text-muted-foreground">
-              {replyTo ? `Ответ на: ${replyTo.content}` : `Редактирование: ${editingMessage!.content}`}
+              {replyTo ? `${translations.replyTo}: ${replyTo.content}` : `${translations.editing}: ${editingMessage!.content}`}
             </span>
             <button 
               onClick={() => { setReplyTo(null); setEditingMessage(null); setMessageInput(''); }} 
@@ -333,7 +335,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
-            placeholder={editingMessage ? "Редактировать сообщение..." : "Написать сообщение..."}
+            placeholder={editingMessage ? translations.editMessagePlaceholder : translations.writeMessage}
             className="flex-1 px-4 py-2 bg-background text-foreground border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all"
             onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
           />
@@ -365,7 +367,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           onDelete={() => {
             setModal({
               type: 'deleteMessage',
-              message: 'Удалить сообщение?',
+              message: translations.deleteMessageConfirm,
               onConfirm: () => {
                 if (wsRef.current) {
                   wsRef.current.send(JSON.stringify({ type: "delete", message_id: contextMenu.messageId }));
@@ -379,7 +381,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             const message = messages.find(m => m.id === contextMenu.messageId);
             if (message) {
               navigator.clipboard.writeText(message.content);
-              setModal({ type: 'copy', message: 'Сообщение скопировано!' });
+              setModal({ type: 'copy', message: translations.messageCopied });
               setTimeout(() => setModal(null), 1500);
             }
             setContextMenu(null);
@@ -403,14 +405,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
       {modal && (
         <ConfirmModal
           title={
-            modal.type === 'deleteMessage' ? 'Удаление сообщения' :
-            modal.type === 'deleteGroup' ? 'Удаление группы' :
-            modal.type === 'copy' ? 'Успех' : 'Ошибка'
+            modal.type === 'deleteMessage' ? translations.deleteMessage :
+            modal.type === 'deleteGroup' ? translations.deleteGroup :
+            modal.type === 'copy' ? translations.success : translations.error
           }
           message={modal.message}
           onConfirm={modal.onConfirm || (() => setModal(null))}
           onCancel={() => setModal(null)}
-          confirmText={modal.type === 'copy' || modal.type === 'error' ? 'OK' : 'Подтвердить'}
+          confirmText={modal.type === 'copy' || modal.type === 'error' ? 'OK' : translations.confirm}
           isError={modal.type === 'error'}
         />
       )}

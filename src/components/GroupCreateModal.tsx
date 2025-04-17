@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GroupCreateModalProps {
   onClose: () => void;
@@ -10,6 +12,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ onClose, onCreate }
   const [groupName, setGroupName] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
   const [participantInput, setParticipantInput] = useState('');
+  const { translations } = useLanguage();
 
   const handleAddParticipant = () => {
     if (participantInput.trim() && !participants.includes(participantInput.trim())) {
@@ -33,12 +36,12 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ onClose, onCreate }
         >
           <X className="w-5 h-5" />
         </button>
-        <h2 className="text-xl font-semibold mb-4">Создать группу</h2>
+        <h2 className="text-xl font-semibold mb-4">{translations.createGroup}</h2>
         <input
           type="text"
           value={groupName}
           onChange={(e) => setGroupName(e.target.value)}
-          placeholder="Название группы"
+          placeholder={translations.groupName}
           className="w-full p-2 mb-4 bg-background text-foreground border border-input rounded-md"
         />
         <div className="flex space-x-2 mb-4">
@@ -46,14 +49,14 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ onClose, onCreate }
             type="text"
             value={participantInput}
             onChange={(e) => setParticipantInput(e.target.value)}
-            placeholder="Добавить участника (имя пользователя)"
+            placeholder={translations.addParticipant}
             className="flex-1 p-2 bg-background text-foreground border border-input rounded-md"
           />
           <button
             onClick={handleAddParticipant}
             className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
-            Добавить
+            {translations.add}
           </button>
         </div>
         <div className="mb-4 max-h-40 overflow-y-auto">
@@ -64,7 +67,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ onClose, onCreate }
                 onClick={() => setParticipants(participants.filter((_, i) => i !== index))}
                 className="text-destructive hover:text-destructive/90"
               >
-                Удалить
+                {translations.delete}
               </button>
             </div>
           ))}
@@ -74,7 +77,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ onClose, onCreate }
           disabled={!groupName.trim() || participants.length === 0}
           className="w-full py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
-          Создать
+          {translations.create}
         </button>
       </div>
     </div>

@@ -1,14 +1,17 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Plus, Menu } from 'lucide-react';
 import { Chat } from '../types';
 import UserProfileComponent from './UserProfileComponent';
 import ConfirmModal from './ConfirmModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ChatsListComponentProps {
   username: string;
   onChatOpen: (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => void;
   setIsProfileOpen: (open: boolean) => void;
   activeChatId?: number;
+  onChatDeleted?: (chatId: number) => void;
 }
 
 const BASE_URL = "http://192.168.178.29:8000";
@@ -41,6 +44,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
   onChatOpen,
   setIsProfileOpen,
   activeChatId,
+  onChatDeleted,
 }) => {
   const [chats, setChats] = useState<Chat[]>([]);
   const [targetUser, setTargetUser] = useState('');
@@ -53,6 +57,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
   const token = localStorage.getItem('access_token');
   const hasFetchedChats = useRef(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const { translations } = useLanguage();
 
   useEffect(() => {
     const fetchChats = async () => {
@@ -64,7 +69,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!chatsResponse.ok) {
-          throw new Error(`Ошибка загрузки чатов: ${chatsResponse.status}`);
+          throw new Error(`${translations.errorLoading}: ${chatsResponse.status}`);
         }
         const chatsData = await chatsResponse.json();
 
@@ -73,7 +78,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!groupsResponse.ok) {
-          throw new Error(`Ошибка загрузки групп: ${groupsResponse.status}`);
+          throw new Error(`${translations.errorLoading}: ${groupsResponse.status}`);
         }
         const groupsData = await groupsResponse.json();
 
@@ -98,12 +103,12 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
 
         setChats([...oneOnOneChats, ...groupChats]);
       } catch (err: any) {
-        console.error('Ошибка при загрузке чатов:', err);
+        console.error(`${translations.errorLoading}:`, err);
         setModal({
           type: 'error',
           message: err.message?.includes('401')
-            ? 'Сессия истекла. Войдите снова.'
-            : 'Не удалось загрузить чаты. Попробуйте снова.',
+            ? translations.loginRequired
+            : translations.errorLoading,
           onConfirm: err.message?.includes('401')
             ? () => {
                 localStorage.removeItem('access_token');
@@ -197,6 +202,11 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         } else if (type === 'chat_deleted' && parsedData.chat_id !== undefined) {
           console.log('Received chat_deleted:', parsedData.chat_id);
           setChats((prev) => prev.filter((c) => c.id !== parsedData.chat_id));
+          
+          // Notify parent component about chat deletion
+          if (onChatDeleted) {
+            onChatDeleted(parsedData.chat_id);
+          }
         } else if (type === 'error' && message) {
           console.error('Server error:', message);
           setModal({
@@ -230,13 +240,13 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         wsRef.current.close();
       }
     };
-  }, [username, token]);
+  }, [username, token, onChatDeleted, translations]);
 
   const handleCreateChat = async () => {
     if (!targetUser.trim()) {
       setModal({
         type: 'validation',
-        message: 'Введите имя пользователя.',
+        message: translations.enterUsername,
       });
       return;
     }
@@ -253,20 +263,20 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
       if (response.ok) {
         setModal({
           type: 'success',
-          message: 'Чат успешно создан!',
+          message: translations.chatCreated,
         });
         setTargetUser('');
         setTimeout(() => setModal(null), 1000);
       } else {
         setModal({
           type: 'error',
-          message: data.detail || 'Ошибка при создании чата.',
+          message: data.detail || translations.errorCreatingChat,
         });
       }
     } catch (err) {
       setModal({
         type: 'error',
-        message: 'Ошибка сети. Проверьте подключение.',
+        message: translations.networkError,
       });
     }
   };
@@ -283,7 +293,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
     if (interlocutorDeleted) {
       setModal({
         type: 'deletedUser',
-        message: 'Информация о удалённом аккаунте недоступна.',
+        message: translations.deletedUserInfo,
       });
       setTimeout(() => setModal(null), 1500);
     } else {
@@ -294,7 +304,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
   return (
     <div className="h-full flex flex-col p-4 space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-foreground">Чаты</h2>
+        <h2 className="text-xl font-semibold text-foreground">{translations.chats}</h2>
         <button
           onClick={() => setIsProfileOpen(true)}
           className="p-2 hover:bg-accent rounded-full transition-colors"
@@ -306,7 +316,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
       <div className="flex space-x-2">
         <input
           type="text"
-          placeholder="Имя пользователя"
+          placeholder={translations.username}
           value={targetUser}
           onChange={(e) => setTargetUser(e.target.value)}
           className="flex-1 px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
@@ -323,7 +333,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         {chats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
             <MessageSquare className="w-12 h-12" />
-            <p>Нет активных чатов</p>
+            <p>{translations.noChats}</p>
           </div>
         ) : (
           chats.map((chat) => (
@@ -348,9 +358,9 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
                   handleUserClick(chat.interlocutor_name, chat.interlocutor_deleted);
                 }}
               />
-              <span className="font-medium">{chat.name}</span>
+              <span className="font-medium">{chat.interlocutor_deleted ? translations.deletedUser : chat.name}</span>
               {chat.type === 'group' && (
-                <span className="ml-2 text-xs text-muted-foreground">(Группа)</span>
+                <span className="ml-2 text-xs text-muted-foreground">({translations.group})</span>
               )}
             </div>
           ))
@@ -363,7 +373,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
       
       {modal && (
         <ConfirmModal
-          title={modal.type === 'success' ? 'Успех' : 'Ошибка'}
+          title={modal.type === 'success' ? translations.success : translations.error}
           message={modal.message}
           onConfirm={modal.onConfirm || (() => setModal(null))}
           onCancel={() => setModal(null)}

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ConfirmModalProps {
   title: string;
@@ -17,10 +18,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   message,
   onConfirm,
   onCancel,
-  confirmText = 'Подтвердить',
-  cancelText = 'Отменить',
+  confirmText,
+  cancelText,
   isError = false,
 }) => {
+  const { translations } = useLanguage();
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
       <div className="relative bg-card w-full max-w-lg p-6 rounded-lg shadow-lg border border-border">
@@ -29,7 +32,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{translations.close}</span>
         </button>
         <h3 className="text-lg font-semibold leading-none tracking-tight mb-2">{title}</h3>
         <p className="text-muted-foreground mb-4">{message}</p>
@@ -39,7 +42,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               onClick={onCancel}
               className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
             >
-              {cancelText}
+              {cancelText || translations.cancel}
             </button>
           )}
           <button
@@ -50,7 +53,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}
           >
-            {isError ? 'Закрыть' : confirmText}
+            {isError ? translations.close : confirmText || translations.confirm}
           </button>
         </div>
       </div>

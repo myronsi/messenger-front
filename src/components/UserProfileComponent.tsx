@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface UserProfileComponentProps {
   username: string;
@@ -15,6 +16,7 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
   const [bio, setBio] = useState('');
   const [isDeleted, setIsDeleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { translations } = useLanguage();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -31,23 +33,23 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
         } else if (response.status === 404) {
           setIsDeleted(true);
         } else {
-          throw new Error(`HTTP ошибка: ${response.status}`);
+          throw new Error(`HTTP ${translations.error}: ${response.status}`);
         }
       } catch (err) {
-        console.error('Ошибка при загрузке профиля:', err);
+        console.error(`${translations.errorLoading}:`, err);
         setIsDeleted(true);
       } finally {
         setIsLoading(false);
       }
     };
     fetchUserProfile();
-  }, [username]);
+  }, [username, translations]);
 
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-card w-full max-w-md p-6 rounded-lg shadow-lg border border-border">
-          <div className="text-center text-muted-foreground">Загрузка...</div>
+          <div className="text-center text-muted-foreground">{translations.loading}</div>
         </div>
       </div>
     );
@@ -63,8 +65,8 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
           >
             <X className="w-5 h-5" />
           </button>
-          <h3 className="text-lg font-semibold mb-4">Профиль пользователя</h3>
-          <p className="text-muted-foreground">Аккаунт удален или недоступен</p>
+          <h3 className="text-lg font-semibold mb-4">{translations.userProfile}</h3>
+          <p className="text-muted-foreground">{translations.accountDeletedOrUnavailable}</p>
         </div>
       </div>
     );
@@ -81,7 +83,7 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
         </button>
         
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Профиль пользователя</h3>
+          <h3 className="text-lg font-semibold">{translations.userProfile}</h3>
           
           <div className="flex items-center space-x-4">
             <img
@@ -91,7 +93,7 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
             />
             <div>
               <h4 className="font-medium">{username}</h4>
-              <p className="text-muted-foreground">{bio || 'Нет описания'}</p>
+              <p className="text-muted-foreground">{bio || translations.noBio}</p>
             </div>
           </div>
         </div>
