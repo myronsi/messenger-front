@@ -25,12 +25,13 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [modal, setModal] = useState<{
-    type: 'deleteMessage' | 'deleteGroup' | 'error' | 'copy';
+    type: 'deleteMessage' | 'deleteGroup' | 'error' | 'copy' | 'deletedUser';
     message: string;
     onConfirm?: () => void;
   } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const [isChatValid, setIsChatValid] = useState(true);
+  const [deletedUsers, setDeletedUsers] = useState<Set<string>>(new Set());
 
   const wsRef = useRef<WebSocket | null>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -59,6 +60,16 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         });
         if (response.ok) {
           const data = await response.json();
+          
+          // First, check for deleted users
+          const deletedUsersList = new Set<string>();
+          for (const msg of data.history) {
+            if (msg.sender_deleted) {
+              deletedUsersList.add(msg.sender);
+            }
+          }
+          setDeletedUsers(deletedUsersList);
+          
           setMessages(data.history.map((msg: Message) => ({
             ...msg,
             avatar_url: msg.avatar_url || DEFAULT_AVATAR,
@@ -99,8 +110,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         const { type } = parsedData;
 
         if (type === "message") {
-          const { username: sender, data, timestamp, avatar_url } = parsedData;
+          const { username: sender, data, timestamp, avatar_url, sender_deleted } = parsedData;
           if (data.chat_id !== chatId) return;
+          
+          // If the sender was already marked as deleted, add them to the deletedUsers set
+          if (sender_deleted) {
+            setDeletedUsers(prev => new Set(prev).add(sender));
+          }
+          
           const newMessage = {
             id: data.message_id,
             sender,
@@ -109,6 +126,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             avatar_url: avatar_url || DEFAULT_AVATAR,
             reply_to: data.reply_to || null,
             is_deleted: false,
+            sender_deleted: sender_deleted || deletedUsers.has(sender),
           };
           setMessages((prev) => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
         } else if (type === "edit") {
@@ -125,6 +143,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           setModal({ type: 'error', message: 'Группа была удалена.' });
           if (wsRef.current) wsRef.current.close(1000);
           setTimeout(onBack, 1000);
+        } else if (type === "user_deleted") {
+          const { username: deletedUser } = parsedData;
+          setDeletedUsers(prev => new Set(prev).add(deletedUser));
+          
+          // Update all messages from this user to mark them as from a deleted user
+          setMessages(prev => prev.map(msg => 
+            msg.sender === deletedUser ? { ...msg, sender_deleted: true } : msg
+          ));
         } else if (type === "error") {
           if (parsedData.message === "Chat does not exist" || parsedData.message === "You are not a member of this chat") {
             console.log(`WebSocket error: ${parsedData.message}, closing WebSocket`);
@@ -161,7 +187,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
       }
       hasFetchedMessages.current = false;
     };
-  }, [chatId, token, onBack, isChatValid]);
+  }, [chatId, token, onBack, isChatValid, deletedUsers]);
 
   const scrollToBottom = () => {
     if (chatWindowRef.current) {
@@ -241,6 +267,23 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
     return new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Function to determine if user is deleted
+  const isUserDeleted = (senderName: string) => {
+    return deletedUsers.has(senderName) || senderName === 'deleted_user';
+  };
+
+  const handleUserClick = (senderName: string) => {
+    if (isUserDeleted(senderName)) {
+      setModal({ 
+        type: 'deletedUser', 
+        message: 'Информация о удалённом аккаунте недоступна.' 
+      });
+      setTimeout(() => setModal(null), 1500);
+    } else {
+      setSelectedUser(senderName);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="px-6 py-4 border-b border-border flex justify-between items-center">
@@ -260,6 +303,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           const isMine = message.sender === username;
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showDate = !prevMessage || formatDateLabel(message.timestamp) !== formatDateLabel(prevMessage.timestamp);
+          const senderDeleted = isUserDeleted(message.sender) || !!message.sender_deleted;
 
           return (
             <React.Fragment key={message.id}>
@@ -285,11 +329,15 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
                   <img
                     src={`${BASE_URL}${message.avatar_url}`}
                     alt={message.sender}
-                    className="w-8 h-8 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setSelectedUser(message.sender)}
+                    className={`w-8 h-8 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${senderDeleted ? 'opacity-50' : ''}`}
+                    onClick={() => handleUserClick(message.sender)}
                   />
                   <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                    {!isMine && <span className="text-sm text-muted-foreground mb-1">{message.sender}</span>}
+                    {!isMine && (
+                      <span className="text-sm text-muted-foreground mb-1">
+                        {senderDeleted ? 'Удаленный пользователь' : message.sender}
+                      </span>
+                    )}
                     <div className={`relative px-4 py-2 rounded-2xl ${isMine ? 'bg-primary text-primary-foreground message-tail-right' : 'bg-accent text-accent-foreground message-tail-left'}`}>
                       {message.reply_to && (
                         <div
@@ -405,12 +453,13 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           title={
             modal.type === 'deleteMessage' ? 'Удаление сообщения' :
             modal.type === 'deleteGroup' ? 'Удаление группы' :
-            modal.type === 'copy' ? 'Успех' : 'Ошибка'
+            modal.type === 'copy' ? 'Успех' : 
+            modal.type === 'deletedUser' ? 'Информация' : 'Ошибка'
           }
           message={modal.message}
           onConfirm={modal.onConfirm || (() => setModal(null))}
           onCancel={() => setModal(null)}
-          confirmText={modal.type === 'copy' || modal.type === 'error' ? 'OK' : 'Подтвердить'}
+          confirmText={modal.type === 'copy' || modal.type === 'error' || modal.type === 'deletedUser' ? 'OK' : 'Подтвердить'}
           isError={modal.type === 'error'}
         />
       )}
