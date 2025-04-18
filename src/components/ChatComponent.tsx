@@ -6,6 +6,7 @@ import ContextMenuComponent from './ContextMenuComponent';
 import UserProfileComponent from './UserProfileComponent';
 import ConfirmModal from './ConfirmModal';
 import { useLanguage } from '../contexts/LanguageContext';
+import { formatDateLabel, formatTime } from '../utils/dateFormatters';
 
 interface ChatComponentProps {
   chatId: number;
@@ -38,7 +39,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
     onConfirm?: () => void;
   } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
-  const { translations } = useLanguage();
+  const { translations, language } = useLanguage();
   
   const wsRef = useRef<WebSocket | null>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -261,26 +262,17 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
     });
   };
 
-  const formatDateLabel = (timestamp: string): string => {
+  const getFormattedDateLabel = (timestamp: string): string => {
     const date = new Date(timestamp);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) return translations.today;
-    if (date.toDateString() === yesterday.toDateString()) return translations.yesterday;
     
-    const options: Intl.DateTimeFormatOptions = {
-      day: 'numeric',
-      month: 'long',
-      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
-    };
-    
-    return new Intl.DateTimeFormat('ru-RU', options).format(date);
+    return formatDateLabel(date, language, today, yesterday);
   };
 
   const getMessageTime = (timestamp: string): string => {
-    return new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return formatTime(timestamp, language);
   };
 
   return (
@@ -311,14 +303,14 @@ const ChatComponent: React.FC<ChatComponentProps> = ({
           const isMine = message.sender === username;
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showDateSeparator = !prevMessage || 
-            formatDateLabel(message.timestamp) !== formatDateLabel(prevMessage.timestamp);
+            getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(prevMessage.timestamp);
 
           return (
             <React.Fragment key={message.id}>
               {showDateSeparator && (
                 <div className="flex justify-center">
                   <div className="px-3 py-1 bg-accent rounded-full text-sm text-accent-foreground">
-                    {formatDateLabel(message.timestamp)}
+                    {getFormattedDateLabel(message.timestamp)}
                   </div>
                 </div>
               )}
