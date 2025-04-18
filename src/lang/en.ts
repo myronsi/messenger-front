@@ -1,6 +1,6 @@
 export const en = {
   // Auth
-  login: "Login",
+  login: "Sign In",
   register: "Register",
   username: "Username",
   password: "Password", 
