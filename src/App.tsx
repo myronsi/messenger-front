@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import RegisterComponent from './components/RegisterComponent';
@@ -20,6 +19,7 @@ interface CurrentChat {
 
 const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -64,29 +64,6 @@ const AppContent = () => {
     setIsLoading(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    setIsLoggedIn(false);
-    setUsername('');
-    setCurrentChat(null);
-    setIsProfileOpen(false);
-  };
-
-  const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
-    setCurrentChat({ id: chatId, name: chatName, interlocutorDeleted, type });
-  };
-
-  const backToChats = () => {
-    setCurrentChat(null);
-  };
-
-  const handleChatDeleted = (chatId: number) => {
-    if (currentChat && currentChat.id === chatId) {
-      console.log(`Active chat ${chatId} deleted, clearing currentChat`);
-      setCurrentChat(null);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-white">
@@ -103,20 +80,18 @@ const AppContent = () => {
           <div className="w-full max-w-md space-y-8 animate-fade-in">
             <div className="text-center space-y-2">
               <h1 className="text-3xl font-bold text-gray-900">Messenger</h1>
-              <p className="text-gray-500">{translations.login}</p>
             </div>
-            <div className="space-y-6">
-              <LoginComponent onLoginSuccess={handleLoginSuccess} />
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">{translations.or}</span>
-                </div>
-              </div>
-              <RegisterComponent onLoginSuccess={handleLoginSuccess} />
-            </div>
+            {showRegister ? (
+              <RegisterComponent 
+                onLoginSuccess={handleLoginSuccess}
+                onBackToLogin={() => setShowRegister(false)}
+              />
+            ) : (
+              <LoginComponent 
+                onLoginSuccess={handleLoginSuccess}
+                onRegisterClick={() => setShowRegister(true)}
+              />
+            )}
           </div>
         </div>
       ) : (

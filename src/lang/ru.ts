@@ -1,4 +1,3 @@
-
 export const ru = {
   // Auth
   login: "Войти",
@@ -10,6 +9,11 @@ export const ru = {
   registerSuccess: "Успешная регистрация",
   or: "Или",
   loginRequired: "Сессия истекла. Войдите снова.",
+  forgotPassword: "Забыли пароль?",
+  forgotPasswordNotImplemented: "Функция сброса пароля пока не реализована",
+  noAccount: "Ещё нет аккаунта?",
+  alreadyHaveAccount: "Уже есть аккаунт?",
+  backToLogin: "Вернуться к входу",
   
   // Profile
   profile: "Профиль",

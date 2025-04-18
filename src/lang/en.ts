@@ -1,15 +1,19 @@
-
 export const en = {
   // Auth
   login: "Login",
   register: "Register",
   username: "Username",
-  password: "Password",
+  password: "Password", 
   confirmPassword: "Confirm Password",
   loginSuccess: "Login successful",
   registerSuccess: "Registration successful",
   or: "Or",
   loginRequired: "Session expired. Please login again.",
+  forgotPassword: "Forgot Password?",
+  forgotPasswordNotImplemented: "Password reset functionality is not yet implemented",
+  noAccount: "Don't have an account?",
+  alreadyHaveAccount: "Already have an account?",
+  backToLogin: "Back to Login",
   
   // Profile
   profile: "Profile",
