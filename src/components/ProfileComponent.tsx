@@ -136,7 +136,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   const handleDeleteAccount = () => {
     setModal({
       type: 'deleteAccount',
-      message: translations.deleteConfirm,
+      message: translations.deleteAccountConfirm,
       onConfirm: async () => {
         try {
           const response = await fetch(`${BASE_URL}/auth/me`, {

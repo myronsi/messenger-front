@@ -75,7 +75,7 @@ export const en = {
   confirm: "Confirm",
   cancel: "Cancel",
   close: "Close",
-  deleteConfirm: "Are you sure you want to delete?",
+  deleteAccountConfirm: "Are you sure you want to delete account? This action can not be undone.",
   logoutConfirm: "Are you sure you want to logout?",
   success: "Success",
   add: "Add",
