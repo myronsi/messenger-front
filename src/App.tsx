@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import RegisterComponent from './components/RegisterComponent';
@@ -39,7 +40,7 @@ const AppContent = () => {
       })
         .then((response) => {
           if (response.ok) return response.json();
-          throw new Error('Токен недействителен');
+          throw new Error('Token is invalid');
         })
         .then((user) => {
           setIsLoggedIn(true);
@@ -61,7 +62,20 @@ const AppContent = () => {
   const handleLoginSuccess = (user: string) => {
     setIsLoggedIn(true);
     setUsername(user);
+    setShowRegister(false);
     setIsLoading(false);
+  };
+
+  const openChat = (chat: CurrentChat) => {
+    setCurrentChat(chat);
+  };
+
+  const handleChatDeleted = () => {
+    setCurrentChat(null);
+  };
+
+  const backToChats = () => {
+    setCurrentChat(null);
   };
 
   if (isLoading) {
