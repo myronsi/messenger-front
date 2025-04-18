@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import RegisterComponent from './components/RegisterComponent';
@@ -62,6 +63,21 @@ const AppContent = () => {
     setIsLoggedIn(true);
     setUsername(user);
     setIsLoading(false);
+  };
+
+  const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
+    setCurrentChat({ id: chatId, name: chatName, interlocutorDeleted, type });
+  };
+
+  const backToChats = () => {
+    setCurrentChat(null);
+  };
+
+  const handleChatDeleted = (chatId: number) => {
+    if (currentChat && currentChat.id === chatId) {
+      console.log(`Active chat ${chatId} deleted, clearing currentChat`);
+      setCurrentChat(null);
+    }
   };
 
   if (isLoading) {
