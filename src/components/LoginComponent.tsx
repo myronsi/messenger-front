@@ -36,6 +36,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
   };
 
   const handleForgotPassword = () => {
+    // Placeholder for forgot password functionality
     setMessage(translations.forgotPasswordNotImplemented);
   };
 
@@ -64,8 +65,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       >
         {translations.login}
       </Button>
-      
-      <div className="flex flex-col gap-4 mt-4">
+      <div className="flex flex-col gap-2 mt-4">
         <Button
           variant="ghost"
           onClick={handleForgotPassword}
@@ -73,7 +73,6 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
         >
           {translations.forgotPassword}
         </Button>
-        
         <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">
             {translations.noAccount}
@@ -87,7 +86,6 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
           </Button>
         </div>
       </div>
-      
       {message && <p className="text-destructive text-sm mt-2">{message}</p>}
     </div>
   );
