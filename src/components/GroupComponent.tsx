@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Send, X } from 'lucide-react';
+import { ArrowLeft, Send, X, Paperclip } from 'lucide-react';
 import { Message } from '../types';
 import ContextMenuComponent from './ContextMenuComponent';
 import UserProfileComponent from './UserProfileComponent';
@@ -37,6 +36,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   const wsRef = useRef<WebSocket | null>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const token = localStorage.getItem('access_token');
   const hasFetchedMessages = useRef(false);
@@ -61,21 +61,28 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         });
         if (response.ok) {
           const data = await response.json();
+          console.log(`History loaded for group ${chatId}:`, data);
           setMessages(data.history.map((msg: Message) => ({
             ...msg,
             avatar_url: msg.avatar_url || DEFAULT_AVATAR,
             reply_to: msg.reply_to || null,
+            type: msg.type || 'message',
+            content: msg.type === 'file' ? (typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content) : msg.content,
           })));
         } else if (response.status === 401) {
+          console.error(`Unauthorized access to group ${chatId}`);
           setModal({ type: 'error', message: translations.loginRequired });
           setTimeout(() => {
             localStorage.removeItem('access_token');
             window.location.href = '/';
           }, 2000);
         } else {
+          const errorText = await response.text();
+          console.error(`Failed to load history for group ${chatId}: ${response.status} ${errorText}`);
           throw new Error(translations.errorLoading);
         }
       } catch (err) {
+        console.error(`Error loading messages for group ${chatId}:`, err);
         setModal({ type: 'error', message: translations.errorLoadingMessages });
         setIsChatValid(false);
       }
@@ -98,6 +105,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           return;
         }
 
+        console.log(`WebSocket message received for group ${chatId}:`, parsedData);
         const { type } = parsedData;
 
         if (type === "message") {
@@ -111,6 +119,26 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             avatar_url: avatar_url || DEFAULT_AVATAR,
             reply_to: data.reply_to || null,
             is_deleted: false,
+            type: 'message',
+          };
+          setMessages((prev) => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
+        } else if (type === "file") {
+          const { username: sender, data, timestamp, avatar_url } = parsedData;
+          if (data.chat_id !== chatId) return;
+          const newMessage = {
+            id: data.message_id,
+            sender,
+            content: {
+              file_url: data.file_url,
+              file_name: data.file_name,
+              file_type: data.file_type,
+              file_size: data.file_size,
+            },
+            timestamp,
+            avatar_url: avatar_url || DEFAULT_AVATAR,
+            reply_to: data.reply_to || null,
+            is_deleted: false,
+            type: 'file',
           };
           setMessages((prev) => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
         } else if (type === "edit") {
@@ -207,6 +235,45 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
     setEditingMessage(null);
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('chat_id', chatId.toString());
+
+    try {
+      const response = await fetch(`${BASE_URL}/messages/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Upload failed: ${errorText}`);
+        throw new Error(errorText);
+      }
+
+      const data = await response.json();
+      console.log('File uploaded:', data);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      setModal({
+        type: 'error',
+        message: translations.errorUploadingFile,
+      });
+    }
+  };
+
   const handleDeleteGroup = () => {
     setModal({
       type: 'deleteGroup',
@@ -241,6 +308,47 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
 
   const getMessageTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const renderMessageContent = (message: Message) => {
+    if (message.type === 'file') {
+      const { file_url, file_name, file_type } = message.content;
+      const fullFileUrl = `${BASE_URL}${file_url}`;
+
+      if (file_type === 'image') {
+        return (
+          <a href={fullFileUrl} target="_blank" rel="noopener noreferrer">
+            <img
+              src={fullFileUrl}
+              alt={file_name}
+              className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
+            />
+          </a>
+        );
+      } else if (file_type === 'video') {
+        return (
+          <video
+            src={fullFileUrl}
+            controls
+            className="max-w-[200px] max-h-[200px] rounded-lg"
+          >
+            {translations.videoNotSupported}
+          </video>
+        );
+      } else {
+        return (
+          <a
+            href={fullFileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline"
+          >
+            {file_name} ({(message.content.file_size / 1024).toFixed(2)} KB)
+          </a>
+        );
+      }
+    }
+    return <div>{message.content}</div>;
   };
 
   return (
@@ -294,7 +402,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
                   />
                   <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                     {!isMine && <span className="text-sm text-muted-foreground mb-1">{message.sender}</span>}
-                    <div className={`relative px-4 py-2 rounded-2xl ${isMine ? 'bg-primary text-primary-foreground message-tail-right' : 'bg-accent text-accent-foreground message-tail-left'}`}>
+                    <div className={`relative px-4 py-2 rounded-2xl ${isMine ? 'bg-primary text-primary-foreground message-tail-right' : 'bg-accent text-accent-foreground message-tail-left'} ${message.type === 'file' ? 'max-w-[250px]' : ''}`}>
                       {message.reply_to && (
                         <div
                           onClick={() => scrollToMessage(message.reply_to!)}
@@ -307,7 +415,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
                           {messages.find(m => m.id === message.reply_to)?.content || translations.messageDeleted}
                         </div>
                       )}
-                      <div>{message.content}</div>
+                      {renderMessageContent(message)}
                     </div>
                     <span className="text-xs text-muted-foreground mt-1">{getMessageTime(message.timestamp)}</span>
                   </div>
@@ -333,6 +441,19 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           </div>
         )}
         <div className="flex space-x-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="image/*,video/mp4,video/mov,.pdf,.doc,.docx,.txt"
+            className="hidden"
+          />
           <input
             type="text"
             value={messageInput}
@@ -359,7 +480,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           isMine={contextMenu.isMine}
           onEdit={() => {
             const message = messages.find(m => m.id === contextMenu.messageId);
-            if (message) {
+            if (message && message.type === 'message') {
               setEditingMessage(message);
               setMessageInput(message.content);
               setReplyTo(null);
@@ -382,7 +503,8 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           onCopy={() => {
             const message = messages.find(m => m.id === contextMenu.messageId);
             if (message) {
-              navigator.clipboard.writeText(message.content);
+              const text = message.type === 'file' ? message.content.file_url : message.content;
+              navigator.clipboard.writeText(text);
               setModal({ type: 'copy', message: translations.messageCopied });
               setTimeout(() => setModal(null), 1500);
             }

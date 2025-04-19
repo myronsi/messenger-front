@@ -2,11 +2,12 @@
 export interface Message {
   id: number;
   sender: string;
-  content: string;
+  content: string | { file_url: string; file_name: string; file_type: string; file_size: number };
   timestamp: string;
   avatar_url?: string;
   reply_to?: number | null;
   is_deleted?: boolean;
+  type: 'message' | 'file';
 }
 
 export interface Chat {
