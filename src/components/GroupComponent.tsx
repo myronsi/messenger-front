@@ -111,7 +111,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         if (type === "message") {
           const { username: sender, data, timestamp, avatar_url } = parsedData;
           if (data.chat_id !== chatId) return;
-          const newMessage = {
+          const newMessage: Message = {
             id: data.message_id,
             sender,
             content: data.content,
@@ -125,7 +125,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         } else if (type === "file") {
           const { username: sender, data, timestamp, avatar_url } = parsedData;
           if (data.chat_id !== chatId) return;
-          const newMessage = {
+          const newMessage: Message = {
             id: data.message_id,
             sender,
             content: {
@@ -269,7 +269,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
       console.error('Upload error:', err);
       setModal({
         type: 'error',
-        message: translations.errorUploadingFile,
+        message: translations.errorLoading,
       });
     }
   };
@@ -311,11 +311,11 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   };
 
   const renderMessageContent = (message: Message) => {
-    if (message.type === 'file') {
-      const { file_url, file_name, file_type } = message.content;
+    if (message.type === 'file' && typeof message.content !== 'string') {
+      const { file_url, file_name, file_type, file_size } = message.content as { file_url: string; file_name: string; file_type: string; file_size: number };
       const fullFileUrl = `${BASE_URL}${file_url}`;
 
-      if (file_type === 'image') {
+      if (file_type.startsWith('image/')) {
         return (
           <a href={fullFileUrl} target="_blank" rel="noopener noreferrer">
             <img
@@ -325,14 +325,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             />
           </a>
         );
-      } else if (file_type === 'video') {
+      } else if (file_type.startsWith('video/')) {
         return (
           <video
             src={fullFileUrl}
             controls
             className="max-w-[200px] max-h-[200px] rounded-lg"
           >
-            {translations.videoNotSupported}
+            {translations.errorLoading}
           </video>
         );
       } else {
@@ -343,12 +343,12 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             rel="noopener noreferrer"
             className="text-blue-500 hover:underline"
           >
-            {file_name} ({(message.content.file_size / 1024).toFixed(2)} KB)
+            {file_name} ({(file_size / 1024).toFixed(2)} KB)
           </a>
         );
       }
     }
-    return <div>{message.content}</div>;
+    return <div>{typeof message.content === 'string' ? message.content : ''}</div>;
   };
 
   return (
@@ -412,7 +412,11 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
                               : 'bg-accent-darker/50 hover:bg-accent-darker/70'
                           } transition-colors`}
                         >
-                          {messages.find(m => m.id === message.reply_to)?.content || translations.messageDeleted}
+                          {(() => {
+                            const replyMessage = messages.find(m => m.id === message.reply_to);
+                            if (!replyMessage) return translations.messageDeleted;
+                            return typeof replyMessage.content === 'string' ? replyMessage.content : replyMessage.content.file_name;
+                          })()}
                         </div>
                       )}
                       {renderMessageContent(message)}
@@ -430,7 +434,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
         {(replyTo || editingMessage) && (
           <div className="flex items-center mb-2 p-2 bg-accent rounded-lg">
             <span className="flex-1 text-sm text-muted-foreground">
-              {replyTo ? `${translations.replyTo}: ${replyTo.content}` : `${translations.editing}: ${editingMessage!.content}`}
+              {replyTo ? `${translations.replyTo}: ${typeof replyTo.content === 'string' ? replyTo.content : replyTo.content.file_name}` : `${translations.editing}: ${typeof editingMessage!.content === 'string' ? editingMessage!.content : editingMessage!.content.file_name}`}
             </span>
             <button 
               onClick={() => { setReplyTo(null); setEditingMessage(null); setMessageInput(''); }} 
@@ -482,7 +486,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             const message = messages.find(m => m.id === contextMenu.messageId);
             if (message && message.type === 'message') {
               setEditingMessage(message);
-              setMessageInput(message.content);
+              setMessageInput(typeof message.content === 'string' ? message.content : '');
               setReplyTo(null);
             }
             setContextMenu(null);
@@ -503,7 +507,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           onCopy={() => {
             const message = messages.find(m => m.id === contextMenu.messageId);
             if (message) {
-              const text = message.type === 'file' ? message.content.file_url : message.content;
+              const text = message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content);
               navigator.clipboard.writeText(text);
               setModal({ type: 'copy', message: translations.messageCopied });
               setTimeout(() => setModal(null), 1500);

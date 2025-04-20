@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { QrReader } from 'react-qr-reader';
@@ -20,17 +20,23 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
   const [part1, setPart1] = useState(localStorage.getItem('device_part') || '');
   const [part2, setPart2] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [recoveryToken, setRecoveryToken] = useState('');
   const [qrInputMethod, setQrInputMethod] = useState<'manual' | 'scan' | 'upload'>('manual');
   const [qrScanActive, setQrScanActive] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState('');
   const { translations } = useLanguage();
 
-  const validatePartFormat = (part: string): boolean => {
+  const validatePartFormat = useCallback((part: string): boolean => {
     return /^[0-9a-f]+-[1-3]-[0-9a-f]+$/.test(part.trim());
-  };
+  }, []);
 
-  const handleLogin = async () => {
-    if (!username || !password) {
+  const handleLogin = useCallback(async () => {
+    if (!username || username.length < 3) {
+      setMessage(translations.usernameTooShort);
+      return;
+    }
+    if (!password) {
       setMessage(translations.missingFields);
       return;
     }
@@ -51,9 +57,9 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       setMessage(translations.networkError);
       console.error('Login error:', err);
     }
-  };
+  }, [username, password, translations, onLoginSuccess]);
 
-  const handleRecoverPassword = async () => {
+  const handleRecoverPassword = useCallback(async () => {
     if (!username || !part1 || !part2) {
       setMessage(translations.missingFields);
       return;
@@ -83,15 +89,19 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       setMessage(translations.networkError);
       console.error('Recovery error:', err);
     }
-  };
+  }, [username, part1, part2, translations, validatePartFormat]);
 
-  const handleResetPassword = async () => {
-    if (!newPassword) {
+  const handleResetPassword = useCallback(async () => {
+    if (!newPassword || !confirmPassword) {
       setMessage(translations.missingFields);
       return;
     }
     if (newPassword.length < 8) {
       setMessage(translations.passwordTooShort);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage(translations.passwordsDoNotMatch);
       return;
     }
     try {
@@ -106,6 +116,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
         setIsResetting(false);
         setRecoveryToken('');
         setNewPassword('');
+        setConfirmPassword('');
         setUsername('');
         setPassword('');
       } else {
@@ -115,11 +126,11 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       setMessage(translations.networkError);
       console.error('Reset password error:', err);
     }
-  };
+  }, [newPassword, confirmPassword, recoveryToken, translations]);
 
-  const handleQrScan = (data: string | null) => {
-    if (data) {
-      const cleanedData = data.trim();
+  const handleQrResult = useCallback((result: any, error: any) => {
+    if (result) {
+      const cleanedData = result.text.trim();
       if (validatePartFormat(cleanedData)) {
         setPart2(cleanedData);
         setQrScanActive(false);
@@ -129,14 +140,13 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
         setMessage(translations.invalidPartsFormat);
       }
     }
-  };
+    if (error) {
+      console.error('QR scan error:', error);
+      setMessage(translations.qrScanError);
+    }
+  }, [translations, validatePartFormat]);
 
-  const handleQrError = (err: any) => {
-    console.error('QR scan error:', err);
-    setMessage(translations.qrScanError);
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -146,6 +156,8 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
 
     const reader = new FileReader();
     reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setUploadedImage(result);
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -175,13 +187,13 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       img.onerror = () => {
         setMessage(translations.qrDecodeError);
       };
-      img.src = e.target?.result as string;
+      img.src = result;
     };
     reader.onerror = () => {
       setMessage(translations.qrDecodeError);
     };
     reader.readAsDataURL(file);
-  };
+  }, [translations, validatePartFormat]);
 
   return (
     <div className="space-y-4 w-full max-w-md mx-auto">
@@ -254,6 +266,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
                 onClick={() => {
                   setQrInputMethod('manual');
                   setQrScanActive(false);
+                  setUploadedImage('');
                 }}
               >
                 {translations.manualInput}
@@ -263,6 +276,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
                 onClick={() => {
                   setQrInputMethod('scan');
                   setQrScanActive(true);
+                  setUploadedImage('');
                 }}
               >
                 {translations.scanQr}
@@ -289,21 +303,29 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
             {qrInputMethod === 'scan' && qrScanActive && (
               <div className="flex justify-center">
                 <QrReader
-                  delay={300}
-                  onError={handleQrError}
-                  onScan={handleQrScan}
-                  style={{ width: '100%', maxWidth: '300px' }}
+                  onResult={handleQrResult}
+                  constraints={{ facingMode: 'environment' }}
                   className="qr-reader"
+                  containerStyle={{ width: '100%', maxWidth: '300px' }}
                 />
               </div>
             )}
             {qrInputMethod === 'upload' && (
-              <input
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={handleFileUpload}
-                className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md"
-              />
+              <>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={handleFileUpload}
+                  className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md"
+                />
+                {uploadedImage && (
+                  <img
+                    src={uploadedImage}
+                    alt="Uploaded QR code"
+                    className="w-32 h-32 mx-auto mt-2"
+                  />
+                )}
+              </>
             )}
             {(qrInputMethod === 'scan' || qrInputMethod === 'upload') && part2 && (
               <p className="text-sm text-muted-foreground text-center">
@@ -326,6 +348,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
               setQrInputMethod('manual');
               setPart1(localStorage.getItem('device_part') || '');
               setPart2('');
+              setUploadedImage('');
               setMessage('');
             }}
             className="w-full mt-2"
@@ -342,10 +365,17 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
             onChange={(e) => setNewPassword(e.target.value)}
             className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
           />
+          <input
+            type="password"
+            placeholder={translations.confirmPassword}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+          />
           <Button
             onClick={handleResetPassword}
             className="w-full"
-            disabled={!newPassword}
+            disabled={!newPassword || !confirmPassword}
           >
             {translations.resetPassword}
           </Button>
@@ -355,6 +385,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
               setIsResetting(false);
               setRecoveryToken('');
               setNewPassword('');
+              setConfirmPassword('');
               setMessage('');
             }}
             className="w-full mt-2"

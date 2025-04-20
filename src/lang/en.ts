@@ -116,6 +116,15 @@ export const en = {
   fileTooLarge: "File size exceeds 5MB",
   loginFailed: "Login failed, please check your credentials",
   recoveryFailed: "Recovery failed, please check your inputs",
-  resetPasswordFailed: "Failed to reset password"
+
+  resetPasswordFailed: "Failed to reset password",
+  continue: "Continue",
+  usernameTooShort: "Username must be at least 3 characters",
+  registerFailed: "Registration failed, please try again",
+  qrDownloadError: "Failed to download QR code",
+  copyQrPart: "Copy QR Part",
+  qrPartCopied: "QR Part copied to clipboard",
+  qrPartCopyFailed: "Failed to copy QR Part",
+  passwordsDoNotMatch: "Passwords do not match",
   
 };

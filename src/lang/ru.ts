@@ -119,6 +119,7 @@ export const ru = {
   fileTooLarge: "Размер файла превышает 5 МБ",
   loginFailed: "Ошибка входа, проверьте данные",
   recoveryFailed: "Ошибка восстановления, проверьте данные",
-  resetPasswordFailed: "Не удалось сбросить пароль"
+  resetPasswordFailed: "Не удалось сбросить пароль",
+  continue: "Продолжить"
 
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import QRCode from 'react-qr-code';
@@ -18,7 +18,21 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
   const [showQr, setShowQr] = useState(false);
   const { translations } = useLanguage();
 
-  const handleRegister = async () => {
+  useEffect(() => {
+    if (showQr && qrPart) {
+      console.log('Rendering QRCode with qrPart:', qrPart);
+    }
+  }, [showQr, qrPart]);
+
+  const handleRegister = useCallback(async () => {
+    if (!username || username.length < 3) {
+      setMessage(translations.usernameTooShort);
+      return;
+    }
+    if (!password || password.length < 8) {
+      setMessage(translations.passwordTooShort);
+      return;
+    }
     try {
       const response = await fetch(`${BASE_URL}/auth/register`, {
         method: 'POST',
@@ -31,61 +45,75 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('device_part', data.device_part);
         setQrPart(data.qr_part);
-        console.log('qrPart set to:', data.qr_part);
-        setShowQr(true); // Показываем QR-код
+        setShowQr(true);
         setMessage(translations.registerSuccess + ' ' + translations.saveQrPart);
       } else {
-        setMessage(data.detail);
+        setMessage(data.detail || translations.registerFailed);
       }
     } catch (err) {
       setMessage(translations.networkError);
       console.error('Registration error:', err);
     }
-  };
+  }, [username, password, translations]);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     setShowQr(false);
-    onLoginSuccess(username); // Перенаправляем только после явного действия
-  };
+    onLoginSuccess(username);
+  }, [username, onLoginSuccess]);
 
-  const downloadQR = () => {
-    const svg = document.getElementById('qr-code') as SVGSVGElement;
-    if (!svg) {
-      console.error('SVG element not found');
-      setMessage('Failed to download QR code');
+  const downloadQR = useCallback(() => {
+    const svg = document.getElementById('qr-code');
+    if (!(svg instanceof SVGSVGElement)) {
+      console.error('QR code SVG element not found or invalid');
+      setMessage(translations.qrDownloadError);
       return;
     }
 
-    // Сериализуем SVG
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
+    try {
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      canvas.width = 200 + 20;
+      canvas.height = 200 + 20;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setMessage(translations.qrDownloadError);
+        return;
+      }
+      const img = new Image();
 
-    // Устанавливаем размеры canvas
-    canvas.width = 200 + 20;
-    canvas.height = 200 + 20;
+      img.onload = () => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 10, 10, 200, 200);
+        const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = `recovery-qr-${username}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      };
 
-    img.onload = () => {
-      ctx!.fillStyle = '#ffffff';
-      ctx!.fillRect(0, 0, canvas.width, canvas.height);
-      ctx!.drawImage(img, 10, 10, 200, 200);
-      const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
-      const downloadLink = document.createElement('a');
-      downloadLink.href = pngUrl;
-      downloadLink.download = `recovery-qr-${username}.png`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-    };
+      img.onerror = () => {
+        console.error('Failed to load SVG image');
+        setMessage(translations.qrDownloadError);
+      };
 
-    img.onerror = () => {
-      console.error('Failed to load SVG image');
-      setMessage('Failed to download QR code');
-    };
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+    } catch (err) {
+      console.error('Error downloading QR code:', err);
+      setMessage(translations.qrDownloadError);
+    }
+  }, [username, translations]);
 
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-  };
+  const copyQrPart = useCallback(() => {
+    navigator.clipboard.writeText(qrPart).then(() => {
+      setMessage(translations.qrPartCopied);
+      setTimeout(() => setMessage(''), 3000);
+    }).catch(() => {
+      setMessage(translations.qrPartCopyFailed);
+    });
+  }, [qrPart, translations]);
 
   return (
     <div className="space-y-4 w-full max-w-md mx-auto">
@@ -111,6 +139,7 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
           <Button
             onClick={handleRegister}
             className="w-full"
+            disabled={!username || !password}
           >
             {translations.register}
           </Button>
@@ -134,7 +163,6 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
             className="flex justify-center mt-2 bg-white p-4 border border-gray-200"
             style={{ width: '240px', height: '240px', margin: '0 auto' }}
           >
-            {console.log('Rendering QRCode with qrPart:', qrPart)}
             <QRCode
               id="qr-code"
               value={qrPart}
@@ -142,22 +170,31 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
               level="H"
             />
           </div>
-          <Button
-            onClick={downloadQR}
-            className="mt-2"
-            variant="outline"
-          >
-            {translations.downloadQr}
-          </Button>
-          <Button
-            onClick={handleContinue}
-            className="mt-2 w-full"
-          >
-            {translations.continue}
-          </Button>
+          <div className="space-y-2 mt-2">
+            <Button
+              onClick={downloadQR}
+              variant="outline"
+              className="w-full"
+            >
+              {translations.downloadQr}
+            </Button>
+            <Button
+              onClick={copyQrPart}
+              variant="outline"
+              className="w-full"
+            >
+              {translations.copyQrPart}
+            </Button>
+            <Button
+              onClick={handleContinue}
+              className="w-full"
+            >
+              {translations.continue}
+            </Button>
+          </div>
         </div>
       )}
-      {message && <p className="text-destructive text-sm mt-2">{message}</p>}
+      {message && <p className="text-destructive text-sm mt-2 text-center">{message}</p>}
     </div>
   );
 };
