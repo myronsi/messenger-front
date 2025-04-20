@@ -89,5 +89,33 @@ export const en = {
   errorDeleting: "Error deleting",
   errorLoadingMessages: "Error loading messages.",
   errorDeletingChat: "Error deleting chat.",
-  errorDeletingGroup: "Error deleting group."
+  errorDeletingGroup: "Error deleting group.",
+
+
+
+  saveQrPart: "Please save or print the QR code part for password recovery.",
+  part1: "First recovery part",
+  part2: "Second recovery part",
+  recoverPassword: "Recover Password",
+  recoverySuccess: "Password recovery successful. You can now reset your password.",
+  downloadQr: "Download QR Code",
+  newPassword: "New Password",
+  resetPassword: "Reset Password",
+  resetPasswordSuccess: "Password reset successful. You can now log in with your new password.",
+  manualInput: "Manual Input",
+  scanQr: "Scan QR Code",
+  uploadQr: "Upload QR Image",
+  qrScanned: "QR code scanned successfully",
+  qrUploaded: "QR code uploaded successfully",
+  qrScanError: "Error scanning QR code",
+  qrDecodeError: "Error decoding QR code",
+  qrDetected: "QR code detected",
+  missingFields: "Please fill in all required fields",
+  invalidPartsFormat: "Invalid format for recovery parts",
+  passwordTooShort: "Password must be at least 8 characters",
+  fileTooLarge: "File size exceeds 5MB",
+  loginFailed: "Login failed, please check your credentials",
+  recoveryFailed: "Recovery failed, please check your inputs",
+  resetPasswordFailed: "Failed to reset password"
+  
 };
