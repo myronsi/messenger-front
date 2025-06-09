@@ -1,0 +1,1 @@
+from this point ChatComponent.tsx is unnecessery

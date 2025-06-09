@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import RegisterComponent from '@/auth/RegisterComponent';
 import LoginComponent from '@/auth/LoginComponent';
 import ChatsListComponent from '@/chats/chat-list/ChatsListComponent';
-import ChatComponent from '@/chats/chat/ChatComponent';
+import Chat from '@/chats/chat/';
 import GroupComponent from '@/chats/group/GroupComponent';
 import ProfileComponent from '@/profiles/ProfileComponent';
 import { LanguageProvider } from '@/contexts/LanguageContext';
@@ -134,7 +134,7 @@ const AppContent = () => {
                     onBack={backToChats}
                   />
                 ) : (
-                  <ChatComponent
+                  <Chat
                     key={currentChat.id}
                     chatId={currentChat.id}
                     chatName={currentChat.name}
