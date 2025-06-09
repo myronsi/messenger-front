@@ -1,15 +1,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from "@/components/ui/toaster";
-import RegisterComponent from './components/RegisterComponent';
-import LoginComponent from './components/LoginComponent';
-import ChatsListComponent from './components/ChatsListComponent';
-import ChatComponent from './components/ChatComponent';
-import GroupComponent from './components/GroupComponent';
-import ProfileComponent from './components/ProfileComponent';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { useLanguage } from './contexts/LanguageContext';
-import { useIsMobile } from './hooks/use-mobile';
+import RegisterComponent from '@/auth/RegisterComponent';
+import LoginComponent from '@/auth/LoginComponent';
+import ChatsListComponent from '@/chats/chat-list/ChatsListComponent';
+import ChatComponent from '@/chats/chat/ChatComponent';
+import GroupComponent from '@/chats/group/GroupComponent';
+import ProfileComponent from '@/profiles/ProfileComponent';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface CurrentChat {
   id: number;
@@ -35,7 +36,7 @@ const AppContent = () => {
 
     const token = localStorage.getItem('access_token');
     if (token) {
-      fetch('http://192.168.178.29:8000/auth/me', {
+      fetch(`${BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((response) => {

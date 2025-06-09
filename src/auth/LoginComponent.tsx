@@ -1,15 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Button } from './ui/button';
+import { Button } from '../components/ui/button';
 import { QrReader } from 'react-qr-reader';
 import jsQR from 'jsqr';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface LoginComponentProps {
   onLoginSuccess: (username: string) => void;
   onRegisterClick: () => void;
 }
-
-const BASE_URL = "http://192.168.178.29:8000";
 
 const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegisterClick }) => {
   const [username, setUsername] = useState('');

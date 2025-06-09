@@ -1,7 +1,7 @@
 
 import React, { forwardRef } from 'react';
 import { Edit, Trash2, Copy, Reply } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ContextMenuProps {
   x: number;

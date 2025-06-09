@@ -1,15 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { DEFAULT_AVATAR } from '@/base/ui';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface UserProfileComponentProps {
   username: string;
   onClose: () => void;
 }
-
-const BASE_URL = "http://192.168.178.29:8000";
-const DEFAULT_AVATAR = "/static/avatars/default.jpg";
 
 const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, onClose }) => {
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);

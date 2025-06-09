@@ -1,10 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Plus, Menu } from 'lucide-react';
-import { Chat } from '../types';
-import UserProfileComponent from './UserProfileComponent';
-import ConfirmModal from './ConfirmModal';
-import { useLanguage } from '../contexts/LanguageContext';
+import { Chat } from '@/types';
+import UserProfileComponent from '@/profiles/UserProfileComponent';
+import ConfirmModal from '@/components/ConfirmModal';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { DEFAULT_AVATAR } from '@/base/ui';
+import { DEFAULT_GROUP_AVATAR } from '@/base/ui';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 interface ChatsListComponentProps {
   username: string;
@@ -13,11 +17,6 @@ interface ChatsListComponentProps {
   activeChatId?: number;
   onChatDeleted?: (chatId: number) => void;
 }
-
-const BASE_URL = "http://192.168.178.29:8000";
-const WS_URL = "ws://192.168.178.29:8000";
-const DEFAULT_AVATAR = "/static/avatars/default.jpg";
-const DEFAULT_GROUP_AVATAR = "/static/avatars/group.png";
 
 // Интерфейс для сообщений WebSocket
 interface WebSocketMessage {

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, X, Paperclip } from 'lucide-react';
-import { Message } from '../types';
-import ContextMenuComponent from './ContextMenuComponent';
-import UserProfileComponent from './UserProfileComponent';
-import ConfirmModal from './ConfirmModal';
-import { useLanguage } from '../contexts/LanguageContext';
-import { formatDateLabel, formatTime } from '../utils/dateFormatters';
+import { Message } from '@/types';
+import ContextMenuComponent from '@/components/ContextMenuComponent';
+import UserProfileComponent from '@/profiles/UserProfileComponent';
+import ConfirmModal from '@/components/ConfirmModal';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDateLabel, formatTime } from '@/utils/dateFormatters';
+import { DEFAULT_AVATAR } from '@/base/ui';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 interface ChatComponentProps {
   chatId: number;
@@ -14,10 +17,6 @@ interface ChatComponentProps {
   interlocutorDeleted: boolean;
   onBack: () => void;
 }
-
-const BASE_URL = "http://192.168.178.29:8000";
-const WS_URL = "ws://192.168.178.29:8000";
-const DEFAULT_AVATAR = "/static/avatars/default.jpg";
 
 const ChatComponent: React.FC<ChatComponentProps> = ({
   chatId,

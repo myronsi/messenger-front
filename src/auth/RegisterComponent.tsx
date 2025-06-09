@@ -1,14 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Button } from './ui/button';
+import { Button } from '../components/ui/button';
 import QRCode from 'react-qr-code';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface RegisterComponentProps {
   onLoginSuccess: (username: string) => void;
   onBackToLogin: () => void;
 }
-
-const BASE_URL = "http://192.168.178.29:8000";
 
 const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, onBackToLogin }) => {
   const [username, setUsername] = useState('');
@@ -29,7 +28,7 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
       setMessage(translations.usernameTooShort);
       return;
     }
-    if (!password || password.length < 8) {
+    if (!password || password.length < 3) {
       setMessage(translations.passwordTooShort);
       return;
     }

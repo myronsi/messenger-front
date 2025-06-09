@@ -1,16 +1,15 @@
 
 import React, { useState, useEffect, forwardRef } from 'react';
 import { Upload, X, LogOut, Users, Globe } from 'lucide-react';
-import ConfirmModal from './ConfirmModal';
-import GroupCreateModal from './GroupCreateModal';
-import { useLanguage } from '../contexts/LanguageContext';
+import ConfirmModal from '@/components/ConfirmModal';
+import GroupCreateModal from '@/components/GroupCreateModal';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { DEFAULT_AVATAR } from '@/base/ui';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface ProfileComponentProps {
   onClose: () => void;
 }
-
-const BASE_URL = "http://192.168.178.29:8000";
-const DEFAULT_AVATAR = "/static/avatars/default.jpg";
 
 const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ onClose }, ref) => {
   const { translations, language, setLanguage } = useLanguage();
