@@ -21,7 +21,7 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
   } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const { translations, language } = useLanguage();
-  
+
   const wsRef = useRef<WebSocket | null>(null);
   const hasFetchedMessages = useRef(false);
 
@@ -105,7 +105,7 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
   };
 
   const handleSendMessage = () => {
-    if (!messageInput.trim() || !wsRef.current) return;
+    if (!messageInput.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     if (editingMessage) {
       wsRef.current.send(JSON.stringify({ type: 'edit', message_id: editingMessage.id, content: messageInput }));
     } else {
@@ -202,5 +202,6 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
     getFormattedDateLabel,
     getMessageTime,
     renderMessageContent,
+    wsRef,
   };
 };

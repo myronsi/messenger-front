@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import RegisterComponent from '@/auth/RegisterComponent';
@@ -112,44 +111,92 @@ const AppContent = () => {
           </div>
         </div>
       ) : (
-        <div className="container mx-auto min-h-screen p-4">
-          <div className="grid grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
-            <div className={`${isMobile && currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4' : 'col-span-1'} bg-white rounded-lg shadow-lg overflow-hidden`}>
-              <ChatsListComponent
-                username={username}
-                onChatOpen={openChat}
-                setIsProfileOpen={setIsProfileOpen}
-                activeChatId={currentChat?.id}
-                onChatDeleted={handleChatDeleted}
-              />
-            </div>
-            <div className={`${isMobile && !currentChat ? 'hidden' : 'block'} ${isMobile ? 'col-span-4 chat-slide-in' : 'col-span-3'} bg-white rounded-lg shadow-lg overflow-hidden`}>
-              {currentChat ? (
-                currentChat.type === 'group' ? (
-                  <GroupComponent
-                    key={currentChat.id}
-                    chatId={currentChat.id}
-                    groupName={currentChat.name}
-                    username={username}
-                    onBack={backToChats}
-                  />
+        <div className="container mx-auto min-h-screen p-0">
+          {isMobile ? (
+            <div className="relative h-[calc(100vh-2rem)] overflow-hidden">
+              <div
+                className={`absolute inset-0 transition-transform duration-200 ease-in-out ${
+                  currentChat ? '-translate-x-full' : 'translate-x-0'
+                } bg-white rounded-lg shadow-lg overflow-hidden`}
+              >
+                <ChatsListComponent
+                  username={username}
+                  onChatOpen={openChat}
+                  setIsProfileOpen={setIsProfileOpen}
+                  activeChatId={currentChat?.id}
+                  onChatDeleted={handleChatDeleted}
+                />
+              </div>
+              <div
+                className={`absolute inset-0 transition-transform duration-200 ease-in-out ${
+                  currentChat ? 'translate-x-0' : 'translate-x-full'
+                } bg-white rounded-lg shadow-lg overflow-hidden`}
+              >
+                {currentChat ? (
+                  currentChat.type === 'group' ? (
+                    <GroupComponent
+                      key={currentChat.id}
+                      chatId={currentChat.id}
+                      groupName={currentChat.name}
+                      username={username}
+                      onBack={backToChats}
+                    />
+                  ) : (
+                    <Chat
+                      key={currentChat.id}
+                      chatId={currentChat.id}
+                      chatName={currentChat.name}
+                      username={username}
+                      interlocutorDeleted={currentChat.interlocutorDeleted}
+                      onBack={backToChats}
+                    />
+                  )
                 ) : (
-                  <Chat
-                    key={currentChat.id}
-                    chatId={currentChat.id}
-                    chatName={currentChat.name}
-                    username={username}
-                    interlocutorDeleted={currentChat.interlocutorDeleted}
-                    onBack={backToChats}
-                  />
-                )
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-gray-500">{translations.selectChat}</p>
-                </div>
-              )}
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-500">{translations.selectChat}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
+              <div className="col-span-1 bg-white rounded-lg shadow-lg overflow-hidden">
+                <ChatsListComponent
+                  username={username}
+                  onChatOpen={openChat}
+                  setIsProfileOpen={setIsProfileOpen}
+                  activeChatId={currentChat?.id}
+                  onChatDeleted={handleChatDeleted}
+                />
+              </div>
+              <div className="col-span-3 bg-white rounded-lg shadow-lg overflow-hidden">
+                {currentChat ? (
+                  currentChat.type === 'group' ? (
+                    <GroupComponent
+                      key={currentChat.id}
+                      chatId={currentChat.id}
+                      groupName={currentChat.name}
+                      username={username}
+                      onBack={backToChats}
+                    />
+                  ) : (
+                    <Chat
+                      key={currentChat.id}
+                      chatId={currentChat.id}
+                      chatName={currentChat.name}
+                      username={username}
+                      interlocutorDeleted={currentChat.interlocutorDeleted}
+                      onBack={backToChats}
+                    />
+                  )
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-500">{translations.selectChat}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {isProfileOpen && <ProfileComponent onClose={() => setIsProfileOpen(false)} />}
         </div>
       )}

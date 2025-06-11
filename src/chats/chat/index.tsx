@@ -5,7 +5,7 @@ import ChatHeader from './ChatHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import Modal from './Modal';
-import ContextMenuComponent from '@/components/ContextMenuComponent';
+import ContextMenu from './ContextMenu';
 import UserProfileComponent from '@/profiles/UserProfileComponent';
 
 interface ChatProps {
@@ -40,6 +40,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
     getFormattedDateLabel,
     getMessageTime,
     renderMessageContent,
+    wsRef, // Destructure wsRef
   } = useChat(chatId, username, token, onBack);
 
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -66,6 +67,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
         onMessageClick={handleMessageClick}
         onAvatarClick={setSelectedUser}
         highlightedMessageId={highlightedMessageId}
+        contextMenuMessageId={contextMenu?.messageId}
         getFormattedDateLabel={getFormattedDateLabel}
         getMessageTime={getMessageTime}
         renderMessageContent={renderMessageContent}
@@ -90,48 +92,18 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
         </div>
       )}
       {contextMenu && (
-        <ContextMenuComponent
+        <ContextMenu
           ref={contextMenuRef}
-          x={contextMenu.x}
-          y={contextMenu.y}
-          isMine={contextMenu.isMine}
-          onEdit={() => {
-            const msg = messages.find(m => m.id === contextMenu.messageId);
-            if (msg && msg.type === 'message') { setEditingMessage(msg); setMessageInput(typeof msg.content === 'string' ? msg.content : ''); setReplyTo(null); }
-            setContextMenu(null);
-          }}
-          onDelete={() => {
-            setModal({
-              type: 'deleteMessage',
-              message: 'Confirm delete?',
-              onConfirm: () => {
-                if (contextMenu) {
-                  const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}/ws/chat/${chatId}?token=${token}`);
-                  ws.onopen = () => {
-                    ws.send(JSON.stringify({ type: 'delete', message_id: contextMenu.messageId }));
-                    ws.close();
-                  };
-                }
-                setContextMenu(null);
-                setModal(null);
-              },
-            });
-          }}
-          onCopy={() => {
-            const msg = messages.find(m => m.id === contextMenu.messageId);
-            if (msg) {
-              const text = msg.type === 'file' && typeof msg.content !== 'string' ? msg.content.file_url : String(msg.content);
-              navigator.clipboard.writeText(text);
-              setModal({ type: 'copy', message: 'Message copied' });
-              setTimeout(() => setModal(null), 1500);
-            }
-            setContextMenu(null);
-          }}
-          onReply={() => {
-            const msg = messages.find(m => m.id === contextMenu.messageId);
-            if (msg) { setReplyTo(msg); setEditingMessage(null); setMessageInput(''); }
-            setContextMenu(null);
-          }}
+          contextMenu={contextMenu}
+          messages={messages}
+          token={token}
+          chatId={chatId}
+          setContextMenu={setContextMenu}
+          setEditingMessage={setEditingMessage}
+          setMessageInput={setMessageInput}
+          setReplyTo={setReplyTo}
+          setModal={setModal}
+          wsRef={wsRef} // Pass wsRef
         />
       )}
       {selectedUser && <UserProfileComponent username={selectedUser} onClose={() => setSelectedUser(null)} />}

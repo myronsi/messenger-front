@@ -18,3 +18,16 @@ export interface Chat {
   interlocutor_deleted: boolean;
   type: 'one-on-one' | 'group';
 }
+
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  messageId: number;
+  isMine: boolean;
+}
+
+export interface ModalState {
+  type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser';
+  message: string;
+  onConfirm?: () => void;
+}
