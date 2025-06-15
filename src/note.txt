@@ -1,0 +1,4 @@
+use redux for client performance and reduce the load on server
+
+
+mock server

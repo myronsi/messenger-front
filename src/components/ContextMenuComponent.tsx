@@ -17,11 +17,59 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
+    const [isAnimated, setIsAnimated] = useState(false);
+    const [transformOrigin, setTransformOrigin] = useState('top left');
 
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
-        const menuWidth = ref.current.clientWidth;
-        const menuHeight = ref.current.clientHeight;
+        const menu = ref.current;
+        const menuWidth = menu.clientWidth;
+        const menuHeight = menu.clientHeight;
+
+        // Координаты углов меню
+        const corners = {
+          topLeft: { x: adjustedX, y: adjustedY },
+          topRight: { x: adjustedX + menuWidth, y: adjustedY },
+          bottomLeft: { x: adjustedX, y: adjustedY + menuHeight },
+          bottomRight: { x: adjustedX + menuWidth, y: adjustedY + menuHeight },
+        };
+
+        // Функция для вычисления расстояния
+        const distance = (point1: { x: number; y: number }, point2: { x: number; y: number }) => {
+          return Math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2);
+        };
+
+        // Точка клика
+        const clickPoint = { x, y };
+
+        // Вычисление расстояний до каждого угла
+        const distances = {
+          topLeft: distance(clickPoint, corners.topLeft),
+          topRight: distance(clickPoint, corners.topRight),
+          bottomLeft: distance(clickPoint, corners.bottomLeft),
+          bottomRight: distance(clickPoint, corners.bottomRight),
+        };
+
+        // Нахождение ближайшего угла
+        const nearestCorner = Object.entries(distances).reduce((a, b) => (a[1] < b[1] ? a : b))[0];
+
+        // Установка transformOrigin
+        switch (nearestCorner) {
+          case 'topLeft':
+            setTransformOrigin('top left');
+            break;
+          case 'topRight':
+            setTransformOrigin('top right');
+            break;
+          case 'bottomLeft':
+            setTransformOrigin('bottom left');
+            break;
+          case 'bottomRight':
+            setTransformOrigin('bottom right');
+            break;
+        }
+
+        // Корректировка позиции меню
         let newX = x;
         let newY = y;
 
@@ -37,15 +85,23 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
       }
     }, [x, y, ref]);
 
+    useEffect(() => {
+      setTimeout(() => setIsAnimated(true), 0);
+    }, []);
+
     return (
       <div
         ref={ref}
-        className="fixed bg-popover border border-border shadow-lg rounded-md py-1 z-50 animate-fade-in"
-        style={{ 
-          top: adjustedY, 
+        className="fixed bg-popover border border-border shadow-lg rounded-md py-1 z-50"
+        style={{
+          top: adjustedY,
           left: adjustedX,
-          minWidth: '200px', // Фиксированная минимальная ширина
-          width: '200px',    // Фиксированная ширина
+          minWidth: '200px',
+          width: '200px',
+          transform: isAnimated ? 'scale(1)' : 'scale(0)',
+          opacity: isAnimated ? 1 : 0,
+          transition: 'transform 0.2s, opacity 0.2s',
+          transformOrigin: transformOrigin,
         }}
       >
         {isMine && (
