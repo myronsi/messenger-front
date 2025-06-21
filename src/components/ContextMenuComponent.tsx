@@ -10,15 +10,16 @@ interface ContextMenuProps {
   onDelete: () => void;
   onCopy: () => void;
   onReply: () => void;
+  isClosing: boolean;
+  onClose: () => void;
 }
 
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ x, y, isMine, onEdit, onDelete, onCopy, onReply }, ref) => {
+  ({ x, y, isMine, onEdit, onDelete, onCopy, onReply, isClosing, onClose }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
     const [isAnimated, setIsAnimated] = useState(false);
-    const [transformOrigin, setTransformOrigin] = useState('top left');
 
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
@@ -26,50 +27,6 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
         const menuWidth = menu.clientWidth;
         const menuHeight = menu.clientHeight;
 
-        // Координаты углов меню
-        const corners = {
-          topLeft: { x: adjustedX, y: adjustedY },
-          topRight: { x: adjustedX + menuWidth, y: adjustedY },
-          bottomLeft: { x: adjustedX, y: adjustedY + menuHeight },
-          bottomRight: { x: adjustedX + menuWidth, y: adjustedY + menuHeight },
-        };
-
-        // Функция для вычисления расстояния
-        const distance = (point1: { x: number; y: number }, point2: { x: number; y: number }) => {
-          return Math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2);
-        };
-
-        // Точка клика
-        const clickPoint = { x, y };
-
-        // Вычисление расстояний до каждого угла
-        const distances = {
-          topLeft: distance(clickPoint, corners.topLeft),
-          topRight: distance(clickPoint, corners.topRight),
-          bottomLeft: distance(clickPoint, corners.bottomLeft),
-          bottomRight: distance(clickPoint, corners.bottomRight),
-        };
-
-        // Нахождение ближайшего угла
-        const nearestCorner = Object.entries(distances).reduce((a, b) => (a[1] < b[1] ? a : b))[0];
-
-        // Установка transformOrigin
-        switch (nearestCorner) {
-          case 'topLeft':
-            setTransformOrigin('top left');
-            break;
-          case 'topRight':
-            setTransformOrigin('top right');
-            break;
-          case 'bottomLeft':
-            setTransformOrigin('bottom left');
-            break;
-          case 'bottomRight':
-            setTransformOrigin('bottom right');
-            break;
-        }
-
-        // Корректировка позиции меню
         let newX = x;
         let newY = y;
 
@@ -86,8 +43,21 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
     }, [x, y, ref]);
 
     useEffect(() => {
-      setTimeout(() => setIsAnimated(true), 0);
-    }, []);
+      if (!isClosing) {
+        setTimeout(() => setIsAnimated(true), 0);
+      } else {
+        setIsAnimated(false);
+      }
+    }, [isClosing]);
+
+    const relativeX = x - adjustedX;
+    const relativeY = y - adjustedY;
+
+    const handleTransitionEnd = (event: React.TransitionEvent) => {
+      if (isClosing && event.propertyName === 'transform') {
+        onClose();
+      }
+    };
 
     return (
       <div
@@ -96,13 +66,14 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
         style={{
           top: adjustedY,
           left: adjustedX,
-          minWidth: '200px',
-          width: '200px',
+          minWidth: '160px',
+          width: '160px',
           transform: isAnimated ? 'scale(1)' : 'scale(0)',
           opacity: isAnimated ? 1 : 0,
           transition: 'transform 0.2s, opacity 0.2s',
-          transformOrigin: transformOrigin,
+          transformOrigin: `${relativeX}px ${relativeY}px`,
         }}
+        onTransitionEnd={handleTransitionEnd}
       >
         {isMine && (
           <>

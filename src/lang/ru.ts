@@ -17,7 +17,7 @@ export const ru = {
   
   // Profile
   profile: "Профиль",
-  bio: "Описание профиля",
+  bio: "Описание",
   saveBio: "Сохранить описание",
   savePhoto: "Сохранить фото",
   createGroup: "Создать группу",
@@ -28,6 +28,7 @@ export const ru = {
   userProfile: "Профиль пользователя",
   accountDeletedOrUnavailable: "Аккаунт удален или недоступен",
   noBio: "Нет описания",
+  userName: "Имя пользователя",
   
   // Chat
   selectChat: "Выберите чат для начала общения",
@@ -57,9 +58,9 @@ export const ru = {
   groupDeletedOrUnavailable: "Группа была удалена или недоступна.",
   
   // Messages
-  deleteMessage: "Удалить сообщение",
-  editMessage: "Редактировать сообщение",
-  replyToMessage: "Ответить на сообщение",
+  deleteMessage: "Удалить",
+  editMessage: "Редактировать",
+  replyToMessage: "Ответить",
   copy: "Скопировать",
   messageCopied: "Сообщение скопировано!",
   deleteMessageConfirm: "Удалить сообщение?",
@@ -90,6 +91,7 @@ export const ru = {
   errorLoadingMessages: "Ошибка при загрузке сообщений.",
   errorDeletingChat: "Ошибка при удалении чата.",
   errorDeletingGroup: "Ошибка при удалении группы.",
+  webSocketError: "Ошибка при подключении",
 
 
 

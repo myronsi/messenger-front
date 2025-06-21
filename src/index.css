@@ -149,3 +149,9 @@
     opacity: 0.5;
   }
 }
+
+.context-menu-highlight {
+  background-color: rgba(0, 238, 255, 0.34);
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out;
+}

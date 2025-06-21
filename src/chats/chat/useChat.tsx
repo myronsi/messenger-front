@@ -24,6 +24,18 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
 
   const wsRef = useRef<WebSocket | null>(null);
   const hasFetchedMessages = useRef(false);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
+
+  // Функция для экранирования фигурных скобок
+  const escapeCurlyBraces = (text: string): string => {
+    return text.replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+  };
+
+  // Функция для снятия экранирования фигурных скобок
+  const unescapeCurlyBraces = (text: string): string => {
+    return text.replace(/\\{/g, '{').replace(/\\}/g, '}');
+  };
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -35,12 +47,13 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
         });
         if (response.ok) {
           const data = await response.json();
-          setMessages(data.history.map((msg: Message) => ({
+          setMessages(data.history.map((msg: any) => ({
             ...msg,
             avatar_url: msg.avatar_url ? `${BASE_URL}${msg.avatar_url}` : `${BASE_URL}${DEFAULT_AVATAR}`,
             reply_to: msg.reply_to || null,
             type: msg.type || 'message',
             content: msg.type === 'file' ? (typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content) : msg.content,
+            reactions: msg.reactions ? JSON.parse(msg.reactions) : [],
           })));
         } else if (response.status === 401) {
           setModal({ type: 'error', message: translations.loginRequired });
@@ -56,11 +69,23 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
     if (token) {
       loadMessages();
       const connectWebSocket = () => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          console.log('WebSocket already open');
+          return;
+        }
+        if (reconnectAttempts.current >= maxReconnectAttempts) {
+          console.error('Max WebSocket reconnect attempts reached');
+          setModal({ type: 'error', message: translations.webSocketError });
+          return;
+        }
         wsRef.current = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${token}`);
-        wsRef.current.onopen = () => console.log('WebSocket connected');
+        wsRef.current.onopen = () => {
+          console.log('WebSocket connected');
+          reconnectAttempts.current = 0;
+        };
         wsRef.current.onmessage = (event) => {
           const parsedData = JSON.parse(event.data);
+          console.log('WebSocket message received:', parsedData);
           if (parsedData.type === 'message' || parsedData.type === 'file') {
             const newMessage: Message = {
               id: parsedData.data.message_id,
@@ -71,6 +96,7 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
               reply_to: parsedData.data.reply_to || null,
               is_deleted: parsedData.is_deleted || false,
               type: parsedData.type,
+              reactions: [],
             };
             setMessages((prev) => [...prev, newMessage]);
           } else if (parsedData.type === 'edit') {
@@ -79,22 +105,53 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
             );
           } else if (parsedData.type === 'delete') {
             setMessages((prev) => prev.filter((msg) => msg.id !== parsedData.message_id));
+          } else if (parsedData.type === 'reaction_add') {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === parsedData.message_id
+                  ? { ...msg, reactions: [...(msg.reactions || []), { user_id: parsedData.user_id, reaction: parsedData.reaction }] }
+                  : msg
+              )
+            );
+          } else if (parsedData.type === 'reaction_remove') {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === parsedData.message_id
+                  ? {
+                      ...msg,
+                      reactions: msg.reactions?.filter(
+                        (r) => !(r.user_id === parsedData.user_id && r.reaction === parsedData.reaction)
+                      ),
+                    }
+                  : msg
+              )
+            );
+          } else if (parsedData.type === 'error') {
+            setModal({ type: 'error', message: parsedData.message });
           } else if (parsedData.type === 'chat_deleted') {
             setModal({ type: 'error', message: translations.chatDeleted });
             setTimeout(onBack, 1000);
           }
         };
-        wsRef.current.onerror = (error) => console.error('WebSocket error:', error);
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setModal({ type: 'error', message: translations.webSocketError });
+        };
         wsRef.current.onclose = (event) => {
+          console.log('WebSocket closed, code:', event.code);
           if (event.code !== 1000 && event.code !== 1005) {
-            setTimeout(connectWebSocket, 1000);
+            reconnectAttempts.current += 1;
+            setTimeout(connectWebSocket, 1000 * reconnectAttempts.current);
           }
         };
       };
       connectWebSocket();
     }
     return () => {
-      if (wsRef.current) wsRef.current.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
       hasFetchedMessages.current = false;
     };
   }, [chatId, token, onBack, translations]);
@@ -106,10 +163,14 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
 
   const handleSendMessage = () => {
     if (!messageInput.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+    // Экранируем текст сообщения
+    const escapedMessage = escapeCurlyBraces(messageInput);
+
     if (editingMessage) {
-      wsRef.current.send(JSON.stringify({ type: 'edit', message_id: editingMessage.id, content: messageInput }));
+      wsRef.current.send(JSON.stringify({ type: 'edit', message_id: editingMessage.id, content: escapedMessage }));
     } else {
-      wsRef.current.send(JSON.stringify({ type: 'message', content: messageInput, reply_to: replyTo?.id || null }));
+      wsRef.current.send(JSON.stringify({ type: 'message', content: escapedMessage, reply_to: replyTo?.id || null }));
     }
     setMessageInput('');
     setReplyTo(null);
@@ -177,7 +238,8 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
         return <a href={fullFileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{file_name} ({(file_size / 1024).toFixed(2)} KB)</a>;
       }
     }
-    return <div>{typeof message.content === 'string' ? message.content : ''}</div>;
+    // Для текстовых сообщений снимаем экранирование
+    return <div>{typeof message.content === 'string' ? unescapeCurlyBraces(message.content) : ''}</div>;
   };
 
   return {

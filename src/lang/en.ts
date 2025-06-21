@@ -17,7 +17,7 @@ export const en = {
   
   // Profile
   profile: "Profile",
-  bio: "Profile Description",
+  bio: "Bio",
   saveBio: "Save Description",
   savePhoto: "Save Photo",
   createGroup: "Create Group",
@@ -27,7 +27,8 @@ export const en = {
   updating: "Updating...",
   userProfile: "User Profile",
   accountDeletedOrUnavailable: "Account deleted or unavailable",
-  noBio: "No description",
+  noBio: "No bio",
+  userName: "Username",
   
   // Chat
   selectChat: "Select a chat to start messaging",
@@ -57,9 +58,9 @@ export const en = {
   groupDeletedOrUnavailable: "Group was deleted or is unavailable.",
   
   // Messages
-  deleteMessage: "Delete Message",
-  editMessage: "Edit Message",
-  replyToMessage: "Reply to Message",
+  deleteMessage: "Delete",
+  editMessage: "Edit",
+  replyToMessage: "Reply",
   copy: "Copy",
   messageCopied: "Message copied!",
   deleteMessageConfirm: "Delete message?",
@@ -90,6 +91,7 @@ export const en = {
   errorLoadingMessages: "Error loading messages.",
   errorDeletingChat: "Error deleting chat.",
   errorDeletingGroup: "Error deleting group.",
+  webSocketError: "Error while connecting",
 
 
 

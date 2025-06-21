@@ -8,6 +8,7 @@ export interface Message {
   reply_to?: number | null;
   is_deleted?: boolean;
   type: 'message' | 'file';
+  reactions?: { user_id: number; reaction: string }[];
 }
 
 export interface Chat {
@@ -24,6 +25,7 @@ export interface ContextMenuState {
   y: number;
   messageId: number;
   isMine: boolean;
+  isClosing?: boolean;
 }
 
 export interface ModalState {

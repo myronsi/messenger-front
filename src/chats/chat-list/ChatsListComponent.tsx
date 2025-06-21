@@ -120,13 +120,13 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
 
     if (token) fetchChats();
 
-    // Периодический опрос каждые 30 секунд
-    const interval = setInterval(() => {
-      if (token) {
-        hasFetchedChats.current = false;
-        fetchChats();
-      }
-    }, 30000);
+    // // Периодический опрос каждые 30 секунд
+    // const interval = setInterval(() => {
+    //   if (token) {
+    //     hasFetchedChats.current = false;
+    //     fetchChats();
+    //   }
+    // }, 30000);
 
     // Подключение WebSocket для уведомлений
     const connectWebSocket = () => {
@@ -233,7 +233,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
     if (token) connectWebSocket();
 
     return () => {
-      clearInterval(interval);
+      // clearInterval(interval);
       if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
         console.log('Очистка: закрываем WebSocket для списка чатов');
         wsRef.current.close();
@@ -351,11 +351,11 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
                 className={`w-10 h-10 rounded-full mr-3 ${
                   chat.interlocutor_deleted ? 'opacity-50' : ''
                 }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (chat.type === 'group') return;
-                  handleUserClick(chat.interlocutor_name, chat.interlocutor_deleted);
-                }}
+                // onClick={(e) => {
+                //   e.stopPropagation();
+                //   if (chat.type === 'group') return;
+                //   handleUserClick(chat.interlocutor_name, chat.interlocutor_deleted);
+                // }}
               />
               <span className="font-medium">{chat.interlocutor_deleted ? translations.deletedUser : chat.name}</span>
               {chat.type === 'group' && (

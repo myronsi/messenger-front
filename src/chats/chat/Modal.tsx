@@ -1,5 +1,6 @@
 import React from 'react';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ModalProps {
   modal: {
@@ -11,18 +12,19 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
+  const { translations } = useLanguage();
   if (!modal) return null;
 
   const title =
     modal.type === 'deleteMessage'
-      ? 'Delete Message'
+      ? translations.deleteMessageConfirm
       : modal.type === 'deleteChat'
-      ? 'Delete Chat'
+      ? translations.deleteChatConfirm
       : modal.type === 'copy'
-      ? 'Success'
-      : 'Error';
+      ? translations.success
+      : translations.error;
 
-  const confirmText = modal.type === 'copy' || modal.type === 'error' ? 'OK' : 'Confirm';
+  const confirmText = modal.type === 'copy' || modal.type === 'error' ? 'OK' : translations.confirm;
 
   return (
     <ConfirmModal

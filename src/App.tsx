@@ -6,6 +6,7 @@ import ChatsListComponent from '@/chats/chat-list/ChatsListComponent';
 import Chat from '@/chats/chat/';
 import GroupComponent from '@/chats/group/GroupComponent';
 import ProfileComponent from '@/profiles/ProfileComponent';
+import UserProfileComponent from '@/profiles/UserProfileComponent';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -24,6 +25,7 @@ const AppContent = () => {
   const [username, setUsername] = useState('');
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const hasFetchedUser = useRef(false);
   const isMobile = useIsMobile();
@@ -51,9 +53,7 @@ const AppContent = () => {
           setIsLoggedIn(false);
           setUsername('');
         })
-        .finally(() => {
-          setIsLoading(false);
-        });
+        .finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
@@ -71,11 +71,11 @@ const AppContent = () => {
 
   const backToChats = () => {
     setCurrentChat(null);
+    setIsUserProfileOpen(false); // Закрываем профиль при выходе из чата
   };
 
   const handleChatDeleted = (chatId: number) => {
     if (currentChat && currentChat.id === chatId) {
-      console.log(`Active chat ${chatId} deleted, clearing currentChat`);
       setCurrentChat(null);
     }
   };
@@ -111,9 +111,9 @@ const AppContent = () => {
           </div>
         </div>
       ) : (
-        <div className="container mx-auto min-h-screen p-0">
+        <div className="mx-0 min-h-screen min-w-screen px-0">
           {isMobile ? (
-            <div className="relative h-[calc(100vh-2rem)] overflow-hidden">
+            <div className="relative h-[calc(100vh)] overflow-hidden">
               <div
                 className={`absolute inset-0 transition-transform duration-200 ease-in-out ${
                   currentChat ? '-translate-x-full' : 'translate-x-0'
@@ -149,6 +149,7 @@ const AppContent = () => {
                       username={username}
                       interlocutorDeleted={currentChat.interlocutorDeleted}
                       onBack={backToChats}
+                      setIsUserProfileOpen={setIsUserProfileOpen}
                     />
                   )
                 ) : (
@@ -157,10 +158,19 @@ const AppContent = () => {
                   </div>
                 )}
               </div>
+              <div
+                className={`fixed inset-y-0 right-0 w-full bg-white shadow-lg transition-transform duration-200 ease-in-out z-50 ${
+                  isUserProfileOpen ? 'translate-x-0' : 'translate-x-full'
+                }`}
+              >
+                {isUserProfileOpen && currentChat && (
+                  <UserProfileComponent username={currentChat.name} onClose={() => setIsUserProfileOpen(false)} />
+                )}
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
-              <div className="col-span-1 bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="flex h-screen max-h-screen min-w-full overflow-hidden">
+              <div className="w-1/4 bg-white rounded-lg shadow-lg overflow-auto">
                 <ChatsListComponent
                   username={username}
                   onChatOpen={openChat}
@@ -169,7 +179,7 @@ const AppContent = () => {
                   onChatDeleted={handleChatDeleted}
                 />
               </div>
-              <div className="col-span-3 bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className={`transition-all duration-200 ease-in-out ${isUserProfileOpen ? 'w-2/4' : 'w-3/4'} bg-white rounded-lg shadow-lg overflow-hidden`}>
                 {currentChat ? (
                   currentChat.type === 'group' ? (
                     <GroupComponent
@@ -187,12 +197,18 @@ const AppContent = () => {
                       username={username}
                       interlocutorDeleted={currentChat.interlocutorDeleted}
                       onBack={backToChats}
+                      setIsUserProfileOpen={setIsUserProfileOpen}
                     />
                   )
                 ) : (
                   <div className="h-full flex items-center justify-center">
                     <p className="text-gray-500">{translations.selectChat}</p>
                   </div>
+                )}
+              </div>
+              <div className={`transition-all duration-200 ease-in-out ${isUserProfileOpen ? 'w-1/4' : 'w-0'} overflow-hidden bg-white`}>
+                {isUserProfileOpen && currentChat && (
+                  <UserProfileComponent username={currentChat.name} onClose={() => setIsUserProfileOpen(false)} />
                 )}
               </div>
             </div>
