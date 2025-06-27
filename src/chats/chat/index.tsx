@@ -5,8 +5,8 @@ import ChatHeader from './ChatHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import Modal from './Modal';
-import ContextMenu from './ContextMenu';
-import ReactionMenu from './ReactionMenu';
+import ContextMenu from './menu/ContextMenu';
+import ReactionMenu from './menu/ReactionMenu';
 import UserProfileComponent from '@/profiles/UserProfileComponent';
 import { DELETED_AVATAR, DEFAULT_AVATAR } from '@/base/ui';
 
@@ -24,7 +24,6 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDeleted, onBack, setIsUserProfileOpen }) => {
   const token = localStorage.getItem('access_token') || '';
   const [userId, setUserId] = useState<number | null>(null);
-  // NEW: Add state for temporary highlight
   const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
 
   const {
@@ -157,7 +156,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
         renderMessageContent={renderMessageContent}
         messageRefs={messageRefs}
         onReplyClick={scrollToMessage}
-        userId={userId}
+        userId={userId || 0}
         wsRef={wsRef}
         onOpenReactionMenu={(message, e) => {
           if (reactionMenu && reactionMenu.message.id === message.id && contextMenu && contextMenu.messageId === message.id) {
@@ -187,7 +186,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
             }
           }
         }}
-        // NEW: Pass temp highlight props
         tempHighlightedMessageId={tempHighlightedMessageId}
         setTempHighlightedMessageId={setTempHighlightedMessageId}
       />
@@ -201,6 +199,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
           onSendMessage={handleSendMessage}
           onFileUpload={handleFileUpload}
           onCancelReplyOrEdit={() => { setReplyTo(null); setEditingMessage(null); setMessageInput(''); }}
+          chatId={chatId}
+          token={token}
         />
       ) : (
         <div className="p-4 border-t border-border">

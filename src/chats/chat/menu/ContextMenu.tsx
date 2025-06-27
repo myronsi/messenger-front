@@ -51,7 +51,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       return () => {
         document.removeEventListener('click', handleClickOutside);
       };
-    }, [ref, contextMenu, onClose]);
+    }, [ref, contextMenu, setContextMenu, onClose]);
 
     // Close ContextMenu if ReactionMenu is closed
     useEffect(() => {
@@ -82,69 +82,75 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       }
     };
 
+    const message = messages.find((m) => m.id === contextMenu.messageId);
+    const isFile = message?.type === 'file';
+
+    const handleEdit = () => {
+      if (message && message.type === 'message') {
+        setEditingMessage(message);
+        setMessageInput(typeof message.content === 'string' ? message.content : '');
+        setReplyTo(null);
+        if (messageInputRef.current) {
+          messageInputRef.current.focus();
+        }
+      }
+      setContextMenu({ ...contextMenu, isClosing: true });
+      setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
+      setTimeout(() => onClose(), 200);
+    };
+
+    const handleDelete = () => {
+      setModal({
+        type: 'deleteMessage',
+        message: 'Confirm delete?',
+        onConfirm: () => {
+          if (contextMenu && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'delete', message_id: contextMenu.messageId }));
+          }
+          setContextMenu(null);
+          setReactionMenu(null);
+          setModal(null);
+        },
+      });
+      setContextMenu({ ...contextMenu, isClosing: true });
+      setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
+      setTimeout(() => onClose(), 200);
+    };
+
+    const handleCopy = async () => {
+      if (message) {
+        const text = message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content);
+        await copyToClipboard(text);
+      }
+      setContextMenu({ ...contextMenu, isClosing: true });
+      setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
+      setTimeout(() => onClose(), 1500);
+    };
+
+    const handleReply = () => {
+      if (message) {
+        setReplyTo(message);
+        setEditingMessage(null);
+        setMessageInput('');
+        if (messageInputRef.current) {
+          messageInputRef.current.focus();
+        }
+      }
+      setContextMenu({ ...contextMenu, isClosing: true });
+      setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
+      setTimeout(() => onClose(), 200);
+    };
+
     return (
       <ContextMenuComponent
         ref={ref}
         x={contextMenu.x}
         y={contextMenu.y}
         isMine={contextMenu.isMine}
-        onEdit={() => {
-          const msg = messages.find((m) => m.id === contextMenu.messageId);
-          if (msg && msg.type === 'message') {
-            setEditingMessage(msg);
-            setMessageInput(typeof msg.content === 'string' ? msg.content : '');
-            setReplyTo(null);
-            // Focus the input field
-            if (messageInputRef.current) {
-              messageInputRef.current.focus();
-            }
-          }
-          setContextMenu({ ...contextMenu, isClosing: true });
-          setReactionMenu({ ...reactionMenu, isClosing: true });
-          setTimeout(() => onClose(), 200);
-        }}
-        onDelete={() => {
-          setModal({
-            type: 'deleteMessage',
-            message: 'Confirm delete?',
-            onConfirm: () => {
-              if (contextMenu && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({ type: 'delete', message_id: contextMenu.messageId }));
-              }
-              setContextMenu(null);
-              setReactionMenu(null);
-              setModal(null);
-            },
-          });
-          setContextMenu({ ...contextMenu, isClosing: true });
-          setReactionMenu({ ...reactionMenu, isClosing: true });
-          setTimeout(() => onClose(), 200);
-        }}
-        onCopy={async () => {
-          const msg = messages.find((m) => m.id === contextMenu.messageId);
-          if (msg) {
-            const text = msg.type === 'file' && typeof msg.content !== 'string' ? msg.content.file_url : String(msg.content);
-            const success = await copyToClipboard(text);
-          }
-          setContextMenu({ ...contextMenu, isClosing: true });
-          setReactionMenu({ ...reactionMenu, isClosing: true });
-          setTimeout(() => onClose(), 1500);
-        }}
-        onReply={() => {
-          const msg = messages.find((m) => m.id === contextMenu.messageId);
-          if (msg) {
-            setReplyTo(msg);
-            setEditingMessage(null);
-            setMessageInput('');
-            // Focus the input field
-            if (messageInputRef.current) {
-              messageInputRef.current.focus();
-            }
-          }
-          setContextMenu({ ...contextMenu, isClosing: true });
-          setReactionMenu({ ...reactionMenu, isClosing: true });
-          setTimeout(() => onClose(), 200);
-        }}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        {...(!isFile && { onCopy: handleCopy })}
+        onReply={handleReply}
         isClosing={isClosing}
         onClose={onClose}
       />

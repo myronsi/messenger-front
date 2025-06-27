@@ -8,7 +8,7 @@ interface ContextMenuProps {
   isMine: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  onCopy: () => void;
+  onCopy?: () => void; // Made onCopy optional
   onReply: () => void;
   isClosing: boolean;
   onClose: () => void;
@@ -93,13 +93,15 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
             </button>
           </>
         )}
-        <button
-          className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-          onClick={onCopy}
-        >
-          <Copy className="w-4 h-4 mr-2" />
-          <span className="truncate">{translations.copy}</span>
-        </button>
+        {onCopy && (
+          <button
+            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+            onClick={onCopy}
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            <span className="truncate">{translations.copy}</span>
+          </button>
+        )}
         <button
           className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
           onClick={onReply}

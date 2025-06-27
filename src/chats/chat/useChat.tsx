@@ -27,12 +27,10 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  // Функция для экранирования фигурных скобок
   const escapeCurlyBraces = (text: string): string => {
     return text.replace(/\{/g, '\\{').replace(/\}/g, '\\}');
   };
 
-  // Функция для снятия экранирования фигурных скобок
   const unescapeCurlyBraces = (text: string): string => {
     return text.replace(/\\{/g, '{').replace(/\\}/g, '}');
   };
@@ -164,7 +162,6 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
   const handleSendMessage = () => {
     if (!messageInput.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
-    // Экранируем текст сообщения
     const escapedMessage = escapeCurlyBraces(messageInput);
 
     if (editingMessage) {
@@ -227,19 +224,10 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
   };
 
   const renderMessageContent = (message: Message) => {
-    if (message.type === 'file' && typeof message.content !== 'string') {
-      const { file_url, file_name, file_type, file_size } = message.content;
-      const fullFileUrl = `${BASE_URL}${file_url}`;
-      if (file_type.startsWith('image/')) {
-        return <img src={fullFileUrl} alt={file_name} className="max-w-[200px] max-h-[200px] rounded-lg object-cover" />;
-      } else if (file_type.startsWith('video/')) {
-        return <video src={fullFileUrl} controls className="max-w-[200px] max-h-[200px] rounded-lg" />;
-      } else {
-        return <a href={fullFileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{file_name} ({(file_size / 1024).toFixed(2)} KB)</a>;
-      }
+    if (message.type === 'message' && typeof message.content === 'string') {
+      return <div>{unescapeCurlyBraces(message.content)}</div>;
     }
-    // Для текстовых сообщений снимаем экранирование
-    return <div>{typeof message.content === 'string' ? unescapeCurlyBraces(message.content) : ''}</div>;
+    return null;
   };
 
   return {
