@@ -2,3 +2,100 @@ use redux for client performance and reduce the load on server
 
 
 mock server
+
+
+
+
+/src
+├── app/                  # Глобальная конфигурация
+│   ├── store.ts         # Redux store (если используется)
+│   ├── routes.tsx       # Маршрутизация (замена App.tsx для React Router)
+│   └── main.tsx         # Точка входа (обновленный main.tsx)
+├── features/            # Функциональные области
+│   ├── chat/            # Функция: чаты
+│   │   ├── components/   # Компоненты чатов
+│   │   │   ├── ChatHeader.tsx
+│   │   │   ├── MessageList.tsx
+│   │   │   ├── MessageInput.tsx
+│   │   │   ├── AudioMessage.tsx
+│   │   │   ├── ImageMessage.tsx
+│   │   │   ├── ReplyPreview.tsx
+│   │   │   ├── ReactionList.tsx
+│   │   │   ├── Modal.tsx
+│   │   │   ├── ContextMenu.tsx    # Из menu/
+│   │   │   ├── ReactionMenu.tsx   # Из menu/
+│   │   │   └── ChatsListComponent.tsx  # Из chat-list/
+│   │   ├── api/         # API-запросы
+│   │   │   └── chatApi.ts  # Запросы (fetchMessages, sendMessage)
+│   │   ├── model/       # Логика и состояние
+│   │   │   └── useChat.tsx  # Хуки
+│   │   └── ui/          # UI-элементы и стили
+│   │       ├── ChatHeader.styled.tsx
+│   │       └── MessageList.css
+│   ├── auth/           # Функция: авторизация
+│   │   ├── components/   # Компоненты авторизации
+│   │   │   ├── LoginComponent.tsx
+│   │   │   └── RegisterComponent.tsx
+│   │   ├── api/        # API-запросы
+│   │   │   └── authApi.ts  # Запросы (login, register)
+│   │   ├── model/       # Логика и состояние
+│   │   │   └── useAuth.ts  # Хуки (если добавятся)
+│   │   └── ui/         # UI-элементы и стили
+│   │       └── LoginForm.styled.tsx
+│   ├── profiles/       # Функция: профили
+│   │   ├── components/   # Компоненты профилей
+│   │   │   ├── ProfileComponent.tsx
+│   │   │   └── UserProfileComponent.tsx
+│   │   ├── api/        # API-запросы
+│   │   │   └── profilesApi.ts  # Запросы (fetchProfile)
+│   │   ├── model/       # Логика и состояние
+│   │   │   └── useProfile.ts  # Хуки (если добавятся)
+│   │   └── ui/         # UI-элементы и стили
+│   │       └── Profile.styled.tsx
+│   ├── groups/         # Функция: группы
+│   │   ├── components/   # Компоненты групп
+│   │   │   └── GroupComponent.tsx
+│   │   ├── api/        # API-запросы
+│   │   │   └── groupsApi.ts
+│   │   ├── model/       # Логика и состояние
+│   │   │   └── useGroups.ts  # Хуки (если добавятся)
+│   │   └── ui/         # UI-элементы и стили
+│   │       └── Group.styled.tsx
+│   └── settings/       # Функция: настройки (если появятся)
+│       ├── components/
+│       ├── api/
+│       ├── model/
+│       └── ui/
+├── entities/            # Сущности (модели данных)
+│   ├── message/        # Модель сообщения
+│   │   └── types.ts    # Типы сообщений (из types/index.ts)
+│   └── user/           # Модель пользователя
+│       └── types.ts    # Типы пользователей (из types/index.ts)
+├── shared/              # Общие ресурсы
+│   ├── ui/             # Общие компоненты
+│   │   ├── ConfirmModal.tsx
+│   │   ├── ContextMenuComponent.tsx
+│   │   ├── GroupCreateModal.tsx
+│   │   ├── accordion.tsx         # Из components/ui/
+│   │   ├── alert-dialog.tsx      # Из components/ui/
+│   │   ├── button.tsx           # Из components/ui/
+│   │   └── [другие UI-компоненты из components/ui/]
+│   ├── lib/            # Утилиты
+│   │   ├── utils.ts    # Общие утилиты
+│   │   └── dateFormatters.ts  # Форматирование дат
+│   ├── styles/         # Глобальные стили
+│   │   ├── App.css
+│   │   └── index.css
+│   └── contexts/       # Контексты
+│       ├── LanguageContext.tsx
+│       └── fileTypesConfig.ts
+├── hooks/              # Общие хуки
+│   ├── use-mobile.tsx
+│   └── use-toast.ts
+├── lang/               # Локализация
+│   ├── en.ts
+│   └── ru.ts
+├── pages/              # Страницы
+│   ├── Index.tsx
+│   └── NotFound.tsx
+└── vite-env.d.ts       # Типы для Vite
