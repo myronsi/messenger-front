@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Toaster } from "@/shared/ui/toaster";
+import { Toaster } from '@/shared/ui/toaster';
 import RegisterComponent from '@/features/auth/RegisterComponent';
 import LoginComponent from '@/features/auth/LoginComponent';
+import RecoverPasswordComponent from '@/features/auth/RecoverPasswordComponent';
 import ChatsListComponent from '@/features/chat/components/ChatsListComponent';
 import Chat from '@/features/chat';
 import GroupComponent from '@/features/groups/GroupComponent';
@@ -10,6 +11,7 @@ import UserProfileComponent from '@/features/profiles/UserProfileComponent';
 import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
+
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface CurrentChat {
@@ -22,6 +24,7 @@ interface CurrentChat {
 const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [showRecover, setShowRecover] = useState(false);
   const [username, setUsername] = useState('');
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -63,6 +66,13 @@ const AppContent = () => {
     setIsLoggedIn(true);
     setUsername(user);
     setIsLoading(false);
+    setShowRecover(false);
+    setShowRegister(false);
+  };
+
+  const handleBackToLogin = () => {
+    setShowRecover(false);
+    setShowRegister(false);
   };
 
   const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
@@ -71,7 +81,7 @@ const AppContent = () => {
 
   const backToChats = () => {
     setCurrentChat(null);
-    setIsUserProfileOpen(false); // Закрываем профиль при выходе из чата
+    setIsUserProfileOpen(false);
   };
 
   const handleChatDeleted = (chatId: number) => {
@@ -98,14 +108,19 @@ const AppContent = () => {
               <h1 className="text-3xl font-bold text-gray-900">Messenger</h1>
             </div>
             {showRegister ? (
-              <RegisterComponent 
+              <RegisterComponent
                 onLoginSuccess={handleLoginSuccess}
-                onBackToLogin={() => setShowRegister(false)}
+                onBackToLogin={handleBackToLogin}
+              />
+            ) : showRecover ? (
+              <RecoverPasswordComponent
+                onBackToLogin={handleBackToLogin}
               />
             ) : (
-              <LoginComponent 
+              <LoginComponent
                 onLoginSuccess={handleLoginSuccess}
                 onRegisterClick={() => setShowRegister(true)}
+                onRecoverClick={() => setShowRecover(true)}
               />
             )}
           </div>
@@ -179,7 +194,11 @@ const AppContent = () => {
                   onChatDeleted={handleChatDeleted}
                 />
               </div>
-              <div className={`transition-all duration-200 ease-in-out ${isUserProfileOpen ? 'w-2/4' : 'w-3/4'} bg-white rounded-lg shadow-lg overflow-hidden`}>
+              <div
+                className={`transition-all duration-200 ease-in-out ${
+                  isUserProfileOpen ? 'w-2/4' : 'w-3/4'
+                } bg-white rounded-lg shadow-lg overflow-hidden`}
+              >
                 {currentChat ? (
                   currentChat.type === 'group' ? (
                     <GroupComponent
@@ -206,7 +225,11 @@ const AppContent = () => {
                   </div>
                 )}
               </div>
-              <div className={`transition-all duration-200 ease-in-out ${isUserProfileOpen ? 'w-1/4' : 'w-0'} overflow-hidden bg-white`}>
+              <div
+                className={`transition-all duration-200 ease-in-out ${
+                  isUserProfileOpen ? 'w-1/4' : 'w-0'
+                } overflow-hidden bg-white`}
+              >
                 {isUserProfileOpen && currentChat && (
                   <UserProfileComponent username={currentChat.name} onClose={() => setIsUserProfileOpen(false)} />
                 )}
