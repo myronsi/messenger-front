@@ -55,7 +55,6 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
 
   const handleDownload = async () => {
     try {
-      // Append query parameter to hint server for download
       const downloadUrl = fileUrl.includes('?') ? `${fileUrl}&download=1` : `${fileUrl}?download=1`;
       const response = await fetch(downloadUrl, {
         method: 'GET',
@@ -67,7 +66,6 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
         throw new Error(`Failed to fetch file: ${response.statusText}`);
       }
       const blob = await response.blob();
-      // Force download by setting MIME type to generic binary
       const downloadBlob = new Blob([blob], { type: 'application/octet-stream' });
       const url = window.URL.createObjectURL(downloadBlob);
       const link = document.createElement('a');
@@ -79,7 +77,6 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
-      // Fallback: try direct link with download attribute
       const link = document.createElement('a');
       link.href = fileUrl;
       link.download = fileName;
@@ -135,6 +132,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
   const [audioStates, setAudioStates] = useState<{ [key: number]: { currentTime: number; duration: number } }>({});
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -204,6 +202,14 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     };
   }, [messages, getFormattedDateLabel]);
 
+  const handleImageClick = (fileUrl: string) => {
+    setSelectedImage(fileUrl);
+  };
+
+  const closeModal = () => {
+    setSelectedImage(null);
+  };
+
   const renderContent = (message: Message) => {
     if (message.type === 'file' && typeof message.content !== 'string') {
       const fileName = message.content.file_name || '';
@@ -213,7 +219,15 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
 
       if (config && config.isSpecial) {
         if (config.replyText === translations.image) {
-          return <ImageMessage fileUrl={fullFileUrl} fileName={fileName} />;
+          return (
+            <div className="cursor-pointer" onClick={() => handleImageClick(fullFileUrl)}>
+              <ImageMessage 
+                fileUrl={fullFileUrl} 
+                fileName={fileName}
+                isMine={message.sender === username}
+              />
+            </div>
+          );
         } else if (config.replyText === translations.voiceMessage) {
           return (
             <AudioMessage
@@ -279,6 +293,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
             (isValidTimestamp(message.timestamp) && 
              isValidTimestamp(prevMessage.timestamp) && 
              getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(prevMessage.timestamp));
+          const isImageMessage = message.type === 'file' && typeof message.content !== 'string' && getFileTypeConfig(message.content.file_name)?.replyText === translations.image;
 
           return (
             <React.Fragment key={message.id}>
@@ -304,11 +319,13 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                 <div className={`flex items-end space-x-2 max-w-[350px] md:max-w-2/3 ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
                   <div className={`group relative flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                     <div
-                      className={`relative px-4 py-2 rounded-2xl break-words overflow-wrap-anywhere w-full max-w-[350px] md:max-w-full ${
+                      className={`relative rounded-2xl break-words overflow-wrap-anywhere w-full max-w-[350px] md:max-w-full ${
                         isMine
-                          ? 'bg-primary text-primary-foreground message-tail-right'
-                          : 'bg-accent text-accent-foreground message-tail-left'
-                      } ${message.type === 'file' ? 'max-w-[200px]' : ''}`}
+                          ? 'bg-primary text-primary-foreground' + (isImageMessage ? '' : ' message-tail-right')
+                          : 'bg-accent text-accent-foreground' + (isImageMessage ? '' : ' message-tail-left')
+                      } ${isImageMessage 
+                          ? 'p-0 border' + (isMine ? ' border-primary' : ' border-accent')
+                          : 'px-4 py-2 border' + (isMine ? ' border-primary' : ' border-accent')}`}
                     >
                       {message.reply_to && (
                         <ReplyPreview
@@ -326,7 +343,18 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                           }}
                         />
                       )}
-                      {renderContent(message)}
+                      <div className="relative">
+                        {renderContent(message)}
+                        {isImageMessage && isValidTimestamp(message.timestamp) && (
+                          <div
+                            className={`absolute bottom-1 text-xs px-2 py-1 bg-gray-500/50 rounded-lg ${
+                              isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'
+                            }`}
+                          >
+                            {getMessageTime(message.timestamp)}
+                          </div>
+                        )}
+                      </div>
                       {message.reactions && message.reactions.length > 0 && (
                         <ReactionList
                           reactions={message.reactions}
@@ -336,7 +364,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                           wsRef={wsRef}
                         />
                       )}
-                      {isValidTimestamp(message.timestamp) && (
+                      {!isImageMessage && isValidTimestamp(message.timestamp) && (
                         <div className={`text-xs mt-1 opacity-80 select-none ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
                           {getMessageTime(message.timestamp)}
                         </div>
@@ -349,6 +377,21 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           );
         })}
       </div>
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={closeModal}
+        >
+          <div className="relative">
+            <img
+              src={selectedImage}
+              alt="Preview"
+              className="w-[600px] h-[600px] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 });
