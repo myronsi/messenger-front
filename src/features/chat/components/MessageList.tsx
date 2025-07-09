@@ -347,7 +347,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                         {renderContent(message)}
                         {isImageMessage && isValidTimestamp(message.timestamp) && (
                           <div
-                            className={`absolute bottom-1 text-xs px-2 py-1 bg-gray-500/50 rounded-lg ${
+                            className={`absolute bottom-1 text-xs px-2 py-1 bg-gray-500/50 rounded-xl ${
                               isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'
                             }`}
                           >
