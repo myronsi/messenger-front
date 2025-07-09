@@ -14,6 +14,9 @@ export const ru = {
   noAccount: "Ещё нет аккаунта?",
   alreadyHaveAccount: "Уже есть аккаунт?",
   backToLogin: "Вернуться к входу",
+  confirmUsername: "Подтвердить имя пользователя",
+  cloudPartFetchFailed: "Не удалось получить облачную часть",
+  cloudPartFetched: "Часть облака извлечена",
   
   // Profile
   profile: "Профиль",

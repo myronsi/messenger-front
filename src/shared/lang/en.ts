@@ -14,6 +14,9 @@ export const en = {
   noAccount: "Don't have an account?",
   alreadyHaveAccount: "Already have an account?",
   backToLogin: "Back to Login",
+  confirmUsername: "Confirm username",
+  cloudPartFetchFailed: "Cloud part fetch failed",
+  cloudPartFetched: "Cloud part fetched",
   
   // Profile
   profile: "Profile",
