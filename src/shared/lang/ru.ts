@@ -17,6 +17,10 @@ export const ru = {
   confirmUsername: "Подтвердить имя пользователя",
   cloudPartFetchFailed: "Не удалось получить облачную часть",
   cloudPartFetched: "Часть облака извлечена",
+  userNotFound: "Пользователь не найден",
+  missingUsername: "Отсутствует имя пользователя",
+  cloudPartNotFound: "Облачная часть не найдена",
+  fetching: "Получение",
   
   // Profile
   profile: "Профиль",

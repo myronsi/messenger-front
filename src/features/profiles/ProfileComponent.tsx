@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, forwardRef } from 'react';
 import { Upload, X, LogOut, Users, Globe } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
@@ -34,10 +33,17 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         const response = await fetch(`${BASE_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (response.ok) {
           const data = await response.json();
           setUsername(data.username);
-          setAvatarUrl(data.avatar_url || DEFAULT_AVATAR);
+
+          if (!data.avatar_url || data.avatar_url === DEFAULT_AVATAR) {
+            setAvatarUrl(DEFAULT_AVATAR);
+          } else {
+            setAvatarUrl(`${BASE_URL}/${data.avatar_url}`);
+          }
+
           setBio(data.bio || '');
           setNewBio(data.bio || '');
         } else {
@@ -50,6 +56,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         });
       }
     };
+
     if (token) fetchProfile();
   }, [token, translations]);
 
@@ -66,9 +73,14 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
+
       const data = await response.json();
       if (response.ok) {
-        setAvatarUrl(data.avatar_url);
+        if (!data.avatar_url || data.avatar_url === DEFAULT_AVATAR) {
+          setAvatarUrl(DEFAULT_AVATAR);
+        } else {
+          setAvatarUrl(`${BASE_URL}/${data.avatar_url}`);
+        }
         setModal({
           type: 'success',
           message: translations.uploading,
@@ -100,6 +112,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         },
         body: JSON.stringify({ bio: newBio }),
       });
+      
       const data = await response.json();
       if (response.ok) {
         setBio(newBio);
@@ -170,11 +183,10 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
 
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold text-gray-900">{translations.profile}</h2>
-          
           <div className="flex items-center space-x-4">
             <div className="relative">
               <img
-                src={`${BASE_URL}${avatarUrl}`}
+                src={avatarUrl}
                 alt={username}
                 className="w-20 h-20 rounded-full object-cover border border-gray-200"
               />

@@ -40,7 +40,7 @@ const RecoverPasswordComponent: React.FC<RecoverPasswordComponentProps> = ({ onB
       const data = await response.json();
       if (response.ok) {
         const cloudPart = data.encrypted_cloud_part;
-        if (validatePartFormat(cloudPart)) {
+        if (cloudPart) {
           setPart2(cloudPart);
           setMessage(translations.cloudPartFetched);
         } else {
@@ -68,7 +68,7 @@ const RecoverPasswordComponent: React.FC<RecoverPasswordComponentProps> = ({ onB
       setMessage(translations.missingFields);
       return;
     }
-    if (!validatePartFormat(part1) || !validatePartFormat(part2)) {
+    if (!(part1) || !(part2)) {
       setMessage(translations.invalidPartsFormat);
       return;
     }
@@ -163,7 +163,7 @@ const RecoverPasswordComponent: React.FC<RecoverPasswordComponentProps> = ({ onB
             <p className="text-sm text-center">
               {translations.userNotFound}{' '}
               <Link to="/register" className="text-blue-500 underline">
-                {translations.registerHere}
+                {translations.register}
               </Link>
             </p>
           )}
