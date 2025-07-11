@@ -6,7 +6,7 @@ import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
-import { ArrowDownToLine } from 'lucide-react';
+import { ArrowDownToLine, Check, CheckCheck } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -120,6 +120,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     messageRefs,
     onReplyClick,
     wsRef,
+    onOpenReactionMenu,
     tempHighlightedMessageId,
     setTempHighlightedMessageId,
   } = props;
@@ -135,6 +136,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -143,6 +145,77 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const isElementInViewport = (el: HTMLElement, container: HTMLElement | null) => {
+    if (!el || !container) return false;
+    const rect = el.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    return (
+      rect.top >= containerRect.top &&
+      rect.bottom <= containerRect.bottom &&
+      rect.left >= containerRect.left &&
+      rect.right <= containerRect.right
+    );
+  };
+
+  const markVisibleMessagesAsRead = () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    messages.forEach((message) => {
+      if (message.sender !== username && !message.read_by?.some((r) => r.user_id === userId)) {
+        const el = messageRefs.current[message.id];
+        if (el && isElementInViewport(el, chatContainerRef.current)) {
+          console.log(`Marking message ${message.id} as read for user ${userId}`);
+          wsRef.current.send(JSON.stringify({ type: 'is_read', message_id: message.id }));
+        }
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (!wsRef.current) return;
+
+    const handleWebSocketOpen = () => {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
+              const message = messages.find((msg) => msg.id === messageId);
+              if (message && message.sender !== username && !message.read_by?.some((r) => r.user_id === userId)) {
+                console.log(`IntersectionObserver: Marking message ${messageId} as read for user ${userId}`);
+                wsRef.current?.send(JSON.stringify({ type: 'is_read', message_id: messageId }));
+              }
+            }
+          });
+        },
+        { threshold: 0.5, root: chatContainerRef.current }
+      );
+
+      Object.values(messageRefs.current).forEach((el) => {
+        if (el) {
+          el.setAttribute('data-message-id', el.getAttribute('data-message-id') || '');
+          observerRef.current?.observe(el);
+        }
+      });
+
+      requestAnimationFrame(() => {
+        markVisibleMessagesAsRead();
+      });
+    };
+
+    if (wsRef.current.readyState === WebSocket.OPEN) {
+      handleWebSocketOpen();
+    } else {
+      wsRef.current.onopen = handleWebSocketOpen;
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+      if (wsRef.current) {
+        wsRef.current.onopen = null;
+      }
+    };
+  }, [messages, username, userId, wsRef]);
 
   const updateCurrentDate = () => {
     if (!chatContainerRef.current || messages.length === 0) {
@@ -308,7 +381,13 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                 </div>
               )}
               <div
-                ref={(el) => (messageRefs.current[message.id] = el)}
+                ref={(el) => {
+                  messageRefs.current[message.id] = el;
+                  if (el && observerRef.current) {
+                    el.setAttribute('data-message-id', message.id.toString());
+                    observerRef.current.observe(el);
+                  }
+                }}
                 className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${
                   highlightedMessageId === message.id ? 'highlight' : ''
                 } ${contextMenuMessageId === message.id ? 'context-menu-highlight' : ''
@@ -347,11 +426,16 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                         {renderContent(message)}
                         {isImageMessage && isValidTimestamp(message.timestamp) && (
                           <div
-                            className={`absolute bottom-1 text-xs px-2 py-1 bg-gray-500/50 rounded-xl ${
+                            className={`absolute bottom-1 text-[10px] px-2 py-1 bg-gray-500/50 rounded-xl flex items-center space-x-1 ${
                               isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'
                             }`}
                           >
-                            {getMessageTime(message.timestamp)}
+                            <span>{getMessageTime(message.timestamp)}</span>
+                            {isMine && (
+                              <span>
+                                {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -365,8 +449,13 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                         />
                       )}
                       {!isImageMessage && isValidTimestamp(message.timestamp) && (
-                        <div className={`text-xs mt-1 opacity-80 select-none ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
-                          {getMessageTime(message.timestamp)}
+                        <div className={`text-[10px] mt-1 opacity-80 select-none flex items-center space-x-1 ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
+                          <span>{getMessageTime(message.timestamp)}</span>
+                          {isMine && (
+                            <span>
+                              {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>

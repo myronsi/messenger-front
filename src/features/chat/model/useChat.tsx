@@ -52,6 +52,7 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
             type: msg.type || 'message',
             content: msg.type === 'file' ? (typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content) : msg.content,
             reactions: msg.reactions ? JSON.parse(msg.reactions) : [],
+            read_by: msg.read_by ? JSON.parse(msg.read_by) : [],
           })));
         } else if (response.status === 401) {
           setModal({ type: 'error', message: translations.loginRequired });
@@ -95,6 +96,7 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
               is_deleted: parsedData.is_deleted || false,
               type: parsedData.type,
               reactions: [],
+              read_by: [],
             };
             setMessages((prev) => [...prev, newMessage]);
           } else if (parsedData.type === 'edit') {
@@ -121,6 +123,14 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
                         (r) => !(r.user_id === parsedData.user_id && r.reaction === parsedData.reaction)
                       ),
                     }
+                  : msg
+              )
+            );
+          } else if (parsedData.type === 'is_read') {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === parsedData.message_id
+                  ? { ...msg, read_by: [...(msg.read_by || []), { user_id: parsedData.user_id, read_at: parsedData.timestamp }] }
                   : msg
               )
             );

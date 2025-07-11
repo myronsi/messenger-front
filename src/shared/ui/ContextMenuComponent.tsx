@@ -6,9 +6,9 @@ interface ContextMenuProps {
   x: number;
   y: number;
   isMine: boolean;
-  onEdit: () => void;
+  onEdit?: () => void;
   onDelete: () => void;
-  onCopy?: () => void; // Made onCopy optional
+  onCopy?: () => void;
   onReply: () => void;
   isClosing: boolean;
   onClose: () => void;
@@ -75,23 +75,23 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
         }}
         onTransitionEnd={handleTransitionEnd}
       >
+        {isMine && onEdit && (
+          <button
+            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+            onClick={onEdit}
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            <span className="truncate">{translations.editMessage}</span>
+          </button>
+        )}
         {isMine && (
-          <>
-            <button
-              className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-              onClick={onEdit}
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              <span className="truncate">{translations.editMessage}</span>
-            </button>
-            <button
-              className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-destructive hover:text-destructive"
-              onClick={onDelete}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              <span className="truncate">{translations.deleteMessage}</span>
-            </button>
-          </>
+          <button
+            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-destructive hover:text-destructive"
+            onClick={onDelete}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            <span className="truncate">{translations.deleteMessage}</span>
+          </button>
         )}
         {onCopy && (
           <button

@@ -1,0 +1,17 @@
+export const chat = {
+  selectChat: "Выберите чат для начала общения",
+  writeMessage: "Написать сообщение...",
+  deletedUser: "Удаленный пользователь",
+  loading: "Загрузка...",
+  chats: "Чаты",
+  noChats: "Нет активных чатов",
+  chatCreated: "Чат успешно создан!",
+  enterUsername: "Введите имя пользователя",
+  deleteChat: "Удалить чат",
+  deleteChatConfirm: "Вы уверены, что хотите удалить этот чат?",
+  errorCreatingChat: "Ошибка при создании чата",
+  networkError: "Ошибка сети. Проверьте подключение.",
+  chatDeleted: "Чат был удалён.",
+  messageDeleted: "[Сообщение удалено]",
+  deletedUserInfo: "Информация о удалённом аккаунте недоступна.",
+};

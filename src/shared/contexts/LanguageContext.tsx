@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { en } from '@/shared/lang/en';
 import { ru } from '@/shared/lang/ru';
@@ -41,3 +40,10 @@ export const useLanguage = () => {
   }
   return context;
 };
+
+function validateTranslations(base: Record<string, string>, compare: Record<string, string>) {
+  const missing = Object.keys(base).filter(key => !(key in compare));
+  if (missing.length > 0) {
+    console.warn("Missing translation keys:", missing);
+  }
+}

@@ -9,6 +9,7 @@ export interface Message {
   is_deleted?: boolean;
   type: 'message' | 'file';
   reactions?: { user_id: number; reaction: string }[];
+  read_by: { user_id: number; read_at: string }[];
 }
 
 export interface Chat {

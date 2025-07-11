@@ -20,6 +20,7 @@ export const en = {
   userNotFound: "User not found",
   missingUsername: "Missing username",
   cloudPartNotFound: "Cloud part not found",
+  fetching: "Fetching",
   
   // Profile
   profile: "Profile",
@@ -52,8 +53,7 @@ export const en = {
   chatDeleted: "Chat has been deleted.",
   messageDeleted: "[Message deleted]",
   deletedUserInfo: "Deleted user information is unavailable.",
-  fetching: "Fetching",
-  
+
   // Group
   groupName: "Group Name",
   participants: "Participants",

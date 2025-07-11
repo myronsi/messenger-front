@@ -1,0 +1,17 @@
+export const chat = {
+  selectChat: "Select a chat to start messaging",
+  writeMessage: "Write a message...",
+  deletedUser: "Deleted User",
+  loading: "Loading...",
+  chats: "Chats",
+  noChats: "No active chats",
+  chatCreated: "Chat created successfully!",
+  enterUsername: "Enter username",
+  deleteChat: "Delete Chat",
+  deleteChatConfirm: "Are you sure you want to delete this chat?",
+  errorCreatingChat: "Error creating chat",
+  networkError: "Network error. Check your connection.",
+  chatDeleted: "Chat has been deleted.",
+  messageDeleted: "[Message deleted]",
+  deletedUserInfo: "Deleted user information is unavailable.",
+};

@@ -1,0 +1,15 @@
+export const profile = {
+  profile: "Профиль",
+  bio: "Описание",
+  saveBio: "Сохранить описание",
+  savePhoto: "Сохранить фото",
+  createGroup: "Создать группу",
+  logout: "Выйти из аккаунта",
+  deleteAccount: "Удалить аккаунт",
+  uploading: "Загрузка...",
+  updating: "Обновление...",
+  userProfile: "Профиль пользователя",
+  accountDeletedOrUnavailable: "Аккаунт удален или недоступен",
+  noBio: "Нет описания",
+  userName: "Имя пользователя",
+};
