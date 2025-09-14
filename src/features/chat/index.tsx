@@ -21,10 +21,14 @@ interface ChatProps {
   setIsUserProfileOpen: (isOpen: boolean) => void;
 }
 
+import { Drawer, DrawerContent } from "@/shared/ui/drawer";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
+
 const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDeleted, onBack, setIsUserProfileOpen }) => {
   const token = localStorage.getItem('access_token') || '';
   const [userId, setUserId] = useState<number | null>(null);
   const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
+  const isMobile = useIsMobile();
 
   const {
     messages,
@@ -132,7 +136,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
     ? DELETED_AVATAR 
     : (messages.find(msg => msg.sender !== username)?.avatar_url || DEFAULT_AVATAR);
 
-  return (
+  const content = (
     <div className="flex flex-col h-full">
       <ChatHeader
         chatName={chatName}
@@ -247,6 +251,14 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
       {selectedUser && <UserProfileComponent username={selectedUser} onClose={() => setSelectedUser(null)} />}
       <Modal modal={modal} onClose={() => setModal(null)} />
     </div>
+  );
+
+  return isMobile ? (
+    <Drawer open={true} onClose={onBack} direction="right">
+      <DrawerContent className="h-[100dvh] p-0">{content}</DrawerContent>
+    </Drawer>
+  ) : (
+    content
   );
 };
 

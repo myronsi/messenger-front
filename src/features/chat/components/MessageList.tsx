@@ -133,7 +133,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
   const [audioStates, setAudioStates] = useState<{ [key: number]: { currentTime: number; duration: number } }>({});
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -275,14 +274,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     };
   }, [messages, getFormattedDateLabel]);
 
-  const handleImageClick = (fileUrl: string) => {
-    setSelectedImage(fileUrl);
-  };
-
-  const closeModal = () => {
-    setSelectedImage(null);
-  };
-
   const renderContent = (message: Message) => {
     if (message.type === 'file' && typeof message.content !== 'string') {
       const fileName = message.content.file_name || '';
@@ -293,13 +284,11 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
       if (config && config.isSpecial) {
         if (config.replyText === translations.image) {
           return (
-            <div className="cursor-pointer" onClick={() => handleImageClick(fullFileUrl)}>
-              <ImageMessage 
-                fileUrl={fullFileUrl} 
-                fileName={fileName}
-                isMine={message.sender === username}
-              />
-            </div>
+            <ImageMessage 
+              fileUrl={fullFileUrl} 
+              fileName={fileName}
+              isMine={message.sender === username}
+            />
           );
         } else if (config.replyText === translations.voiceMessage) {
           return (
@@ -466,21 +455,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           );
         })}
       </div>
-      {selectedImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={closeModal}
-        >
-          <div className="relative">
-            <img
-              src={selectedImage}
-              alt="Preview"
-              className="w-[600px] h-[600px] object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 });

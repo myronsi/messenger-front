@@ -26,10 +26,21 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       return;
     }
     try {
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
+      formData.append('grant_type', 'password');
+      formData.append('scope', '');
+      formData.append('client_id', 'string');
+      formData.append('client_secret', '********');
+
       const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        headers: { 
+          'accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData,
       });
       const data = await response.json();
       if (response.ok) {

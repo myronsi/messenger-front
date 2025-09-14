@@ -14,16 +14,27 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
   const { getFileTypeConfig } = getFileTypes();
 
   const getReplyContent = (message: Message | undefined) => {
-    if (!message) return translations.messageDeleted;
+    if (!message) return { text: translations.messageDeleted };
+    
     if (message.type === 'file' && typeof message.content !== 'string') {
       const fileName = message.content.file_name || '';
       const config = getFileTypeConfig(fileName);
-      if (config) {
-        return config.replyText;
+      
+      // Check if it's an image
+      if (message.content.file_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
+        return {
+          text: 'Image',
+          imageUrl: message.content.file_url,
+          isImage: true
+        };
       }
-      return fileName || 'File';
+      
+      if (config) {
+        return { text: config.replyText };
+      }
+      return { text: fileName || 'File' };
     }
-    return typeof message.content === 'string' ? message.content : message.content.file_name || 'File';
+    return { text: typeof message.content === 'string' ? message.content : message.content.file_name || 'File' };
   };
 
   const content = getReplyContent(replyMessage);
@@ -32,10 +43,23 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
     <div
       className={`mb-2 p-2 rounded text-sm ${
         isMine ? 'bg-primary-darker' : 'bg-accent-darker'
-      } cursor-pointer hover:bg-opacity-70 transition-all`}
+      } cursor-pointer hover:bg-opacity-70 transition-all flex items-center gap-2`}
       onClick={onClick}
     >
-      {content}
+      {content.isImage && content.imageUrl && (
+        <div className="w-8 h-8 flex-shrink-0">
+          <img 
+            src={content.imageUrl} 
+            alt="Reply preview" 
+            className="w-full h-full object-cover rounded"
+            draggable={false}
+          />
+        </div>
+      )}
+      <div>
+        <div className="text-gray-400 text-xs">Replying to:</div>
+        {content.text}
+      </div>
     </div>
   );
 };

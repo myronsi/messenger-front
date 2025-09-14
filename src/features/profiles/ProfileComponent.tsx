@@ -41,7 +41,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
           if (!data.avatar_url || data.avatar_url === DEFAULT_AVATAR) {
             setAvatarUrl(DEFAULT_AVATAR);
           } else {
-            setAvatarUrl(`${BASE_URL}/${data.avatar_url}`);
+            setAvatarUrl(`${BASE_URL}${data.avatar_url}`);
           }
 
           setBio(data.bio || '');
@@ -79,12 +79,8 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
         if (!data.avatar_url || data.avatar_url === DEFAULT_AVATAR) {
           setAvatarUrl(DEFAULT_AVATAR);
         } else {
-          setAvatarUrl(`${BASE_URL}/${data.avatar_url}`);
+          setAvatarUrl(`${BASE_URL}${data.avatar_url}`);
         }
-        setModal({
-          type: 'success',
-          message: translations.uploading,
-        });
         setAvatarFile(null);
       } else {
         throw new Error(data.detail || translations.errorUpdating);
@@ -116,11 +112,6 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
       const data = await response.json();
       if (response.ok) {
         setBio(newBio);
-        setModal({
-          type: 'success',
-          message: translations.updating,
-        });
-        setTimeout(() => setModal(null), 1500);
       } else {
         throw new Error(data.detail || translations.errorUpdating);
       }
@@ -217,9 +208,17 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
             <button
               onClick={handleUpdateBio}
               disabled={isUpdatingBio || newBio === bio}
-              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
             >
-              {isUpdatingBio ? translations.updating : translations.saveBio}
+              <span className="flex items-center justify-center gap-2">
+                {translations.saveBio}
+                {isUpdatingBio && (
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+              </span>
             </button>
           </div>
 

@@ -116,11 +116,38 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
       <div className="p-4 border-t border-border">
         {(replyTo || editingMessage) && (
           <div className="flex items-center mb-2 p-2 bg-accent rounded-lg">
-            <span className="flex-1 text-sm text-muted-foreground">
-              {replyTo
-                ? `Replying to: ${typeof replyTo.content === 'string' ? replyTo.content : replyTo.content.file_name}`
-                : `Editing: ${typeof editingMessage!.content === 'string' ? editingMessage!.content : editingMessage!.content.file_name}`}
-            </span>
+            <div className="flex-1 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {replyTo
+                  ? "Replying to: "
+                  : "Editing: "}
+              </span>
+              {(() => {
+                const content = (replyTo || editingMessage)?.content;
+                if (typeof content === 'string') {
+                  return (
+                    <span className="text-sm text-foreground">
+                      {content}
+                    </span>
+                  );
+                } else if (content && 'file_type' in content && content.file_type.startsWith('image/')) {
+                  return (
+                    <img
+                      src={content.file_url}
+                      alt={content.file_name}
+                      className="h-8 w-8 object-cover rounded"
+                    />
+                  );
+                } else if (content && 'file_name' in content) {
+                  return (
+                    <span className="text-sm text-foreground">
+                      {content.file_name}
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+            </div>
             <button onClick={onCancelReplyOrEdit} className="p-1 hover:bg-accent rounded-full transition-colors">
               <X className="w-4 h-4" />
             </button>

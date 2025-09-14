@@ -258,20 +258,6 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         },
         body: JSON.stringify({ user1: username, user2: targetUser }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        setModal({
-          type: 'success',
-          message: translations.chatCreated,
-        });
-        setTargetUser('');
-        setTimeout(() => setModal(null), 1000);
-      } else {
-        setModal({
-          type: 'error',
-          message: data.detail || translations.errorCreatingChat,
-        });
-      }
     } catch (err) {
       setModal({
         type: 'error',
@@ -312,14 +298,16 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         </button>
       </div>
 
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          placeholder={translations.username}
-          value={targetUser}
-          onChange={(e) => setTargetUser(e.target.value)}
-          className="flex-1 px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-        />
+      <div className="flex items-center gap-2 w-full">
+        <div className="flex-grow min-w-0">
+          <input
+            type="text"
+            placeholder={translations.username}
+            value={targetUser}
+            onChange={(e) => setTargetUser(e.target.value)}
+            className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-ellipsis"
+          />
+        </div>
         <button
           onClick={handleCreateChat}
           className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
