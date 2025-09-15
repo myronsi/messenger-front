@@ -36,6 +36,7 @@ export const en = {
   accountDeletedOrUnavailable: "Account deleted or unavailable",
   noBio: "No bio",
   userName: "Username",
+  previewProfilePicture: "Preview Profile Picture",
   
   // Chat
   selectChat: "Select a chat to start messaging",

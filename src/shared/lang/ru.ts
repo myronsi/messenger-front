@@ -36,6 +36,7 @@ export const ru = {
   accountDeletedOrUnavailable: "Аккаунт удален или недоступен",
   noBio: "Нет описания",
   userName: "Имя пользователя",
+  previewProfilePicture: "Предпросмотр фотографии профиля",
   
   // Chat
   selectChat: "Выберите чат для начала общения",

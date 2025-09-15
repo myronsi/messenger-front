@@ -1,10 +1,63 @@
 import React, { useState, useEffect, forwardRef } from 'react';
-import { Upload, X, LogOut, Users, Globe } from 'lucide-react';
+import { Upload, X, LogOut, Users, Globe, Check } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import GroupCreateModal from '@/shared/ui/GroupCreateModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+interface AvatarPreviewModalProps {
+  imageUrl: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isUploading?: boolean;
+}
+
+const AvatarPreviewModal: React.FC<AvatarPreviewModalProps> = ({ imageUrl, onConfirm, onCancel, isUploading }) => {
+  const { translations } = useLanguage();
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60]">
+      <div className="bg-white w-full max-w-sm p-6 rounded-lg shadow-lg border border-gray-200 relative">
+        <button
+          onClick={onCancel}
+          className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
+        <h3 className="text-lg font-semibold mb-4">{translations.previewProfilePicture}</h3>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-blue-500">
+            <img src={imageUrl} alt="Avatar preview" className="w-full h-full object-cover" />
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={onConfirm}
+              disabled={isUploading}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUploading ? (
+                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              <span>Confirm</span>
+            </button>
+            <button
+              onClick={onCancel}
+              disabled={isUploading}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface ProfileComponentProps {
   onClose: () => void;
@@ -17,6 +70,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   const [bio, setBio] = useState('');
   const [newBio, setNewBio] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdatingBio, setIsUpdatingBio] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -92,6 +146,10 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
       });
     } finally {
       setIsUploading(false);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
     }
   };
 
@@ -187,7 +245,14 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
                   type="file"
                   className="hidden"
                   accept="image/*"
-                  onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setAvatarFile(file);
+                      const tempUrl = URL.createObjectURL(file);
+                      setPreviewUrl(tempUrl);
+                    }
+                  }}
                 />
               </label>
             </div>
@@ -221,16 +286,6 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
               </span>
             </button>
           </div>
-
-          {avatarFile && (
-            <button
-              onClick={handleAvatarUpload}
-              disabled={isUploading}
-              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isUploading ? translations.uploading : translations.savePhoto}
-            </button>
-          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Language / Язык</label>
@@ -329,6 +384,21 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
           onCancel={() => setModal(null)}
           confirmText={modal.type === 'success' || modal.type === 'error' ? 'OK' : translations.confirm}
           isError={modal.type === 'error'}
+        />
+      )}
+
+      {previewUrl && (
+        <AvatarPreviewModal
+          imageUrl={previewUrl}
+          isUploading={isUploading}
+          onConfirm={() => {
+            handleAvatarUpload();
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+            setAvatarFile(null);
+          }}
         />
       )}
     </div>
