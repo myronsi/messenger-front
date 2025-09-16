@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
 import RegisterComponent from '@/features/auth/RegisterComponent';
 import LoginComponent from '@/features/auth/LoginComponent';
-import RecoverPasswordComponent from '@/features/auth/RecoverPasswordComponent';
+import UsernameRecoveryComponent from '@/features/auth/UsernameRecoveryComponent';
+import PartsRecoveryComponent from '@/features/auth/PartsRecoveryComponent';
+import PasswordResetComponent from '@/features/auth/PasswordResetComponent';
 import ChatsListComponent from '@/features/chat/components/ChatsListComponent';
 import Chat from '@/features/chat';
 import GroupComponent from '@/features/groups/GroupComponent';
@@ -10,7 +12,10 @@ import ProfileComponent from '@/features/profiles/ProfileComponent';
 import UserProfileComponent from '@/features/profiles/UserProfileComponent';
 import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui/select';
+import { Globe } from 'lucide-react';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -23,8 +28,6 @@ interface CurrentChat {
 
 const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
-  const [showRecover, setShowRecover] = useState(false);
   const [username, setUsername] = useState('');
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -32,7 +35,8 @@ const AppContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const hasFetchedUser = useRef(false);
   const isMobile = useIsMobile();
-  const { translations } = useLanguage();
+  const { translations, language, setLanguage } = useLanguage();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (hasFetchedUser.current) return;
@@ -66,13 +70,11 @@ const AppContent = () => {
     setIsLoggedIn(true);
     setUsername(user);
     setIsLoading(false);
-    setShowRecover(false);
-    setShowRegister(false);
+    navigate('/');
   };
 
   const handleBackToLogin = () => {
-    setShowRecover(false);
-    setShowRegister(false);
+    navigate('/login');
   };
 
   const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
@@ -100,29 +102,62 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white">
+      {!isLoggedIn && (
+        <div className="fixed top-4 right-4 z-50">
+          <Select value={language} onValueChange={(v) => setLanguage(v as 'en' | 'ru')}>
+            <SelectTrigger className="w-36 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 opacity-70" />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="ru">Русский</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <Toaster />
+
       {!isLoggedIn ? (
         <div className="container mx-auto min-h-screen flex flex-col items-center justify-center space-y-8 p-4">
           <div className="w-full max-w-md space-y-8 animate-fade-in">
             <div className="text-center space-y-2">
               <h1 className="text-3xl font-bold text-gray-900">Messenger</h1>
             </div>
-            {showRegister ? (
-              <RegisterComponent
-                onLoginSuccess={handleLoginSuccess}
-                onBackToLogin={handleBackToLogin}
-              />
-            ) : showRecover ? (
-              <RecoverPasswordComponent
-                onBackToLogin={handleBackToLogin}
-              />
-            ) : (
-              <LoginComponent
-                onLoginSuccess={handleLoginSuccess}
-                onRegisterClick={() => setShowRegister(true)}
-                onRecoverClick={() => setShowRecover(true)}
-              />
-            )}
+            <Routes>
+              <Route path="/login" element={
+                <LoginComponent
+                  onLoginSuccess={handleLoginSuccess}
+                  onRegisterClick={() => navigate('/register')}
+                  onRecoverClick={() => navigate('/recover-username')}
+                />
+              } />
+              <Route path="/register" element={
+                <RegisterComponent
+                  onLoginSuccess={handleLoginSuccess}
+                  onBackToLogin={handleBackToLogin}
+                />
+              } />
+              <Route path="/recover-username" element={
+                <UsernameRecoveryComponent
+                  onBackToLogin={handleBackToLogin}
+                />
+              } />
+              <Route path="/recover-parts" element={
+                <PartsRecoveryComponent
+                  onBackToLogin={handleBackToLogin}
+                />
+              } />
+              <Route path="/reset-password" element={
+                <PasswordResetComponent
+                  onBackToLogin={handleBackToLogin}
+                />
+              } />
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
           </div>
         </div>
       ) : (
@@ -246,7 +281,9 @@ const AppContent = () => {
 const App = () => {
   return (
     <LanguageProvider>
-      <AppContent />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </LanguageProvider>
   );
 };

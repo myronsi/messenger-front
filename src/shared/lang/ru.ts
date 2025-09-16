@@ -21,7 +21,16 @@ export const ru = {
   missingUsername: "Отсутствует имя пользователя",
   cloudPartNotFound: "Облачная часть не найдена",
   fetching: "Получение",
-  
+  loginToYourAccount: "Войдите в свой аккаунт",
+  createNewAccount: "Создать новый аккаунт",
+  forgotUsername: "Забыли имя пользователя?",
+  enterUsernameToRecover: "Введите ваше имя пользователя, чтобы начать восстановление пароля",
+  selectUsernameFromList: "Выберите ваше имя пользователя из списка ниже. Если вашего имени пользователя здесь нет, пожалуйста, свяжитесь с нашей поддержкой.",
+  noKnownUsernamesFound: "На этом устройстве не найдено известных имён пользователей. Пожалуйста, свяжитесь с нашей поддержкой.",
+  pleaseContactOurSupport: "Пожалуйста, свяжитесь с нашей службой поддержки для получения помощи.",
+  enterDeviceAndCloudParts: "Введите вашу часть устройства и часть облака",
+  enterYourNewPassword: "Введите ваш новый пароль",
+
   // Profile
   profile: "Профиль",
   bio: "Описание",
@@ -136,6 +145,7 @@ export const ru = {
   qrPartCopied: "Часть QR скопирована в буфер обмена",
   qrPartCopyFailed: "Не удалось скопировать часть QR",
   passwordsDoNotMatch: "Пароли не совпадают",
+  passwordsMatch: "Пароли совпадают",
 
 
   // File types

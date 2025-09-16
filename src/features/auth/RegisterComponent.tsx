@@ -2,6 +2,18 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import QRCode from 'react-qr-code';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/shared/ui/card';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { Eye, EyeOff } from 'lucide-react';
+
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface RegisterComponentProps {
@@ -15,6 +27,7 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
   const [message, setMessage] = useState('');
   const [qrPart, setQrPart] = useState('');
   const [showQr, setShowQr] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { translations } = useLanguage();
 
   useEffect(() => {
@@ -42,7 +55,13 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
       console.log('Server response:', data);
       if (response.ok) {
         localStorage.setItem('access_token', data.access_token);
+        
+        const existingDeviceParts = JSON.parse(localStorage.getItem('device_parts') || '{}');
+        existingDeviceParts[username] = data.device_part;
+        localStorage.setItem('device_parts', JSON.stringify(existingDeviceParts));
+        
         localStorage.setItem('device_part', data.device_part);
+        
         setQrPart(data.qr_part);
         setShowQr(true);
         setMessage(translations.registerSuccess + ' ' + translations.saveQrPart);
@@ -114,87 +133,128 @@ const RegisterComponent: React.FC<RegisterComponentProps> = ({ onLoginSuccess, o
     });
   }, [qrPart, translations]);
 
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleRegister();
+  };
+
+  const inputsFilled = Boolean(username && password);
+
   return (
-    <div className="space-y-4 w-full max-w-md mx-auto">
-      <h2 className="text-2xl font-semibold text-foreground text-center">
-        {translations.register}
-      </h2>
-      {!showQr ? (
-        <>
-          <input
-            type="text"
-            placeholder={translations.username}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <input
-            type="password"
-            placeholder={translations.password}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <Button
-            onClick={handleRegister}
-            className="w-full"
-            disabled={!username || !password}
-          >
+    <Card className="w-full max-w-md mx-auto shadow-lg">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>{translations.register}</CardTitle>
+            <CardDescription className='pt-2'>{translations.createNewAccount}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        {!showQr ? (
+          <form onSubmit={onSubmit} className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="username">{translations.username}</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder={translations.username}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="password">{translations.password}</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder={translations.password}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onMouseDown={() => setShowPassword(true)}
+                  onMouseUp={() => setShowPassword(false)}
+                  onMouseLeave={() => setShowPassword(false)}
+                  onTouchStart={() => setShowPassword(true)}
+                  onTouchEnd={() => setShowPassword(false)}
+                  onTouchCancel={() => setShowPassword(false)}
+                  onPointerDown={() => setShowPassword(true)}
+                  onPointerUp={() => setShowPassword(false)}
+                  onPointerCancel={() => setShowPassword(false)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">{translations.saveQrPart}</p>
+            <div
+              className="flex justify-center mt-2 bg-white p-4 border border-gray-200"
+              style={{ width: '240px', height: '240px', margin: '0 auto' }}
+            >
+              <QRCode
+                id="qr-code"
+                value={qrPart}
+                size={200}
+                level="H"
+              />
+            </div>
+            <div className="space-y-2 mt-2">
+              <Button
+                onClick={downloadQR}
+                variant="outline"
+                className="w-full"
+              >
+                {translations.downloadQr}
+              </Button>
+              <Button
+                onClick={copyQrPart}
+                variant="outline"
+                className="w-full"
+              >
+                {translations.copyQrPart}
+              </Button>
+              <Button
+                onClick={handleContinue}
+                className="w-full"
+              >
+                {translations.continue}
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className='flex-col gap-2'>
+        {inputsFilled ? (
+          <Button type="submit" onClick={handleRegister} className="w-full">
             {translations.register}
           </Button>
-          <div className="text-center mt-4">
-            <p className="text-sm text-muted-foreground">
-              {translations.alreadyHaveAccount}
-            </p>
-            <Button
-              variant="outline"
-              onClick={onBackToLogin}
-              className="w-full mt-2"
-            >
+        ) : (
+          <div className="w-full">
+            <p className="text-sm text-muted-foreground text-center mb-2">{translations.alreadyHaveAccount}</p>
+            <Button variant="outline" onClick={onBackToLogin} className="w-full">
               {translations.backToLogin}
             </Button>
           </div>
-        </>
-      ) : (
-        <div className="mt-4 text-center">
-          <p className="text-sm text-muted-foreground">{translations.saveQrPart}</p>
-          <div
-            className="flex justify-center mt-2 bg-white p-4 border border-gray-200"
-            style={{ width: '240px', height: '240px', margin: '0 auto' }}
-          >
-            <QRCode
-              id="qr-code"
-              value={qrPart}
-              size={200}
-              level="H"
-            />
-          </div>
-          <div className="space-y-2 mt-2">
-            <Button
-              onClick={downloadQR}
-              variant="outline"
-              className="w-full"
-            >
-              {translations.downloadQr}
-            </Button>
-            <Button
-              onClick={copyQrPart}
-              variant="outline"
-              className="w-full"
-            >
-              {translations.copyQrPart}
-            </Button>
-            <Button
-              onClick={handleContinue}
-              className="w-full"
-            >
-              {translations.continue}
-            </Button>
-          </div>
-        </div>
-      )}
-      {message && <p className="text-destructive text-sm mt-2 text-center">{message}</p>}
-    </div>
+        )}
+
+        {message && <p className="text-destructive text-sm mt-2 text-center">{message}</p>}
+      </CardFooter>
+    </Card>
   );
 };
 

@@ -21,7 +21,16 @@ export const en = {
   missingUsername: "Missing username",
   cloudPartNotFound: "Cloud part not found",
   fetching: "Fetching",
-  
+  loginToYourAccount: "Login to your account",
+  createNewAccount: "Create a new account",
+  forgotUsername: "Forgot Username?",
+  enterUsernameToRecover: "Enter your username to begin password recovery",
+  selectUsernameFromList: "Select your username from the list below. If your username is not here, please contact our support.",
+  noKnownUsernamesFound: "No known usernames found on this device. Please contact our support.",
+  pleaseContactOurSupport: "Please contact our support team for assistance.",
+  enterDeviceAndCloudParts: "Enter your device part and cloud part",
+  enterYourNewPassword: "Enter your new password",
+
   // Profile
   profile: "Profile",
   bio: "Bio",
@@ -136,6 +145,7 @@ export const en = {
   qrPartCopied: "QR Part copied to clipboard",
   qrPartCopyFailed: "Failed to copy QR Part",
   passwordsDoNotMatch: "Passwords do not match",
+  passwordsMatch: "Passwords match",
 
 
   // File types
