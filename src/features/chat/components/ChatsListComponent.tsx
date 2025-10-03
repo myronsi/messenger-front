@@ -316,7 +316,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = ({
         </button>
       </div>
 
-      <div className="flex-1 space-y-2 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {chats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
             <MessageSquare className="w-12 h-12" />

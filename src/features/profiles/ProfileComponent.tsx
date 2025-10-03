@@ -4,6 +4,7 @@ import ConfirmModal from '@/shared/ui/ConfirmModal';
 import GroupCreateModal from '@/shared/ui/GroupCreateModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface AvatarPreviewModalProps {
@@ -15,16 +16,15 @@ interface AvatarPreviewModalProps {
 
 const AvatarPreviewModal: React.FC<AvatarPreviewModalProps> = ({ imageUrl, onConfirm, onCancel, isUploading }) => {
   const { translations } = useLanguage();
+
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60]">
-      <div className="bg-white w-full max-w-sm p-6 rounded-lg shadow-lg border border-gray-200 relative">
-        <button
-          onClick={onCancel}
-          className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <X className="w-5 h-5 text-gray-500" />
-        </button>
-        <h3 className="text-lg font-semibold mb-4">{translations.previewProfilePicture}</h3>
+    <Dialog open={Boolean(imageUrl)} onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{translations.previewProfilePicture}</DialogTitle>
+          <DialogDescription />
+        </DialogHeader>
+
         <div className="flex flex-col items-center space-y-4">
           <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-blue-500">
             <img src={imageUrl} alt="Avatar preview" className="w-full h-full object-cover" />
@@ -46,7 +46,7 @@ const AvatarPreviewModal: React.FC<AvatarPreviewModalProps> = ({ imageUrl, onCon
               <span>Confirm</span>
             </button>
             <button
-              onClick={onCancel}
+              onClick={() => onCancel()}
               disabled={isUploading}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -54,8 +54,10 @@ const AvatarPreviewModal: React.FC<AvatarPreviewModalProps> = ({ imageUrl, onCon
             </button>
           </div>
         </div>
-      </div>
-    </div>
+
+        <DialogFooter />
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -65,6 +67,7 @@ interface ProfileComponentProps {
 
 const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ onClose }, ref) => {
   const { translations, language, setLanguage } = useLanguage();
+  const [isVisible, setIsVisible] = useState(false);
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(DEFAULT_AVATAR);
   const [bio, setBio] = useState('');
@@ -80,6 +83,18 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
     onConfirm?: () => void;
   } | null>(null);
   const token = localStorage.getItem('access_token');
+
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setIsVisible(true));
+    return () => {
+      cancelAnimationFrame(t);
+    };
+  }, []);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => onClose(), 240);
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -221,10 +236,19 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
   };
 
   return (
-    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div ref={ref} className="bg-white w-full max-w-md p-6 rounded-lg shadow-lg border border-gray-200 relative">
+    <div
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+      className={`fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+    >
+      <div
+        ref={ref}
+        className={`bg-white w-full max-w-md p-6 rounded-lg shadow-lg border border-gray-200 relative transform transition-all duration-200 ease-out ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95'}`}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
           <X className="w-5 h-5 text-gray-500" />
@@ -355,14 +379,14 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
               });
               if (response.ok) {
                 setIsGroupModalOpen(false);
-                setModal({ type: 'success', message: 'Группа создана!' });
+                setModal({ type: 'success', message: translations.groupCreated });
                 setTimeout(() => setModal(null), 1500);
               } else {
                 const data = await response.json();
-                throw new Error(data.detail || 'Ошибка при создании группы');
+                throw new Error(data.detail || translations.errorWhileCreatingGroup);
               }
             } catch (err) {
-              setModal({ type: 'error', message: 'Не удалось создать группу. Попробуйте снова.' });
+              setModal({ type: 'error', message: translations.groupCreationFailed });
             }
           }}
         />
@@ -374,7 +398,7 @@ const ProfileComponent = forwardRef<HTMLDivElement, ProfileComponentProps>(({ on
             modal.type === 'deleteAccount'
               ? translations.deleteAccount
               : modal.type === 'success'
-              ? 'Успех'
+              ? translations.success
               : modal.type === 'logout'
               ? translations.logout
               : translations.error

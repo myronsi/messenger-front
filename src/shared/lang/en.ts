@@ -73,6 +73,9 @@ export const en = {
   deleteGroupConfirm: "Are you sure you want to delete this group?",
   groupDeleted: "Group has been deleted.",
   groupDeletedOrUnavailable: "Group was deleted or is unavailable.",
+  groupCreated: "Group created successfully!",
+  errorWhileCreatingGroup: "Error while creating group",
+  groupCreationFailed: "Failed to create group. Please try again.",
   
   // Messages
   deleteMessage: "Delete",

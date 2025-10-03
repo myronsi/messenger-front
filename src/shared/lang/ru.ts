@@ -73,7 +73,10 @@ export const ru = {
   deleteGroupConfirm: "Вы уверены, что хотите удалить эту группу?",
   groupDeleted: "Группа была удалена.",
   groupDeletedOrUnavailable: "Группа была удалена или недоступна.",
-  
+  groupCreated: "Группа создана успешно!",
+  errorWhileCreatingGroup: "Ошибка при создании группы",
+  groupCreationFailed: "Не удалось создать группу. Пожалуйста, попробуйте снова.",
+
   // Messages
   deleteMessage: "Удалить",
   editMessage: "Редактировать",
