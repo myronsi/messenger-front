@@ -5,11 +5,12 @@ import LoginComponent from '@/features/auth/LoginComponent';
 import UsernameRecoveryComponent from '@/features/auth/UsernameRecoveryComponent';
 import PartsRecoveryComponent from '@/features/auth/PartsRecoveryComponent';
 import PasswordResetComponent from '@/features/auth/PasswordResetComponent';
-import ChatsListComponent from '@/features/chat/components/ChatsListComponent';
+import ChatsListComponentRTK from '@/features/chat/components/ChatsListComponentRTK';
 import Chat from '@/features/chat';
+import ChatRTK from '@/features/chat/ChatRTK';
 import GroupComponent from '@/features/groups/GroupComponent';
-import ProfileComponent from '@/features/profiles/ProfileComponent';
-import UserProfileComponent from '@/features/profiles/UserProfileComponent';
+import ProfileComponentRTK from '@/features/profiles/ProfileComponentRTK';
+import UserProfileComponentRTK from '@/features/profiles/UserProfileComponentRTK';
 import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui/select';
@@ -169,7 +170,7 @@ const AppContent = () => {
                   currentChat ? '-translate-x-full' : 'translate-x-0'
                 } bg-white rounded-lg shadow-lg overflow-hidden`}
               >
-                <ChatsListComponent
+                <ChatsListComponentRTK
                   username={username}
                   onChatOpen={openChat}
                   setIsProfileOpen={setIsProfileOpen}
@@ -192,7 +193,7 @@ const AppContent = () => {
                       onBack={backToChats}
                     />
                   ) : (
-                    <Chat
+                    <ChatRTK
                       key={currentChat.id}
                       chatId={currentChat.id}
                       chatName={currentChat.name}
@@ -214,14 +215,14 @@ const AppContent = () => {
                 }`}
               >
                 {isUserProfileOpen && currentChat && (
-                  <UserProfileComponent username={currentChat.name} onClose={() => setIsUserProfileOpen(false)} />
+                  <UserProfileComponentRTK username={currentChat.name} onClose={() => setIsUserProfileOpen(false)} />
                 )}
               </div>
             </div>
           ) : (
             <div className="flex h-screen max-h-screen min-w-full overflow-hidden">
               <div className="w-1/4 bg-white rounded-lg shadow-lg overflow-auto">
-                <ChatsListComponent
+                <ChatsListComponentRTK
                   username={username}
                   onChatOpen={openChat}
                   setIsProfileOpen={setIsProfileOpen}
@@ -266,12 +267,12 @@ const AppContent = () => {
                 } overflow-hidden bg-white`}
               >
                 {isUserProfileOpen && currentChat && (
-                  <UserProfileComponent username={currentChat.name} onClose={() => setIsUserProfileOpen(false)} />
+                  <UserProfileComponentRTK username={currentChat.name} onClose={() => setIsUserProfileOpen(false)} />
                 )}
               </div>
             </div>
           )}
-          {isProfileOpen && <ProfileComponent onClose={() => setIsProfileOpen(false)} />}
+          {isProfileOpen && <ProfileComponentRTK username={username} onClose={() => setIsProfileOpen(false)} onLogout={() => setIsLoggedIn(false)} />}
         </div>
       )}
     </div>

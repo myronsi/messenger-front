@@ -12,8 +12,7 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+import { useLoginMutation } from '@/app/api/messengerApi';
 
 interface LoginComponentProps {
   onLoginSuccess: (username: string) => void;
@@ -27,6 +26,8 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { translations } = useLanguage();
+  
+  const [login, { isLoading: isLoginLoading }] = useLoginMutation();
 
   const handleLogin = useCallback(async () => {
     if (!username || username.length < 3) {
@@ -37,35 +38,21 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       setMessage(translations.missingFields);
       return;
     }
+    
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', username);
-      formData.append('password', password);
-      formData.append('grant_type', 'password');
-      formData.append('scope', '');
-      formData.append('client_id', 'string');
-      formData.append('client_secret', '********');
-
-      const response = await fetch(`${BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData,
-      });
-      const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem('access_token', data.access_token);
-        onLoginSuccess(username);
-      } else {
-        setMessage(data.detail || translations.loginFailed);
+      const result = await login({ username, password }).unwrap();
+      localStorage.setItem('access_token', result.access_token);
+      if (result.refresh_token) {
+        localStorage.setItem('refresh_token', result.refresh_token);
       }
-    } catch (err) {
-      setMessage(translations.networkError);
-      console.error('Login error:', err);
+      onLoginSuccess(username);
+      setMessage('');
+    } catch (error: any) {
+      const errorMessage = error?.data?.detail || error?.message || translations.loginFailed;
+      setMessage(errorMessage);
+      console.error('Login error:', error);
     }
-  }, [username, password, translations, onLoginSuccess]);
+  }, [username, password, translations, onLoginSuccess, login]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,8 +131,13 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
 
       <CardFooter className="flex-col gap-2">
         {inputsFilled ? (
-          <Button type="submit" onClick={handleLogin} className="w-full">
-            {translations.login}
+          <Button 
+            type="submit" 
+            onClick={handleLogin} 
+            className="w-full"
+            disabled={isLoginLoading}
+          >
+            {isLoginLoading ? translations.loading || 'Loading...' : translations.login}
           </Button>
         ) : (
           <div className="w-full">
