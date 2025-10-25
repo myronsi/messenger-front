@@ -7,7 +7,6 @@ import PartsRecoveryComponent from '@/features/auth/PartsRecoveryComponent';
 import PasswordResetComponent from '@/features/auth/PasswordResetComponent';
 import ChatsListComponentRTK from '@/features/chat/components/ChatsListComponentRTK';
 import Chat from '@/features/chat';
-import ChatRTK from '@/features/chat/ChatRTK';
 import GroupComponent from '@/features/groups/GroupComponent';
 import ProfileComponentRTK from '@/features/profiles/ProfileComponentRTK';
 import UserProfileComponentRTK from '@/features/profiles/UserProfileComponentRTK';
@@ -183,27 +182,27 @@ const AppContent = () => {
                   currentChat ? 'translate-x-0' : 'translate-x-full'
                 } bg-white rounded-lg shadow-lg overflow-hidden`}
               >
-                {currentChat ? (
-                  currentChat.type === 'group' ? (
-                    <GroupComponent
-                      key={currentChat.id}
-                      chatId={currentChat.id}
-                      groupName={currentChat.name}
-                      username={username}
-                      onBack={backToChats}
-                    />
+                  {currentChat ? (
+                    currentChat.type === 'group' ? (
+                      <GroupComponent
+                        key={currentChat.id}
+                        chatId={currentChat.id}
+                        groupName={currentChat.name}
+                        username={username}
+                        onBack={backToChats}
+                      />
+                    ) : (
+                      <Chat
+                        key={currentChat.id}
+                        chatId={currentChat.id}
+                        chatName={currentChat.name}
+                        username={username}
+                        interlocutorDeleted={currentChat.interlocutorDeleted}
+                        onBack={backToChats}
+                        setIsUserProfileOpen={setIsUserProfileOpen}
+                      />
+                    )
                   ) : (
-                    <ChatRTK
-                      key={currentChat.id}
-                      chatId={currentChat.id}
-                      chatName={currentChat.name}
-                      username={username}
-                      interlocutorDeleted={currentChat.interlocutorDeleted}
-                      onBack={backToChats}
-                      setIsUserProfileOpen={setIsUserProfileOpen}
-                    />
-                  )
-                ) : (
                   <div className="h-full flex items-center justify-center">
                     <p className="text-gray-500">{translations.selectChat}</p>
                   </div>

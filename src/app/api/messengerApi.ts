@@ -94,24 +94,14 @@ export const messengerApi = createApi({
   endpoints: (builder) => ({
     // Auth endpoints
     login: builder.mutation<AuthResponse, LoginRequest>({
-      query: (credentials) => {
-        const formData = new URLSearchParams();
-        formData.append('username', credentials.username);
-        formData.append('password', credentials.password);
-        formData.append('grant_type', 'password');
-        formData.append('scope', '');
-        formData.append('client_id', 'string');
-        formData.append('client_secret', '********');
-        
-        return {
-          url: '/auth/login',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: formData,
-        };
-      },
+      query: (credentials) => ({
+        url: '/auth/login',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: credentials,
+      }),
       invalidatesTags: ['Auth'],
     }),
     
@@ -164,7 +154,7 @@ export const messengerApi = createApi({
       providesTags: ['User'],
     }),
     
-    searchUsers: builder.query<User[], string>({
+    searchUsers: builder.query<{ users: User[] }, string>({
       query: (searchTerm) => `/users/search?q=${encodeURIComponent(searchTerm)}`,
       providesTags: ['User'],
     }),
@@ -268,7 +258,8 @@ export const messengerApi = createApi({
       providesTags: (result, error, id) => [{ type: 'Chat', id }],
     }),
     
-    createChat: builder.mutation<Chat, { participantIds: number[]; type: 'private' | 'group'; name?: string }>({
+    // Create one-on-one chat. Server expects { user1: string, user2: string }
+    createChat: builder.mutation<{ chat_id: number; message: string }, { user1: string; user2: string }>({
       query: (chatData) => ({
         url: '/chats/create',
         method: 'POST',
@@ -399,6 +390,7 @@ export const {
   
   // Message hooks
   useGetMessagesQuery,
+  useGetMessageHistoryQuery,
   useSendMessageMutation,
   useUpdateMessageMutation,
   useDeleteMessageMutation,

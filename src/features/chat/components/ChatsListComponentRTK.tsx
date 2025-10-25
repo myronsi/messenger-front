@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Plus, Menu, Loader2 } from 'lucide-react';
+import { MessageSquare, Plus, Menu, Loader2, Search } from 'lucide-react';
 import { Chat } from '@/entities/message';
 import UserProfileComponentRTK from '@/features/profiles/UserProfileComponentRTK';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { useGetOneOnOneChatsQuery, useGetGroupChatsQuery, useCreateChatMutation } from '@/app/api/messengerApi';
+import SearchUsers from './SearchUsers';
+import ChatsListHeader from './ChatsListHeader';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -74,6 +76,7 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   // Local state
   const [targetUser, setTargetUser] = useState('');
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
   const [modal, setModal] = useState<{
     type: 'error' | 'success' | 'validation' | 'deletedUser';
     message: string;
@@ -83,6 +86,8 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   const token = localStorage.getItem('access_token');
   const wsRef = useRef<WebSocket | null>(null);
   const { translations } = useLanguage();
+
+  // search logic moved to SearchUsers component
 
   // Transform the API data to match your existing Chat interface with proper avatar URLs
   const chats: Chat[] = React.useMemo(() => {
@@ -214,8 +219,8 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
       // You'll need to modify this based on your API
       // This assumes you have a user lookup endpoint
       const result = await createChat({
-        participantIds: [], // You'll need to resolve username to user ID
-        type: 'private',
+        user1: username,
+        user2: targetUser.trim(),
       }).unwrap();
 
       setTargetUser('');
@@ -231,6 +236,18 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
         type: 'error',
         message: error?.data?.detail || error?.message || 'Failed to create chat',
       });
+    }
+  };
+
+  // Create chat directly with a selected username (used by suggestion click)
+  const handleCreateChatWith = async (usernameTo: string) => {
+    try {
+      const result = await createChat({ user1: username, user2: usernameTo }).unwrap();
+      setTargetUser('');
+      setModal({ type: 'success', message: translations.chatCreated || 'Chat created successfully' });
+      refetch();
+    } catch (error: any) {
+      setModal({ type: 'error', message: error?.data?.detail || error?.message || 'Failed to create chat' });
     }
   };
 
@@ -251,47 +268,33 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   }
 
   return (
-    <div className="h-full bg-background text-foreground flex flex-col">
+    <div className="h-full bg-background text-foreground flex flex-col relative">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <MessageSquare className="w-6 h-6" />
-          {translations.chats}
-        </h2>
-        <button
-          onClick={() => setIsProfileOpen(true)}
-          className="p-2 hover:bg-accent rounded-full transition-colors"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
+      <ChatsListHeader
+        translations={translations}
+        onOpenSearch={() => setShowSearch(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+      />
 
-      {/* Create chat section */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-2 w-full">
-          <div className="flex-grow min-w-0">
-            <input
-              type="text"
-              placeholder={translations.username}
-              value={targetUser}
-              onChange={(e) => setTargetUser(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleCreateChat()}
-              className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-ellipsis"
-            />
+      {/* Overlay search that covers the chat list area when active */}
+      {showSearch && (
+        <div className="absolute inset-0 bg-white z-50 p-4 overflow-auto">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">{translations.username}</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowSearch(false)} className="px-3 py-1 rounded-md hover:bg-accent">
+                Close
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleCreateChat}
-            disabled={isCreatingChat}
-            className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {isCreatingChat ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Plus className="w-5 h-5" />
-            )}
-          </button>
+          <SearchUsers
+            currentUsername={username}
+            translations={translations}
+            onCreated={() => { refetch(); setShowSearch(false); }}
+            onClose={() => setShowSearch(false)}
+          />
         </div>
-      </div>
+      )}
 
       {/* Chats list */}
       <div className="flex-1 overflow-y-auto">

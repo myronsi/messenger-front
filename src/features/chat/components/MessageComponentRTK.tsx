@@ -3,14 +3,14 @@ import { Send, Paperclip, Smile, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { 
-  useGetMessagesQuery, 
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+import {
+  useGetMessageHistoryQuery,
   useSendMessageMutation,
   useUpdateMessageMutation,
   useDeleteMessageMutation,
   useAddReactionMutation,
   useRemoveReactionMutation,
-  Message as ApiMessage
 } from '@/app/api/messengerApi';
 import { Message } from '@/entities/message';
 
@@ -19,24 +19,7 @@ interface MessageComponentRTKProps {
   currentUsername: string;
 }
 
-// Transform API message to your local Message interface
-const transformMessage = (apiMessage: ApiMessage): Message => ({
-  id: apiMessage.id,
-  sender: '', // You'll need to map this from user data
-  content: apiMessage.content || '',
-  timestamp: apiMessage.timestamp,
-  avatar_url: '',
-  reply_to: apiMessage.replyTo || null,
-  is_deleted: false,
-  type: apiMessage.type === 'text' ? 'message' : 'file',
-  reactions: apiMessage.reactions?.map(r => ({ user_id: r.userId, reaction: r.emoji })) || [],
-  read_by: [],
-});
-
-const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ 
-  chatId, 
-  currentUsername 
-}) => {
+const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, currentUsername }) => {
   const { translations } = useLanguage();
   const [newMessage, setNewMessage] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
@@ -44,12 +27,12 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // RTK Query hooks
-  const { 
-    data: messagesData, 
+  const {
+    data: messagesData,
     error, 
     isLoading,
     refetch 
-  } = useGetMessagesQuery({ chatId, page: 1, limit: 50 });
+  } = useGetMessageHistoryQuery(chatId);
 
   const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
   const [updateMessage, { isLoading: isUpdating }] = useUpdateMessageMutation();
@@ -57,10 +40,26 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({
   const [addReaction] = useAddReactionMutation();
   const [removeReaction] = useRemoveReactionMutation();
 
-  // Transform API messages to local format
+  // Transform API messages (server returns { history: [...] }) to local format
   const messages: Message[] = React.useMemo(() => {
-    if (!messagesData) return [];
-    return messagesData.map(transformMessage);
+    if (!messagesData || !(messagesData as any).history) return [];
+    try {
+      return (messagesData as any).history.map((msg: any) => ({
+        id: msg.id,
+        sender: msg.sender || '',
+        content: msg.type === 'file' ? (typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content) : msg.content || '',
+        timestamp: msg.timestamp,
+        avatar_url: msg.avatar_url ? `${BASE_URL}${msg.avatar_url}` : '',
+        reply_to: msg.reply_to || null,
+        is_deleted: !!msg.is_deleted,
+        type: msg.type === 'file' ? 'file' : 'message',
+        reactions: msg.reactions ? JSON.parse(msg.reactions) : [],
+        read_by: msg.read_by ? JSON.parse(msg.read_by) : [],
+      } as Message));
+    } catch (e) {
+      console.error('Failed to transform messagesData:', e, messagesData);
+      return [];
+    }
   }, [messagesData]);
 
   // Auto-scroll to bottom when new messages arrive

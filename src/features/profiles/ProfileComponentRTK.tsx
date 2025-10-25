@@ -1,5 +1,5 @@
 import React, { useState, useEffect, forwardRef } from 'react';
-import { Upload, X, LogOut, Users, Globe, Check, Loader2 } from 'lucide-react';
+import { Upload, X, LogOut, Users, Globe, Check, Loader2, Trash } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import GroupCreateModal from '@/shared/ui/GroupCreateModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -399,7 +399,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
             {isDeletingAccount ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <X className="w-4 h-4" />
+              <Trash className="w-4 h-4" />
             )}
             {translations.deleteAccount}
           </button>
