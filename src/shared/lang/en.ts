@@ -63,6 +63,8 @@ export const en = {
   chatDeleted: "Chat has been deleted.",
   messageDeleted: "[Message deleted]",
   deletedUserInfo: "Deleted user information is unavailable.",
+  search: "Search",
+  searchDots: "Search...",
 
   // Group
   groupName: "Group Name",

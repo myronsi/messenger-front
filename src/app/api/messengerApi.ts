@@ -392,6 +392,7 @@ export const {
   useGetMessagesQuery,
   useGetMessageHistoryQuery,
   useSendMessageMutation,
+  useUploadFileMutation,
   useUpdateMessageMutation,
   useDeleteMessageMutation,
   useAddReactionMutation,

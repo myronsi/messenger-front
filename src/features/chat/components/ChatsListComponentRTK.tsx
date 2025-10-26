@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Plus, Menu, Loader2, Search } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MessageSquare, Plus, Menu, Loader2, Search, X } from 'lucide-react';
 import { Chat } from '@/entities/message';
 import UserProfileComponentRTK from '@/features/profiles/UserProfileComponentRTK';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
@@ -68,15 +68,21 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   const isLoading = isLoadingOneOnOne || isLoadingGroups;
   const error = oneOnOneError || groupError;
   
-  const refetch = () => {
+  // Use useCallback to stabilize the refetch function reference
+  const refetch = useCallback(() => {
     refetchOneOnOne();
     refetchGroups();
-  };
+  }, [refetchOneOnOne, refetchGroups]);
 
   // Local state
   const [targetUser, setTargetUser] = useState('');
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
+  // animation / reveal state
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [circleActive, setCircleActive] = useState(false);
+  const [circleStyle, setCircleStyle] = useState<{ left: number; top: number; size: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [modal, setModal] = useState<{
     type: 'error' | 'success' | 'validation' | 'deletedUser';
     message: string;
@@ -136,20 +142,33 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
 
   // WebSocket setup (keeping your existing WebSocket logic)
   useEffect(() => {
+    let isMounted = true;
+    let reconnectTimeoutId: NodeJS.Timeout | null = null;
+
     const connectWebSocket = () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        console.log('WebSocket already connected for chat list');
+      if (!isMounted) return;
+      
+      // Check if WebSocket is already connected or connecting
+      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+        console.log('WebSocket already connected or connecting for chat list');
         return;
       }
 
       console.log('Connecting WebSocket for chat list');
-      wsRef.current = new WebSocket(`${WS_URL}/ws/chat/0?token=${token}`);
+      try {
+        wsRef.current = new WebSocket(`${WS_URL}/ws/chat/0?token=${token}`);
+      } catch (e) {
+        console.error('Failed to create WebSocket for chat list', e);
+        return;
+      }
 
       wsRef.current.onopen = () => {
+        if (!isMounted) return;
         console.log('WebSocket successfully connected for chat list');
       };
 
       wsRef.current.onmessage = (event) => {
+        if (!isMounted) return;
         let parsedData: WebSocketMessage;
         try {
           parsedData = JSON.parse(event.data);
@@ -182,16 +201,21 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
         }
       };
 
-      wsRef.current.onclose = () => {
+      wsRef.current.onclose = (event) => {
+        if (!isMounted) return;
         console.log('WebSocket disconnected for chat list');
-        // Reconnect after 5 seconds
-        setTimeout(() => {
-          if (token) connectWebSocket();
-        }, 5000);
+        // Only reconnect if it wasn't a clean close and component is still mounted
+        if (event.code !== 1000 && event.code !== 1001 && token) {
+          reconnectTimeoutId = setTimeout(() => {
+            if (isMounted && token) connectWebSocket();
+          }, 5000);
+        }
       };
 
       wsRef.current.onerror = (error) => {
+        if (!isMounted) return;
         console.error('WebSocket error for chat list:', error);
+        // Don't show modal for transient errors - let reconnection logic handle it
       };
     };
 
@@ -200,11 +224,80 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
     }
 
     return () => {
+      isMounted = false;
+      if (reconnectTimeoutId) {
+        clearTimeout(reconnectTimeoutId);
+      }
       if (wsRef.current) {
-        wsRef.current.close();
+        try {
+          wsRef.current.close(1000, 'Component unmounted');
+        } catch (e) {
+          console.warn('Error while closing chat list WebSocket', e);
+        }
+        wsRef.current = null;
       }
     };
-  }, [token, refetch, onChatDeleted]);
+  }, [token, onChatDeleted]); // Removed refetch dependency
+
+  const ANIM_DURATION = 120; // ms
+
+  const handleOpenSearch = (btnRect: DOMRect) => {
+    // compute the circle center relative to container
+    const container = containerRef.current;
+    if (!container) {
+      // fallback: simple show
+      setOverlayVisible(true);
+      setShowSearch(true);
+      setTimeout(() => {
+        // focus first input inside overlay after it's visible
+        const input = document.querySelector('#search-overlay input, #search-overlay textarea') as HTMLInputElement | null;
+        input?.focus();
+      }, 100);
+      return;
+    }
+
+    const contRect = container.getBoundingClientRect();
+
+    // compute button center relative to container
+    const centerX = (btnRect.left + btnRect.right) / 2 - contRect.left;
+    const centerY = (btnRect.top + btnRect.bottom) / 2 - contRect.top;
+
+    // compute max distance to container corners
+    const distances = [
+      Math.hypot(centerX - 0, centerY - 0),
+      Math.hypot(centerX - contRect.width, centerY - 0),
+      Math.hypot(centerX - 0, centerY - contRect.height),
+      Math.hypot(centerX - contRect.width, centerY - contRect.height),
+    ];
+    const R = Math.ceil(Math.max(...distances));
+    const size = R * 2;
+
+    setCircleStyle({ left: Math.round(centerX - R), top: Math.round(centerY - R), size });
+    // show the overlay container and animate the circle
+    setOverlayVisible(true);
+    // small delay to ensure DOM paint
+    requestAnimationFrame(() => {
+      setCircleActive(true);
+    });
+
+    // after animation end, reveal inner content and focus input
+    setTimeout(() => {
+      setShowSearch(true);
+      const input = document.querySelector('#search-overlay input, #search-overlay textarea') as HTMLInputElement | null;
+      input?.focus();
+    }, ANIM_DURATION - 50);
+  };
+
+  const handleCloseSearch = () => {
+    // reverse animation
+    setShowSearch(false);
+    setCircleActive(false);
+    // after animation finished, hide overlay
+    setTimeout(() => {
+      setOverlayVisible(false);
+      setCircleStyle(null);
+    }, ANIM_DURATION + 20);
+  };
 
   const handleCreateChat = async () => {
     if (!targetUser.trim()) {
@@ -252,6 +345,10 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   };
 
   const handleChatClick = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
+    // Don't re-open if this chat is already active
+    if (chatId === activeChatId) {
+      return;
+    }
     onChatOpen(chatId, chatName, interlocutorDeleted, type);
   };
 
@@ -268,31 +365,76 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   }
 
   return (
-    <div className="h-full bg-background text-foreground flex flex-col relative">
+    <div ref={containerRef} className="h-full bg-background text-foreground flex flex-col relative">
       {/* Header */}
       <ChatsListHeader
         translations={translations}
-        onOpenSearch={() => setShowSearch(true)}
+        onOpenSearch={(rect: DOMRect) => handleOpenSearch(rect)}
         onOpenProfile={() => setIsProfileOpen(true)}
       />
 
       {/* Overlay search that covers the chat list area when active */}
-      {showSearch && (
-        <div className="absolute inset-0 bg-white z-50 p-4 overflow-auto">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold">{translations.username}</h3>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setShowSearch(false)} className="px-3 py-1 rounded-md hover:bg-accent">
-                Close
-              </button>
+      {overlayVisible && (
+        <div className="absolute inset-0 z-50 pointer-events-auto overflow-hidden">
+          {/* expanding circle background */}
+          {circleStyle && (
+            <div
+              aria-hidden
+              style={{
+                left: circleStyle.left,
+                top: circleStyle.top,
+                width: circleStyle.size,
+                height: circleStyle.size,
+              }}
+              className={`absolute rounded-full bg-white/90 transform transition-transform duration-300 ease-out ${
+                circleActive ? 'scale-100' : 'scale-0'
+              }`}
+            />
+          )}
+
+          {/* overlay content sits above the circle */}
+          <div
+            id="search-overlay"
+            className={`absolute inset-0 p-4 overflow-auto flex flex-col ${
+              showSearch ? 'opacity-100 duration-300 translate-y-0' : 'opacity-0 duration-200 translate-y-2'
+            } transition-all`}
+            style={{
+              // ensure overlay content is above the circle
+              zIndex: 60,
+            }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">{translations.search}</h3>
+              <div className="flex items-center gap-2">
+                <button onClick={handleCloseSearch} className="p-1 rounded-full hover:bg-accent">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+            <SearchUsers
+              currentUsername={username}
+              translations={translations}
+              onCreated={() => { refetch(); handleCloseSearch(); }}
+              onClose={() => handleCloseSearch()}
+              onOpenPreview={(previewUsername: string) => {
+                // If a one-on-one chat with this user already exists, open it instead of creating a preview
+                const existing = (oneOnOneChatsData?.chats || []).find((c: any) => {
+                  const name = (c.interlocutor_name || '').toLowerCase();
+                  return name === previewUsername.toLowerCase();
+                });
+                if (existing) {
+                  onChatOpen(existing.id, existing.interlocutor_name, existing.interlocutor_deleted || false, 'one-on-one');
+                  handleCloseSearch();
+                  return;
+                }
+
+                // open a temporary (fake) chat — real chat will be created when the first message is sent
+                const tempId = -Date.now();
+                onChatOpen(tempId, previewUsername, false, 'one-on-one');
+                handleCloseSearch();
+              }}
+            />
           </div>
-          <SearchUsers
-            currentUsername={username}
-            translations={translations}
-            onCreated={() => { refetch(); setShowSearch(false); }}
-            onClose={() => setShowSearch(false)}
-          />
         </div>
       )}
 

@@ -10,9 +10,10 @@ interface SearchUsersProps {
   onCreated?: () => void;
   onClose?: () => void;
   translations: any;
+  onOpenPreview?: (username: string) => void;
 }
 
-const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, onClose, translations }) => {
+const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, onClose, translations, onOpenPreview }) => {
   const [targetUser, setTargetUser] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [createChat, { isLoading: isCreating }] = useCreateChatMutation();
@@ -38,41 +39,52 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, o
   };
 
   return (
-    <div className="p-4 border-b border-border">
+    <div className="border-b border-border">
       <div className="flex items-center gap-2 w-full">
         <div className="flex-grow min-w-0 relative">
           <input
             type="text"
-            placeholder={translations.username}
+            placeholder={translations.searchDots}
             value={targetUser}
             onChange={(e) => setTargetUser(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleCreateChat()}
             className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-ellipsis"
           />
 
           {debouncedSearch && searchData?.users && searchData.users.length > 0 && (
-            <ul className="absolute left-0 right-0 mt-1 bg-white border border-border rounded-md shadow-md z-50 max-h-52 overflow-auto">
-              {searchData.users.map((u: any) => (
-                <li
-                  key={u.id}
-                  onClick={() => handleCreateChat(u.username)}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-accent cursor-pointer"
-                >
-                  <img src={u.avatar_url ? `${BASE_URL}${u.avatar_url}` : DEFAULT_AVATAR} alt={u.username} className="w-6 h-6 rounded-full object-cover" />
-                  <span className="truncate">{u.username}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-3">
+              <div className="bg-white border border-border rounded-md max-h-72 overflow-auto">
+                {searchData.users.map((u: any) => {
+                  const isSelf = u.username?.toLowerCase() === currentUsername?.toLowerCase();
+                  return (
+                    <div
+                      key={u.id}
+                      onClick={() => {
+                        if (isSelf) return;
+                        if (onOpenPreview) onOpenPreview(u.username);
+                      }}
+                      role="button"
+                      tabIndex={isSelf ? -1 : 0}
+                      aria-disabled={isSelf}
+                      className={`flex items-center p-3 rounded-lg transition-all ${isSelf ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'}`}
+                    >
+                      <img
+                        src={u.avatar_url ? `${BASE_URL}${u.avatar_url}` : DEFAULT_AVATAR}
+                        alt={u.username}
+                        className={`w-10 h-10 rounded-full mr-3 object-cover ${isSelf ? 'opacity-50' : ''}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{u.username}</div>
+                      </div>
+                      {isSelf && (
+                        <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
-
-        <button
-          onClick={() => handleCreateChat()}
-          disabled={isCreating}
-          className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-        </button>
       </div>
     </div>
   );

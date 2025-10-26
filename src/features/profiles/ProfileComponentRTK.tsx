@@ -343,7 +343,11 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
             <label className="text-sm font-medium text-gray-700">Language / Язык</label>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setLanguage('en')}
+                onClick={() => {
+                  setLanguage('en');
+                  // Reload page to reset WebSocket connections and apply new language globally
+                  window.location.reload();
+                }}
                 className={`flex-1 py-2 px-4 rounded-md border ${
                   language === 'en'
                     ? 'bg-blue-500 text-white border-blue-500'
@@ -354,7 +358,11 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
                 English
               </button>
               <button
-                onClick={() => setLanguage('ru')}
+                onClick={() => {
+                  setLanguage('ru');
+                  // Reload page to reset WebSocket connections and apply new language globally
+                  window.location.reload();
+                }}
                 className={`flex-1 py-2 px-4 rounded-md border ${
                   language === 'ru'
                     ? 'bg-blue-500 text-white border-blue-500'

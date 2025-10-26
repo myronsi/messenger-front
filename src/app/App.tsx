@@ -15,7 +15,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/ui/select';
 import { Globe } from 'lucide-react';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -78,13 +78,51 @@ const AppContent = () => {
   };
 
   const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group') => {
+    // Only push URL for real chats (positive IDs). Preview chats use negative IDs and must not create a URL.
+    if (chatId > 0) {
+      try {
+        navigate(`/chat/${chatId}`, { state: { chatName, interlocutorDeleted, type } });
+      } catch (e) {
+        // navigate may throw in some test environments; ignore
+      }
+    }
     setCurrentChat({ id: chatId, name: chatName, interlocutorDeleted, type });
   };
 
   const backToChats = () => {
     setCurrentChat(null);
+    try {
+      navigate('/');
+    } catch (e) {}
     setIsUserProfileOpen(false);
   };
+
+  // Sync currentChat from URL (supports direct links like /chat/123)
+  const location = useLocation();
+  useEffect(() => {
+    const m = location.pathname.match(/^\/chat\/(\d+)$/);
+    if (m) {
+      const id = Number(m[1]);
+      // ignore negative preview IDs and chat 0 in the URL — redirect to root
+      if (id <= 0) {
+        navigate('/');
+        return;
+      }
+      // if already open and same id, nothing to do
+      if (currentChat && currentChat.id === id) return;
+
+      // try to use location.state if provided (when navigated via openChat)
+      const state: any = (location && (location as any).state) || {};
+      const name = state.chatName || String(id);
+      const interlocutorDeleted = !!state.interlocutorDeleted;
+      const type = state.type || 'one-on-one';
+      setCurrentChat({ id, name, interlocutorDeleted, type });
+    } else {
+      // not on chat route -> clear current chat
+      if (currentChat) setCurrentChat(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const handleChatDeleted = (chatId: number) => {
     if (currentChat && currentChat.id === chatId) {
@@ -164,11 +202,7 @@ const AppContent = () => {
         <div className="mx-0 min-h-screen min-w-screen px-0">
           {isMobile ? (
             <div className="relative h-[calc(100vh)] overflow-hidden">
-              <div
-                className={`absolute inset-0 transition-transform duration-200 ease-in-out ${
-                  currentChat ? '-translate-x-full' : 'translate-x-0'
-                } bg-white rounded-lg shadow-lg overflow-hidden`}
-              >
+              <div className="absolute inset-0 bg-white rounded-lg shadow-lg overflow-hidden">
                 <ChatsListComponentRTK
                   username={username}
                   onChatOpen={openChat}
@@ -178,8 +212,8 @@ const AppContent = () => {
                 />
               </div>
               <div
-                className={`absolute inset-0 transition-transform duration-200 ease-in-out ${
-                  currentChat ? 'translate-x-0' : 'translate-x-full'
+                className={`absolute inset-0 transition-transform duration-300 ease-in-out ${
+                  currentChat ? 'translate-x-0 z-50' : 'translate-x-full z-40'
                 } bg-white rounded-lg shadow-lg overflow-hidden`}
               >
                   {currentChat ? (
@@ -200,6 +234,9 @@ const AppContent = () => {
                         interlocutorDeleted={currentChat.interlocutorDeleted}
                         onBack={backToChats}
                         setIsUserProfileOpen={setIsUserProfileOpen}
+                        onChatCreated={(newId: number, newName: string) => {
+                          setCurrentChat({ id: newId, name: newName, interlocutorDeleted: false, type: 'one-on-one' });
+                        }}
                       />
                     )
                   ) : (
@@ -243,7 +280,7 @@ const AppContent = () => {
                       username={username}
                       onBack={backToChats}
                     />
-                  ) : (
+                    ) : (
                     <Chat
                       key={currentChat.id}
                       chatId={currentChat.id}
@@ -252,11 +289,16 @@ const AppContent = () => {
                       interlocutorDeleted={currentChat.interlocutorDeleted}
                       onBack={backToChats}
                       setIsUserProfileOpen={setIsUserProfileOpen}
+                      onChatCreated={(newId: number, newName: string) => {
+                        setCurrentChat({ id: newId, name: newName, interlocutorDeleted: false, type: 'one-on-one' });
+                      }}
                     />
                   )
                 ) : (
                   <div className="h-full flex items-center justify-center">
-                    <p className="text-gray-500">{translations.selectChat}</p>
+                    <div className="bg-gray-100 px-3 py-1 rounded-xl">
+                      <p className="text-gray-500 text-sm">{translations.selectChat}</p>
+                    </div>
                   </div>
                 )}
               </div>

@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Message } from '@/entities/message';
 import { useChat } from './model/useChat';
+import { useCreateChatMutation, useSendMessageMutation, useUploadFileMutation } from '@/app/api/messengerApi';
+import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import ChatHeader from './components/ChatHeader';
 import MessageList from './components/MessageList';
 import MessageInput from './components/MessageInput';
@@ -19,17 +21,27 @@ interface ChatProps {
   interlocutorDeleted: boolean;
   onBack: () => void;
   setIsUserProfileOpen: (isOpen: boolean) => void;
+  // Called when a preview chat is upgraded to a real chat after first message is sent
+  onChatCreated?: (newId: number, newName: string) => void;
 }
 
 import { Drawer, DrawerContent } from "@/shared/ui/drawer";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 
-const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDeleted, onBack, setIsUserProfileOpen }) => {
+const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDeleted, onBack, setIsUserProfileOpen, onChatCreated }) => {
   const token = localStorage.getItem('access_token') || '';
   const [userId, setUserId] = useState<number | null>(null);
   const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
   const isMobile = useIsMobile();
 
+  const isPreview = chatId < 0;
+
+  // Mutations for creating a chat and sending messages (used in preview mode)
+  const [createChat] = useCreateChatMutation();
+  const [sendMessage] = useSendMessageMutation();
+  const [uploadFile] = useUploadFileMutation();
+
+  // When not preview — use the normal hook
   const {
     messages,
     messageInput,
@@ -53,7 +65,73 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
     getMessageTime,
     renderMessageContent,
     wsRef,
-  } = useChat(chatId, username, token, onBack);
+  } = isPreview ? {
+    messages: [] as Message[],
+    messageInput: '',
+    setMessageInput: (_: string) => {},
+    contextMenu: null,
+    setContextMenu: (_: any) => {},
+    replyTo: null,
+    setReplyTo: (_: any) => {},
+    editingMessage: null,
+    setEditingMessage: (_: any) => {},
+    selectedUser: null,
+    setSelectedUser: (_: any) => {},
+    modal: null,
+    setModal: (_: any) => {},
+    highlightedMessageId: null,
+    scrollToMessage: (_: number) => {},
+    handleSendMessage: () => {},
+    handleFileUpload: (_: any) => {},
+    handleDeleteChat: () => {},
+    getFormattedDateLabel: (s: string) => formatDateLabel(new Date(s), 'en', new Date(), new Date()),
+    getMessageTime: (s: string) => formatTime(s, 'en'),
+    renderMessageContent: (m: Message) => null,
+    wsRef: { current: null } as any,
+  } : useChat(chatId, username, token, onBack);
+
+  // Local state & handlers for preview mode
+  const [previewMessageInput, setPreviewMessageInput] = useState('');
+  const [previewMessages, setPreviewMessages] = useState<Message[]>([]);
+
+  const handleSendMessagePreview = async () => {
+    const content = previewMessageInput.trim();
+    if (!content) return;
+    try {
+      // create the chat on the server
+      const res = await createChat({ user1: username, user2: chatName }).unwrap();
+      const newChatId = res.chat_id;
+      // store the pending message so Chat's WebSocket can send it once connected
+      try {
+        sessionStorage.setItem(`pendingMsg:${newChatId}`, content);
+      } catch (e) {
+        console.warn('Could not store pending message in sessionStorage', e);
+      }
+      setPreviewMessageInput('');
+      // notify parent to switch to the real chat id (will remount Chat and send pending message)
+      if (onChatCreated) onChatCreated(newChatId, chatName);
+    } catch (err) {
+      console.error('Failed to create chat/send message:', err);
+      setModal({ type: 'error', message: 'Failed to send message. Please try again.' });
+    }
+  };
+
+  const handleFileUploadPreview = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await createChat({ user1: username, user2: chatName }).unwrap();
+      const newChatId = res.chat_id;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('chat_id', newChatId.toString());
+      await uploadFile(formData).unwrap();
+      if (onChatCreated) onChatCreated(newChatId, chatName);
+    } catch (err) {
+      console.error('Failed to create chat/upload file:', err);
+      setModal({ type: 'error', message: 'Failed to upload file. Please try again.' });
+    }
+  };
 
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -196,13 +274,21 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
       {!interlocutorDeleted ? (
         <MessageInput
           ref={messageInputRef}
-          messageInput={messageInput}
-          setMessageInput={setMessageInput}
+          messageInput={isPreview ? previewMessageInput : messageInput}
+          setMessageInput={isPreview ? setPreviewMessageInput : setMessageInput}
           replyTo={replyTo}
           editingMessage={editingMessage}
-          onSendMessage={handleSendMessage}
-          onFileUpload={handleFileUpload}
-          onCancelReplyOrEdit={() => { setReplyTo(null); setEditingMessage(null); setMessageInput(''); }}
+          onSendMessage={isPreview ? handleSendMessagePreview : handleSendMessage}
+          onFileUpload={isPreview ? handleFileUploadPreview : handleFileUpload}
+          onCancelReplyOrEdit={() => {
+            if (isPreview) {
+              setPreviewMessageInput('');
+            } else {
+              setReplyTo(null);
+              setEditingMessage(null);
+              setMessageInput('');
+            }
+          }}
           chatId={chatId}
           token={token}
         />

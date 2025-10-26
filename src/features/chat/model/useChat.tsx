@@ -36,6 +36,8 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadMessages = async () => {
       if (hasFetchedMessages.current) return;
       hasFetchedMessages.current = true;
@@ -57,6 +59,9 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
         } else if (response.status === 401) {
           setModal({ type: 'error', message: translations.loginRequired });
           setTimeout(onBack, 2000);
+        } else if (response.status === 403) {
+          // Forbidden - redirect to root
+          onBack();
         } else {
           throw new Error(translations.errorLoading);
         }
@@ -68,19 +73,38 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
     if (token) {
       loadMessages();
       const connectWebSocket = () => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          console.log('WebSocket already open');
+        if (!isMounted) return;
+        // avoid creating a second connection while one is connecting/open
+        if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+          console.log('WebSocket already open or connecting');
           return;
         }
         if (reconnectAttempts.current >= maxReconnectAttempts) {
           console.error('Max WebSocket reconnect attempts reached');
-          setModal({ type: 'error', message: translations.webSocketError });
+          // Don't set modal here since it's already handled in onclose
           return;
         }
         wsRef.current = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${token}`);
         wsRef.current.onopen = () => {
+          if (!isMounted) {
+            try { wsRef.current?.close(1000, 'Component unmounted'); } catch (e) {}
+            wsRef.current = null;
+            return;
+          }
           console.log('WebSocket connected');
           reconnectAttempts.current = 0;
+          // If there is a pending message stored in sessionStorage (created during preview mode), send it now
+          try {
+            const pendingKey = `pendingMsg:${chatId}`;
+            const pending = sessionStorage.getItem(pendingKey);
+            if (pending && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+              const escaped = escapeCurlyBraces(pending);
+              wsRef.current.send(JSON.stringify({ type: 'message', content: escaped, reply_to: null }));
+              sessionStorage.removeItem(pendingKey);
+            }
+          } catch (e) {
+            console.warn('Error sending pending message from sessionStorage', e);
+          }
         };
         wsRef.current.onmessage = (event) => {
           const parsedData = JSON.parse(event.data);
@@ -98,7 +122,26 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
               reactions: [],
               read_by: [],
             };
-            setMessages((prev) => [...prev, newMessage]);
+            // deduplicate optimistic messages: if we have a pending message with same sender and content, replace it
+            setMessages((prev) => {
+              try {
+                const pendingIndex = prev.findIndex((m) =>
+                  m.id < 0 &&
+                  m.sender === newMessage.sender &&
+                  typeof m.content === 'string' &&
+                  typeof newMessage.content === 'string' &&
+                  (m.content === newMessage.content || m.content === unescapeCurlyBraces(String(newMessage.content)))
+                );
+                if (pendingIndex !== -1) {
+                  const copy = [...prev];
+                  copy[pendingIndex] = newMessage;
+                  return copy;
+                }
+              } catch (e) {
+                console.warn('Error while deduping optimistic message:', e);
+              }
+              return [...prev, newMessage];
+            });
           } else if (parsedData.type === 'edit') {
             setMessages((prev) =>
               prev.map((msg) => (msg.id === parsedData.message_id ? { ...msg, content: parsedData.new_content } : msg))
@@ -142,22 +185,40 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
           }
         };
         wsRef.current.onerror = (error) => {
+          // Don't log error if component has unmounted (expected cleanup race)
+          if (!isMounted) return;
           console.error('WebSocket error:', error);
-          setModal({ type: 'error', message: translations.webSocketError });
+          // Only show error modal if we've exceeded max reconnect attempts
+          if (reconnectAttempts.current >= maxReconnectAttempts) {
+            setModal({ type: 'error', message: translations.webSocketError });
+          }
         };
         wsRef.current.onclose = (event) => {
+          // don't attempt reconnect when component has unmounted
+          if (!isMounted) {
+            wsRef.current = null;
+            return;
+          }
           console.log('WebSocket closed, code:', event.code);
-          if (event.code !== 1000 && event.code !== 1005) {
+          if (event.code !== 1000 && event.code !== 1005 && event.code !== 1006) {
             reconnectAttempts.current += 1;
-            setTimeout(connectWebSocket, 1000 * reconnectAttempts.current);
+            // Only show error modal if we've exceeded max attempts
+            if (reconnectAttempts.current >= maxReconnectAttempts) {
+              console.error('Max WebSocket reconnect attempts reached');
+              setModal({ type: 'error', message: translations.webSocketError });
+            } else {
+              // Try to reconnect with exponential backoff
+              setTimeout(() => { if (isMounted) connectWebSocket(); }, 1000 * reconnectAttempts.current);
+            }
           }
         };
       };
       connectWebSocket();
     }
     return () => {
+      isMounted = false;
       if (wsRef.current) {
-        wsRef.current.close();
+        try { wsRef.current.close(1000, 'Component unmounted'); } catch (e) {}
         wsRef.current = null;
       }
       hasFetchedMessages.current = false;
@@ -172,13 +233,31 @@ export const useChat = (chatId: number, username: string, token: string, onBack:
   const handleSendMessage = () => {
     if (!messageInput.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
-    const escapedMessage = escapeCurlyBraces(messageInput);
+    const contentToSend = messageInput.trim();
+    const escapedMessage = escapeCurlyBraces(contentToSend);
+
+    // optimistic UI: add a temporary message with negative id so user sees it immediately
+    const tempId = -Date.now();
+    const optimisticMessage: Message = {
+      id: tempId,
+      sender: username,
+      content: contentToSend,
+      timestamp: new Date().toISOString(),
+      avatar_url: `${BASE_URL}${DEFAULT_AVATAR}`,
+      reply_to: replyTo?.id || null,
+      is_deleted: false,
+      type: 'message',
+      reactions: [],
+      read_by: [],
+    };
+    setMessages((prev) => [...prev, optimisticMessage]);
 
     if (editingMessage) {
       wsRef.current.send(JSON.stringify({ type: 'edit', message_id: editingMessage.id, content: escapedMessage }));
     } else {
       wsRef.current.send(JSON.stringify({ type: 'message', content: escapedMessage, reply_to: replyTo?.id || null }));
     }
+
     setMessageInput('');
     setReplyTo(null);
     setEditingMessage(null);

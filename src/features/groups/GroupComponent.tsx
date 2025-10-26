@@ -19,7 +19,7 @@ interface GroupComponentProps {
 const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, username, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number; isMine: boolean } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number; isMine: boolean; isClosing?: boolean } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
@@ -51,13 +51,20 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    let reconnectTimeoutId: NodeJS.Timeout | null = null;
+    let hasFetched = false;
+
     const loadMessages = async () => {
-      if (hasFetchedMessages.current) return;
+      if (hasFetched || hasFetchedMessages.current) return;
+      hasFetched = true;
       hasFetchedMessages.current = true;
       try {
         const response = await fetch(`${BASE_URL}/messages/history/${chatId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (!isMounted) return;
+        
         if (response.ok) {
           const data = await response.json();
           console.log(`History loaded for group ${chatId}:`, data);
@@ -75,12 +82,17 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             localStorage.removeItem('access_token');
             window.location.href = '/';
           }, 2000);
+        } else if (response.status === 403) {
+          // Forbidden - redirect to root
+          console.error(`Forbidden access to group ${chatId}`);
+          onBack();
         } else {
           const errorText = await response.text();
           console.error(`Failed to load history for group ${chatId}: ${response.status} ${errorText}`);
           throw new Error(translations.errorLoading);
         }
       } catch (err) {
+        if (!isMounted) return;
         console.error(`Error loading messages for group ${chatId}:`, err);
         setModal({ type: 'error', message: translations.errorLoadingMessages });
         setIsChatValid(false);
@@ -88,14 +100,41 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
     };
 
     const connectWebSocket = () => {
-      if (!token || !isChatValid || (wsRef.current?.readyState === WebSocket.OPEN)) return;
+      if (!isMounted) {
+        console.log(`Component unmounted, skipping WebSocket connection for group ${chatId}`);
+        return;
+      }
+      if (!token || !isChatValid) return;
+      
+      // Avoid duplicate connection if already open or connecting
+      if (wsRef.current) {
+        const state = wsRef.current.readyState;
+        if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
+          console.log(`WebSocket already connected or connecting for group ${chatId}, state: ${state}`);
+          return;
+        }
+      }
 
       console.log(`Connecting WebSocket for group ${chatId}`);
-      wsRef.current = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${token}`);
+      try {
+        wsRef.current = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${token}`);
+      } catch (e) {
+        console.error(`Failed to create WebSocket for group ${chatId}:`, e);
+        return;
+      }
 
-      wsRef.current.onopen = () => console.log(`WebSocket connected for group ${chatId}`);
+      wsRef.current.onopen = () => {
+        if (!isMounted) {
+          console.log(`Component unmounted during connection, closing WebSocket for group ${chatId}`);
+          try { wsRef.current?.close(1000, 'Component unmounted'); } catch (e) {}
+          wsRef.current = null;
+          return;
+        }
+        console.log(`WebSocket connected for group ${chatId}`);
+      };
 
       wsRef.current.onmessage = (event) => {
+        if (!isMounted) return;
         let parsedData;
         try {
           parsedData = JSON.parse(event.data);
@@ -119,6 +158,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             reply_to: data.reply_to || null,
             is_deleted: false,
             type: 'message',
+            read_by: [],
           };
           setMessages((prev) => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
         } else if (type === "file") {
@@ -138,6 +178,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
             reply_to: data.reply_to || null,
             is_deleted: false,
             type: 'file',
+            read_by: [],
           };
           setMessages((prev) => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
         } else if (type === "edit") {
@@ -152,14 +193,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           console.log(`Chat ${chatId} deleted, closing WebSocket`);
           setIsChatValid(false);
           setModal({ type: 'error', message: translations.groupDeleted });
-          if (wsRef.current) wsRef.current.close(1000);
+          try { if (wsRef.current) wsRef.current.close(1000); } catch (e) {}
           setTimeout(onBack, 1000);
         } else if (type === "error") {
           if (parsedData.message === "Chat does not exist" || parsedData.message === "You are not a member of this chat") {
             console.log(`WebSocket error: ${parsedData.message}, closing WebSocket`);
             setIsChatValid(false);
             setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
-            if (wsRef.current) wsRef.current.close(1000);
+            try { if (wsRef.current) wsRef.current.close(1000); } catch (e) {}
             setTimeout(onBack, 1000);
           } else {
             setModal({ type: 'error', message: parsedData.message });
@@ -169,24 +210,50 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
 
       wsRef.current.onclose = (event) => {
         console.log(`WebSocket closed for group ${chatId}. Code: ${event.code}, Reason: ${event.reason}`);
+        if (!isMounted) {
+          wsRef.current = null;
+          return;
+        }
         if (isChatValid && event.code !== 1000 && event.code !== 1008) {
           console.log(`Reconnecting WebSocket for group ${chatId} in 1 second...`);
-          setTimeout(connectWebSocket, 1000);
+          reconnectTimeoutId = setTimeout(() => {
+            if (isMounted) connectWebSocket();
+          }, 1000);
         }
       };
 
-      wsRef.current.onerror = (error) => console.error('WebSocket error:', error);
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        if (wsRef.current && wsRef.current.readyState === WebSocket.CLOSED) {
+          console.log(`WebSocket failed to connect for group ${chatId}`);
+        }
+      };
     };
 
     if (token) {
-      loadMessages();
-      connectWebSocket();
+      loadMessages().then(() => {
+        // Small delay to ensure component is stable before connecting WebSocket
+        if (isMounted) {
+          setTimeout(() => {
+            if (isMounted) connectWebSocket();
+          }, 100);
+        }
+      });
     }
 
     return () => {
+      isMounted = false;
+      if (reconnectTimeoutId) {
+        clearTimeout(reconnectTimeoutId);
+      }
       if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
         console.log(`Closing WebSocket for group ${chatId} on unmount`);
-        wsRef.current.close(1000);
+        try {
+          wsRef.current.close(1000, 'Component unmounted');
+        } catch (e) {
+          console.warn(`Error closing WebSocket for group ${chatId}:`, e);
+        }
+        wsRef.current = null;
       }
       hasFetchedMessages.current = false;
     };
@@ -380,7 +447,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
                 </div>
               )}
               <div
-                ref={(el) => (messageRefs.current[message.id] = el)}
+                ref={(el) => { if (el) messageRefs.current[message.id] = el; }}
                 className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${highlightedMessageId === message.id ? 'bg-yellow-100/10 rounded-xl p-2 transition-colors duration-300' : ''}`}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -481,6 +548,13 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
           x={contextMenu.x}
           y={contextMenu.y}
           isMine={contextMenu.isMine}
+          isClosing={contextMenu.isClosing || false}
+          onClose={() => {
+            if (contextMenu) {
+              setContextMenu({ ...contextMenu, isClosing: true });
+              setTimeout(() => setContextMenu(null), 200);
+            }
+          }}
           onEdit={() => {
             const message = messages.find(m => m.id === contextMenu.messageId);
             if (message && message.type === 'message') {
