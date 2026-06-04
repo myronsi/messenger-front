@@ -13,6 +13,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { clearAuthTokens } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -49,7 +50,7 @@ const PasswordResetComponent: React.FC<PasswordResetComponentProps> = ({ onBackT
       setMessage(translations.missingFields);
       return;
     }
-    if (newPassword.length < 3) {
+    if (newPassword.length < 8) {
       setMessage(translations.passwordTooShort);
       return;
     }
@@ -77,6 +78,7 @@ const PasswordResetComponent: React.FC<PasswordResetComponentProps> = ({ onBackT
         sessionStorage.removeItem('recovery_cloud_part');
         sessionStorage.removeItem('recovery_device_part');
         sessionStorage.removeItem('recovery_token');
+        clearAuthTokens();
         
         setTimeout(() => {
           setNewPassword('');

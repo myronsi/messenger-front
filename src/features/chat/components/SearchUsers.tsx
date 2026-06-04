@@ -44,7 +44,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, o
         <div className="flex-grow min-w-0 relative">
           <input
             type="text"
-            placeholder={translations.searchDots}
+            placeholder={translations.searchUsers}
             value={targetUser}
             onChange={(e) => setTargetUser(e.target.value)}
             className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-ellipsis"

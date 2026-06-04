@@ -154,16 +154,6 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, fileName, onReply 
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onReply?.();
-                resetView();
-              }}
-              className="p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm"
-            >
-              <MessageSquare className="w-5 h-5" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
                 resetView();
               }}
               className="p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm"

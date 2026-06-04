@@ -12,7 +12,8 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
-import { useLoginMutation } from '@/app/api/messengerApi';
+import { useLoginMutation, useLoginTwoFactorMutation } from '@/app/api/messengerApi';
+import { setAccessToken } from '@/shared/auth/session';
 
 interface LoginComponentProps {
   onLoginSuccess: (username: string) => void;
@@ -25,9 +26,12 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loginChallenge, setLoginChallenge] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
   const { translations } = useLanguage();
   
   const [login, { isLoading: isLoginLoading }] = useLoginMutation();
+  const [loginTwoFactor, { isLoading: isTwoFactorLoading }] = useLoginTwoFactorMutation();
 
   const handleLogin = useCallback(async () => {
     if (!username || username.length < 3) {
@@ -41,7 +45,16 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
     
     try {
       const result = await login({ username, password }).unwrap();
-      localStorage.setItem('access_token', result.access_token);
+      if (result.two_factor_required && result.login_challenge) {
+        setLoginChallenge(result.login_challenge);
+        setMessage('');
+        return;
+      }
+      if (!result.access_token) {
+        setMessage(translations.loginFailed);
+        return;
+      }
+      setAccessToken(result.access_token);
       if (result.refresh_token) {
         localStorage.setItem('refresh_token', result.refresh_token);
       }
@@ -54,12 +67,78 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
     }
   }, [username, password, translations, onLoginSuccess, login]);
 
+  const handleTwoFactorLogin = useCallback(async () => {
+    if (!loginChallenge || !twoFactorCode.trim()) {
+      setMessage(translations.missingFields);
+      return;
+    }
+
+    try {
+      const result = await loginTwoFactor({ login_challenge: loginChallenge, code: twoFactorCode.trim() }).unwrap();
+      if (!result.access_token) {
+        setMessage(translations.loginFailed);
+        return;
+      }
+      setAccessToken(result.access_token);
+      setLoginChallenge(null);
+      setTwoFactorCode('');
+      setMessage('');
+      onLoginSuccess(username);
+    } catch (error: any) {
+      setMessage(error?.data?.detail || error?.message || translations.loginFailed);
+      console.error('2FA login error:', error);
+    }
+  }, [loginChallenge, twoFactorCode, loginTwoFactor, onLoginSuccess, username, translations]);
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleLogin();
   };
 
   const inputsFilled = Boolean(username && password);
+
+  if (loginChallenge) {
+    return (
+      <Card className="w-full max-w-md mx-auto shadow-lg">
+        <CardHeader>
+          <CardTitle>{translations.twoFactorAuthentication || 'Two-factor authentication'}</CardTitle>
+          <CardDescription className="pt-2">
+            {translations.enterTwoFactorCode || 'Enter the code from your authenticator app or a recovery code.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2">
+            <Label htmlFor="twoFactorCode">{translations.verificationCode || 'Verification code'}</Label>
+            <Input
+              id="twoFactorCode"
+              value={twoFactorCode}
+              onChange={(event) => setTwoFactorCode(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && handleTwoFactorLogin()}
+              placeholder="123456"
+              autoFocus
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex-col gap-2">
+          <Button onClick={handleTwoFactorLogin} className="w-full" disabled={!twoFactorCode.trim() || isTwoFactorLoading}>
+            {isTwoFactorLoading ? translations.loading || 'Loading...' : translations.verify || 'Verify'}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setLoginChallenge(null);
+              setTwoFactorCode('');
+              setMessage('');
+            }}
+          >
+            {translations.back || 'Back'}
+          </Button>
+          {message && <p className="text-destructive text-sm mt-2 text-center">{message}</p>}
+        </CardFooter>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg">

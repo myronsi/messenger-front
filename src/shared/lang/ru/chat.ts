@@ -14,4 +14,13 @@ export const chat = {
   chatDeleted: "Чат был удалён.",
   messageDeleted: "[Сообщение удалено]",
   deletedUserInfo: "Информация о удалённом аккаунте недоступна.",
+  newMessages: "Новые сообщения",
+  noMessagesYet: "Сообщений пока нет",
+  photoMessage: "Фото",
+  voiceMessagePreview: "Голосовое сообщение",
+  fileMessagePreview: "Файл",
+  messageNotDeliveredBlocked: "Это сообщение не удалось доставить из-за настроек приватности получателя.",
+  messageNotDeliveredPrivacy: "Это сообщение не может быть получено из-за настроек приватности пользователя.",
+  messageNotDeliveredSelf: "Это сообщение нельзя отправить самому себе.",
+  resend: "Отправить снова",
 };

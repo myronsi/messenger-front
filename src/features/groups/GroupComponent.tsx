@@ -1,299 +1,281 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Send, X, Paperclip } from 'lucide-react';
-import { Message } from '@/entities/message';
-import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
-import UserProfileComponent from '@/features/profiles/UserProfileComponent';
-import ConfirmModal from '@/shared/ui/ConfirmModal';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Search, Settings } from 'lucide-react';
+import { Message, ModalState, ReactionInfo } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
+import { MessageHistoryResponse, normalizeHistoryMessages, prependUniqueMessages } from '@/features/chat/lib/messageHistory';
+import MessageList from '@/features/chat/components/MessageList';
+import MessageInput from '@/features/chat/components/MessageInput';
+import ContextMenu from '@/features/chat/components/ContextMenu';
+import ReactionMenu from '@/features/chat/components/ReactionMenu';
+import Modal from '@/features/chat/components/Modal';
+import MessageSearchDialog from '@/features/chat/components/MessageSearchDialog';
+import ConfirmModal from '@/shared/ui/ConfirmModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import GroupSettingsDialog, { GroupDetails, GroupParticipant, GroupRole } from './GroupSettingsDialog';
+import { authFetch, ensureAccessToken, useAccessToken } from '@/shared/auth/session';
+
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
+const MESSAGE_PAGE_SIZE = 50;
 
 interface GroupComponentProps {
   chatId: number;
   groupName: string;
   username: string;
+  firstUnreadMessageId?: number | null;
   onBack: () => void;
+  onOpenUserProfile?: (username: string) => void;
 }
 
-const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, username, onBack }) => {
+const permissionsForRole = (role?: GroupRole | null) => ({
+  can_edit_group: role === 'owner' || role === 'admin',
+  can_manage_participants: role === 'owner' || role === 'admin',
+  can_assign_roles: role === 'owner' || role === 'admin',
+  can_delete_any_message: role === 'owner' || role === 'admin' || role === 'moderator',
+  can_delete_group: role === 'owner',
+  can_transfer_ownership: role === 'owner',
+});
+
+const GroupComponent: React.FC<GroupComponentProps> = ({
+  chatId,
+  groupName,
+  username,
+  firstUnreadMessageId,
+  onBack,
+  onOpenUserProfile,
+}) => {
+  const token = useAccessToken() || '';
+  const { translations, language } = useLanguage();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number; isMine: boolean; isClosing?: boolean } | null>(null);
+  const [reactionMenu, setReactionMenu] = useState<{ message: Message; x: number; y: number; isClosing?: boolean } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [modal, setModal] = useState<{
-    type: 'deleteMessage' | 'deleteGroup' | 'error' | 'copy';
-    message: string;
-    onConfirm?: () => void;
-  } | null>(null);
+  const [modal, setModal] = useState<ModalState | null>(null);
+  const [groupConfirm, setGroupConfirm] = useState<{ title: string; message: string; onConfirm: () => void; isError?: boolean } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
-  const [isChatValid, setIsChatValid] = useState(true);
-  const { translations } = useLanguage();
+  const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number>(0);
+  const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
+  const [groupForm, setGroupForm] = useState({ name: groupName, description: '' });
+  const [participantInput, setParticipantInput] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSavingGroup, setIsSavingGroup] = useState(false);
+  const [isLoadingInitialMessages, setIsLoadingInitialMessages] = useState(false);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [oldestMessageId, setOldestMessageId] = useState<number | null>(null);
+  const [readStatusMessage, setReadStatusMessage] = useState<Message | null>(null);
+  const [reactionDetails, setReactionDetails] = useState<{ message: Message; reaction: string; reactions: ReactionInfo[] } | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
-  const chatWindowRef = useRef<HTMLDivElement>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-  const token = localStorage.getItem('access_token');
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const reactionMenuRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
+  const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const hasFetchedMessages = useRef(false);
+  const isLoadingOlderMessagesRef = useRef(false);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-        setContextMenu(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    let reconnectTimeoutId: NodeJS.Timeout | null = null;
-    let hasFetched = false;
-
-    const loadMessages = async () => {
-      if (hasFetched || hasFetchedMessages.current) return;
-      hasFetched = true;
-      hasFetchedMessages.current = true;
-      try {
-        const response = await fetch(`${BASE_URL}/messages/history/${chatId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!isMounted) return;
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`History loaded for group ${chatId}:`, data);
-          setMessages(data.history.map((msg: Message) => ({
-            ...msg,
-            avatar_url: msg.avatar_url || DEFAULT_AVATAR,
-            reply_to: msg.reply_to || null,
-            type: msg.type || 'message',
-            content: msg.type === 'file' ? (typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content) : msg.content,
-          })));
-        } else if (response.status === 401) {
-          console.error(`Unauthorized access to group ${chatId}`);
-          setModal({ type: 'error', message: translations.loginRequired });
-          setTimeout(() => {
-            localStorage.removeItem('access_token');
-            window.location.href = '/';
-          }, 2000);
-        } else if (response.status === 403) {
-          // Forbidden - redirect to root
-          console.error(`Forbidden access to group ${chatId}`);
-          onBack();
-        } else {
-          const errorText = await response.text();
-          console.error(`Failed to load history for group ${chatId}: ${response.status} ${errorText}`);
-          throw new Error(translations.errorLoading);
-        }
-      } catch (err) {
-        if (!isMounted) return;
-        console.error(`Error loading messages for group ${chatId}:`, err);
-        setModal({ type: 'error', message: translations.errorLoadingMessages });
-        setIsChatValid(false);
-      }
-    };
-
-    const connectWebSocket = () => {
-      if (!isMounted) {
-        console.log(`Component unmounted, skipping WebSocket connection for group ${chatId}`);
-        return;
-      }
-      if (!token || !isChatValid) return;
-      
-      // Avoid duplicate connection if already open or connecting
-      if (wsRef.current) {
-        const state = wsRef.current.readyState;
-        if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
-          console.log(`WebSocket already connected or connecting for group ${chatId}, state: ${state}`);
-          return;
-        }
-      }
-
-      console.log(`Connecting WebSocket for group ${chatId}`);
-      try {
-        wsRef.current = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${token}`);
-      } catch (e) {
-        console.error(`Failed to create WebSocket for group ${chatId}:`, e);
-        return;
-      }
-
-      wsRef.current.onopen = () => {
-        if (!isMounted) {
-          console.log(`Component unmounted during connection, closing WebSocket for group ${chatId}`);
-          try { wsRef.current?.close(1000, 'Component unmounted'); } catch (e) {}
-          wsRef.current = null;
-          return;
-        }
-        console.log(`WebSocket connected for group ${chatId}`);
-      };
-
-      wsRef.current.onmessage = (event) => {
-        if (!isMounted) return;
-        let parsedData;
-        try {
-          parsedData = JSON.parse(event.data);
-        } catch (error) {
-          console.error('Received non-JSON message:', event.data);
-          return;
-        }
-
-        console.log(`WebSocket message received for group ${chatId}:`, parsedData);
-        const { type } = parsedData;
-
-        if (type === "message") {
-          const { username: sender, data, timestamp, avatar_url } = parsedData;
-          if (data.chat_id !== chatId) return;
-          const newMessage: Message = {
-            id: data.message_id,
-            sender,
-            content: data.content,
-            timestamp,
-            avatar_url: avatar_url || DEFAULT_AVATAR,
-            reply_to: data.reply_to || null,
-            is_deleted: false,
-            type: 'message',
-            read_by: [],
-          };
-          setMessages((prev) => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
-        } else if (type === "file") {
-          const { username: sender, data, timestamp, avatar_url } = parsedData;
-          if (data.chat_id !== chatId) return;
-          const newMessage: Message = {
-            id: data.message_id,
-            sender,
-            content: {
-              file_url: data.file_url,
-              file_name: data.file_name,
-              file_type: data.file_type,
-              file_size: data.file_size,
-            },
-            timestamp,
-            avatar_url: avatar_url || DEFAULT_AVATAR,
-            reply_to: data.reply_to || null,
-            is_deleted: false,
-            type: 'file',
-            read_by: [],
-          };
-          setMessages((prev) => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
-        } else if (type === "edit") {
-          const { message_id, new_content } = parsedData;
-          setMessages((prev) => prev.map(m => m.id === message_id ? { ...m, content: new_content } : m));
-          setEditingMessage(null);
-          setMessageInput('');
-        } else if (type === "delete") {
-          const { message_id } = parsedData;
-          setMessages((prev) => prev.filter(m => m.id !== message_id));
-        } else if (type === "chat_deleted" && parsedData.chat_id === chatId) {
-          console.log(`Chat ${chatId} deleted, closing WebSocket`);
-          setIsChatValid(false);
-          setModal({ type: 'error', message: translations.groupDeleted });
-          try { if (wsRef.current) wsRef.current.close(1000); } catch (e) {}
-          setTimeout(onBack, 1000);
-        } else if (type === "error") {
-          if (parsedData.message === "Chat does not exist" || parsedData.message === "You are not a member of this chat") {
-            console.log(`WebSocket error: ${parsedData.message}, closing WebSocket`);
-            setIsChatValid(false);
-            setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
-            try { if (wsRef.current) wsRef.current.close(1000); } catch (e) {}
-            setTimeout(onBack, 1000);
-          } else {
-            setModal({ type: 'error', message: parsedData.message });
-          }
-        }
-      };
-
-      wsRef.current.onclose = (event) => {
-        console.log(`WebSocket closed for group ${chatId}. Code: ${event.code}, Reason: ${event.reason}`);
-        if (!isMounted) {
-          wsRef.current = null;
-          return;
-        }
-        if (isChatValid && event.code !== 1000 && event.code !== 1008) {
-          console.log(`Reconnecting WebSocket for group ${chatId} in 1 second...`);
-          reconnectTimeoutId = setTimeout(() => {
-            if (isMounted) connectWebSocket();
-          }, 1000);
-        }
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        if (wsRef.current && wsRef.current.readyState === WebSocket.CLOSED) {
-          console.log(`WebSocket failed to connect for group ${chatId}`);
-        }
-      };
-    };
-
-    if (token) {
-      loadMessages().then(() => {
-        // Small delay to ensure component is stable before connecting WebSocket
-        if (isMounted) {
-          setTimeout(() => {
-            if (isMounted) connectWebSocket();
-          }, 100);
-        }
-      });
-    }
-
-    return () => {
-      isMounted = false;
-      if (reconnectTimeoutId) {
-        clearTimeout(reconnectTimeoutId);
-      }
-      if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
-        console.log(`Closing WebSocket for group ${chatId} on unmount`);
-        try {
-          wsRef.current.close(1000, 'Component unmounted');
-        } catch (e) {
-          console.warn(`Error closing WebSocket for group ${chatId}:`, e);
-        }
-        wsRef.current = null;
-      }
-      hasFetchedMessages.current = false;
-    };
-  }, [chatId, token, onBack, isChatValid, translations]);
-
-  const scrollToBottom = () => {
-    if (chatWindowRef.current) {
-      chatWindowRef.current.scrollTo({
-        top: chatWindowRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
+  const getAvatarSrc = (avatarUrl?: string | null) => {
+    if (!avatarUrl) return `${BASE_URL}${DEFAULT_AVATAR}`;
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
+    return `${BASE_URL}${avatarUrl}`;
   };
 
+  const normalizeGroupDetails = useCallback((raw: any): GroupDetails => {
+    const participants: GroupParticipant[] = (raw?.participants || []).map((participant: any) => {
+      const role = (participant.role || (participant.is_owner ? 'owner' : participant.is_admin ? 'admin' : 'member')) as GroupRole;
+      return {
+        id: participant.id,
+        username: participant.username,
+        display_name: participant.display_name || participant.username,
+        avatar_url: participant.avatar_url || DEFAULT_AVATAR,
+        role,
+        is_owner: role === 'owner',
+        is_admin: role === 'owner' || role === 'admin',
+      };
+    });
+    const currentParticipant = participants.find((participant) => participant.username === username);
+    const currentRole = (raw?.current_user_role || currentParticipant?.role || (raw?.owner_username === username ? 'owner' : 'member')) as GroupRole;
+
+    return {
+      chat_id: raw.chat_id,
+      name: raw.name || groupName,
+      description: raw.description || '',
+      avatar_url: raw.avatar_url || DEFAULT_GROUP_AVATAR,
+      owner_id: raw.owner_id ?? raw.admin_id,
+      owner_username: raw.owner_username || raw.admin_username,
+      admin_id: raw.admin_id ?? raw.owner_id,
+      admin_username: raw.admin_username || raw.owner_username,
+      current_user_role: currentRole,
+      permissions: permissionsForRole(currentRole),
+      participants,
+    };
+  }, [groupName, username]);
+
+  const currentGroupName = groupDetails?.name || groupForm.name || groupName;
+  const currentGroupAvatar = getAvatarSrc(groupDetails?.avatar_url || DEFAULT_GROUP_AVATAR);
+
+  const loadGroupDetails = useCallback(async () => {
+    if (!token) return;
+    const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error(await response.text());
+    const data = normalizeGroupDetails(await response.json());
+    setGroupDetails(data);
+    setGroupForm({ name: data.name || groupName, description: data.description || '' });
+  }, [chatId, groupName, normalizeGroupDetails, token]);
+
+  useEffect(() => {
+    loadGroupDetails().catch((error) => {
+      console.error(`Error loading group details for ${chatId}:`, error);
+    });
+  }, [chatId, loadGroupDetails]);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (!token) return;
+      try {
+        const response = await authFetch(`${BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUserId(data.id);
+        }
+      } catch (error) {
+        console.error('Error fetching current user for group:', error);
+      }
+    };
+    fetchCurrentUser();
+  }, [token]);
+
+  const isOwnMessage = useCallback((message: Message) => {
+    return currentUserId ? message.sender_id === currentUserId : message.sender_username === username;
+  }, [currentUserId, username]);
+
+  const canDeleteMessage = useCallback((message: Message) => {
+    return isOwnMessage(message) || !!groupDetails?.permissions?.can_delete_any_message;
+  }, [groupDetails?.permissions?.can_delete_any_message, isOwnMessage]);
+
+  const getFormattedDateLabel = useCallback((timestamp: string): string => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return formatDateLabel(timestamp, language, today, yesterday);
+  }, [language]);
+
+  const getMessageTime = useCallback((timestamp: string): string => {
+    return formatTime(timestamp, language);
+  }, [language]);
+
+  const renderMessageContent = (message: Message) => {
+    if (message.type === 'message' && typeof message.content === 'string') {
+      return <div className="whitespace-pre-wrap break-words">{message.content}</div>;
+    }
+    return <div />;
+  };
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;
+    isLoadingOlderMessagesRef.current = true;
+    setIsLoadingOlderMessages(true);
+
+    try {
+      const params = new URLSearchParams({
+        limit: String(MESSAGE_PAGE_SIZE),
+        before_id: String(oldestMessageId),
+      });
+      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data: MessageHistoryResponse = await response.json();
+        const olderMessages = normalizeHistoryMessages(data.history);
+        setMessages((prev) => prependUniqueMessages(prev, olderMessages));
+        setHasMoreMessages(!!data.has_more);
+        if (olderMessages.length > 0) setOldestMessageId(olderMessages[0].id);
+      } else if (response.status === 401) {
+        setModal({ type: 'error', message: translations.loginRequired });
+        setTimeout(onBack, 1000);
+      } else if (response.status === 403) {
+        onBack();
+      } else {
+        throw new Error(await response.text());
+      }
+    } catch (error) {
+      console.error(`Error loading older group messages for ${chatId}:`, error);
+      setModal({ type: 'error', message: translations.errorLoadingMessages });
+    } finally {
+      isLoadingOlderMessagesRef.current = false;
+      setIsLoadingOlderMessages(false);
+    }
+  }, [chatId, hasMoreMessages, oldestMessageId, onBack, token, translations]);
+
+  const closeMenus = useCallback(() => {
+    setContextMenu(null);
+    setReactionMenu(null);
+    setIsClosing(false);
+  }, []);
+
+  const openMenus = useCallback((message: Message, event: React.MouseEvent) => {
+    setReactionMenu({ message, x: event.clientX, y: event.clientY - 45 });
+    setContextMenu({ x: event.clientX, y: event.clientY, messageId: message.id, isMine: isOwnMessage(message) });
+  }, [isOwnMessage]);
+
+  const handleMessageClick = useCallback((event: React.MouseEvent, message: Message) => {
+    if (window.innerWidth < 768 || event.type === 'contextmenu') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (contextMenu?.messageId === message.id && reactionMenu?.message.id === message.id) {
+        setIsClosing(true);
+        setTimeout(closeMenus, 200);
+        return;
+      }
+      if (contextMenu || reactionMenu) {
+        setIsClosing(true);
+        setTimeout(() => {
+          closeMenus();
+          openMenus(message, event);
+        }, 200);
+        return;
+      }
+      openMenus(message, event);
+    }
+  }, [closeMenus, contextMenu, openMenus, reactionMenu]);
+
   const scrollToMessage = (messageId: number) => {
+    setHighlightedMessageId(messageId);
+    setTimeout(() => setHighlightedMessageId(null), 1500);
+  };
+
+  const jumpToSearchResult = (messageId: number) => {
     const messageElement = messageRefs.current[messageId];
     if (messageElement) {
       messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setHighlightedMessageId(messageId);
-      setTimeout(() => setHighlightedMessageId(null), 1500);
+      setTempHighlightedMessageId(messageId);
+      setTimeout(() => setTempHighlightedMessageId(null), 2000);
+      return;
     }
+    scrollToMessage(messageId);
   };
 
-  useEffect(() => scrollToBottom(), [messages]);
-
   const handleSendMessage = () => {
-    if (!messageInput.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    const content = messageInput.trim();
+    if (!content || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
     if (editingMessage) {
-      wsRef.current.send(JSON.stringify({
-        type: "edit",
-        message_id: editingMessage.id,
-        content: messageInput,
-      }));
+      wsRef.current.send(JSON.stringify({ type: 'edit', message_id: editingMessage.id, content }));
     } else {
-      wsRef.current.send(JSON.stringify({
-        type: "message",
-        content: messageInput,
-        reply_to: replyTo?.id || null,
-      }));
+      wsRef.current.send(JSON.stringify({ type: 'message', content, reply_to: replyTo?.id || null }));
     }
 
     setMessageInput('');
@@ -305,316 +287,624 @@ const GroupComponent: React.FC<GroupComponentProps> = ({ chatId, groupName, user
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
-
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chat_id', chatId.toString());
 
     try {
-      const response = await fetch(`${BASE_URL}/messages/upload`, {
+      const response = await authFetch(`${BASE_URL}/messages/upload`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
+      if (!response.ok) throw new Error(await response.text());
+    } catch (error) {
+      console.error('Group upload error:', error);
+      setModal({ type: 'error', message: translations.errorLoading });
+    } finally {
+      event.target.value = '';
+    }
+  };
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Upload failed: ${errorText}`);
-        throw new Error(errorText);
-      }
+  useEffect(() => {
+    let isMounted = true;
+    let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-      const data = await response.json();
-      console.log('File uploaded:', data);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    const loadMessages = async () => {
+      if (hasFetchedMessages.current) return;
+      hasFetchedMessages.current = true;
+      setIsLoadingInitialMessages(true);
+      try {
+        const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE) });
+        const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!isMounted) return;
+        if (response.ok) {
+          const data: MessageHistoryResponse = await response.json();
+          const nextMessages = normalizeHistoryMessages(data.history);
+          setMessages(nextMessages);
+          setOldestMessageId(nextMessages[0]?.id || null);
+          setHasMoreMessages(!!data.has_more);
+        } else if (response.status === 401) {
+          setModal({ type: 'error', message: translations.loginRequired });
+          setTimeout(onBack, 1000);
+        } else if (response.status === 403) {
+          onBack();
+        } else {
+          throw new Error(await response.text());
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        console.error(`Error loading messages for group ${chatId}:`, error);
+        setModal({ type: 'error', message: translations.errorLoadingMessages });
+      } finally {
+        if (isMounted) setIsLoadingInitialMessages(false);
       }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setModal({
-        type: 'error',
-        message: translations.errorLoading,
+    };
+
+    const connectWebSocket = async () => {
+      if (!isMounted || !token) return;
+      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) return;
+
+      const wsToken = await ensureAccessToken();
+      if (!isMounted || !wsToken) return;
+
+      const socket = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${wsToken}`);
+      wsRef.current = socket;
+
+      socket.onopen = () => {
+        if (!isMounted) {
+          socket.close(1000, 'Component unmounted');
+          return;
+        }
+        setMessages((prev) => [...prev]);
+      };
+
+      socket.onmessage = (event) => {
+        if (!isMounted) return;
+        let parsedData: any;
+        try {
+          parsedData = JSON.parse(event.data);
+        } catch (error) {
+          console.error('Received non-JSON group message:', event.data);
+          return;
+        }
+
+        if (parsedData.type === 'message' || parsedData.type === 'file') {
+          if (parsedData.data?.chat_id !== chatId) return;
+          const newMessage: Message = {
+            id: parsedData.data.message_id,
+            sender_id: parsedData.sender_id,
+            sender: parsedData.username,
+            sender_username: parsedData.sender_username || parsedData.username,
+            content: parsedData.type === 'file' ? parsedData.data : parsedData.data.content,
+            timestamp: parsedData.timestamp,
+            avatar_url: parsedData.avatar_url || DEFAULT_AVATAR,
+            reply_to: parsedData.data.reply_to || null,
+            is_deleted: parsedData.is_deleted || false,
+            type: parsedData.type,
+            reactions: parsedData.reactions || [],
+            read_by: parsedData.read_by || [],
+          };
+          setMessages((prev) => prev.some((message) => message.id === newMessage.id) ? prev : [...prev, newMessage]);
+        } else if (parsedData.type === 'edit') {
+          setMessages((prev) => prev.map((message) => (
+            message.id === parsedData.message_id
+              ? { ...message, content: parsedData.new_content, edited_at: parsedData.timestamp || new Date().toISOString() }
+              : message
+          )));
+          setEditingMessage(null);
+          setMessageInput('');
+        } else if (parsedData.type === 'delete') {
+          setMessages((prev) => prev.filter((message) => message.id !== parsedData.message_id));
+        } else if (parsedData.type === 'reaction_add') {
+          setMessages((prev) => prev.map((message) => {
+            if (message.id !== parsedData.message_id) return message;
+            const reactions = message.reactions || [];
+            if (reactions.some((reaction) => reaction.user_id === parsedData.user_id && reaction.reaction === parsedData.reaction)) return message;
+            return {
+              ...message,
+              reactions: [
+                ...reactions,
+                {
+                  user_id: parsedData.user_id,
+                  username: parsedData.username,
+                  display_name: parsedData.display_name,
+                  avatar_url: parsedData.avatar_url,
+                  reaction: parsedData.reaction,
+                },
+              ],
+            };
+          }));
+        } else if (parsedData.type === 'reaction_remove') {
+          setMessages((prev) => prev.map((message) => (
+            message.id === parsedData.message_id
+              ? { ...message, reactions: (message.reactions || []).filter((reaction) => !(reaction.user_id === parsedData.user_id && reaction.reaction === parsedData.reaction)) }
+              : message
+          )));
+        } else if (parsedData.type === 'is_read') {
+          setMessages((prev) => prev.map((message) => {
+            if (message.id !== parsedData.message_id) return message;
+            const readBy = message.read_by || [];
+            if (readBy.some((read) => read.user_id === parsedData.user_id)) return message;
+            return {
+              ...message,
+              read_by: [
+                ...readBy,
+                {
+                  user_id: parsedData.user_id,
+                  username: parsedData.username,
+                  display_name: parsedData.display_name,
+                  avatar_url: parsedData.avatar_url,
+                  read_at: parsedData.read_at || parsedData.timestamp,
+                },
+              ],
+            };
+          }));
+        } else if (parsedData.type === 'group_updated' && parsedData.group?.chat_id === chatId) {
+          const nextDetails = normalizeGroupDetails(parsedData.group);
+          setGroupDetails(nextDetails);
+          setGroupForm({ name: nextDetails.name, description: nextDetails.description || '' });
+          if (parsedData.removed_username === username) {
+            setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
+            socket.close(1000, 'Removed from group');
+            setTimeout(onBack, 1000);
+          }
+        } else if (parsedData.type === 'chat_deleted' && parsedData.chat_id === chatId) {
+          setModal({ type: 'error', message: translations.groupDeleted });
+          socket.close(1000, 'Group deleted');
+          setTimeout(onBack, 1000);
+        } else if (parsedData.type === 'error') {
+          setModal({ type: 'error', message: parsedData.message });
+        }
+      };
+
+      socket.onclose = (event) => {
+        if (wsRef.current === socket) wsRef.current = null;
+        if (isMounted && event.code !== 1000 && event.code !== 1008) {
+          reconnectTimeoutId = setTimeout(connectWebSocket, 1000);
+        }
+      };
+
+      socket.onerror = (error) => {
+        if (isMounted) console.error(`WebSocket error for group ${chatId}:`, error);
+      };
+    };
+
+    if (token) {
+      loadMessages().then(() => {
+        if (isMounted) connectWebSocket();
       });
     }
+
+    return () => {
+      isMounted = false;
+      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+      if (wsRef.current) {
+        try { wsRef.current.close(1000, 'Component unmounted'); } catch (error) {}
+        wsRef.current = null;
+      }
+      hasFetchedMessages.current = false;
+      isLoadingOlderMessagesRef.current = false;
+    };
+  }, [chatId, normalizeGroupDetails, onBack, token, translations]);
+
+  const handleSaveGroup = async () => {
+    if (!groupForm.name.trim()) {
+      setModal({ type: 'error', message: translations.groupNameRequired || 'Group name is required' });
+      return;
+    }
+    setIsSavingGroup(true);
+    try {
+      const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: groupForm.name.trim(), description: groupForm.description.trim() }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      const data = normalizeGroupDetails(await response.json());
+      setGroupDetails(data);
+      setGroupForm({ name: data.name, description: data.description || '' });
+    } catch (error) {
+      console.error('Error updating group:', error);
+      setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
+    } finally {
+      setIsSavingGroup(false);
+    }
+  };
+
+  const handleGroupAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await authFetch(`${BASE_URL}/groups/${chatId}/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setGroupDetails(normalizeGroupDetails(await response.json()));
+    } catch (error) {
+      console.error('Error uploading group avatar:', error);
+      setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleAddParticipant = async () => {
+    const newUsername = participantInput.trim();
+    if (!newUsername) return;
+    try {
+      const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newUsername }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setGroupDetails(normalizeGroupDetails(await response.json()));
+      setParticipantInput('');
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
+    }
+  };
+
+  const handleRemoveParticipant = async (participantUsername: string) => {
+    try {
+      const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants/${encodeURIComponent(participantUsername)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setGroupDetails(normalizeGroupDetails(await response.json()));
+    } catch (error) {
+      console.error('Error removing participant:', error);
+      setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
+    }
+  };
+
+  const handleRoleChange = async (participantUsername: string, role: GroupRole) => {
+    try {
+      const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants/${encodeURIComponent(participantUsername)}/role`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setGroupDetails(normalizeGroupDetails(await response.json()));
+    } catch (error) {
+      console.error('Error updating participant role:', error);
+      setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
+    }
+  };
+
+  const handleTransferOwner = (participantUsername: string) => {
+    setIsSettingsOpen(false);
+    window.setTimeout(() => {
+      setGroupConfirm({
+        title: translations.transferOwnership || 'Transfer ownership',
+        message: translations.transferOwnershipConfirm || 'Transfer ownership to this participant?',
+        onConfirm: async () => {
+          setGroupConfirm(null);
+          try {
+            const response = await authFetch(`${BASE_URL}/groups/${chatId}/transfer-owner`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: participantUsername }),
+            });
+            if (!response.ok) throw new Error(await response.text());
+            setGroupDetails(normalizeGroupDetails(await response.json()));
+          } catch (error) {
+            console.error('Error transferring ownership:', error);
+            setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
+          }
+        },
+      });
+    }, 0);
+  };
+
+  const handleLeaveGroup = () => {
+    setIsSettingsOpen(false);
+    window.setTimeout(() => {
+      if (groupDetails?.current_user_role === 'owner') {
+        setGroupConfirm({
+          title: translations.leaveGroup || 'Leave group',
+          message: translations.ownerLeaveGroupHint || 'Transfer ownership before leaving the group.',
+          isError: true,
+          onConfirm: () => setGroupConfirm(null),
+        });
+        return;
+      }
+
+      setGroupConfirm({
+        title: translations.leaveGroup || 'Leave group',
+        message: translations.leaveGroupConfirm || 'Are you sure you want to leave this group?',
+        onConfirm: async () => {
+          setGroupConfirm(null);
+          try {
+            const response = await authFetch(BASE_URL + '/groups/' + chatId + '/leave', {
+              method: 'DELETE',
+              headers: { Authorization: 'Bearer ' + token },
+            });
+            if (!response.ok) throw new Error(await response.text());
+            onBack();
+          } catch (error) {
+            console.error('Error leaving group:', error);
+            setModal({ type: 'error', message: translations.errorLeavingGroup || 'Failed to leave group' });
+          }
+        },
+      });
+    }, 0);
   };
 
   const handleDeleteGroup = () => {
-    setModal({
-      type: 'deleteGroup',
-      message: translations.deleteGroupConfirm,
-      onConfirm: async () => {
-        try {
-          const response = await fetch(`${BASE_URL}/groups/delete/${chatId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (response.ok) {
-            setIsChatValid(false);
+    setIsSettingsOpen(false);
+    window.setTimeout(() => {
+      setGroupConfirm({
+        title: translations.deleteGroup || 'Delete group',
+        message: translations.deleteGroupConfirm || 'Are you sure you want to delete this group?',
+        onConfirm: async () => {
+          setGroupConfirm(null);
+          try {
+            const response = await authFetch(`${BASE_URL}/groups/delete/${chatId}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error(await response.text());
             onBack();
-          } else {
-            throw new Error(translations.errorDeleting);
+          } catch (error) {
+            console.error('Error deleting group:', error);
+            setModal({ type: 'error', message: translations.errorDeletingGroup || 'Failed to delete group' });
           }
-        } catch (err) {
-          setModal({ type: 'error', message: translations.errorDeletingGroup });
-        }
-      },
-    });
+        },
+      });
+    }, 0);
   };
 
-  const formatDateLabel = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const today = new Date();
-    if (date.toDateString() === today.toDateString()) return translations.today;
-    const yesterday = new Date(today.setDate(today.getDate() - 1));
-    if (date.toDateString() === yesterday.toDateString()) return translations.yesterday;
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const handleOpenUserProfile = (profileUsername: string) => {
+    setIsSettingsOpen(false);
+    setReadStatusMessage(null);
+    setReactionDetails(null);
+    onOpenUserProfile?.(profileUsername);
   };
 
-  const getMessageTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const renderMessageContent = (message: Message) => {
-    if (message.type === 'file' && typeof message.content !== 'string') {
-      const { file_url, file_name, file_type, file_size } = message.content as { file_url: string; file_name: string; file_type: string; file_size: number };
-      const fullFileUrl = `${BASE_URL}${file_url}`;
-
-      if (file_type.startsWith('image/')) {
-        return (
-          <a href={fullFileUrl} target="_blank" rel="noopener noreferrer">
-            <img
-              src={fullFileUrl}
-              alt={file_name}
-              className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
-            />
-          </a>
-        );
-      } else if (file_type.startsWith('video/')) {
-        return (
-          <video
-            src={fullFileUrl}
-            controls
-            className="max-w-[200px] max-h-[200px] rounded-lg"
-          >
-            {translations.errorLoading}
-          </video>
-        );
-      } else {
-        return (
-          <a
-            href={fullFileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
-          >
-            {file_name} ({(file_size / 1024).toFixed(2)} KB)
-          </a>
-        );
-      }
-    }
-    return <div>{typeof message.content === 'string' ? message.content : ''}</div>;
-  };
+  const readStatusParticipants = groupDetails?.participants || [];
+  const readIds = new Set((readStatusMessage?.read_by || []).map((read) => read.user_id));
+  const unreadParticipants = readStatusMessage
+    ? readStatusParticipants.filter((participant) => participant.id !== readStatusMessage.sender_id && !readIds.has(participant.id))
+    : [];
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-6 py-4 border-b border-border flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button onClick={onBack} className="p-2 hover:bg-accent rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="flex h-full flex-col">
+      <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <button onClick={onBack} className="motion-press rounded-full p-2 transition-colors hover:bg-accent">
+            <ArrowLeft className="h-5 w-5" />
           </button>
-          <h2 className="text-lg font-semibold">{groupName}</h2>
-        </div>
-        <button onClick={handleDeleteGroup} className="text-destructive hover:text-destructive/90 transition-colors">
-          {translations.deleteGroup}
-        </button>
-      </div>
-
-      <div ref={chatWindowRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((message, index) => {
-          const isMine = message.sender === username;
-          const prevMessage = index > 0 ? messages[index - 1] : null;
-          const showDate = !prevMessage || formatDateLabel(message.timestamp) !== formatDateLabel(prevMessage.timestamp);
-
-          return (
-            <React.Fragment key={message.id}>
-              {showDate && (
-                <div className="flex justify-center">
-                  <div className="px-3 py-1 bg-accent rounded-full text-sm text-accent-foreground">
-                    {formatDateLabel(message.timestamp)}
-                  </div>
-                </div>
-              )}
-              <div
-                ref={(el) => { if (el) messageRefs.current[message.id] = el; }}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${highlightedMessageId === message.id ? 'bg-yellow-100/10 rounded-xl p-2 transition-colors duration-300' : ''}`}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setContextMenu({
-                    x: e.clientX,
-                    y: e.clientY,
-                    messageId: message.id,
-                    isMine
-                  });
-                }}
-              >
-                <div className={`flex items-end space-x-2 max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                  <img
-                    src={`${BASE_URL}${message.avatar_url}`}
-                    alt={message.sender}
-                    className="w-8 h-8 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setSelectedUser(message.sender)}
-                  />
-                  <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                    {!isMine && <span className="text-sm text-muted-foreground mb-1">{message.sender}</span>}
-                    <div className={`relative px-4 py-2 rounded-2xl ${isMine ? 'bg-primary text-primary-foreground message-tail-right' : 'bg-accent text-accent-foreground message-tail-left'} ${message.type === 'file' ? 'max-w-[250px]' : ''}`}>
-                      {message.reply_to && (
-                        <div
-                          onClick={() => scrollToMessage(message.reply_to!)}
-                          className={`mb-2 p-2 rounded text-sm cursor-pointer ${
-                            isMine 
-                              ? 'bg-primary-darker/50 hover:bg-primary-darker/70'
-                              : 'bg-accent-darker/50 hover:bg-accent-darker/70'
-                          } transition-colors`}
-                        >
-                          {(() => {
-                            const replyMessage = messages.find(m => m.id === message.reply_to);
-                            if (!replyMessage) return translations.messageDeleted;
-                            return typeof replyMessage.content === 'string' ? replyMessage.content : replyMessage.content.file_name;
-                          })()}
-                        </div>
-                      )}
-                      {renderMessageContent(message)}
-                    </div>
-                    <span className="text-xs text-muted-foreground mt-1">{getMessageTime(message.timestamp)}</span>
-                  </div>
-                </div>
-              </div>
-            </React.Fragment>
-          );
-        })}
-      </div>
-
-      <div className="p-4 border-t border-border">
-        {(replyTo || editingMessage) && (
-          <div className="flex items-center mb-2 p-2 bg-accent rounded-lg">
-            <span className="flex-1 text-sm text-muted-foreground">
-              {replyTo ? `${translations.replyTo}: ${typeof replyTo.content === 'string' ? replyTo.content : replyTo.content.file_name}` : `${translations.editing}: ${typeof editingMessage!.content === 'string' ? editingMessage!.content : editingMessage!.content.file_name}`}
-            </span>
-            <button 
-              onClick={() => { setReplyTo(null); setEditingMessage(null); setMessageInput(''); }} 
-              className="p-1 hover:bg-accent rounded-full transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <img src={currentGroupAvatar} alt={currentGroupName} className="motion-avatar h-10 w-10 rounded-full object-cover" />
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold leading-tight">{currentGroupName}</h2>
+            <p className="truncate text-sm text-muted-foreground">
+              {groupDetails?.participants.length || 0} {translations.participants || 'participants'}
+              {groupDetails?.description ? ` - ${groupDetails.description}` : ''}
+            </p>
           </div>
-        )}
-        <div className="flex space-x-2">
+        </div>
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
+            onClick={() => setIsSearchOpen(true)}
+            className="motion-press rounded-full p-2 transition-colors hover:bg-accent"
+            title={translations.search || 'Search'}
           >
-            <Paperclip className="w-5 h-5" />
+            <Search className="h-5 w-5" />
           </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept="image/*,video/mp4,video/mov,.pdf,.doc,.docx,.txt"
-            className="hidden"
-          />
-          <input
-            type="text"
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            placeholder={editingMessage ? translations.editMessagePlaceholder : translations.writeMessage}
-            className="flex-1 px-4 py-2 bg-background text-foreground border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-          />
           <button
-            onClick={handleSendMessage}
-            disabled={!messageInput.trim()}
-            className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            onClick={() => setIsSettingsOpen(true)}
+            className="motion-press rounded-full p-2 transition-colors hover:bg-accent"
+            title={translations.groupSettings || 'Group settings'}
           >
-            <Send className="w-5 h-5" />
+            <Settings className="h-5 w-5" />
           </button>
         </div>
       </div>
 
-      {contextMenu && (
-        <ContextMenuComponent
-          ref={contextMenuRef}
-          x={contextMenu.x}
-          y={contextMenu.y}
-          isMine={contextMenu.isMine}
-          isClosing={contextMenu.isClosing || false}
-          onClose={() => {
-            if (contextMenu) {
-              setContextMenu({ ...contextMenu, isClosing: true });
-              setTimeout(() => setContextMenu(null), 200);
-            }
+      {isLoadingInitialMessages && messages.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{translations.loading}</div>
+      ) : (
+        <MessageList
+          messages={messages}
+          username={username}
+          userId={currentUserId}
+          interlocutorDeleted={false}
+          firstUnreadMessageId={firstUnreadMessageId}
+          onMessageClick={handleMessageClick}
+          onAvatarClick={handleOpenUserProfile}
+          highlightedMessageId={highlightedMessageId}
+          contextMenuMessageId={contextMenu?.messageId}
+          getFormattedDateLabel={getFormattedDateLabel}
+          getMessageTime={getMessageTime}
+          renderMessageContent={renderMessageContent}
+          messageRefs={messageRefs}
+          onReplyClick={scrollToMessage}
+          wsRef={wsRef}
+          onOpenReactionMenu={(message, event) => openMenus(message, event)}
+          tempHighlightedMessageId={tempHighlightedMessageId}
+          setTempHighlightedMessageId={setTempHighlightedMessageId}
+          onLoadOlderMessages={loadOlderMessages}
+          hasMoreMessages={hasMoreMessages}
+          isLoadingOlderMessages={isLoadingOlderMessages}
+          isGroup
+          onOpenReadStatus={(message) => {
+            if (isOwnMessage(message)) setReadStatusMessage(message);
           }}
-          onEdit={() => {
-            const message = messages.find(m => m.id === contextMenu.messageId);
-            if (message && message.type === 'message') {
-              setEditingMessage(message);
-              setMessageInput(typeof message.content === 'string' ? message.content : '');
-              setReplyTo(null);
-            }
-            setContextMenu(null);
-          }}
-          onDelete={() => {
-            setModal({
-              type: 'deleteMessage',
-              message: translations.deleteMessageConfirm,
-              onConfirm: () => {
-                if (wsRef.current) {
-                  wsRef.current.send(JSON.stringify({ type: "delete", message_id: contextMenu.messageId }));
-                }
-                setContextMenu(null);
-                setModal(null);
-              },
-            });
-          }}
-          onCopy={() => {
-            const message = messages.find(m => m.id === contextMenu.messageId);
-            if (message) {
-              const text = message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content);
-              navigator.clipboard.writeText(text);
-              setModal({ type: 'copy', message: translations.messageCopied });
-              setTimeout(() => setModal(null), 1500);
-            }
-            setContextMenu(null);
-          }}
-          onReply={() => {
-            const message = messages.find(m => m.id === contextMenu.messageId);
-            if (message) {
-              setReplyTo(message);
-              setEditingMessage(null);
-              setMessageInput('');
-            }
-            setContextMenu(null);
-          }}
+          onOpenReactionDetails={(message, reaction, reactions) => setReactionDetails({ message, reaction, reactions })}
+          scrollToBottomKey={chatId}
         />
       )}
 
-      {selectedUser && (
-        <UserProfileComponent username={selectedUser} onClose={() => setSelectedUser(null)} />
+      <MessageInput
+        ref={messageInputRef}
+        messageInput={messageInput}
+        setMessageInput={setMessageInput}
+        replyTo={replyTo}
+        editingMessage={editingMessage}
+        onSendMessage={handleSendMessage}
+        onFileUpload={handleFileUpload}
+        onCancelReplyOrEdit={() => {
+          setReplyTo(null);
+          setEditingMessage(null);
+          setMessageInput('');
+        }}
+        chatId={chatId}
+        token={token}
+      />
+
+      {contextMenu && currentUserId > 0 && (
+        <ContextMenu
+          ref={contextMenuRef}
+          contextMenu={contextMenu}
+          messages={messages}
+          token={token}
+          chatId={chatId}
+          userId={currentUserId}
+          setContextMenu={setContextMenu}
+          setEditingMessage={setEditingMessage}
+          setMessageInput={setMessageInput}
+          setReplyTo={setReplyTo}
+          setModal={setModal}
+          wsRef={wsRef}
+          isClosing={isClosing}
+          onClose={closeMenus}
+          reactionMenu={reactionMenu}
+          setReactionMenu={setReactionMenu}
+          messageInputRef={messageInputRef}
+          canDeleteMessage={canDeleteMessage}
+        />
       )}
 
-      {modal && (
+      {reactionMenu && currentUserId > 0 && (
+        <ReactionMenu
+          ref={reactionMenuRef}
+          reactionMenu={reactionMenu}
+          wsRef={wsRef}
+          userId={currentUserId}
+          setReactionMenu={setReactionMenu}
+          onClose={closeMenus}
+          contextMenu={contextMenu}
+          setContextMenu={setContextMenu}
+        />
+      )}
+
+      <GroupSettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        groupDetails={groupDetails}
+        currentGroupName={currentGroupName}
+        currentGroupAvatar={currentGroupAvatar}
+        groupForm={groupForm}
+        setGroupForm={setGroupForm}
+        participantInput={participantInput}
+        setParticipantInput={setParticipantInput}
+        isSavingGroup={isSavingGroup}
+        currentUsername={username}
+        groupAvatarInputRef={groupAvatarInputRef}
+        getAvatarSrc={getAvatarSrc}
+        onAvatarUpload={handleGroupAvatarUpload}
+        onSaveGroup={handleSaveGroup}
+        onAddParticipant={handleAddParticipant}
+        onRemoveParticipant={handleRemoveParticipant}
+        onRoleChange={handleRoleChange}
+        onTransferOwner={handleTransferOwner}
+        onDeleteGroup={handleDeleteGroup}
+        onLeaveGroup={handleLeaveGroup}
+        onOpenUserProfile={handleOpenUserProfile}
+      />
+
+      <Dialog open={!!readStatusMessage} onOpenChange={(open) => !open && setReadStatusMessage(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{translations.readStatus || 'Read status'}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            <div className="mb-4">
+              <h3 className="mb-2 text-sm font-medium">{translations.readBy || 'Read by'}</h3>
+              {(readStatusMessage?.read_by || []).length > 0 ? (
+                <div className="space-y-2">
+                  {readStatusMessage?.read_by.map((read) => (
+                    <button key={read.user_id} type="button" onClick={() => read.username && handleOpenUserProfile(read.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
+                      <img src={getAvatarSrc(read.avatar_url)} alt={read.display_name || read.username || ''} className="h-8 w-8 rounded-full object-cover" />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{read.display_name || read.username}</div>
+                        {read.username && <div className="truncate text-xs text-muted-foreground">@{read.username}</div>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{translations.noReadsYet || 'No reads yet'}</p>
+              )}
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-medium">{translations.notReadYet || 'Not read yet'}</h3>
+              {unreadParticipants.length > 0 ? (
+                <div className="space-y-2">
+                  {unreadParticipants.map((participant) => (
+                    <button key={participant.id} type="button" onClick={() => handleOpenUserProfile(participant.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
+                      <img src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-8 w-8 rounded-full object-cover" />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{participant.display_name || participant.username}</div>
+                        <div className="truncate text-xs text-muted-foreground">@{participant.username}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{translations.everyoneRead || 'Everyone has read this message'}</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <MessageSearchDialog
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        messages={messages}
+        getMessageTime={getMessageTime}
+        onJumpToMessage={jumpToSearchResult}
+      />
+
+      <Dialog open={!!reactionDetails} onOpenChange={(open) => !open && setReactionDetails(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{reactionDetails?.reaction} {translations.reactions || 'Reactions'}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+            {reactionDetails?.reactions.map((reaction) => (
+              <button key={`${reaction.user_id}-${reaction.reaction}`} type="button" onClick={() => reaction.username && handleOpenUserProfile(reaction.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
+                <img src={getAvatarSrc(reaction.avatar_url)} alt={reaction.display_name || reaction.username || ''} className="h-8 w-8 rounded-full object-cover" />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{reaction.display_name || reaction.username}</div>
+                  {reaction.username && <div className="truncate text-xs text-muted-foreground">@{reaction.username}</div>}
+                </div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Modal modal={modal} onClose={() => setModal(null)} />
+      {groupConfirm && (
         <ConfirmModal
-          title={
-            modal.type === 'deleteMessage' ? translations.deleteMessage :
-            modal.type === 'deleteGroup' ? translations.deleteGroup :
-            modal.type === 'copy' ? translations.success : translations.error
-          }
-          message={modal.message}
-          onConfirm={modal.onConfirm || (() => setModal(null))}
-          onCancel={() => setModal(null)}
-          confirmText={modal.type === 'copy' || modal.type === 'error' ? 'OK' : translations.confirm}
-          isError={modal.type === 'error'}
+          title={groupConfirm.title}
+          message={groupConfirm.message}
+          onConfirm={groupConfirm.onConfirm}
+          onCancel={() => setGroupConfirm(null)}
+          isError={!!groupConfirm.isError}
         />
       )}
     </div>

@@ -19,6 +19,7 @@ interface ContextMenuProps {
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean } | null;
   setReactionMenu: (value: { message: Message; x: number; y: number; isClosing?: boolean } | null) => void;
   messageInputRef: React.RefObject<HTMLInputElement>;
+  canDeleteMessage?: (message: Message) => boolean;
 }
 
 const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
@@ -39,6 +40,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     reactionMenu,
     setReactionMenu,
     messageInputRef,
+    canDeleteMessage,
   }, ref) => {
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -84,6 +86,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
 
     const message = messages.find((m) => m.id === contextMenu.messageId);
     const isFile = message?.type === 'file';
+    const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
 
     const handleEdit = () => {
       if (message && message.type === 'message') {
@@ -147,6 +150,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         x={contextMenu.x}
         y={contextMenu.y}
         isMine={contextMenu.isMine}
+        canDelete={canDelete}
         {...(!isFile && { onEdit: handleEdit })}
         onDelete={handleDelete}
         {...(!isFile && { onCopy: handleCopy })}

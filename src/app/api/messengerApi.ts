@@ -1,20 +1,40 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, type BaseQueryFn, type FetchArgs, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
+import { User } from '@/entities/user';
+import { clearAuthTokens, getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-// Define types for your API responses
-export interface User {
-  id: number;
-  username: string;
-  email?: string;
-  avatar_url?: string;
-  bio?: string;
-  isOnline?: boolean;
-  lastSeen?: string;
-}
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: BASE_URL,
+  credentials: 'include',
+  prepareHeaders: (headers) => {
+    const token = getAccessToken();
+    if (token) {
+      headers.set('authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
 
+const baseQueryWithRefresh: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (args, api, extraOptions) => {
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  if (result.error?.status === 401) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
+      result = await rawBaseQuery(args, api, extraOptions);
+    } else {
+      clearAuthTokens();
+    }
+  }
+
+  return result;
+};
+
+// Define types for your API responses
 export interface Message {
   id: number;
+  sender_id?: number;
   content?: string;
   senderId: number;
   chatId: number;
@@ -31,6 +51,17 @@ export interface Message {
   }>;
 }
 
+export interface ChatLastMessage {
+  id: number;
+  sender_id: number;
+  sender_name: string;
+  content: string | { file_url: string; file_name: string; file_type: string; file_size: number };
+  type: 'message' | 'file';
+  timestamp: string;
+  read_by?: { user_id: number; read_at: string }[];
+  delivery_error?: string | null;
+}
+
 export interface Chat {
   id: number;
   name?: string;
@@ -38,6 +69,9 @@ export interface Chat {
   participants: User[];
   lastMessage?: Message;
   unreadCount?: number;
+  last_message?: ChatLastMessage | null;
+  unread_count?: number;
+  first_unread_message_id?: number | null;
   avatar?: string;
   description?: string;
   createdAt: string;
@@ -45,9 +79,14 @@ export interface Chat {
 }
 
 export interface AuthResponse {
-  access_token: string;
-  refresh_token: string;
-  user: User;
+  access_token?: string | null;
+  token_type?: string;
+  refresh_token?: string;
+  user?: User;
+  device_part?: string;
+  qr_part?: string;
+  two_factor_required?: boolean;
+  login_challenge?: string;
 }
 
 export interface LoginRequest {
@@ -55,10 +94,16 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface TwoFactorLoginRequest {
+  login_challenge: string;
+  code: string;
+}
+
 export interface RegisterRequest {
   username: string;
-  email: string;
+  display_name: string;
   password: string;
+  email?: string;
 }
 
 // Define specific types for the API responses
@@ -66,8 +111,15 @@ export interface OneOnOneChatResponse {
   chats: Array<{
     id: number;
     interlocutor_name: string;
+    interlocutor_display_name?: string;
+    interlocutor_is_online?: boolean;
+    interlocutor_last_seen?: string | null;
     avatar_url?: string;
     interlocutor_deleted?: boolean;
+    last_message?: ChatLastMessage | null;
+    unread_count?: number;
+    first_unread_message_id?: number | null;
+    is_pinned?: boolean;
   }>;
 }
 
@@ -75,22 +127,83 @@ export interface GroupChatResponse {
   groups: Array<{
     chat_id: number;
     name: string;
+    description?: string;
+    avatar_url?: string;
+    last_message?: ChatLastMessage | null;
+    unread_count?: number;
+    first_unread_message_id?: number | null;
+    is_pinned?: boolean;
   }>;
 }
+
+export interface MessageHistoryResponse {
+  history: Message[];
+  has_more: boolean;
+  next_before_id: number | null;
+}
+
+export interface UserAvatarHistoryItem {
+  id: number;
+  avatar_url: string;
+  created_at: string;
+  is_current: boolean;
+}
+
+export interface UserAvatarHistoryResponse {
+  avatars: UserAvatarHistoryItem[];
+}
+
+export type PrivacyVisibility = 'everyone' | 'shared_chats' | 'nobody';
+export type SearchVisibility = 'everyone' | 'nobody';
+
+export interface PrivacySettings {
+  avatar_visibility: PrivacyVisibility;
+  profile_visibility: PrivacyVisibility;
+  presence_visibility: PrivacyVisibility;
+  read_receipts_enabled: boolean;
+  direct_messages: PrivacyVisibility;
+  group_invites: PrivacyVisibility;
+  search_visibility: SearchVisibility;
+}
+
+export interface BlockedUsersResponse {
+  users: User[];
+}
+
+export interface SecuritySettings {
+  session_duration_days: number;
+  two_factor_enabled: boolean;
+  recovery_codes_remaining: number;
+}
+
+export interface UserSession {
+  id: string;
+  user_agent: string;
+  ip_address?: string | null;
+  created_at: string;
+  last_active_at: string;
+  expires_at: string;
+  is_current: boolean;
+}
+
+export interface UserSessionsResponse {
+  sessions: UserSession[];
+}
+
+export interface TwoFactorSetupResponse {
+  secret: string;
+  otpauth_uri: string;
+}
+
+export interface TwoFactorConfirmResponse {
+  message: string;
+  recovery_codes: string[];
+}
+
 export const messengerApi = createApi({
   reducerPath: 'messengerApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: BASE_URL,
-    prepareHeaders: (headers, { getState }) => {
-      // By default, if we have a token in localStorage, use it for authenticated requests
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
-  tagTypes: ['User', 'Chat', 'Message', 'Auth', 'Avatar'],
+  baseQuery: baseQueryWithRefresh,
+  tagTypes: ['User', 'Chat', 'Message', 'Auth', 'Avatar', 'Privacy'],
   endpoints: (builder) => ({
     // Auth endpoints
     login: builder.mutation<AuthResponse, LoginRequest>({
@@ -101,6 +214,23 @@ export const messengerApi = createApi({
           'Content-Type': 'application/json',
         },
         body: credentials,
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    loginTwoFactor: builder.mutation<AuthResponse, TwoFactorLoginRequest>({
+      query: (payload) => ({
+        url: '/auth/login/2fa',
+        method: 'POST',
+        body: payload,
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    refreshSession: builder.mutation<AuthResponse, void>({
+      query: () => ({
+        url: '/auth/refresh',
+        method: 'POST',
       }),
       invalidatesTags: ['Auth'],
     }),
@@ -117,6 +247,111 @@ export const messengerApi = createApi({
     getCurrentUser: builder.query<User, void>({
       query: () => '/auth/me',
       providesTags: ['Auth'],
+    }),
+
+    getSecuritySettings: builder.query<SecuritySettings, void>({
+      query: () => '/auth/me/security',
+      providesTags: ['Auth'],
+    }),
+
+    updateSessionDuration: builder.mutation<SecuritySettings, number>({
+      query: (sessionDurationDays) => ({
+        url: '/auth/me/security/session-duration',
+        method: 'PUT',
+        body: { session_duration_days: sessionDurationDays },
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    getSessions: builder.query<UserSessionsResponse, void>({
+      query: () => '/auth/me/sessions',
+      providesTags: ['Auth'],
+    }),
+
+    revokeSession: builder.mutation<{ message: string }, string>({
+      query: (sessionId) => ({
+        url: `/auth/me/sessions/${encodeURIComponent(sessionId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    revokeOtherSessions: builder.mutation<{ message: string }, void>({
+      query: () => ({
+        url: '/auth/me/sessions/others',
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    changePassword: builder.mutation<{ message: string }, { currentPassword: string; newPassword: string }>({
+      query: ({ currentPassword, newPassword }) => ({
+        url: '/auth/me/password',
+        method: 'POST',
+        body: { current_password: currentPassword, new_password: newPassword },
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    setupTwoFactor: builder.mutation<TwoFactorSetupResponse, void>({
+      query: () => ({
+        url: '/auth/me/2fa/setup',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    confirmTwoFactor: builder.mutation<TwoFactorConfirmResponse, string>({
+      query: (code) => ({
+        url: '/auth/me/2fa/confirm',
+        method: 'POST',
+        body: { code },
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    disableTwoFactor: builder.mutation<{ message: string }, { password: string; code: string }>({
+      query: (payload) => ({
+        url: '/auth/me/2fa/disable',
+        method: 'POST',
+        body: payload,
+      }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    getPrivacySettings: builder.query<PrivacySettings, void>({
+      query: () => '/auth/me/privacy',
+      providesTags: ['Privacy'],
+    }),
+
+    updatePrivacySettings: builder.mutation<PrivacySettings, Partial<PrivacySettings>>({
+      query: (patch) => ({
+        url: '/auth/me/privacy',
+        method: 'PUT',
+        body: patch,
+      }),
+      invalidatesTags: ['Privacy', 'User', 'Chat', 'Message'],
+    }),
+
+    getBlockedUsers: builder.query<BlockedUsersResponse, void>({
+      query: () => '/auth/me/blocked-users',
+      providesTags: ['Privacy'],
+    }),
+
+    blockUser: builder.mutation<{ message: string }, string>({
+      query: (username) => ({
+        url: `/auth/me/blocked-users/${encodeURIComponent(username)}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Privacy', 'User', 'Chat'],
+    }),
+
+    unblockUser: builder.mutation<{ message: string }, string>({
+      query: (username) => ({
+        url: `/auth/me/blocked-users/${encodeURIComponent(username)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Privacy', 'User', 'Chat'],
     }),
     
     logout: builder.mutation<void, void>({
@@ -159,7 +394,7 @@ export const messengerApi = createApi({
       providesTags: ['User'],
     }),
     
-    getUserByUsername: builder.query<{ avatar_url: string; bio: string }, string>({
+    getUserByUsername: builder.query<User, string>({
       query: (username) => `/users/users/${username}`,
       providesTags: (result, error, username) => [{ type: 'User', id: username }],
     }),
@@ -168,10 +403,40 @@ export const messengerApi = createApi({
       query: (id) => `/users/${id}`,
       providesTags: (result, error, id) => [{ type: 'User', id }],
     }),
+
+    updateContactDisplayName: builder.mutation<User, { username: string; displayName?: string | null }>({
+      query: ({ username, displayName }) => ({
+        url: `/users/users/${encodeURIComponent(username)}/contact-name`,
+        method: 'PUT',
+        body: { display_name: displayName || '' },
+      }),
+      invalidatesTags: (result, error, { username }) => [
+        { type: 'User', id: username },
+        'Chat',
+        'Message',
+      ],
+    }),
+
+    deleteContactDisplayName: builder.mutation<User, string>({
+      query: (username) => ({
+        url: `/users/users/${encodeURIComponent(username)}/contact-name`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, username) => [
+        { type: 'User', id: username },
+        'Chat',
+        'Message',
+      ],
+    }),
     
     getUserAvatar: builder.query<{ avatar_url: string }, string>({
       query: (username) => `/users/avatar/${username}`,
       providesTags: (result, error, username) => [{ type: 'Avatar', id: username }],
+    }),
+
+    getUserAvatarHistory: builder.query<UserAvatarHistoryResponse, string>({
+      query: (username) => `/users/users/${username}/avatars`,
+      providesTags: (result, error, username) => [{ type: 'Avatar', id: `${username}-history` }],
     }),
     
     uploadUserAvatar: builder.mutation<{ message: string }, FormData>({
@@ -237,9 +502,13 @@ export const messengerApi = createApi({
       invalidatesTags: ['Message'],
     }),
     
-    getMessageHistory: builder.query<Message[], number>({
-      query: (chatId) => `/messages/history/${chatId}`,
-      providesTags: (result, error, chatId) => [{ type: 'Message', id: chatId }],
+    getMessageHistory: builder.query<MessageHistoryResponse, { chatId: number; limit?: number; beforeId?: number | null }>({
+      query: ({ chatId, limit = 50, beforeId }) => {
+        const params = new URLSearchParams({ limit: String(limit) });
+        if (beforeId) params.set('before_id', String(beforeId));
+        return `/messages/history/${chatId}?${params.toString()}`;
+      },
+      providesTags: (result, error, { chatId }) => [{ type: 'Message', id: chatId }],
     }),
 
     // Chat endpoints
@@ -281,6 +550,14 @@ export const messengerApi = createApi({
       query: (id) => ({
         url: `/chats/${id}`,
         method: 'DELETE',
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+
+    setChatPinned: builder.mutation<{ chat_id: number; is_pinned: boolean }, { chatId: number; pinned: boolean }>({
+      query: ({ chatId, pinned }) => ({
+        url: `/chats/${chatId}/pin`,
+        method: pinned ? 'PUT' : 'DELETE',
       }),
       invalidatesTags: ['Chat'],
     }),
@@ -366,8 +643,24 @@ export const messengerApi = createApi({
 export const {
   // Auth hooks
   useLoginMutation,
+  useLoginTwoFactorMutation,
+  useRefreshSessionMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
+  useGetSecuritySettingsQuery,
+  useUpdateSessionDurationMutation,
+  useGetSessionsQuery,
+  useRevokeSessionMutation,
+  useRevokeOtherSessionsMutation,
+  useChangePasswordMutation,
+  useSetupTwoFactorMutation,
+  useConfirmTwoFactorMutation,
+  useDisableTwoFactorMutation,
+  useGetPrivacySettingsQuery,
+  useUpdatePrivacySettingsMutation,
+  useGetBlockedUsersQuery,
+  useBlockUserMutation,
+  useUnblockUserMutation,
   useLogoutMutation,
   useForgotUsernameMutation,
   useResetPasswordMutation,
@@ -377,6 +670,9 @@ export const {
   useSearchUsersQuery,
   useGetUserByUsernameQuery,
   useGetUserByIdQuery,
+  useUpdateContactDisplayNameMutation,
+  useDeleteContactDisplayNameMutation,
+  useGetUserAvatarHistoryQuery,
   useUpdateUserMutation,
   useDeleteAccountMutation,
   
@@ -387,6 +683,7 @@ export const {
   useCreateChatMutation,
   useUpdateChatMutation,
   useDeleteChatMutation,
+  useSetChatPinnedMutation,
   
   // Message hooks
   useGetMessagesQuery,

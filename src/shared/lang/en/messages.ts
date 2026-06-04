@@ -8,4 +8,5 @@ export const messages = {
   editMessagePlaceholder: "Edit message...",
   replyTo: "Reply to",
   editing: "Editing",
+  edited: "edited",
 };

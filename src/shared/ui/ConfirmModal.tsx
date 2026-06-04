@@ -25,11 +25,11 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const { translations } = useLanguage();
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="relative bg-card w-full max-w-lg p-6 rounded-lg shadow-lg border border-border">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4">
+      <div className="motion-panel-in relative bg-card w-full max-w-lg p-6 rounded-lg shadow-lg border border-border">
         <button
           onClick={onCancel}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="motion-press absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <X className="h-4 w-4" />
           <span className="sr-only">{translations.close}</span>
@@ -40,14 +40,14 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           {!isError && (
             <button
               onClick={onCancel}
-              className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
+              className="motion-press px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
             >
               {cancelText || translations.cancel}
             </button>
           )}
           <button
             onClick={isError ? onCancel : onConfirm}
-            className={`px-4 py-2 rounded-md transition-colors ${
+            className={`motion-press px-4 py-2 rounded-md transition-colors ${
               isError
                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'

@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Message } from '@/entities/message';
 import { useChat } from './model/useChat';
-import { useCreateChatMutation, useSendMessageMutation, useUploadFileMutation } from '@/app/api/messengerApi';
+import { useCreateChatMutation, useUploadFileMutation } from '@/app/api/messengerApi';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import ChatHeader from './components/ChatHeader';
 import MessageList from './components/MessageList';
@@ -11,16 +11,28 @@ import ContextMenu from './components/ContextMenu';
 import ReactionMenu from './components/ReactionMenu';
 import UserProfileComponent from '@/features/profiles/UserProfileComponent';
 import { DELETED_AVATAR, DEFAULT_AVATAR } from '@/shared/base/ui';
+import MessageSearchDialog from './components/MessageSearchDialog';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { authFetch, useAccessToken } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface ChatProps {
   chatId: number;
   chatName: string;
+  chatDisplayName?: string;
+  interlocutorIsOnline?: boolean;
+  interlocutorLastSeen?: string | null;
+  interlocutorAvatarUrl?: string;
   username: string;
   interlocutorDeleted: boolean;
+  firstUnreadMessageId?: number | null;
   onBack: () => void;
   setIsUserProfileOpen: (isOpen: boolean) => void;
+  onOpenUserProfile?: (username: string) => void;
+  searchRequestKey?: number;
+  directDraftDisabled?: boolean;
+  directDraftReason?: 'self' | 'blocked' | 'privacy' | null;
   // Called when a preview chat is upgraded to a real chat after first message is sent
   onChatCreated?: (newId: number, newName: string) => void;
 }
@@ -28,17 +40,26 @@ interface ChatProps {
 import { Drawer, DrawerContent } from "@/shared/ui/drawer";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 
-const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDeleted, onBack, setIsUserProfileOpen, onChatCreated }) => {
-  const token = localStorage.getItem('access_token') || '';
+const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interlocutorIsOnline, interlocutorLastSeen, interlocutorAvatarUrl, username, interlocutorDeleted, firstUnreadMessageId, onBack, setIsUserProfileOpen, onOpenUserProfile, searchRequestKey = 0, directDraftDisabled = false, directDraftReason = null, onChatCreated }) => {
+  const token = useAccessToken() || '';
+  const { translations } = useLanguage();
   const [userId, setUserId] = useState<number | null>(null);
   const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
+  const [previewModal, setPreviewModal] = useState<{
+    type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser';
+    message: string;
+    onConfirm?: () => void;
+  } | null>(null);
+  const [presence, setPresence] = useState({
+    is_online: !!interlocutorIsOnline,
+    last_seen: interlocutorLastSeen || null,
+  });
   const isMobile = useIsMobile();
 
-  const isPreview = chatId < 0;
+  const isPreview = chatId <= 0;
 
   // Mutations for creating a chat and sending messages (used in preview mode)
   const [createChat] = useCreateChatMutation();
-  const [sendMessage] = useSendMessageMutation();
   const [uploadFile] = useUploadFileMutation();
 
   // When not preview — use the normal hook
@@ -57,8 +78,13 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
     modal,
     setModal,
     highlightedMessageId,
+    isLoadingInitialMessages,
+    isLoadingOlderMessages,
+    hasMoreMessages,
     scrollToMessage,
+    loadOlderMessages,
     handleSendMessage,
+    handleResendMessage,
     handleFileUpload,
     handleDeleteChat,
     getFormattedDateLabel,
@@ -77,26 +103,70 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
     setEditingMessage: (_: any) => {},
     selectedUser: null,
     setSelectedUser: (_: any) => {},
-    modal: null,
-    setModal: (_: any) => {},
+    modal: previewModal,
+    setModal: setPreviewModal,
     highlightedMessageId: null,
+    isLoadingInitialMessages: false,
+    isLoadingOlderMessages: false,
+    hasMoreMessages: false,
     scrollToMessage: (_: number) => {},
+    loadOlderMessages: async () => {},
     handleSendMessage: () => {},
+    handleResendMessage: (_: Message) => {},
     handleFileUpload: (_: any) => {},
     handleDeleteChat: () => {},
-    getFormattedDateLabel: (s: string) => formatDateLabel(new Date(s), 'en', new Date(), new Date()),
+    getFormattedDateLabel: (s: string) => formatDateLabel(s, 'en', new Date(), new Date()),
     getMessageTime: (s: string) => formatTime(s, 'en'),
-    renderMessageContent: (m: Message) => null,
+    renderMessageContent: (m: Message) => <>{typeof m.content === 'string' ? m.content : ''}</>,
     wsRef: { current: null } as any,
-  } : useChat(chatId, username, token, onBack);
+  } : useChat(chatId, username, token, onBack, userId || 0, (update) => {
+    if (update.username === chatName) {
+      setPresence({
+        is_online: update.is_online,
+        last_seen: update.last_seen,
+      });
+    }
+  });
 
   // Local state & handlers for preview mode
   const [previewMessageInput, setPreviewMessageInput] = useState('');
-  const [previewMessages, setPreviewMessages] = useState<Message[]>([]);
+  const [previewFailedMessages, setPreviewFailedMessages] = useState<Message[]>([]);
+  const [isCreatingPreviewChat, setIsCreatingPreviewChat] = useState(false);
+
+  const getDeliveryBlockedMessage = () => (
+    directDraftReason === 'blocked'
+      ? translations.messageNotDeliveredBlocked || "This message could not be delivered due to the recipient's privacy settings."
+      : directDraftReason === 'self'
+      ? translations.messageNotDeliveredSelf || 'This message cannot be sent to yourself.'
+      : translations.messageNotDeliveredPrivacy || 'This message cannot be received due to the user privacy settings.'
+  );
+
+  const addFailedPreviewMessage = (content: string) => {
+    setPreviewFailedMessages((current) => [
+      ...current,
+      {
+        id: -Date.now(),
+        sender_id: userId || undefined,
+        sender: username,
+        sender_username: username,
+        content,
+        timestamp: new Date().toISOString(),
+        type: 'message',
+        delivery_error: getDeliveryBlockedMessage(),
+        read_by: [],
+      },
+    ]);
+  };
 
   const handleSendMessagePreview = async () => {
     const content = previewMessageInput.trim();
-    if (!content) return;
+    if (!content || isCreatingPreviewChat) return;
+    if (directDraftDisabled) {
+      addFailedPreviewMessage(content);
+      setPreviewMessageInput('');
+      return;
+    }
+    setIsCreatingPreviewChat(true);
     try {
       // create the chat on the server
       const res = await createChat({ user1: username, user2: chatName }).unwrap();
@@ -112,13 +182,21 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
       if (onChatCreated) onChatCreated(newChatId, chatName);
     } catch (err) {
       console.error('Failed to create chat/send message:', err);
-      setModal({ type: 'error', message: 'Failed to send message. Please try again.' });
+      addFailedPreviewMessage(content);
+    } finally {
+      setIsCreatingPreviewChat(false);
     }
   };
 
   const handleFileUploadPreview = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || isCreatingPreviewChat) return;
+    if (directDraftDisabled) {
+      addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${file.name}`);
+      event.target.value = '';
+      return;
+    }
+    setIsCreatingPreviewChat(true);
     try {
       const res = await createChat({ user1: username, user2: chatName }).unwrap();
       const newChatId = res.chat_id;
@@ -129,7 +207,10 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
       if (onChatCreated) onChatCreated(newChatId, chatName);
     } catch (err) {
       console.error('Failed to create chat/upload file:', err);
-      setModal({ type: 'error', message: 'Failed to upload file. Please try again.' });
+      addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${file.name}`);
+    } finally {
+      event.target.value = '';
+      setIsCreatingPreviewChat(false);
     }
   };
 
@@ -138,16 +219,35 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
   const reactionMenuRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const lastSearchRequestKeyRef = useRef(searchRequestKey);
   const [isClosing, setIsClosing] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const [reactionMenu, setReactionMenu] = useState<{ message: Message; x: number; y: number; isClosing?: boolean } | null>(null);
 
   useEffect(() => {
+    if (searchRequestKey !== lastSearchRequestKeyRef.current && searchRequestKey > 0 && !isPreview) {
+      setIsSearchOpen(true);
+    }
+    lastSearchRequestKeyRef.current = searchRequestKey;
+  }, [isPreview, searchRequestKey]);
+
+  useEffect(() => {
+    setIsSearchOpen(false);
+    lastSearchRequestKeyRef.current = searchRequestKey;
+  }, [chatId, chatName]);
+
+  useEffect(() => {
+    setPresence({
+      is_online: !!interlocutorIsOnline,
+      last_seen: interlocutorLastSeen || null,
+    });
+  }, [interlocutorIsOnline, interlocutorLastSeen, chatName]);
+
+  useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await authFetch(`${BASE_URL}/auth/me`);
         if (response.ok) {
           const data = await response.json();
           setUserId(data.id);
@@ -168,6 +268,16 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
     setContextMenu(null);
     setReactionMenu(null);
     setIsClosing(false);
+  };
+
+  const isOwnMessage = (message: Message) => {
+    return userId ? message.sender_id === userId : message.sender === username;
+  };
+
+  const normalizeAvatarUrl = (avatarUrl?: string | null) => {
+    if (!avatarUrl) return DEFAULT_AVATAR;
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
+    return `${BASE_URL}${avatarUrl}`;
   };
 
   const handleMessageClick = (e: React.MouseEvent, message: Message) => {
@@ -191,7 +301,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
                 const rect = msgElement.getBoundingClientRect();
                 const reactionY = e.clientY - 45;
                 setReactionMenu({ message, x: e.clientX, y: reactionY });
-                setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: message.sender === username });
+                setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: isOwnMessage(message) });
               }
             }, 200);
           } else {
@@ -200,7 +310,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
               const rect = msgElement.getBoundingClientRect();
               const reactionY = e.clientY - 45;
               setReactionMenu({ message, x: e.clientX, y: reactionY });
-              setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: message.sender === username });
+              setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: isOwnMessage(message) });
             }
           }
         }
@@ -209,15 +319,37 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
     }
   };
 
-  const onOpenProfile = () => setIsUserProfileOpen(true);
+  const onOpenProfile = () => {
+    if (onOpenUserProfile) {
+      onOpenUserProfile(chatName);
+      return;
+    }
+    setIsUserProfileOpen(true);
+  };
   const interlocutorAvatar = interlocutorDeleted 
     ? DELETED_AVATAR 
-    : (messages.find(msg => msg.sender !== username)?.avatar_url || DEFAULT_AVATAR);
+    : normalizeAvatarUrl(interlocutorAvatarUrl || messages.find(msg => !isOwnMessage(msg))?.avatar_url);
+
+  const jumpToSearchResult = (messageId: number) => {
+    const messageElement = messageRefs.current[messageId];
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTempHighlightedMessageId(messageId);
+      setTimeout(() => setTempHighlightedMessageId(null), 2000);
+    } else {
+      scrollToMessage(messageId);
+    }
+  };
+
+  const displayedMessages = isPreview ? previewFailedMessages : messages;
 
   const content = (
     <div className="flex flex-col h-full">
       <ChatHeader
         chatName={chatName}
+        chatDisplayName={chatDisplayName}
+        isOnline={presence.is_online}
+        lastSeen={presence.last_seen}
         interlocutorDeleted={interlocutorDeleted}
         onBack={onBack}
         onDeleteChat={handleDeleteChat}
@@ -225,53 +357,60 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
         interlocutorAvatar={interlocutorAvatar}
       />
       <MessageList
-        ref={chatWindowRef}
-        messages={messages}
-        username={username}
-        interlocutorDeleted={interlocutorDeleted}
-        onMessageClick={handleMessageClick}
-        onAvatarClick={setSelectedUser}
-        highlightedMessageId={highlightedMessageId}
-        contextMenuMessageId={contextMenu?.messageId}
-        getFormattedDateLabel={getFormattedDateLabel}
-        getMessageTime={getMessageTime}
-        renderMessageContent={renderMessageContent}
-        messageRefs={messageRefs}
-        onReplyClick={scrollToMessage}
-        userId={userId || 0}
-        wsRef={wsRef}
-        onOpenReactionMenu={(message, e) => {
-          if (reactionMenu && reactionMenu.message.id === message.id && contextMenu && contextMenu.messageId === message.id) {
-            setIsClosing(true);
-            setTimeout(() => closeMenus(), 200);
-          } else {
-            if (contextMenu || reactionMenu) {
+          ref={chatWindowRef}
+          messages={displayedMessages}
+          username={username}
+          interlocutorDeleted={interlocutorDeleted}
+          firstUnreadMessageId={firstUnreadMessageId}
+          onMessageClick={handleMessageClick}
+          onAvatarClick={setSelectedUser}
+          highlightedMessageId={highlightedMessageId}
+          contextMenuMessageId={contextMenu?.messageId}
+          getFormattedDateLabel={getFormattedDateLabel}
+          getMessageTime={getMessageTime}
+          renderMessageContent={renderMessageContent}
+          messageRefs={messageRefs}
+          onReplyClick={scrollToMessage}
+          userId={userId || 0}
+          wsRef={wsRef}
+          onOpenReactionMenu={(message, e) => {
+            if (reactionMenu && reactionMenu.message.id === message.id && contextMenu && contextMenu.messageId === message.id) {
               setIsClosing(true);
-              setTimeout(() => {
-                closeMenus();
+              setTimeout(() => closeMenus(), 200);
+            } else {
+              if (contextMenu || reactionMenu) {
+                setIsClosing(true);
+                setTimeout(() => {
+                  closeMenus();
+                  const msgElement = messageRefs.current[message.id];
+                  if (msgElement) {
+                    const rect = msgElement.getBoundingClientRect();
+                    const reactionY = e.clientY - 35;
+                    setReactionMenu({ message, x: e.clientX, y: reactionY });
+                    setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: isOwnMessage(message) });
+                  }
+                }, 200);
+              } else {
                 const msgElement = messageRefs.current[message.id];
                 if (msgElement) {
                   const rect = msgElement.getBoundingClientRect();
                   const reactionY = e.clientY - 35;
                   setReactionMenu({ message, x: e.clientX, y: reactionY });
-                  setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: message.sender === username });
+                  setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: isOwnMessage(message) });
                 }
-              }, 200);
-            } else {
-              const msgElement = messageRefs.current[message.id];
-              if (msgElement) {
-                const rect = msgElement.getBoundingClientRect();
-                const reactionY = e.clientY - 35;
-                setReactionMenu({ message, x: e.clientX, y: reactionY });
-                setContextMenu({ x: e.clientX, y: e.clientY, messageId: message.id, isMine: message.sender === username });
               }
             }
-          }
-        }}
-        tempHighlightedMessageId={tempHighlightedMessageId}
-        setTempHighlightedMessageId={setTempHighlightedMessageId}
-      />
-      {!interlocutorDeleted ? (
+          }}
+          tempHighlightedMessageId={tempHighlightedMessageId}
+          setTempHighlightedMessageId={setTempHighlightedMessageId}
+          onLoadOlderMessages={loadOlderMessages}
+          hasMoreMessages={hasMoreMessages}
+          isLoadingInitialMessages={isLoadingInitialMessages}
+          isLoadingOlderMessages={isLoadingOlderMessages}
+          onResendMessage={!isPreview ? handleResendMessage : undefined}
+          scrollToBottomKey={chatId}
+        />
+      {!interlocutorDeleted && (
         <MessageInput
           ref={messageInputRef}
           messageInput={isPreview ? previewMessageInput : messageInput}
@@ -291,8 +430,11 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
           }}
           chatId={chatId}
           token={token}
+          disableVoice={isPreview}
+          isSending={isPreview && isCreatingPreviewChat}
         />
-      ) : (
+      )}
+      {interlocutorDeleted && !isPreview && (
         <div className="p-4 border-t border-border">
           <button onClick={handleDeleteChat} className="w-full p-3 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors">
             Delete Chat
@@ -335,6 +477,13 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, username, interlocutorDel
         />
       )}
       {selectedUser && <UserProfileComponent username={selectedUser} onClose={() => setSelectedUser(null)} />}
+      <MessageSearchDialog
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        messages={messages}
+        getMessageTime={getMessageTime}
+        onJumpToMessage={jumpToSearchResult}
+      />
       <Modal modal={modal} onClose={() => setModal(null)} />
     </div>
   );

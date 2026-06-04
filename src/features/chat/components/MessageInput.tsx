@@ -2,6 +2,7 @@ import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import { Paperclip, Send, X, Mic } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { authFetch } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -15,6 +16,8 @@ interface MessageInputProps {
   onCancelReplyOrEdit: () => void;
   chatId: number;
   token: string;
+  disableVoice?: boolean;
+  isSending?: boolean;
 }
 
 const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
@@ -28,6 +31,8 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
     onCancelReplyOrEdit,
     chatId,
     token,
+    disableVoice = false,
+    isSending = false,
   }, ref) => {
     const { translations } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +45,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
     const streamRef = useRef<MediaStream | null>(null);
 
     const startRecording = async () => {
+      if (disableVoice) return;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         streamRef.current = stream; // Сохраняем поток для последующей очистки
@@ -54,9 +60,8 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
           formData.append('file', audioBlob, 'voice_message.opus');
           formData.append('chat_id', chatId.toString());
           try {
-            const response = await fetch(`${BASE_URL}/messages/vm`, {
+            const response = await authFetch(`${BASE_URL}/messages/vm`, {
               method: 'POST',
-              headers: { Authorization: `Bearer ${token}` },
               body: formData,
             });
             if (!response.ok) throw new Error('Failed to send voice message');
@@ -113,9 +118,9 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
     }, []);
 
     return (
-      <div className="p-4 border-t border-border">
+      <div className="border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {(replyTo || editingMessage) && (
-          <div className="flex items-center mb-2 p-2 bg-accent rounded-lg">
+          <div className="motion-reply-in flex items-center mb-2 p-2 bg-accent rounded-lg">
             <div className="flex-1 flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
                 {replyTo
@@ -148,17 +153,17 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
                 return null;
               })()}
             </div>
-            <button onClick={onCancelReplyOrEdit} className="p-1 hover:bg-accent rounded-full transition-colors">
+            <button onClick={onCancelReplyOrEdit} className="motion-press p-1 hover:bg-accent rounded-full transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
         {errorMessage && (
-          <div className="mb-2 p-2 bg-red-100 text-red-700 rounded-lg text-sm">
+          <div className="motion-error-in mb-2 p-2 bg-red-100 text-red-700 rounded-lg text-sm">
             {errorMessage}
             <button
               onClick={() => setErrorMessage(null)}
-              className="ml-2 text-red-700 hover:text-red-900"
+              className="motion-press ml-2 rounded px-1 text-red-700 hover:text-red-900"
             >
               Close
             </button>
@@ -167,7 +172,8 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
         <div className="flex space-x-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
+            disabled={isSending}
+            className="motion-press p-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
           >
             <Paperclip className="w-5 h-5" />
           </button>
@@ -179,7 +185,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
             className="hidden"
           />
           {isRecording ? (
-            <div className="flex-1 flex items-center justify-center bg-background border border-input rounded-lg p-2">
+            <div className="motion-reply-in flex-1 flex items-center justify-center bg-background border border-input rounded-lg p-2">
               <span className="text-red-500 font-bold">{recordingDuration}s</span>
             </div>
           ) : (
@@ -189,8 +195,9 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               placeholder={translations.writeMessage}
-              className="flex-1 pl-1 py-2 bg-background text-foreground border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-              onKeyPress={(e) => e.key === 'Enter' && onSendMessage()}
+              className="flex-1 pl-3 py-2 bg-background text-foreground border border-input rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring focus:shadow-sm"
+              onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
+              disabled={isSending}
             />
           )}
           <button
@@ -199,16 +206,17 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(
             onTouchStart={startRecording}
             onTouchEnd={stopRecording}
             onMouseLeave={stopRecording}
-            className={`p-2 rounded-lg transition-colors ${
-              isRecording ? 'bg-red-500 text-white' : 'bg-accent text-accent-foreground hover:bg-accent/90'
-            }`}
+            disabled={disableVoice || isSending}
+            className={`motion-press p-2 rounded-lg transition-colors ${
+              isRecording ? 'motion-presence bg-red-500 text-white' : 'bg-accent text-accent-foreground hover:bg-accent/90'
+            } disabled:opacity-50`}
           >
             <Mic className="w-5 h-5" />
           </button>
           <button
             onClick={onSendMessage}
-            disabled={!messageInput.trim()}
-            className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            disabled={!messageInput.trim() || isSending}
+            className="motion-press p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             <Send className="w-5 h-5" />
           </button>

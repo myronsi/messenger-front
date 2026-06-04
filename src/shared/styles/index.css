@@ -47,17 +47,84 @@
     user-select: text;
   }
 
-  /* Animations */
+  /* Motion system */
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 180ms ease-out both;
   }
 
   .animate-slide-in {
-    animation: slideIn 0.3s ease-out;
+    animation: slideIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .chat-slide-in {
-    animation: chatSlideIn 0.3s ease-out;
+    animation: chatSlideIn 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-panel-in {
+    animation: panelIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-sheet-in {
+    animation: sheetIn 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-list-item {
+    animation: listItemIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .motion-list-item:hover {
+    transform: translateX(2px);
+  }
+
+  .motion-message {
+    animation: messageIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-message-bubble {
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .motion-message-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px hsl(222.2 47.4% 11.2% / 0.08);
+  }
+
+  .motion-press {
+    transition: transform 120ms ease, background-color 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+    touch-action: manipulation;
+  }
+
+  .motion-press:active {
+    transform: scale(0.96);
+  }
+
+  .motion-avatar {
+    transition: transform 180ms ease, opacity 160ms ease, box-shadow 180ms ease;
+  }
+
+  .motion-avatar:hover {
+    transform: scale(1.04);
+  }
+
+  .motion-presence {
+    animation: presencePulse 1.8s ease-out infinite;
+  }
+
+  .motion-reply-in {
+    animation: replyIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-error-in {
+    animation: errorIn 180ms ease-out both;
+  }
+
+  .motion-avatar-viewer-backdrop {
+    animation: fadeIn 160ms ease-out both;
+  }
+
+  .motion-avatar-viewer-image {
+    animation: avatarImageIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   /* Message tails */
@@ -106,6 +173,47 @@
   @keyframes chatSlideIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes panelIn {
+    from { transform: translateY(8px) scale(0.985); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  @keyframes sheetIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes listItemIn {
+    from { transform: translateY(6px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes messageIn {
+    from { transform: translateY(8px) scale(0.98); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  @keyframes replyIn {
+    from { transform: translateY(6px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes errorIn {
+    from { transform: translateY(4px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes presencePulse {
+    0% { box-shadow: 0 0 0 0 rgb(34 197 94 / 0.35); }
+    70% { box-shadow: 0 0 0 6px rgb(34 197 94 / 0); }
+    100% { box-shadow: 0 0 0 0 rgb(34 197 94 / 0); }
+  }
+
+  @keyframes avatarImageIn {
+    from { transform: scale(0.985); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
   }
 
   /* Highlighted message effect */
@@ -159,10 +267,31 @@
     transform: translateX(-100%);
     opacity: 0.5;
   }
+
+  .motion-list-item:hover,
+  .motion-message-bubble:hover,
+  .motion-avatar:hover {
+    transform: none;
+  }
+
+  .motion-sheet-in {
+    animation-duration: 200ms;
+  }
 }
 
 .context-menu-highlight {
   background-color: rgba(0, 238, 255, 0.34);
   border-radius: 8px;
   transition: all 0.3s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
 }

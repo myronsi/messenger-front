@@ -1,12 +1,13 @@
-import React, { forwardRef, useState, useEffect, useRef } from 'react';
-import { Message } from '@/entities/message';
+import React, { forwardRef, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { Message, ReactionInfo } from '@/entities/message';
 import { getFileTypes, FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
-import { ArrowDownToLine, Check, CheckCheck } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -15,6 +16,7 @@ interface MessageListProps {
   username: string;
   userId: number;
   interlocutorDeleted: boolean;
+  firstUnreadMessageId?: number | null;
   onMessageClick: (e: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
   highlightedMessageId: number | null;
@@ -28,12 +30,21 @@ interface MessageListProps {
   onOpenReactionMenu: (message: Message, e: React.MouseEvent) => void;
   tempHighlightedMessageId: number | null;
   setTempHighlightedMessageId: (id: number | null) => void;
+  onLoadOlderMessages?: () => Promise<void>;
+  hasMoreMessages?: boolean;
+  isLoadingOlderMessages?: boolean;
+  isLoadingInitialMessages?: boolean;
+  isGroup?: boolean;
+  onOpenReadStatus?: (message: Message) => void;
+  onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
+  onResendMessage?: (message: Message) => void;
+  scrollToBottomKey?: string | number;
 }
 
 const isValidTimestamp = (timestamp: string | undefined | null): boolean => {
   if (!timestamp) return false;
   try {
-    const date = new Date(timestamp);
+    const date = parseUtcDate(timestamp);
     return !isNaN(date.getTime());
   } catch {
     return false;
@@ -110,6 +121,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     username,
     userId,
     interlocutorDeleted,
+    firstUnreadMessageId,
     onMessageClick,
     onAvatarClick,
     highlightedMessageId,
@@ -123,12 +135,36 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     onOpenReactionMenu,
     tempHighlightedMessageId,
     setTempHighlightedMessageId,
+    onLoadOlderMessages,
+    hasMoreMessages = false,
+    isLoadingOlderMessages = false,
+    isLoadingInitialMessages = false,
   } = props;
 
   const { getFileTypeConfig } = getFileTypes();
   const { translations } = useLanguage();
+  const isGroup = props.isGroup || false;
+  const onOpenReadStatus = props.onOpenReadStatus;
+  const onOpenReactionDetails = props.onOpenReactionDetails;
+  const onResendMessage = props.onResendMessage;
+  const scrollToBottomKey = props.scrollToBottomKey;
+
+  const isOwnMessage = (message: Message) => {
+    return userId ? message.sender_id === userId : message.sender === username;
+  };
+
+  const getAvatarSrc = (avatarUrl?: string | null) => {
+    if (!avatarUrl) return `${BASE_URL}/static/avatars/default.jpg`;
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
+    return `${BASE_URL}${avatarUrl}`;
+  };
+
+  const getProfileUsername = (message: Message) => {
+    return message.sender_username || message.sender;
+  };
 
   const [currentDate, setCurrentDate] = useState<string | null>(null);
+  const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<number | null>(firstUnreadMessageId ?? null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
   const [audioStates, setAudioStates] = useState<{ [key: number]: { currentTime: number; duration: number } }>({});
@@ -136,6 +172,22 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const sentReadReceiptsRef = useRef<Set<number>>(new Set());
+  const isRestoringScrollRef = useRef(false);
+  const hasScrolledInitialRef = useRef(false);
+  const shouldStickToBottomRef = useRef(true);
+  const lastMessageIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setVisibleFirstUnreadId(firstUnreadMessageId ?? null);
+  }, [firstUnreadMessageId]);
+
+  useEffect(() => {
+    hasScrolledInitialRef.current = false;
+    shouldStickToBottomRef.current = true;
+    lastMessageIdRef.current = null;
+  }, [scrollToBottomKey]);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -157,14 +209,21 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     );
   };
 
+  const sendReadReceipt = (messageId: number) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || userId <= 0) return;
+    if (sentReadReceiptsRef.current.has(messageId)) return;
+
+    sentReadReceiptsRef.current.add(messageId);
+    wsRef.current.send(JSON.stringify({ type: 'is_read', message_id: messageId }));
+  };
+
   const markVisibleMessagesAsRead = () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     messages.forEach((message) => {
-      if (message.sender !== username && !message.read_by?.some((r) => r.user_id === userId)) {
+      if (!isOwnMessage(message) && !message.read_by?.some((r) => r.user_id === userId)) {
         const el = messageRefs.current[message.id];
         if (el && isElementInViewport(el, chatContainerRef.current)) {
           console.log(`Marking message ${message.id} as read for user ${userId}`);
-          wsRef.current.send(JSON.stringify({ type: 'is_read', message_id: message.id }));
+          sendReadReceipt(message.id);
         }
       }
     });
@@ -172,17 +231,19 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
 
   useEffect(() => {
     if (!wsRef.current) return;
+    const socket = wsRef.current;
 
     const handleWebSocketOpen = () => {
+      observerRef.current?.disconnect();
       observerRef.current = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
               const message = messages.find((msg) => msg.id === messageId);
-              if (message && message.sender !== username && !message.read_by?.some((r) => r.user_id === userId)) {
+              if (message && !isOwnMessage(message) && !message.read_by?.some((r) => r.user_id === userId)) {
                 console.log(`IntersectionObserver: Marking message ${messageId} as read for user ${userId}`);
-                wsRef.current?.send(JSON.stringify({ type: 'is_read', message_id: messageId }));
+                sendReadReceipt(messageId);
               }
             }
           });
@@ -205,14 +266,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     if (wsRef.current.readyState === WebSocket.OPEN) {
       handleWebSocketOpen();
     } else {
-      wsRef.current.onopen = handleWebSocketOpen;
+      socket.addEventListener('open', handleWebSocketOpen);
     }
 
     return () => {
       observerRef.current?.disconnect();
-      if (wsRef.current) {
-        wsRef.current.onopen = null;
-      }
+      socket.removeEventListener('open', handleWebSocketOpen);
     };
   }, [messages, username, userId, wsRef]);
 
@@ -246,7 +305,33 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   };
 
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = async () => {
+      const container = chatContainerRef.current;
+      if (container) {
+        shouldStickToBottomRef.current = container.scrollHeight - container.scrollTop - container.clientHeight < 160;
+      }
+
+      if (
+        container &&
+        container.scrollTop <= 120 &&
+        hasMoreMessages &&
+        !isLoadingOlderMessages &&
+        !isRestoringScrollRef.current &&
+        onLoadOlderMessages
+      ) {
+        const previousScrollHeight = container.scrollHeight;
+        const previousScrollTop = container.scrollTop;
+        isRestoringScrollRef.current = true;
+        await onLoadOlderMessages();
+        requestAnimationFrame(() => {
+          const nextContainer = chatContainerRef.current;
+          if (nextContainer) {
+            nextContainer.scrollTop = nextContainer.scrollHeight - previousScrollHeight + previousScrollTop;
+          }
+          isRestoringScrollRef.current = false;
+        });
+      }
+
       setIsScrolling(true);
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
@@ -272,7 +357,51 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [messages, getFormattedDateLabel]);
+  }, [messages, getFormattedDateLabel, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages]);
+
+  useLayoutEffect(() => {
+    const container = chatContainerRef.current;
+    const lastMessageId = messages[messages.length - 1]?.id || null;
+    if (!container || !lastMessageId || isRestoringScrollRef.current) {
+      lastMessageIdRef.current = lastMessageId;
+      return;
+    }
+
+    if (!hasScrolledInitialRef.current) {
+      const forceScrollToBottom = () => {
+        const nextContainer = chatContainerRef.current;
+        if (!nextContainer || isRestoringScrollRef.current) return;
+        if (hasScrolledInitialRef.current && !shouldStickToBottomRef.current) return;
+        nextContainer.scrollTop = nextContainer.scrollHeight;
+      };
+
+      forceScrollToBottom();
+      let secondFrame = 0;
+      const firstFrame = requestAnimationFrame(() => {
+        forceScrollToBottom();
+        secondFrame = requestAnimationFrame(forceScrollToBottom);
+      });
+      const settleTimeout = window.setTimeout(forceScrollToBottom, 120);
+      const mediaSettleTimeout = window.setTimeout(forceScrollToBottom, 400);
+
+      hasScrolledInitialRef.current = true;
+      shouldStickToBottomRef.current = true;
+      lastMessageIdRef.current = lastMessageId;
+
+      return () => {
+        cancelAnimationFrame(firstFrame);
+        cancelAnimationFrame(secondFrame);
+        window.clearTimeout(settleTimeout);
+        window.clearTimeout(mediaSettleTimeout);
+      };
+    }
+
+    if (lastMessageIdRef.current !== lastMessageId && shouldStickToBottomRef.current) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
+
+    lastMessageIdRef.current = lastMessageId;
+  }, [messages, scrollToBottomKey]);
 
   const renderContent = (message: Message) => {
     if (message.type === 'file' && typeof message.content !== 'string') {
@@ -287,7 +416,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
             <ImageMessage 
               fileUrl={fullFileUrl} 
               fileName={fileName}
-              isMine={message.sender === username}
+              isMine={isOwnMessage(message)}
             />
           );
         } else if (config.replyText === translations.voiceMessage) {
@@ -347,8 +476,23 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         </div>
       )}
       <div ref={ref} className="py-6 px-[10px] md:w-2/3 md:mx-auto md:px-0 space-y-4">
+        {isLoadingInitialMessages && messages.length === 0 && (
+          <div className="flex h-[55vh] items-center justify-center">
+            <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
+              {translations.loading}
+            </div>
+          </div>
+        )}
+        {isLoadingOlderMessages && (
+          <div className="flex justify-center">
+            <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
+              {translations.loading}
+            </div>
+          </div>
+        )}
         {messages.map((message, index) => {
-          const isMine = message.sender === username;
+          const isMine = isOwnMessage(message);
+          const showNewMessagesMarker = visibleFirstUnreadId === message.id && !isMine;
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showDateSeparator =
             !prevMessage || 
@@ -359,6 +503,13 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
 
           return (
             <React.Fragment key={message.id}>
+              {showNewMessagesMarker && (
+                <div className="flex justify-center">
+                  <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">
+                    {translations.newMessages}
+                  </div>
+                </div>
+              )}
               {showDateSeparator && isValidTimestamp(message.timestamp) && (
                 <div
                   className="flex justify-center date-separator"
@@ -377,7 +528,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                     observerRef.current.observe(el);
                   }
                 }}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${
+                className={`motion-message flex ${isMine ? 'justify-end' : 'justify-start'} ${
                   highlightedMessageId === message.id ? 'highlight' : ''
                 } ${contextMenuMessageId === message.id ? 'context-menu-highlight' : ''
                 } ${tempHighlightedMessageId === message.id ? 'context-menu-highlight' : ''}`}
@@ -385,9 +536,37 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                 onContextMenu={(e) => onMessageClick(e, message)}
               >
                 <div className={`flex items-end space-x-2 max-w-[350px] md:max-w-2/3 ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                  {isGroup && !isMine && (
+                    <button
+                      type="button"
+                      className="mb-1 shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onAvatarClick(getProfileUsername(message));
+                      }}
+                    >
+                      <img
+                        src={getAvatarSrc(message.avatar_url)}
+                        alt={message.sender}
+                        className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80"
+                      />
+                    </button>
+                  )}
                   <div className={`group relative flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                    {isGroup && !isMine && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onAvatarClick(getProfileUsername(message));
+                        }}
+                        className="motion-press mb-1 max-w-[220px] truncate rounded px-1 text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        {message.sender}
+                      </button>
+                    )}
                     <div
-                      className={`relative rounded-2xl break-words overflow-wrap-anywhere w-full max-w-[350px] md:max-w-full ${
+                      className={`motion-message-bubble relative rounded-2xl break-words overflow-wrap-anywhere w-full max-w-[350px] md:max-w-full ${
                         isMine
                           ? 'bg-primary text-primary-foreground' + (isImageMessage ? '' : ' message-tail-right')
                           : 'bg-accent text-accent-foreground' + (isImageMessage ? '' : ' message-tail-left')
@@ -419,11 +598,20 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                               isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'
                             }`}
                           >
+                            {message.edited_at && <span>{translations.edited}</span>}
                             <span>{getMessageTime(message.timestamp)}</span>
-                            {isMine && (
-                              <span>
+                            {isMine && !message.delivery_error && (
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-0.5"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  if (isGroup) onOpenReadStatus?.(message);
+                                }}
+                              >
                                 {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
-                              </span>
+                                {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+                              </button>
                             )}
                           </div>
                         )}
@@ -435,15 +623,47 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                           userId={userId}
                           isMine={isMine}
                           wsRef={wsRef}
+                          onOpenReactionDetails={(reaction, reactions) => onOpenReactionDetails?.(message, reaction, reactions)}
                         />
                       )}
                       {!isImageMessage && isValidTimestamp(message.timestamp) && (
                         <div className={`text-[10px] mt-1 opacity-80 select-none flex items-center space-x-1 ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
+                          {message.edited_at && <span>{translations.edited}</span>}
                           <span>{getMessageTime(message.timestamp)}</span>
-                          {isMine && (
-                            <span>
+                          {isMine && !message.delivery_error && (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-0.5"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (isGroup) onOpenReadStatus?.(message);
+                              }}
+                            >
                               {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
-                            </span>
+                              {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {message.delivery_error && (
+                        <div
+                          className={`mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-snug ${
+                            isMine ? 'text-red-100' : 'text-red-600'
+                          }`}
+                        >
+                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                          <span>{message.delivery_error}</span>
+                          {isMine && onResendMessage && (
+                            <button
+                              type="button"
+                              className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onResendMessage(message);
+                              }}
+                            >
+                              {translations.resend || 'Resend'}
+                            </button>
                           )}
                         </div>
                       )}

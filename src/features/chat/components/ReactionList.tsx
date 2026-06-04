@@ -1,47 +1,43 @@
 import React from 'react';
-
-interface Reaction {
-  user_id: number;
-  reaction: string;
-}
+import { ReactionInfo } from '@/entities/message';
 
 interface GroupedReaction {
   reaction: string;
   count: number;
-  users: number[];
+  users: ReactionInfo[];
 }
 
 interface ReactionListProps {
-  reactions: Reaction[];
+  reactions: ReactionInfo[];
   messageId: number;
   userId: number;
   isMine: boolean;
   wsRef: React.MutableRefObject<WebSocket | null>;
+  onOpenReactionDetails?: (reaction: string, reactions: ReactionInfo[]) => void;
 }
 
-const groupReactions = (reactions: Reaction[]): GroupedReaction[] => {
-  const reactionMap: { [key: string]: { count: number; users: number[] } } = {};
-  reactions.forEach((r) => {
-    if (!reactionMap[r.reaction]) {
-      reactionMap[r.reaction] = { count: 0, users: [] };
+const groupReactions = (reactions: ReactionInfo[]): GroupedReaction[] => {
+  const reactionMap: { [key: string]: ReactionInfo[] } = {};
+  reactions.forEach((reaction) => {
+    if (!reactionMap[reaction.reaction]) {
+      reactionMap[reaction.reaction] = [];
     }
-    reactionMap[r.reaction].count += 1;
-    reactionMap[r.reaction].users.push(r.user_id);
+    reactionMap[reaction.reaction].push(reaction);
   });
-  return Object.entries(reactionMap).map(([reaction, data]) => ({
+  return Object.entries(reactionMap).map(([reaction, users]) => ({
     reaction,
-    count: data.count,
-    users: data.users,
+    count: users.length,
+    users,
   }));
 };
 
 const getReactionBackground = (
   isMine: boolean,
-  reactionUsers: number[],
+  reactionUsers: ReactionInfo[],
   userId: number
 ): string => {
-  const myReaction = reactionUsers.includes(userId);
-  const othersReaction = reactionUsers.some((id) => id !== userId);
+  const myReaction = reactionUsers.some((reaction) => reaction.user_id === userId);
+  const othersReaction = reactionUsers.some((reaction) => reaction.user_id !== userId);
 
   if (isMine) {
     if (myReaction) {
@@ -61,10 +57,10 @@ const getReactionBackground = (
   return 'bg-secondary text-secondary-foreground';
 };
 
-const ReactionList: React.FC<ReactionListProps> = ({ reactions, messageId, userId, isMine, wsRef }) => {
+const ReactionList: React.FC<ReactionListProps> = ({ reactions, messageId, userId, isMine, wsRef, onOpenReactionDetails }) => {
   const handleReactionClick = (reaction: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      const hasReaction = reactions.some((r) => r.user_id === userId && r.reaction === reaction);
+      const hasReaction = reactions.some((item) => item.user_id === userId && item.reaction === reaction);
       wsRef.current.send(
         JSON.stringify({
           type: hasReaction ? 'reaction_remove' : 'reaction_add',
@@ -79,21 +75,32 @@ const ReactionList: React.FC<ReactionListProps> = ({ reactions, messageId, userI
 
   return (
     <div className="flex flex-wrap mt-1">
-      {groupedReactions.map((grouped, index) => (
-        <span
-          key={index}
+      {groupedReactions.map((grouped) => (
+        <button
+          key={grouped.reaction}
+          type="button"
           className={`mr-2 text-sm px-2 py-1 rounded-full cursor-pointer select-none hover:opacity-80 ${getReactionBackground(
             isMine,
             grouped.users,
             userId
           )}`}
-          onClick={(e) => {
-            e.stopPropagation();
+          title="Click to toggle. Right-click to view people."
+          onClick={(event) => {
+            event.stopPropagation();
             handleReactionClick(grouped.reaction);
+          }}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            onOpenReactionDetails?.(grouped.reaction, grouped.users);
+          }}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onOpenReactionDetails?.(grouped.reaction, grouped.users);
           }}
         >
           {grouped.reaction} {grouped.count > 1 ? grouped.count : ''}
-        </span>
+        </button>
       ))}
     </div>
   );

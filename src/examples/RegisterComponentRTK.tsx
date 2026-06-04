@@ -5,6 +5,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { useRegisterMutation } from '@/app/api/messengerApi';
+import { setAccessToken } from '@/shared/auth/session';
 
 interface RegisterComponentProps {
   onRegisterSuccess: () => void;
@@ -16,6 +17,7 @@ const RegisterComponentRTK: React.FC<RegisterComponentProps> = ({
   onLoginClick 
 }) => {
   const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -36,12 +38,13 @@ const RegisterComponentRTK: React.FC<RegisterComponentProps> = ({
     try {
       const result = await register({
         username,
+        display_name: displayName.trim().replace(/\s+/g, ' '),
         email,
         password,
       }).unwrap();
 
       // Success - save token and redirect
-      localStorage.setItem('access_token', result.access_token);
+      setAccessToken(result.access_token);
       if (result.refresh_token) {
         localStorage.setItem('refresh_token', result.refresh_token);
       }
@@ -64,6 +67,12 @@ const RegisterComponentRTK: React.FC<RegisterComponentProps> = ({
           placeholder={translations.username}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+        />
+        <Input
+          type="text"
+          placeholder="Display Name"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
         />
         <Input
           type="email"

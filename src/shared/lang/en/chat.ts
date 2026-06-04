@@ -14,4 +14,13 @@ export const chat = {
   chatDeleted: "Chat has been deleted.",
   messageDeleted: "[Message deleted]",
   deletedUserInfo: "Deleted user information is unavailable.",
+  newMessages: "New messages",
+  noMessagesYet: "No messages yet",
+  photoMessage: "Photo",
+  voiceMessagePreview: "Voice message",
+  fileMessagePreview: "File",
+  messageNotDeliveredBlocked: "This message could not be delivered due to the recipient's privacy settings.",
+  messageNotDeliveredPrivacy: "This message cannot be received due to the user's privacy settings.",
+  messageNotDeliveredSelf: "This message cannot be sent to yourself.",
+  resend: "Resend",
 };

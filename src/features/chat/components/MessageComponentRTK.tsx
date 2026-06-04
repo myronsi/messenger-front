@@ -3,6 +3,7 @@ import { Send, Paperclip, Smile, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { parseUtcDate } from '@/shared/utils/dateFormatters';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 import {
   useGetMessageHistoryQuery,
@@ -32,7 +33,7 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, curre
     error, 
     isLoading,
     refetch 
-  } = useGetMessageHistoryQuery(chatId);
+  } = useGetMessageHistoryQuery({ chatId });
 
   const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
   const [updateMessage, { isLoading: isUpdating }] = useUpdateMessageMutation();
@@ -180,7 +181,7 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, curre
                   <Input
                     value={editingContent}
                     onChange={(e) => setEditingContent(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleEditMessage(message.id)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleEditMessage(message.id)}
                     className="flex-1"
                   />
                   <Button
@@ -217,7 +218,7 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, curre
                       {typeof message.content === 'string' ? message.content : message.content.file_name}
                     </div>
                     <div className="text-xs opacity-70 mt-1">
-                      {new Date(message.timestamp).toLocaleTimeString()}
+                      {parseUtcDate(message.timestamp).toLocaleTimeString()}
                     </div>
                     
                     {/* Reactions */}
@@ -295,7 +296,7 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, curre
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Type a message..."
             className="flex-1"
           />
