@@ -121,7 +121,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
 
   const ProfileShell = ({ children }: { children: React.ReactNode }) => (
     <div className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950">
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
         <div className="flex items-center gap-2">
           <UserRound className="h-5 w-5 text-gray-500" />
           <h2 className="text-base font-semibold">{translations.userProfile}</h2>
@@ -134,7 +134,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           <X className="h-5 w-5" />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
     </div>
   );
 
@@ -178,7 +178,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   return (
     <ProfileShell>
       <div className="flex min-h-full flex-col">
-        <div className="px-6 pb-5 pt-7 text-center">
+        <div className="px-5 pb-3 pt-5 text-center md:pt-4">
           {hasCustomAvatar ? (
             <button
               onClick={() => setIsAvatarViewerOpen(true)}
@@ -188,17 +188,17 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
               <img
                 src={avatarUrl}
                 alt={displayName}
-                className="h-28 w-28 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90"
+                className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
               />
             </button>
           ) : (
             <img
               src={avatarUrl}
               alt={displayName}
-              className="mx-auto h-28 w-28 rounded-full border border-gray-200 object-cover shadow-sm"
+              className="mx-auto h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm md:h-20 md:w-20"
             />
           )}
-          <h3 className="mt-4 break-words text-2xl font-semibold leading-tight text-gray-950">{displayName}</h3>
+          <h3 className="mt-3 break-words text-xl font-semibold leading-tight text-gray-950">{displayName}</h3>
           <p className="mt-1 break-words text-sm text-gray-500">@{username}</p>
           {!isCurrentUser && (
             <div className="mt-2 flex justify-center px-2">
@@ -256,7 +256,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
               )}
             </div>
           )}
-          <div className="mt-3 inline-flex max-w-full items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
+          <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
             <span className={`mr-2 h-2 w-2 rounded-full ${userData.is_online ? 'bg-emerald-500' : 'bg-gray-400'}`} />
             <span className="truncate">{getPresenceLabel(userData.is_online, userData.last_seen)}</span>
           </div>
@@ -270,7 +270,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
             {canShowMessageAction && (
               <button
                 onClick={handleMessage}
-                className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm text-primary transition-colors hover:bg-gray-100"
+                className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-primary transition-colors hover:bg-gray-100"
               >
                 <MessageCircle className="h-5 w-5" />
                 <span className="text-xs font-medium">{translations.message || 'Message'}</span>
@@ -280,7 +280,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
               <button
                 key={label}
                 disabled
-                className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm text-gray-400"
+                className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-gray-400"
                 title={translations.comingSoon || 'Coming soon'}
               >
                 <Icon className="h-5 w-5" />
@@ -290,7 +290,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
             {onSearchMessages && (
               <button
                 onClick={handleSearchMessages}
-                className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-gray-700 transition-colors hover:bg-gray-100"
               >
                 <Search className="h-5 w-5" />
                 <span className="text-xs font-medium">{translations.search || 'Search'}</span>
@@ -300,7 +300,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
               <button
                 onClick={handleBlockToggle}
                 disabled={isBlockActionLoading}
-                className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
                   isBlocked
                     ? 'text-primary hover:bg-gray-100 disabled:text-gray-400'
                     : 'text-red-600 hover:bg-red-50 disabled:text-gray-400'
@@ -313,25 +313,25 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           </div>
         )}
 
-        <div className="flex-1 space-y-4 px-5 py-5">
+        <div className="flex-1 space-y-3 px-5 py-4 md:py-3">
           {actionError && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {actionError}
             </div>
           )}
-          <section className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-700">
+          <section className="rounded-lg border border-gray-200 bg-white p-3">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
               <Info className="h-4 w-4 text-gray-500" />
               <span>{translations.bio}</span>
             </div>
-            <p className={`whitespace-pre-wrap break-words text-sm leading-6 ${bio ? 'text-gray-900' : 'text-gray-500'}`}>
+            <p className={`whitespace-pre-wrap break-words text-sm leading-5 ${bio ? 'text-gray-900' : 'text-gray-500'}`}>
               {bio || translations.noBio || 'No bio'}
             </p>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.account || 'Account'}</p>
-            <div className="mt-3 space-y-2 text-sm">
+            <div className="mt-2 space-y-1.5 text-sm">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-gray-500">{translations.userName || 'Username'}</span>
                 <span className="min-w-0 truncate font-medium text-gray-900">@{username}</span>

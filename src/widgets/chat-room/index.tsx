@@ -9,7 +9,6 @@ import MessageInput from './ui/MessageInput';
 import Modal from './ui/Modal';
 import ContextMenu from './ui/ContextMenu';
 import ReactionMenu from './ui/ReactionMenu';
-import UserProfileComponent from '@/widgets/profile-panel/UserProfileComponent';
 import { DELETED_AVATAR, DEFAULT_AVATAR } from '@/shared/base/ui';
 import MessageSearchDialog from './ui/MessageSearchDialog';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -37,9 +36,6 @@ interface ChatProps {
   onChatCreated?: (newId: number, newName: string) => void;
 }
 
-import { Drawer, DrawerContent } from "@/shared/ui/drawer";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
-
 const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interlocutorIsOnline, interlocutorLastSeen, interlocutorAvatarUrl, username, interlocutorDeleted, firstUnreadMessageId, onBack, setIsUserProfileOpen, onOpenUserProfile, searchRequestKey = 0, directDraftDisabled = false, directDraftReason = null, onChatCreated }) => {
   const token = useAccessToken() || '';
   const { translations } = useLanguage();
@@ -54,7 +50,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     is_online: !!interlocutorIsOnline,
     last_seen: interlocutorLastSeen || null,
   });
-  const isMobile = useIsMobile();
 
   const isPreview = chatId <= 0;
 
@@ -147,6 +142,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
       {
         id: -Date.now(),
         sender_id: userId || undefined,
+        is_own: true,
         sender: username,
         sender_username: username,
         content,
@@ -271,7 +267,12 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   };
 
   const isOwnMessage = (message: Message) => {
-    return userId ? message.sender_id === userId : message.sender === username;
+    if (message.is_own) return true;
+    if (userId && message.sender_id) return message.sender_id === userId;
+    const ownUsername = username.toLowerCase();
+    return [message.sender_username, message.sender]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase() === ownUsername);
   };
 
   const normalizeAvatarUrl = (avatarUrl?: string | null) => {
@@ -363,7 +364,13 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           interlocutorDeleted={interlocutorDeleted}
           firstUnreadMessageId={firstUnreadMessageId}
           onMessageClick={handleMessageClick}
-          onAvatarClick={setSelectedUser}
+          onAvatarClick={(profileUsername) => {
+            if (onOpenUserProfile) {
+              onOpenUserProfile(profileUsername);
+            } else {
+              setSelectedUser(profileUsername);
+            }
+          }}
           highlightedMessageId={highlightedMessageId}
           contextMenuMessageId={contextMenu?.messageId}
           getFormattedDateLabel={getFormattedDateLabel}
@@ -476,7 +483,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           setContextMenu={setContextMenu}
         />
       )}
-      {selectedUser && <UserProfileComponent username={selectedUser} onClose={() => setSelectedUser(null)} />}
       <MessageSearchDialog
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
@@ -488,13 +494,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     </div>
   );
 
-  return isMobile ? (
-    <Drawer open={true} onClose={onBack} direction="right">
-      <DrawerContent className="h-[100dvh] p-0">{content}</DrawerContent>
-    </Drawer>
-  ) : (
-    content
-  );
+  return content;
 };
 
 export default Chat;

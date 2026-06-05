@@ -58,3 +58,35 @@ export const prependUniqueMessages = (currentMessages: Message[], olderMessages:
     ...currentMessages,
   ];
 };
+
+export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {
+  if (freshMessages.length === 0) {
+    return currentMessages.filter((message) => message.id < 0);
+  }
+
+  const freshIds = new Set(freshMessages.map((message) => message.id));
+  const currentById = new Map(currentMessages.map((message) => [message.id, message]));
+  const oldestFreshId = freshMessages[0].id;
+  const olderMessages = currentMessages.filter((message) => (
+    message.id > 0 &&
+    message.id < oldestFreshId &&
+    !freshIds.has(message.id)
+  ));
+  const pendingMessages = currentMessages.filter((message) => message.id < 0);
+  const mergedFreshMessages = freshMessages.map((message) => {
+    const current = currentById.get(message.id);
+    return current
+      ? {
+          ...message,
+          is_own: current.is_own || message.is_own,
+          delivery_error: current.delivery_error || message.delivery_error,
+        }
+      : message;
+  });
+
+  return [
+    ...olderMessages,
+    ...mergedFreshMessages,
+    ...pendingMessages,
+  ];
+};

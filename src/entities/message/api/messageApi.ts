@@ -27,6 +27,7 @@ export const messageApi = messengerApi.injectEndpoints({
         if (beforeId) params.set('before_id', String(beforeId));
         return `/messages/history/${chatId}?${params.toString()}`;
       },
+      keepUnusedDataFor: 300,
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: chatId }],
     }),
 

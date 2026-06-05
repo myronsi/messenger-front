@@ -28,6 +28,7 @@ export interface ReadReceiptInfo extends UserMessageMeta {
 export interface Message {
   id: number;
   sender_id?: number;
+  is_own?: boolean;
   sender: string;
   sender_username?: string | null;
   content: string | { file_url: string; file_name: string; file_type: string; file_size: number };

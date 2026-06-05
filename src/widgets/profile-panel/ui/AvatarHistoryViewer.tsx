@@ -124,34 +124,32 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="motion-panel-in relative flex max-h-full w-full max-w-3xl flex-col items-center">
-        <div className="absolute right-0 top-0 z-10 flex gap-2">
-          {!isLoading && selectedUrl && (
-            <button
-              onClick={handleDownload}
-              className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-              aria-label={translations.download || 'Download'}
-              title={translations.download || 'Download'}
-            >
-              <Download className="h-5 w-5" />
-            </button>
-          )}
+      <div className="absolute right-4 top-4 z-10 flex gap-2">
+        {!isLoading && selectedUrl && (
           <button
-            onClick={onClose}
+            onClick={handleDownload}
             className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-            aria-label="Close avatar viewer"
+            aria-label={translations.download || 'Download'}
+            title={translations.download || 'Download'}
           >
-            <X className="h-5 w-5" />
+            <Download className="h-5 w-5" />
           </button>
-        </div>
+        )}
+        <button
+          onClick={onClose}
+          className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+          aria-label="Close avatar viewer"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
 
-        <div className="mb-4 pr-24 text-center text-white">
-          <h3 className="text-lg font-semibold">{displayName}</h3>
-          <p className="text-sm text-white/70">@{username}</p>
-          {avatars.length > 1 && (
-            <p className="mt-1 text-xs text-white/50">{selectedIndex + 1} / {avatars.length}</p>
-          )}
-        </div>
+      <div className="motion-panel-in relative flex max-h-full w-full max-w-3xl flex-col items-center">
+        {avatars.length > 1 && (
+          <div className="mb-4 text-center text-xs text-white/50">
+            {selectedIndex + 1} / {avatars.length}
+          </div>
+        )}
 
         <div
           className="relative flex min-h-[280px] w-full items-center justify-center rounded-lg bg-black/30 p-4"
@@ -201,18 +199,18 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
               <button
                 type="button"
                 onClick={showPrevious}
-                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+                className="group absolute inset-y-0 left-0 flex w-1/3 items-center justify-start rounded-l-lg bg-gradient-to-r from-black/35 via-black/10 to-transparent bg-[length:45%_100%] bg-left bg-no-repeat px-3 text-white transition-colors hover:from-black/50 focus:outline-none focus-visible:outline-none"
                 aria-label={translations.previous || 'Previous'}
               >
-                <ChevronLeft className="h-6 w-6" />
+                <ChevronLeft className="h-8 w-8 drop-shadow-[0_0_10px_rgba(0,0,0,0.9)]" />
               </button>
               <button
                 type="button"
                 onClick={showNext}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+                className="group absolute inset-y-0 right-0 flex w-1/3 items-center justify-end rounded-r-lg bg-gradient-to-l from-black/35 via-black/10 to-transparent bg-[length:45%_100%] bg-right bg-no-repeat px-3 text-white transition-colors hover:from-black/50 focus:outline-none focus-visible:outline-none"
                 aria-label={translations.next || 'Next'}
               >
-                <ChevronRight className="h-6 w-6" />
+                <ChevronRight className="h-8 w-8 drop-shadow-[0_0_10px_rgba(0,0,0,0.9)]" />
               </button>
             </>
           )}

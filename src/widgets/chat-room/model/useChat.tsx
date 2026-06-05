@@ -3,8 +3,9 @@ import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { MessageHistoryResponse, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
+import { MessageHistoryResponse, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
 import { authFetch, ensureAccessToken } from '@/shared/auth/session';
+import { useGetMessageHistoryQuery } from '@/app/api/messengerApi';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -41,12 +42,23 @@ export const useChat = (
   const presenceUpdateRef = useRef(onPresenceUpdate);
 
   const wsRef = useRef<WebSocket | null>(null);
-  const hasFetchedMessages = useRef(false);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const messageQueueRef = useRef<Array<any>>([]);
   const pendingMessageIdsRef = useRef<number[]>([]);
   const isLoadingOlderMessagesRef = useRef(false);
+  const currentUserIdRef = useRef(currentUserId);
+  const {
+    data: latestHistory,
+    isLoading: isLoadingLatestHistory,
+    error: latestHistoryError,
+  } = useGetMessageHistoryQuery(
+    { chatId, limit: MESSAGE_PAGE_SIZE },
+    {
+      skip: !token || chatId <= 0,
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
   const escapeCurlyBraces = (text: string): string => {
     return text.replace(/\{/g, '\\{').replace(/\}/g, '\\}');
@@ -111,7 +123,40 @@ export const useChat = (
     onBackRef.current = onBack;
     translationsRef.current = translations;
     presenceUpdateRef.current = onPresenceUpdate;
-  }, [onBack, translations, onPresenceUpdate]);
+    currentUserIdRef.current = currentUserId;
+  }, [onBack, translations, onPresenceUpdate, currentUserId]);
+
+  useEffect(() => {
+    setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
+  }, [isLoadingLatestHistory, messages.length]);
+
+  useEffect(() => {
+    if (!latestHistory) return;
+
+    const nextMessages = normalizeHistoryMessages(latestHistory.history);
+    setMessages((prev) => mergeFreshHistoryMessages(prev, nextMessages));
+    setOldestMessageId(nextMessages[0]?.id || null);
+    setHasMoreMessages(!!latestHistory.has_more);
+    setIsLoadingInitialMessages(false);
+  }, [latestHistory]);
+
+  useEffect(() => {
+    if (!latestHistoryError) return;
+
+    const status = (latestHistoryError as any)?.status;
+    if (status === 401) {
+      setModal({ type: 'error', message: translationsRef.current.loginRequired });
+      setTimeout(() => onBackRef.current(), 2000);
+      return;
+    }
+    if (status === 403) {
+      onBackRef.current();
+      return;
+    }
+
+    setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+    setIsLoadingInitialMessages(false);
+  }, [latestHistoryError]);
 
   const loadOlderMessages = useCallback(async () => {
     if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;
@@ -153,37 +198,7 @@ export const useChat = (
   useEffect(() => {
     let isMounted = true;
 
-    const loadMessages = async () => {
-      if (hasFetchedMessages.current) return;
-      hasFetchedMessages.current = true;
-      setIsLoadingInitialMessages(true);
-      try {
-        const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE) });
-        const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
-        if (response.ok) {
-          const data: MessageHistoryResponse = await response.json();
-          const nextMessages = normalizeHistoryMessages(data.history);
-          setMessages(nextMessages);
-          setOldestMessageId(nextMessages[0]?.id || null);
-          setHasMoreMessages(!!data.has_more);
-        } else if (response.status === 401) {
-          setModal({ type: 'error', message: translationsRef.current.loginRequired });
-          setTimeout(() => onBackRef.current(), 2000);
-        } else if (response.status === 403) {
-          // Forbidden - redirect to root
-          onBackRef.current();
-        } else {
-          throw new Error(translationsRef.current.errorLoading);
-        }
-      } catch (err) {
-        setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
-      } finally {
-        setIsLoadingInitialMessages(false);
-      }
-    };
-
     if (token) {
-      loadMessages();
       const connectWebSocket = async () => {
         if (!isMounted) return;
         // avoid creating a second connection while one is connecting/open
@@ -247,6 +262,9 @@ export const useChat = (
               const newMessage: Message = {
                 id: parsedData.data.message_id,
                 sender_id: parsedData.sender_id,
+                is_own: currentUserIdRef.current
+                  ? parsedData.sender_id === currentUserIdRef.current
+                  : String(parsedData.sender_username || parsedData.username || '').toLowerCase() === username.toLowerCase(),
                 sender: parsedData.username,
                 sender_username: parsedData.sender_username || parsedData.username,
                 content: parsedData.type === 'file' ? parsedData.data : parsedData.data.content,
@@ -278,7 +296,7 @@ export const useChat = (
                   if (pendingIndex !== -1) {
                     const copy = [...prev];
                     pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => id !== copy[pendingIndex].id);
-                    copy[pendingIndex] = newMessage;
+                    copy[pendingIndex] = { ...newMessage, is_own: copy[pendingIndex].is_own || newMessage.is_own };
                     return copy;
                   }
                 } catch (e) {
@@ -412,7 +430,6 @@ export const useChat = (
         try { wsRef.current.close(1000, 'Component unmounted'); } catch (e) {}
         wsRef.current = null;
       }
-      hasFetchedMessages.current = false;
       isLoadingOlderMessagesRef.current = false;
       setIsLoadingOlderMessages(false);
       setIsLoadingInitialMessages(false);
@@ -448,6 +465,7 @@ export const useChat = (
       const optimisticMessage: Message = {
         id: tempId,
         sender_id: currentUserId || undefined,
+        is_own: true,
         sender: username,
         sender_username: username,
         content: contentToSend,

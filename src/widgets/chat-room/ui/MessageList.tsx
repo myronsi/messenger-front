@@ -87,7 +87,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const scrollToBottomKey = props.scrollToBottomKey;
 
   const isOwnMessage = (message: Message) => {
-    return userId ? message.sender_id === userId : message.sender === username;
+    if (message.is_own) return true;
+    if (userId && message.sender_id) return message.sender_id === userId;
+    const ownUsername = username.toLowerCase();
+    return [message.sender_username, message.sender]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase() === ownUsername);
   };
 
   const getAvatarSrc = (avatarUrl?: string | null) => {
@@ -413,18 +418,16 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         </div>
       )}
       <div ref={ref} className="py-6 px-[10px] md:w-2/3 md:mx-auto md:px-0 space-y-4">
-        {isLoadingInitialMessages && messages.length === 0 && (
-          <div className="flex h-[55vh] items-center justify-center">
-            <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
-              {translations.loading}
-            </div>
-          </div>
-        )}
         {isLoadingOlderMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
               {translations.loading}
             </div>
+          </div>
+        )}
+        {!isLoadingInitialMessages && messages.length === 0 && (
+          <div className="flex h-[55vh] items-center justify-center text-sm text-muted-foreground">
+            {translations.noMessagesYet || 'No messages yet'}
           </div>
         )}
         {messages.map((message, index) => {

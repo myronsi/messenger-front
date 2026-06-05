@@ -13,6 +13,12 @@ export const chatApi = messengerApi.injectEndpoints({
       providesTags: ['Chat'],
     }),
 
+    getGroupDetails: builder.query<any, number>({
+      query: (chatId) => `/groups/${chatId}`,
+      keepUnusedDataFor: 300,
+      providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-details-${chatId}` }],
+    }),
+
     getChatById: builder.query<ApiChat, number>({
       query: (id) => `/chats/${id}`,
       providesTags: (result, error, id) => [{ type: 'Chat', id }],
@@ -57,6 +63,7 @@ export const chatApi = messengerApi.injectEndpoints({
 export const {
   useGetOneOnOneChatsQuery,
   useGetGroupChatsQuery,
+  useGetGroupDetailsQuery,
   useGetChatByIdQuery,
   useCreateChatMutation,
   useUpdateChatMutation,

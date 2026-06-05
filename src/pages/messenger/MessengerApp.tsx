@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
 import AuthFlowPage from '@/pages/auth/AuthFlowPage';
 import ChatsListComponentRTK from '@/widgets/chat-list';
@@ -37,7 +38,7 @@ const MessengerApp = () => {
     mobileChatPanelClass,
   } = useMessengerController();
 
-  const userProfileProps = {
+  const currentUserProfileProps = useMemo(() => ({
     username: profileUsername || currentChat?.name || '',
     onClose: closeUserProfile,
     onMessage: openDirectChatFromProfile,
@@ -45,6 +46,43 @@ const MessengerApp = () => {
     onDeleteChat: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
       ? handleDeleteCurrentChat
       : undefined,
+  }), [
+    profileUsername,
+    currentChat,
+  ]);
+  const [renderUserProfile, setRenderUserProfile] = useState(isUserProfileOpen);
+  const [isUserProfileClosing, setIsUserProfileClosing] = useState(false);
+  const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
+
+  useEffect(() => {
+    if (isUserProfileOpen && (currentChat || profileUsername)) {
+      setRenderedUserProfileProps(currentUserProfileProps);
+      setRenderUserProfile(true);
+      setIsUserProfileClosing(true);
+      const frameId = window.requestAnimationFrame(() => setIsUserProfileClosing(false));
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    if (!renderUserProfile) return;
+    setIsUserProfileClosing(true);
+    const timeoutId = window.setTimeout(() => {
+      setRenderUserProfile(false);
+      setIsUserProfileClosing(false);
+    }, 220);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentChat, currentUserProfileProps, isUserProfileOpen, profileUsername, renderUserProfile]);
+
+  const requestCloseUserProfile = () => {
+    if (isUserProfileClosing) return;
+    setIsUserProfileClosing(true);
+    window.setTimeout(() => {
+      closeUserProfile();
+    }, 160);
+  };
+
+  const userProfileProps = {
+    ...renderedUserProfileProps,
+    onClose: requestCloseUserProfile,
   };
 
   const activeChat = currentChat
@@ -123,8 +161,12 @@ const MessengerApp = () => {
                 )}
               </div>
 
-              {isUserProfileOpen && (currentChat || profileUsername) && (
-                <div className="fixed inset-0 z-[70] bg-white">
+              {renderUserProfile && (
+                <div
+                  className={`fixed inset-0 z-[1000] bg-white transition-transform duration-200 ease-out ${
+                    isUserProfileClosing ? 'translate-x-full opacity-95' : 'translate-x-0 opacity-100'
+                  }`}
+                >
                   <UserProfileComponentRTK {...userProfileProps} />
                 </div>
               )}
@@ -152,13 +194,17 @@ const MessengerApp = () => {
                 )}
               </div>
 
-              {isUserProfileOpen && (currentChat || profileUsername) && (
+              {renderUserProfile && (
                 <div
-                  className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-6 py-8"
-                  onMouseDown={closeUserProfile}
+                  className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-6 py-6 transition-opacity duration-200 ease-out ${
+                    isUserProfileClosing ? 'opacity-0' : 'opacity-100'
+                  }`}
+                  onMouseDown={requestCloseUserProfile}
                 >
                   <div
-                    className="h-[min(720px,calc(100vh-4rem))] w-[420px] max-w-full overflow-y-auto rounded-lg bg-white shadow-2xl"
+                    className={`h-[min(780px,calc(100vh-3rem))] w-[420px] max-w-full overflow-hidden rounded-lg bg-white shadow-2xl transition-all duration-200 ease-out ${
+                      isUserProfileClosing ? 'translate-y-3 scale-95 opacity-0' : 'translate-y-0 scale-100 opacity-100'
+                    }`}
                     onMouseDown={(event) => event.stopPropagation()}
                   >
                     <UserProfileComponentRTK {...userProfileProps} />
