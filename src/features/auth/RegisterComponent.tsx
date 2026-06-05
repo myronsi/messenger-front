@@ -14,7 +14,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import AvatarCropModal from '@/features/profiles/AvatarCropModal';
+import AvatarCropModal from '@/widgets/profile-panel/ui/AvatarCropModal';
 import { Camera, Eye, EyeOff, Loader2, X } from 'lucide-react';
 import { setAccessToken } from '@/shared/auth/session';
 
