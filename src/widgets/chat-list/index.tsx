@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Plus, Menu, Loader2, Search, X, Pin, PinOff } from 'lucide-react';
+import { MessageSquare, Plus, Menu, Search, X, Pin, PinOff } from 'lucide-react';
 import { Chat, ChatLastMessage } from '@/entities/message';
 import UserProfileComponentRTK from '@/widgets/profile-panel/UserProfileComponentRTK';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
@@ -11,6 +11,7 @@ import ChatsListHeader from './ChatsListHeader';
 import ChatListItem from './ui/ChatListItem';
 import { formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
 import { clearAuthTokens, ensureAccessToken, useAccessToken } from '@/shared/auth/session';
+import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -638,11 +639,13 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   // Show loading state
   if (isLoading) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>{translations.loading || 'Loading chats...'}</span>
-        </div>
+      <div ref={containerRef} className="h-full bg-background text-foreground flex flex-col relative">
+        <ChatsListHeader
+          translations={translations}
+          onOpenSearch={(rect: DOMRect) => handleOpenSearch(rect)}
+          onOpenProfile={() => setIsProfileOpen(true)}
+        />
+        <ChatListBodySkeleton />
       </div>
     );
   }

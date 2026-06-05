@@ -7,6 +7,7 @@ import GroupComponent from '@/widgets/group-chat';
 import ProfileComponentRTK from '@/widgets/profile-panel';
 import UserProfileComponentRTK from '@/widgets/profile-panel/UserProfileComponentRTK';
 import { useMessengerController } from './model/useMessengerController';
+import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
 
 const MessengerApp = () => {
   const {
@@ -122,11 +123,7 @@ const MessengerApp = () => {
     : null;
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-white">
-        <div className="animate-pulse text-blue-500 text-lg">{translations.loading}</div>
-      </div>
-    );
+    return <MessengerAppSkeleton isMobile={isMobile} />;
   }
 
   return (

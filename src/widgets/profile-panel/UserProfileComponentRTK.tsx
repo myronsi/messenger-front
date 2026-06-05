@@ -6,6 +6,7 @@ import { useBlockUserMutation, useGetBlockedUsersQuery, useGetCurrentUserQuery, 
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
 import { formatDateOnly } from '@/shared/utils/dateFormatters';
+import { UserProfileSkeleton } from '@/shared/ui/messenger-skeletons';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -141,12 +142,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   if (isLoading) {
     return (
       <ProfileShell>
-        <div className="flex h-full min-h-[360px] items-center justify-center">
-          <div className="flex items-center gap-2 text-gray-600">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>{translations.loading}</span>
-          </div>
-        </div>
+        <UserProfileSkeleton />
       </ProfileShell>
     );
   }
