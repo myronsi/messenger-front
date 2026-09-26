@@ -1,5 +1,5 @@
 import { messengerApi } from '@/shared/api/baseApi';
-import type { ApiChat, GroupChatResponse, OneOnOneChatResponse } from '@/entities/chat';
+import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse } from '@/entities/chat';
 
 export const chatApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -24,13 +24,34 @@ export const chatApi = messengerApi.injectEndpoints({
       providesTags: (result, error, id) => [{ type: 'Chat', id }],
     }),
 
-    createChat: builder.mutation<{ chat_id: number; message: string }, { user1: string; user2: string }>({
+    createChat: builder.mutation<CreateChatResponse, { user1: string; user2: string; initial_message?: string }>({
       query: (chatData) => ({
         url: '/chats/create',
         method: 'POST',
         body: chatData,
       }),
-      invalidatesTags: ['Chat'],
+      invalidatesTags: ['Chat', 'Request'],
+    }),
+
+    getApprovalRequestInbox: builder.query<ApprovalRequestInboxResponse, void>({
+      query: () => '/requests/inbox',
+      providesTags: ['Request'],
+    }),
+
+    approveApprovalRequest: builder.mutation<{ message: string; chat_id?: number }, number>({
+      query: (requestId) => ({
+        url: `/requests/${requestId}/approve`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Request', 'Chat', 'Message'],
+    }),
+
+    rejectApprovalRequest: builder.mutation<{ message: string }, number>({
+      query: (requestId) => ({
+        url: `/requests/${requestId}/reject`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Request'],
     }),
 
     updateChat: builder.mutation<ApiChat, { id: number; name?: string; description?: string }>({
@@ -57,6 +78,14 @@ export const chatApi = messengerApi.injectEndpoints({
       }),
       invalidatesTags: ['Chat'],
     }),
+
+    markChatRead: builder.mutation<MarkChatReadResponse, MarkChatReadRequest>({
+      query: ({ chatId, messageIds = [], markAll = false }) => ({
+        url: `/chats/${chatId}/read`,
+        method: 'POST',
+        body: markAll ? { mark_all: true } : { message_ids: messageIds },
+      }),
+    }),
   }),
 });
 
@@ -66,7 +95,11 @@ export const {
   useGetGroupDetailsQuery,
   useGetChatByIdQuery,
   useCreateChatMutation,
+  useGetApprovalRequestInboxQuery,
+  useApproveApprovalRequestMutation,
+  useRejectApprovalRequestMutation,
   useUpdateChatMutation,
   useDeleteChatMutation,
   useSetChatPinnedMutation,
+  useMarkChatReadMutation,
 } = chatApi;

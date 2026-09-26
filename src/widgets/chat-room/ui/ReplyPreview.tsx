@@ -19,6 +19,10 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
     if (message.type === 'file' && typeof message.content !== 'string') {
       const fileName = message.content.file_name || '';
       const config = getFileTypeConfig(fileName);
+
+      if (message.content.file_type === 'voice') {
+        return { text: translations.voiceMessage };
+      }
       
       // Check if it's an image
       if (message.content.file_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {

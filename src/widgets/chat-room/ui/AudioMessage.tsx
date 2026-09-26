@@ -4,6 +4,8 @@ import { Play, Pause } from 'lucide-react';
 interface AudioMessageProps {
   fileUrl: string;
   messageId: number;
+  duration?: number;
+  waveform?: number[];
   playingMessageId: number | null;
   setPlayingMessageId: (id: number | null) => void;
   audioStates: { [key: number]: { currentTime: number; duration: number } };
@@ -19,8 +21,57 @@ const formatTime = (time: number | undefined): string => {
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
+const WAVEFORM_BAR_COUNT = 38;
+const FALLBACK_WAVEFORM = Array.from({ length: WAVEFORM_BAR_COUNT }, (_, index) => {
+  const wave = Math.sin(index * 0.75) * 0.24 + Math.sin(index * 1.7) * 0.12;
+  return Math.min(0.9, Math.max(0.22, 0.46 + wave));
+});
+
+const createAudioContext = () => new (window.AudioContext || (window as any).webkitAudioContext)();
+
+const analyzeAudio = async (url: string): Promise<{ duration: number; waveform: number[] }> => {
+  const audioContext = createAudioContext();
+  try {
+    const response = await fetch(url, { method: 'GET', mode: 'cors' });
+    if (!response.ok) throw new Error('Failed to fetch audio');
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const channelData = audioBuffer.getChannelData(0);
+    const samplesPerBar = Math.max(1, Math.floor(channelData.length / WAVEFORM_BAR_COUNT));
+    const rawBars = Array.from({ length: WAVEFORM_BAR_COUNT }, (_, barIndex) => {
+      const start = barIndex * samplesPerBar;
+      const end = barIndex === WAVEFORM_BAR_COUNT - 1
+        ? channelData.length
+        : Math.min(channelData.length, start + samplesPerBar);
+      let sum = 0;
+      let count = 0;
+      const step = Math.max(1, Math.floor((end - start) / 120));
+
+      for (let sampleIndex = start; sampleIndex < end; sampleIndex += step) {
+        const sample = channelData[sampleIndex] || 0;
+        sum += sample * sample;
+        count += 1;
+      }
+
+      return count ? Math.sqrt(sum / count) : 0;
+    });
+    const peak = Math.max(...rawBars, 0.001);
+    const waveform = rawBars.map((value) => Math.min(1, Math.max(0.16, value / peak)));
+
+    return { duration: audioBuffer.duration, waveform };
+  } finally {
+    await audioContext.close();
+  }
+};
+
+const isValidWaveform = (waveform: unknown): waveform is number[] => (
+  Array.isArray(waveform) &&
+  waveform.length > 0 &&
+  waveform.every((value) => typeof value === 'number' && isFinite(value))
+);
+
 const getAudioDuration = async (url: string): Promise<number> => {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const audioContext = createAudioContext();
   try {
     const response = await fetch(url, { method: 'GET', mode: 'cors' });
     if (!response.ok) throw new Error('Failed to fetch audio');
@@ -37,6 +88,8 @@ const getAudioDuration = async (url: string): Promise<number> => {
 const AudioMessage: React.FC<AudioMessageProps> = ({
   fileUrl,
   messageId,
+  duration,
+  waveform: metadataWaveform,
   playingMessageId,
   setPlayingMessageId,
   audioStates,
@@ -46,9 +99,16 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   const [hasLoadedMetadata, setHasLoadedMetadata] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [isDurationUnknown, setIsDurationUnknown] = useState(false);
+  const [waveform, setWaveform] = useState(FALLBACK_WAVEFORM);
+  const [isWaveformReady, setIsWaveformReady] = useState(false);
   const isPlaying = playingMessageId === messageId;
   const audioState = audioStates[messageId] || { currentTime: 0, duration: 0 };
   const progress = audioState.duration > 0 && isFinite(audioState.duration) ? (audioState.currentTime / audioState.duration) * 100 : 0;
+  const hasMetadataWaveform = isValidWaveform(metadataWaveform);
+
+  const stopVoicePlayerPropagation = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  };
 
   const playMessage = () => {
     if (loadError) return;
@@ -148,19 +208,110 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     }
   }, [fileUrl, messageId, setAudioStates, setPlayingMessageId]);
 
+  useEffect(() => {
+    if (!duration || !isFinite(duration) || duration <= 0) return;
+
+    setAudioStates((prev) => ({
+      ...prev,
+      [messageId]: { ...prev[messageId], duration },
+    }));
+    setHasLoadedMetadata(true);
+    setLoadError(false);
+    setIsDurationUnknown(false);
+  }, [duration, messageId, setAudioStates]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (hasMetadataWaveform) {
+      setWaveform(metadataWaveform);
+      setIsWaveformReady(true);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    setWaveform(FALLBACK_WAVEFORM);
+    setIsWaveformReady(false);
+
+    analyzeAudio(fileUrl)
+      .then(({ duration, waveform }) => {
+        if (!isMounted) return;
+        setWaveform(waveform);
+        setIsWaveformReady(true);
+        if (isFinite(duration) && duration > 0) {
+          setAudioStates((prev) => ({
+            ...prev,
+            [messageId]: { ...prev[messageId], duration },
+          }));
+          setHasLoadedMetadata(true);
+          setLoadError(false);
+          setIsDurationUnknown(false);
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setWaveform(FALLBACK_WAVEFORM);
+        setIsWaveformReady(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fileUrl, hasMetadataWaveform, messageId, metadataWaveform, setAudioStates]);
+
+  const seekAudio = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!audioRef.current || !audioState.duration || !isFinite(audioState.duration)) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const nextTime = ratio * audioState.duration;
+    audioRef.current.currentTime = nextTime;
+    setAudioStates((prev) => ({
+      ...prev,
+      [messageId]: { ...prev[messageId], currentTime: nextTime },
+    }));
+  };
+
   return (
-    <div className="voice-message-player flex items-center space-x-2">
+    <div
+      className="voice-message-player flex min-w-[220px] items-center gap-2"
+      onClick={stopVoicePlayerPropagation}
+      onContextMenu={stopVoicePlayerPropagation}
+    >
       <button
+        type="button"
         onClick={() => (isPlaying ? pauseMessage() : playMessage())}
         disabled={loadError}
+        className="motion-press flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background/20 transition-colors hover:bg-background/30 disabled:opacity-50"
       >
         {isPlaying ? <Pause size={20} /> : <Play size={20} />}
       </button>
-      <div className="flex-1 flex flex-col items-center">
-        <div className="progress-bar w-full h-2 bg-gray-200 rounded">
-          <div className="progress h-full bg-blue-500 rounded" style={{ width: `${progress}%` }} />
-        </div>
-        <span className="text-sm mt-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <button
+          type="button"
+          onPointerDown={seekAudio}
+          onClick={stopVoicePlayerPropagation}
+          disabled={loadError || !audioState.duration}
+          aria-label="Seek voice message"
+          className="group flex h-9 w-full items-center gap-[2px] rounded-full px-0.5 disabled:cursor-default"
+        >
+          {waveform.map((barHeight, index) => {
+            const barProgress = ((index + 0.5) / waveform.length) * 100;
+            const isPlayed = barProgress <= progress;
+
+            return (
+              <span
+                key={`${messageId}-waveform-${index}`}
+                className={`block flex-1 rounded-full transition-all duration-150 ${
+                  isPlayed ? 'bg-current opacity-95' : 'bg-current opacity-35'
+                } ${isWaveformReady ? '' : 'animate-pulse'}`}
+                style={{ height: `${Math.round(8 + barHeight * 24)}px` }}
+              />
+            );
+          })}
+        </button>
+        <span className="text-[11px] leading-none opacity-75">
           {loadError ? 'Ошибка' : isDurationUnknown ? `${formatTime(audioState.currentTime)} / Неизвестно` : `${formatTime(audioState.currentTime)} / ${formatTime(audioState.duration)}`}
         </span>
       </div>

@@ -6,26 +6,32 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 interface ConfirmModalProps {
   title: string;
   message: string;
+  consequences?: string[];
   onConfirm: () => void;
   onCancel: () => void;
   confirmText?: string;
   cancelText?: string;
   isError?: boolean;
+  isDestructive?: boolean;
+  contained?: boolean;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
   title,
   message,
+  consequences,
   onConfirm,
   onCancel,
   confirmText,
   cancelText,
   isError = false,
+  isDestructive = false,
+  contained = false,
 }) => {
   const { translations } = useLanguage();
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4">
+    <div className={`${contained ? 'absolute' : 'fixed'} inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4`}>
       <div className="motion-panel-in relative bg-card w-full max-w-lg p-6 rounded-lg shadow-lg border border-border">
         <button
           onClick={onCancel}
@@ -35,7 +41,18 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <span className="sr-only">{translations.close}</span>
         </button>
         <h3 className="text-lg font-semibold leading-none tracking-tight mb-2">{title}</h3>
-        <p className="text-muted-foreground mb-4">{message}</p>
+        <p className="text-muted-foreground mb-3">{message}</p>
+        {!!consequences?.length && (
+          <ul className="mb-4 space-y-2 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            {consequences.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!consequences?.length && <div className="mb-4" />}
         <div className="flex justify-end space-x-2">
           {!isError && (
             <button
@@ -48,7 +65,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             onClick={isError ? onCancel : onConfirm}
             className={`motion-press px-4 py-2 rounded-md transition-colors ${
-              isError
+              isError || isDestructive
                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}

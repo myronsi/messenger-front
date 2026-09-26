@@ -11,17 +11,26 @@ export interface UserAvatarHistoryResponse {
   avatars: UserAvatarHistoryItem[];
 }
 
-export type PrivacyVisibility = 'everyone' | 'shared_chats' | 'nobody';
+export type BasicPrivacyVisibility = 'everyone' | 'shared_chats';
+export type ExceptionPrivacyVisibility = BasicPrivacyVisibility | 'everyone_except' | 'nobody_except';
+export type PresencePrivacyVisibility = ExceptionPrivacyVisibility | 'nobody';
+export type DirectMessagePrivacyVisibility = BasicPrivacyVisibility | 'wait_approval';
+export type GroupInvitePrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
+export type PrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
 export type SearchVisibility = 'everyone' | 'nobody';
+export type PrivacyExceptionKey = 'avatar_visibility' | 'profile_visibility' | 'presence_visibility' | 'group_invites';
+export type PrivacyExceptionEffect = 'allow' | 'deny';
+export type PrivacyExceptionLists = Record<PrivacyExceptionKey, Record<PrivacyExceptionEffect, User[]>>;
 
 export interface PrivacySettings {
-  avatar_visibility: PrivacyVisibility;
-  profile_visibility: PrivacyVisibility;
-  presence_visibility: PrivacyVisibility;
+  avatar_visibility: ExceptionPrivacyVisibility;
+  profile_visibility: ExceptionPrivacyVisibility;
+  presence_visibility: PresencePrivacyVisibility;
   read_receipts_enabled: boolean;
-  direct_messages: PrivacyVisibility;
-  group_invites: PrivacyVisibility;
+  direct_messages: DirectMessagePrivacyVisibility;
+  group_invites: GroupInvitePrivacyVisibility;
   search_visibility: SearchVisibility;
+  privacy_exceptions: PrivacyExceptionLists;
 }
 
 export interface BlockedUsersResponse {

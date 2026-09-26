@@ -15,6 +15,7 @@ export const useMessengerController = () => {
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [chatSearchRequestKey, setChatSearchRequestKey] = useState(0);
+  const [messageJumpRequest, setMessageJumpRequest] = useState<{ messageId: number; key: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mobileChatStage, setMobileChatStage] = useState<'closed' | 'open' | 'closing'>('closed');
   const hasFetchedUser = useRef(false);
@@ -65,19 +66,19 @@ export const useMessengerController = () => {
     }
   }, []);
 
-  const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: number | null, avatarUrl?: string) => {
+  const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: number | null, avatarUrl?: string, pendingApprovalRequest?: boolean, pendingApprovalMessage?: string) => {
     clearMobileChatCloseTimer();
     if (isMobile) {
       setMobileChatStage('closed');
     }
     if (type === 'one-on-one' || chatId > 0) {
       try {
-        navigate(type === 'one-on-one' ? directChatPath(chatId, chatName, interlocutorDeleted) : `/chat/${chatId}`, { state: { chatName, chatDisplayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId, chatId } });
+        navigate(type === 'one-on-one' ? directChatPath(chatId, chatName, interlocutorDeleted) : `/chat/${chatId}`, { state: { chatName, chatDisplayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId, chatId, pendingApprovalRequest, pendingApprovalMessage } });
       } catch (e) {
         // navigate may throw in some test environments; ignore
       }
     }
-    setCurrentChat({ id: chatId, name: chatName, displayName: chatDisplayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId });
+    setCurrentChat({ id: chatId, name: chatName, displayName: chatDisplayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId, pendingApprovalRequest, pendingApprovalMessage });
     if (isMobile) {
       requestAnimationFrame(() => setMobileChatStage('open'));
     }
@@ -97,7 +98,9 @@ export const useMessengerController = () => {
     setCurrentChat((current) => {
       if (!current || current.id !== chat.id) return current;
 
-      const nextFirstUnreadMessageId = chat.first_unread_message_id ?? current.firstUnreadMessageId;
+      const nextFirstUnreadMessageId = Object.prototype.hasOwnProperty.call(chat, 'first_unread_message_id')
+        ? chat.first_unread_message_id ?? null
+        : current.firstUnreadMessageId;
       if (
         current.name === chat.name &&
         current.displayName === chat.display_name &&
@@ -140,6 +143,12 @@ export const useMessengerController = () => {
 
   const openCurrentChatSearch = () => {
     setChatSearchRequestKey((key) => key + 1);
+    closeUserProfile();
+  };
+
+  const jumpToCurrentChatMessage = (messageId: number) => {
+    if (!currentChat || currentChat.id <= 0) return;
+    setMessageJumpRequest({ messageId, key: Date.now() });
     closeUserProfile();
   };
 
@@ -393,6 +402,8 @@ export const useMessengerController = () => {
             firstUnreadMessageId: null,
             directDraftDisabled: !user.can_message,
             directDraftReason: user.direct_message_reason ?? null,
+            pendingApprovalRequest: !!state.pendingApprovalRequest,
+            pendingApprovalMessage: state.pendingApprovalMessage,
           });
         })
         .catch((error) => {
@@ -432,7 +443,6 @@ export const useMessengerController = () => {
 
   const handleDeleteCurrentChat = async () => {
     if (!currentChat || currentChat.type !== 'one-on-one' || currentChat.id <= 0) return;
-    if (!window.confirm(translations.deleteChatConfirm)) return;
 
     try {
       const response = await authFetch(`${BASE_URL}/chats/delete/${currentChat.id}`, {
@@ -461,6 +471,7 @@ export const useMessengerController = () => {
     setIsUserProfileOpen,
     profileUsername,
     chatSearchRequestKey,
+    messageJumpRequest,
     isLoading,
     isMobile,
     translations,
@@ -470,6 +481,7 @@ export const useMessengerController = () => {
     openUserProfile,
     closeUserProfile,
     openCurrentChatSearch,
+    jumpToCurrentChatMessage,
     canSearchCurrentDirectChat,
     openDirectChatFromProfile,
     handleDirectChatCreated,

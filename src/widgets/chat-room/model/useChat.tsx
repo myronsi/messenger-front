@@ -1,15 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Message } from '@/entities/message';
+import { FileMessageContent, Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { MessageHistoryResponse, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
+import { MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
 import { authFetch, ensureAccessToken } from '@/shared/auth/session';
-import { useGetMessageHistoryQuery } from '@/app/api/messengerApi';
+import { useGetMessageHistoryQuery, useMarkChatReadMutation } from '@/app/api/messengerApi';
+import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
 const MESSAGE_PAGE_SIZE = 50;
+
+const getLocalUploadFileType = (fileName: string, mimeType = '') => {
+  const extension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
+  if (mimeType.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'].includes(extension)) return 'image';
+  if (mimeType.startsWith('video/') || ['.mp4', '.mov', '.ogg'].includes(extension)) return 'video';
+  if (mimeType.startsWith('audio/') || ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'].includes(extension)) return 'audio';
+  if (['.pdf', '.doc', '.docx', '.txt'].includes(extension)) return 'document';
+  if (extension === '.pptx') return 'presention';
+  if (extension === '.zip') return 'arcive';
+  if (['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css'].includes(extension)) return 'code';
+  return 'none';
+};
 
 export const useChat = (
   chatId: number,
@@ -17,6 +30,7 @@ export const useChat = (
   token: string,
   onBack: () => void,
   currentUserId = 0,
+  firstUnreadMessageId?: number | null,
   onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,12 +42,20 @@ export const useChat = (
   const [connectionRetryKey, setConnectionRetryKey] = useState(0);
   const [isLoadingInitialMessages, setIsLoadingInitialMessages] = useState(false);
   const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  const [isLoadingNewerMessages, setIsLoadingNewerMessages] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [hasMoreNewerMessages, setHasMoreNewerMessages] = useState(false);
   const [oldestMessageId, setOldestMessageId] = useState<number | null>(null);
+  const [newestMessageId, setNewestMessageId] = useState<number | null>(null);
   const [modal, setModal] = useState<{
-    type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser';
-    message: string;
+    type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
+    message?: string;
+    consequences?: string[];
     onConfirm?: () => void;
+    isMessageSender?: boolean;
+    messageId?: number;
+    onDeleteForMe?: () => void | Promise<void>;
+    onDeleteForAll?: () => void;
   } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const { translations, language } = useLanguage();
@@ -47,13 +69,15 @@ export const useChat = (
   const messageQueueRef = useRef<Array<any>>([]);
   const pendingMessageIdsRef = useRef<number[]>([]);
   const isLoadingOlderMessagesRef = useRef(false);
+  const isLoadingNewerMessagesRef = useRef(false);
   const currentUserIdRef = useRef(currentUserId);
+  const [markChatRead] = useMarkChatReadMutation();
   const {
     data: latestHistory,
     isLoading: isLoadingLatestHistory,
     error: latestHistoryError,
   } = useGetMessageHistoryQuery(
-    { chatId, limit: MESSAGE_PAGE_SIZE },
+    { chatId, limit: MESSAGE_PAGE_SIZE, aroundId: firstUnreadMessageId || undefined },
     {
       skip: !token || chatId <= 0,
       refetchOnMountOrArgChange: true,
@@ -119,6 +143,69 @@ export const useChat = (
     );
   };
 
+  const createOptimisticUploadMessage = (
+    file: Blob,
+    fileName: string,
+    fileType = getLocalUploadFileType(fileName, file.type),
+    caption = ''
+  ) => {
+    const tempId = -Date.now();
+    const objectUrl = URL.createObjectURL(file);
+    const content: FileMessageContent = {
+      file_url: objectUrl,
+      file_name: fileName,
+      file_type: fileType,
+      file_size: file.size,
+      ...(caption.trim() ? { caption: caption.trim() } : {}),
+    };
+    const optimisticMessage: Message = {
+      id: tempId,
+      client_temp_id: tempId,
+      local_object_url: objectUrl,
+      upload_status: 'uploading',
+      upload_progress: 1,
+      sender_id: currentUserIdRef.current || currentUserId || undefined,
+      is_own: true,
+      sender: username,
+      sender_username: username,
+      content,
+      timestamp: new Date().toISOString(),
+      avatar_url: DEFAULT_AVATAR,
+      reply_to: null,
+      is_deleted: false,
+      type: 'file',
+      reactions: [],
+      read_by: [],
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    return tempId;
+  };
+
+  const updateOptimisticUploadProgress = (messageId: number, percent: number) => {
+    setMessages((prev) => prev.map((message) => (
+      message.id === messageId
+        ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
+        : message
+    )));
+  };
+
+  const markOptimisticUploadFailed = (messageId: number, errorMessage?: string) => {
+    setMessages((prev) => prev.map((message) => (
+      message.id === messageId
+        ? {
+            ...message,
+            upload_status: 'failed',
+            delivery_error: errorMessage || translationsRef.current.errorLoading || 'Upload failed',
+          }
+        : message
+    )));
+  };
+
+  const settleOptimisticUpload = (messageId: number) => {
+    updateOptimisticUploadProgress(messageId, 99);
+  };
+
   useEffect(() => {
     onBackRef.current = onBack;
     translationsRef.current = translations;
@@ -136,7 +223,9 @@ export const useChat = (
     const nextMessages = normalizeHistoryMessages(latestHistory.history);
     setMessages((prev) => mergeFreshHistoryMessages(prev, nextMessages));
     setOldestMessageId(nextMessages[0]?.id || null);
-    setHasMoreMessages(!!latestHistory.has_more);
+    setNewestMessageId(nextMessages[nextMessages.length - 1]?.id || null);
+    setHasMoreMessages(latestHistory.has_more_before ?? latestHistory.has_more);
+    setHasMoreNewerMessages(!!latestHistory.has_more_after);
     setIsLoadingInitialMessages(false);
   }, [latestHistory]);
 
@@ -175,7 +264,7 @@ export const useChat = (
         const data: MessageHistoryResponse = await response.json();
         const olderMessages = normalizeHistoryMessages(data.history);
         setMessages((prev) => prependUniqueMessages(prev, olderMessages));
-        setHasMoreMessages(!!data.has_more);
+        setHasMoreMessages(data.has_more_before ?? data.has_more);
         if (olderMessages.length > 0) {
           setOldestMessageId(olderMessages[0].id);
         }
@@ -194,6 +283,84 @@ export const useChat = (
       setIsLoadingOlderMessages(false);
     }
   }, [chatId, hasMoreMessages, oldestMessageId, token]);
+
+  const loadNewerMessages = useCallback(async () => {
+    if (!token || !newestMessageId || !hasMoreNewerMessages || isLoadingNewerMessagesRef.current) return;
+
+    isLoadingNewerMessagesRef.current = true;
+    setIsLoadingNewerMessages(true);
+
+    try {
+      const params = new URLSearchParams({
+        limit: String(MESSAGE_PAGE_SIZE),
+        after_id: String(newestMessageId),
+      });
+      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
+
+      if (response.ok) {
+        const data: MessageHistoryResponse = await response.json();
+        const newerMessages = normalizeHistoryMessages(data.history);
+        setMessages((prev) => appendUniqueMessages(prev, newerMessages));
+        setHasMoreNewerMessages(!!data.has_more_after);
+        if (newerMessages.length > 0) {
+          setNewestMessageId(newerMessages[newerMessages.length - 1].id);
+        }
+      } else if (response.status === 401) {
+        setModal({ type: 'error', message: translationsRef.current.loginRequired });
+        setTimeout(() => onBackRef.current(), 2000);
+      } else if (response.status === 403) {
+        onBackRef.current();
+      } else {
+        throw new Error(translationsRef.current.errorLoading);
+      }
+    } catch (err) {
+      setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+    } finally {
+      isLoadingNewerMessagesRef.current = false;
+      setIsLoadingNewerMessages(false);
+    }
+  }, [chatId, hasMoreNewerMessages, newestMessageId, token]);
+
+  const applyReadReceiptBatch = useCallback((
+    messageIds: number[],
+    readerUserId: number,
+    readAt: string,
+    reader?: { username?: string; display_name?: string; avatar_url?: string }
+  ) => {
+    if (!messageIds.length || !readerUserId) return;
+    const readMessageIds = new Set(messageIds);
+    setMessages((prev) => prev.map((msg) => {
+      if (!readMessageIds.has(msg.id)) return msg;
+      const readBy = msg.read_by || [];
+      if (readBy.some((read) => read.user_id === readerUserId)) return msg;
+      return {
+        ...msg,
+        read_by: [
+          ...readBy,
+          {
+            user_id: readerUserId,
+            username: reader?.username,
+            display_name: reader?.display_name,
+            avatar_url: reader?.avatar_url,
+            read_at: readAt,
+          },
+        ],
+      };
+    }));
+  }, []);
+
+  const markMessagesRead = useCallback(async (messageIds: number[]) => {
+    const uniqueMessageIds = Array.from(new Set(messageIds.filter((messageId) => messageId > 0)));
+    if (!uniqueMessageIds.length || currentUserIdRef.current <= 0) return;
+
+    const result = await markChatRead({ chatId, messageIds: uniqueMessageIds }).unwrap();
+    applyReadReceiptBatch(
+      result.read_message_ids || uniqueMessageIds,
+      currentUserIdRef.current,
+      result.read_at || new Date().toISOString(),
+      { username }
+    );
+  }, [applyReadReceiptBatch, chatId, markChatRead, username]);
 
   useEffect(() => {
     let isMounted = true;
@@ -261,6 +428,7 @@ export const useChat = (
             if (parsedData.type === 'message' || parsedData.type === 'file') {
               const newMessage: Message = {
                 id: parsedData.data.message_id,
+                client_temp_id: parsedData.data.client_temp_id ?? null,
                 sender_id: parsedData.sender_id,
                 is_own: currentUserIdRef.current
                   ? parsedData.sender_id === currentUserIdRef.current
@@ -273,6 +441,7 @@ export const useChat = (
                 reply_to: parsedData.data.reply_to || null,
                 is_deleted: parsedData.is_deleted || false,
                 delivery_error: parsedData.delivery_error || undefined,
+                forwarded_from: parsedData.forwarded_from || null,
                 type: parsedData.type,
                 reactions: parsedData.reactions || [],
                 read_by: parsedData.read_by || [],
@@ -286,6 +455,27 @@ export const useChat = (
                     copy[existingIndex] = newMessage;
                     return copy;
                   }
+                  const pendingUploadIndex = prev.findIndex((m) => {
+                    if (m.upload_status !== 'uploading' || m.type !== 'file' || newMessage.type !== 'file') return false;
+                    if (typeof m.content === 'string' || typeof newMessage.content === 'string') return false;
+                    const sameSender = (m.sender_id && m.sender_id === newMessage.sender_id) || m.sender === newMessage.sender;
+                    return sameSender &&
+                      m.content.file_name === newMessage.content.file_name &&
+                      m.content.file_size === newMessage.content.file_size;
+                  });
+                  if (pendingUploadIndex !== -1) {
+                    const copy = [...prev];
+                    const pendingMessage = copy[pendingUploadIndex];
+                    if (pendingMessage.local_object_url) {
+                      window.setTimeout(() => URL.revokeObjectURL(pendingMessage.local_object_url as string), 1000);
+                    }
+                    copy[pendingUploadIndex] = {
+                      ...newMessage,
+                      client_temp_id: pendingMessage.client_temp_id ?? pendingMessage.id,
+                      is_own: pendingMessage.is_own || newMessage.is_own,
+                    };
+                    return copy;
+                  }
                   const pendingIndex = prev.findIndex((m) =>
                     m.id < 0 &&
                     ((m.sender_id && m.sender_id === newMessage.sender_id) || m.sender === newMessage.sender) &&
@@ -296,7 +486,11 @@ export const useChat = (
                   if (pendingIndex !== -1) {
                     const copy = [...prev];
                     pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => id !== copy[pendingIndex].id);
-                    copy[pendingIndex] = { ...newMessage, is_own: copy[pendingIndex].is_own || newMessage.is_own };
+                    copy[pendingIndex] = {
+                      ...newMessage,
+                      client_temp_id: copy[pendingIndex].client_temp_id ?? copy[pendingIndex].id,
+                      is_own: copy[pendingIndex].is_own || newMessage.is_own,
+                    };
                     return copy;
                   }
                 } catch (e) {
@@ -350,25 +544,26 @@ export const useChat = (
                 )
               );
             } else if (parsedData.type === 'is_read') {
-              setMessages((prev) =>
-                prev.map((msg) => {
-                  if (msg.id !== parsedData.message_id) return msg;
-                  const readBy = msg.read_by || [];
-                  if (readBy.some((read) => read.user_id === parsedData.user_id)) return msg;
-                  return {
-                    ...msg,
-                    read_by: [
-                      ...readBy,
-                      {
-                        user_id: parsedData.user_id,
-                        username: parsedData.username,
-                        display_name: parsedData.display_name,
-                        avatar_url: parsedData.avatar_url,
-                        read_at: parsedData.read_at || parsedData.timestamp,
-                      },
-                    ],
-                  };
-                })
+              applyReadReceiptBatch(
+                parsedData.message_id ? [parsedData.message_id] : [],
+                parsedData.user_id,
+                parsedData.read_at || parsedData.timestamp || new Date().toISOString(),
+                {
+                  username: parsedData.username,
+                  display_name: parsedData.display_name,
+                  avatar_url: parsedData.avatar_url,
+                }
+              );
+            } else if (parsedData.type === 'chat_read_batch') {
+              applyReadReceiptBatch(
+                parsedData.message_ids || [],
+                parsedData.reader_user_id || parsedData.user_id,
+                parsedData.read_at || parsedData.timestamp || new Date().toISOString(),
+                {
+                  username: parsedData.username,
+                  display_name: parsedData.display_name,
+                  avatar_url: parsedData.avatar_url,
+                }
               );
             } else if (parsedData.type === 'error') {
               if (parsedData.message_id) {
@@ -431,16 +626,20 @@ export const useChat = (
         wsRef.current = null;
       }
       isLoadingOlderMessagesRef.current = false;
+      isLoadingNewerMessagesRef.current = false;
       setIsLoadingOlderMessages(false);
+      setIsLoadingNewerMessages(false);
       setIsLoadingInitialMessages(false);
       setHasMoreMessages(false);
+      setHasMoreNewerMessages(false);
       setOldestMessageId(null);
+      setNewestMessageId(null);
     };
-  }, [chatId, token, connectionRetryKey]);
+  }, [applyReadReceiptBatch, chatId, token, connectionRetryKey]);
 
   const scrollToMessage = (messageId: number) => {
     setHighlightedMessageId(messageId);
-    setTimeout(() => setHighlightedMessageId(null), 1500);
+    setTimeout(() => setHighlightedMessageId(null), 6000);
   };
 
   const handleSendMessage = () => {
@@ -464,6 +663,7 @@ export const useChat = (
       tempId = -Date.now();
       const optimisticMessage: Message = {
         id: tempId,
+        client_temp_id: tempId,
         sender_id: currentUserId || undefined,
         is_own: true,
         sender: username,
@@ -545,27 +745,40 @@ export const useChat = (
     wsRef.current.send(JSON.stringify({ type: 'resend', message_id: message.id }));
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileUpload = async (file: File, caption = '') => {
     if (!file) return;
+    const optimisticMessageId = createOptimisticUploadMessage(file, file.name, undefined, caption);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chat_id', chatId.toString());
+    if (caption.trim()) {
+      formData.append('caption', caption.trim());
+    }
     try {
-      const response = await authFetch(`${BASE_URL}/messages/upload`, {
-        method: 'POST',
-        body: formData,
+      await uploadWithProgress({
+        url: `${BASE_URL}/messages/upload`,
+        formData,
+        onProgress: (percent) => {
+          updateOptimisticUploadProgress(optimisticMessageId, percent);
+        },
       });
-      if (!response.ok) throw new Error('Upload failed');
+      settleOptimisticUpload(optimisticMessageId);
     } catch (err) {
+      markOptimisticUploadFailed(optimisticMessageId, translations.errorLoading || 'Upload failed');
       setModal({ type: 'error', message: translations.errorLoading });
+    } finally {
     }
   };
 
   const handleDeleteChat = () => {
     setModal({
       type: 'deleteChat',
-      message: translations.deleteChatConfirm,
+      message: translations.deleteChatConfirmMessage || translations.deleteChatConfirm,
+      consequences: translations.deleteChatConsequences || [
+        'This chat will be removed from your chat list.',
+        'You will lose access to this conversation history in the app.',
+        'This does not block the user or change your privacy settings.',
+      ],
       onConfirm: async () => {
         try {
           const response = await authFetch(`${BASE_URL}/chats/delete/${chatId}`, {
@@ -615,12 +828,20 @@ export const useChat = (
     highlightedMessageId,
     isLoadingInitialMessages,
     isLoadingOlderMessages,
+    isLoadingNewerMessages,
     hasMoreMessages,
+    hasMoreNewerMessages,
     scrollToMessage,
     loadOlderMessages,
+    loadNewerMessages,
+    markMessagesRead,
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,
+    createOptimisticUploadMessage,
+    updateOptimisticUploadProgress,
+    markOptimisticUploadFailed,
+    settleOptimisticUpload,
     handleDeleteChat,
     getFormattedDateLabel,
     getMessageTime,

@@ -74,6 +74,7 @@ export const {
   useGetUsersQuery,
   useSearchUsersQuery,
   useGetUserByUsernameQuery,
+  useLazyGetUserByUsernameQuery,
   useGetUserByIdQuery,
   useUpdateContactDisplayNameMutation,
   useDeleteContactDisplayNameMutation,

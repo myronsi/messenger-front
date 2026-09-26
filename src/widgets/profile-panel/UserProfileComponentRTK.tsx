@@ -1,17 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { Ban, BellOff, Check, Info, Loader2, MessageCircle, Pencil, Search, Trash2, UserRound, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Ban, Check, Image as ImageIcon, Info, Loader2, MessageCircle, Music, Pencil, Search, Trash2, UserRound, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { useBlockUserMutation, useGetBlockedUsersQuery, useGetCurrentUserQuery, useGetUserByUsernameQuery, useUnblockUserMutation, useUpdateContactDisplayNameMutation } from '@/app/api/messengerApi';
+import { useBlockUserMutation, useGetBlockedUsersQuery, useGetChatAudiosQuery, useGetChatPhotosQuery, useGetCurrentUserQuery, useGetUserByUsernameQuery, useUnblockUserMutation, useUpdateContactDisplayNameMutation } from '@/app/api/messengerApi';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
+import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
 import { formatDateOnly } from '@/shared/utils/dateFormatters';
 import { UserProfileSkeleton } from '@/shared/ui/messenger-skeletons';
+import {
+  ProfileAudiosPanel,
+  ProfilePhotosPanel,
+  ProfileSearchPanel,
+  toProfileAudios,
+  toProfilePhotos,
+} from './ui/ProfileChatPanels';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface UserProfileComponentRTKProps {
   username: string;
+  directChatId?: number;
   onClose: () => void;
   onMessage?: (user: {
     username: string;
@@ -19,22 +28,38 @@ interface UserProfileComponentRTKProps {
     isOnline?: boolean;
     lastSeen?: string | null;
   }) => void;
-  onSearchMessages?: () => void;
+  onJumpToMessage?: (messageId: number) => void;
   onDeleteChat?: () => void;
+  hideMessageAction?: boolean;
 }
+
+type ProfilePanelView = 'details' | 'search' | 'photos' | 'audios';
+type ProfilePanelTransition = {
+  from: ProfilePanelView;
+  to: ProfilePanelView;
+  direction: 'forward' | 'back';
+  key: number;
+};
 
 const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({ 
   username, 
+  directChatId,
   onClose,
   onMessage,
-  onSearchMessages,
+  onJumpToMessage,
   onDeleteChat,
+  hideMessageAction = false,
 }) => {
   const { translations, language } = useLanguage();
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [customNameInput, setCustomNameInput] = useState('');
   const [isEditingContactName, setIsEditingContactName] = useState(false);
+  const [activeView, setActiveView] = useState<ProfilePanelView>('details');
+  const [panelTransition, setPanelTransition] = useState<ProfilePanelTransition | null>(null);
+  const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
+  const [isDeleteChatConfirmOpen, setIsDeleteChatConfirmOpen] = useState(false);
+  const panelTransitionTimeoutRef = useRef<number | null>(null);
   
   // Use username-based query instead of user ID
   const { 
@@ -47,16 +72,63 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const [blockUser, { isLoading: isBlockingUser }] = useBlockUserMutation();
   const [unblockUser, { isLoading: isUnblockingUser }] = useUnblockUserMutation();
   const [updateContactDisplayName, { isLoading: isSavingContactName }] = useUpdateContactDisplayNameMutation();
+  const {
+    data: chatPhotosData,
+    isLoading: isLoadingDmPhotos,
+    error: dmPhotosQueryError,
+  } = useGetChatPhotosQuery(directChatId || 0, {
+    skip: !directChatId || directChatId <= 0,
+  });
+  const {
+    data: chatAudiosData,
+    isLoading: isLoadingDmAudios,
+    error: dmAudiosQueryError,
+  } = useGetChatAudiosQuery(directChatId || 0, {
+    skip: !directChatId || directChatId <= 0,
+  });
   const profileDisplayName = userData?.display_name || username;
   const accountDisplayName = userData?.account_display_name || username;
   const contactDisplayName = userData?.contact_display_name?.trim();
   const isBlocked = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username === username);
   const isCurrentUser = currentUser?.username === username;
   const isBlockActionLoading = isBlockingUser || isUnblockingUser;
+  const dmPhotos = useMemo(() => (
+    toProfilePhotos(chatPhotosData?.photos || [], translations.photoMessage || 'Photo')
+  ), [chatPhotosData?.photos, translations.photoMessage]);
+  const dmAudios = useMemo(() => (
+    toProfileAudios(chatAudiosData?.audios || [], translations.audioFile || 'Audio')
+  ), [chatAudiosData?.audios, translations.audioFile]);
+  const dmPhotosError = dmPhotosQueryError
+    ? translations.errorLoadingMessages || translations.errorLoading || 'Error loading messages.'
+    : null;
+  const dmAudiosError = dmAudiosQueryError
+    ? translations.errorLoadingMessages || translations.errorLoading || 'Error loading messages.'
+    : null;
+  const blockUserConsequences = translations.blockUserConsequences || [
+    'They will not be able to send you direct messages.',
+    'They will not be able to invite you to groups.',
+    'They will not be able to see your private profile details.',
+    'Existing chats remain in your list, but messaging requires unblocking them first.',
+  ];
+  const deleteChatConsequences = translations.deleteChatConsequences || [
+    'This chat will be removed from your chat list.',
+    'You will lose access to this conversation history in the app.',
+    'This does not block the user or change your privacy settings.',
+  ];
 
   useEffect(() => {
     setActionError(null);
-  }, [username]);
+    setActiveView('details');
+    setPanelTransition(null);
+  }, [directChatId, username]);
+
+  useEffect(() => {
+    return () => {
+      if (panelTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(panelTransitionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setCustomNameInput(userData?.contact_display_name || '');
@@ -78,6 +150,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
       } else {
         await blockUser(username).unwrap();
       }
+      setIsBlockConfirmOpen(false);
     } catch (error: any) {
       setActionError(error?.data?.detail || (isBlocked ? 'Failed to unblock user' : 'Failed to block user'));
     }
@@ -94,12 +167,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
       return;
     }
     onClose();
-  };
-
-  const handleSearchMessages = () => {
-    if (onSearchMessages) {
-      onSearchMessages();
-    }
   };
 
   const handleSaveContactName = async () => {
@@ -135,7 +202,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           <X className="h-5 w-5" />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+      <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">{children}</div>
     </div>
   );
 
@@ -165,15 +232,133 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
   const displayName = profileDisplayName;
   const bio = userData.bio?.trim();
-  const futureActions = [
-    { label: translations.mute || 'Mute', icon: BellOff },
+  const hasBlockedRelationship = isBlocked || userData.direct_message_reason === 'blocked';
+  const canShowCreatedAt = !!userData.created_at && !hasBlockedRelationship;
+  const canShowMessageAction = !hideMessageAction && !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
+  const canShowSearchAction = !!directChatId && directChatId > 0 && !isCurrentUser && !!onJumpToMessage;
+  const canShowPhotosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmPhotos.length > 0;
+  const canShowAudiosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmAudios.length > 0;
+  const canShowDmSections = !!directChatId && directChatId > 0 && !isCurrentUser;
+  const actionCount = (canShowMessageAction ? 1 : 0) + (canShowDmSections ? 1 : 0) + (canShowSearchAction ? 1 : 0) + (canShowPhotosAction ? 1 : 0) + (canShowAudiosAction ? 1 : 0);
+  const actionColumns = Math.min(Math.max(actionCount, 1), 4);
+  const visiblePanelOrder: ProfilePanelView[] = [
+    'details',
+    ...(canShowPhotosAction ? (['photos'] as const) : []),
+    ...(canShowAudiosAction ? (['audios'] as const) : []),
+    ...(canShowSearchAction ? (['search'] as const) : []),
   ];
-  const canShowMessageAction = !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
-  const actionCount = (canShowMessageAction ? 1 : 0) + futureActions.length + (onSearchMessages ? 1 : 0) + (!isCurrentUser ? 1 : 0);
+  const selectView = (view: ProfilePanelView) => {
+    if (view === activeView) return;
+
+    const currentIndex = visiblePanelOrder.indexOf(activeView);
+    const nextIndex = visiblePanelOrder.indexOf(view);
+    const direction = nextIndex > currentIndex
+      ? 'forward'
+      : 'back';
+
+    if (panelTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(panelTransitionTimeoutRef.current);
+    }
+
+    setPanelTransition({ from: activeView, to: view, direction, key: Date.now() });
+    setActiveView(view);
+    panelTransitionTimeoutRef.current = window.setTimeout(() => {
+      setPanelTransition(null);
+      panelTransitionTimeoutRef.current = null;
+    }, 340);
+  };
+
+  const infoPanel = (
+    <div className="min-h-full space-y-3 px-5 py-4 md:py-3">
+      {actionError && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
+      {bio && (
+        <section className="rounded-lg border border-gray-200 bg-white p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+            <Info className="h-4 w-4 text-gray-500" />
+            <span>{translations.bio}</span>
+          </div>
+          <p className="whitespace-pre-wrap break-words text-sm leading-5 text-gray-900">
+            {bio}
+          </p>
+        </section>
+      )}
+
+      <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.account || 'Account'}</p>
+        <div className="mt-2 space-y-1.5 text-sm">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-gray-500">{translations.userName || 'Username'}</span>
+            <span className="min-w-0 truncate font-medium text-gray-900">@{username}</span>
+          </div>
+          {canShowCreatedAt && (
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-gray-500">{translations.created || 'Created'}</span>
+              <span className="min-w-0 truncate font-medium text-gray-900">
+                {formatDateOnly(userData.created_at, language)}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-gray-500">{translations.status || 'Status'}</span>
+            <span className="min-w-0 truncate font-medium text-gray-900">
+              {getPresenceLabel(userData.is_online, userData.last_seen)}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {onDeleteChat && (
+        <button
+          onClick={() => setIsDeleteChatConfirmOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+        >
+          <Trash2 className="h-4 w-4" />
+          {translations.deleteChat}
+        </button>
+      )}
+      {!isCurrentUser && (
+        <button
+          onClick={() => isBlocked ? handleBlockToggle() : setIsBlockConfirmOpen(true)}
+          disabled={isBlockActionLoading}
+          className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+            isBlocked
+              ? 'border-gray-200 text-primary hover:bg-gray-50 disabled:text-gray-400'
+              : 'border-red-200 text-red-600 hover:bg-red-50 disabled:text-gray-400'
+          }`}
+        >
+          {isBlockActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+          {isBlocked ? translations.unblock || 'Unblock' : translations.block || 'Block'}
+        </button>
+      )}
+    </div>
+  );
+
+  const renderPanelContent = (view: ProfilePanelView, options: { autoFocusSearch?: boolean } = {}) => {
+    if (view === 'search' && canShowSearchAction) {
+      return (
+        <ProfileSearchPanel
+          chatId={directChatId as number}
+          onJumpToMessage={onJumpToMessage as (messageId: number) => void}
+          autoFocus={options.autoFocusSearch !== false}
+        />
+      );
+    }
+    if (view === 'photos' && canShowPhotosAction) {
+      return <ProfilePhotosPanel photos={dmPhotos} isLoading={isLoadingDmPhotos} error={dmPhotosError} />;
+    }
+    if (view === 'audios' && canShowAudiosAction) {
+      return <ProfileAudiosPanel audios={dmAudios} isLoading={isLoadingDmAudios} error={dmAudiosError} />;
+    }
+    return infoPanel;
+  };
 
   return (
     <ProfileShell>
-      <div className="flex min-h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         <div className="px-5 pb-3 pt-5 text-center md:pt-4">
           {hasCustomAvatar ? (
             <button
@@ -261,8 +446,21 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
         {actionCount > 0 && (
           <div
             className="grid gap-2 border-y border-gray-200 px-4 py-3"
-            style={{ gridTemplateColumns: `repeat(${Math.min(actionCount, 4)}, minmax(0, 1fr))` }}
+            style={{ gridTemplateColumns: `repeat(${actionColumns}, minmax(0, 1fr))` }}
           >
+            {canShowDmSections && (
+              <button
+                onClick={() => selectView('details')}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
+                  activeView === 'details'
+                    ? 'bg-gray-100 text-primary'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Info className="h-5 w-5" />
+                <span className="text-xs font-medium">{translations.info || 'Info'}</span>
+              </button>
+            )}
             {canShowMessageAction && (
               <button
                 onClick={handleMessage}
@@ -272,94 +470,117 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
                 <span className="text-xs font-medium">{translations.message || 'Message'}</span>
               </button>
             )}
-            {futureActions.map(({ label, icon: Icon }) => (
+            {canShowPhotosAction && (
               <button
-                key={label}
-                disabled
-                className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-gray-400"
-                title={translations.comingSoon || 'Coming soon'}
+                onClick={() => selectView('photos')}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
+                  activeView === 'photos'
+                    ? 'bg-gray-100 text-primary'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
-                <Icon className="h-5 w-5" />
-                <span className="text-xs font-medium">{label}</span>
+                <ImageIcon className="h-5 w-5" />
+                <span className="text-xs font-medium">{translations.photos || 'Photos'}</span>
               </button>
-            ))}
-            {onSearchMessages && (
+            )}
+            {canShowAudiosAction && (
               <button
-                onClick={handleSearchMessages}
-                className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                onClick={() => selectView('audios')}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
+                  activeView === 'audios'
+                    ? 'bg-gray-100 text-primary'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Music className="h-5 w-5" />
+                <span className="text-xs font-medium">{translations.audios || 'Audios'}</span>
+              </button>
+            )}
+            {canShowSearchAction && (
+              <button
+                onClick={() => selectView('search')}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
+                  activeView === 'search'
+                    ? 'bg-gray-100 text-primary'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
                 <Search className="h-5 w-5" />
                 <span className="text-xs font-medium">{translations.search || 'Search'}</span>
               </button>
             )}
-            {!isCurrentUser && (
-              <button
-                onClick={handleBlockToggle}
-                disabled={isBlockActionLoading}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-                  isBlocked
-                    ? 'text-primary hover:bg-gray-100 disabled:text-gray-400'
-                    : 'text-red-600 hover:bg-red-50 disabled:text-gray-400'
-                }`}
-              >
-                {isBlockActionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Ban className="h-5 w-5" />}
-                <span className="text-xs font-medium">{isBlocked ? translations.unblock || 'Unblock' : translations.block || 'Block'}</span>
-              </button>
-            )}
           </div>
         )}
 
-        <div className="flex-1 space-y-3 px-5 py-4 md:py-3">
-          {actionError && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {actionError}
-            </div>
-          )}
-          <section className="rounded-lg border border-gray-200 bg-white p-3">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-              <Info className="h-4 w-4 text-gray-500" />
-              <span>{translations.bio}</span>
-            </div>
-            <p className={`whitespace-pre-wrap break-words text-sm leading-5 ${bio ? 'text-gray-900' : 'text-gray-500'}`}>
-              {bio || translations.noBio || 'No bio'}
-            </p>
-          </section>
-
-          <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.account || 'Account'}</p>
-            <div className="mt-2 space-y-1.5 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500">{translations.userName || 'Username'}</span>
-                <span className="min-w-0 truncate font-medium text-gray-900">@{username}</span>
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
+          {panelTransition ? (
+            <>
+              <div
+                key={`from-${panelTransition.key}-${panelTransition.from}`}
+                aria-hidden
+                inert
+                className={`absolute inset-0 overflow-y-auto bg-white ${
+                  panelTransition.direction === 'forward'
+                    ? 'profile-panel-slide-out-left'
+                    : 'profile-panel-slide-out-right'
+                }`}
+              >
+                {renderPanelContent(panelTransition.from, { autoFocusSearch: false })}
               </div>
-              {userData.created_at && (
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500">{translations.created || 'Created'}</span>
-                  <span className="min-w-0 truncate font-medium text-gray-900">
-                    {formatDateOnly(userData.created_at, language)}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500">{translations.status || 'Status'}</span>
-                <span className="min-w-0 truncate font-medium text-gray-900">
-                  {getPresenceLabel(userData.is_online, userData.last_seen)}
-                </span>
+              <div
+                key={`to-${panelTransition.key}-${panelTransition.to}`}
+                className={`absolute inset-0 overflow-y-auto bg-white ${
+                  panelTransition.direction === 'forward'
+                    ? 'profile-panel-slide-in-right'
+                    : 'profile-panel-slide-in-left'
+                }`}
+              >
+                {renderPanelContent(panelTransition.to, { autoFocusSearch: false })}
               </div>
-            </div>
-          </section>
-
-          {onDeleteChat && (
-            <button
-              onClick={onDeleteChat}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+            </>
+          ) : (
+            <div
+              key={`active-${activeView}`}
+              className="absolute inset-0 overflow-y-auto bg-white"
             >
-              <Trash2 className="h-4 w-4" />
-              {translations.deleteChat}
-            </button>
+              {renderPanelContent(activeView, { autoFocusSearch: activeView === 'search' })}
+            </div>
           )}
         </div>
       </div>
+      {isBlockConfirmOpen && (
+        <ConfirmModal
+          title={translations.blockUserConfirmTitle || `Block ${displayName}?`}
+          message={
+            translations.blockUserConfirmMessage ||
+            'After blocking this user, the following consequences will apply:'
+          }
+          consequences={blockUserConsequences}
+          confirmText={translations.block || 'Block'}
+          cancelText={translations.cancel || 'Cancel'}
+          isDestructive
+          onCancel={() => setIsBlockConfirmOpen(false)}
+          onConfirm={handleBlockToggle}
+        />
+      )}
+      {isDeleteChatConfirmOpen && (
+        <ConfirmModal
+          title={translations.deleteChatConfirmTitle || 'Delete this chat?'}
+          message={
+            translations.deleteChatConfirmMessage ||
+            'After deleting this chat, the following consequences will apply:'
+          }
+          consequences={deleteChatConsequences}
+          confirmText={translations.deleteChat || 'Delete Chat'}
+          cancelText={translations.cancel || 'Cancel'}
+          isDestructive
+          onCancel={() => setIsDeleteChatConfirmOpen(false)}
+          onConfirm={() => {
+            setIsDeleteChatConfirmOpen(false);
+            onDeleteChat?.();
+          }}
+        />
+      )}
       {isAvatarViewerOpen && hasCustomAvatar && (
         <AvatarHistoryViewer
           username={username}

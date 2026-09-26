@@ -1,19 +1,30 @@
-import React, { useState, useEffect, forwardRef, useRef } from 'react';
+import React, { useMemo, useState, useEffect, forwardRef } from 'react';
 import AvatarCropModal from './ui/AvatarCropModal';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
-import SecuritySettingsDialog from './ui/SecuritySettingsDialog';
-import { Bell, Camera, Globe, Image, Loader2, LogOut, Shield, Smartphone, Trash, UserRound, Users, X } from 'lucide-react';
+import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
+import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
+import { AtSign, Bell, CalendarDays, Camera, Check, ChevronDown, ChevronRight, Globe, Image, Inbox, Loader2, LogOut, MessageSquare, Shield, Smartphone, Trash, UserRound, Users, X } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import GroupCreateModal from '@/features/groups/ui/GroupCreateModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { formatDate } from '@/shared/utils/dateFormatters';
+import type { ApprovalRequest } from '@/entities/chat';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/shared/ui/breadcrumb';
 import { 
-  PrivacySettings,
   useGetCurrentUserQuery, 
-  useGetPrivacySettingsQuery,
-  useUpdatePrivacySettingsMutation,
   useGetBlockedUsersQuery,
+  useGetOneOnOneChatsQuery,
+  useGetApprovalRequestInboxQuery,
+  useApproveApprovalRequestMutation,
+  useRejectApprovalRequestMutation,
   useBlockUserMutation,
   useUnblockUserMutation,
   useUpdateUserMutation, 
@@ -23,15 +34,12 @@ import {
 import { clearAuthTokens } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BIO_MAX_LENGTH = 500;
 const normalizeDisplayName = (value: string) => value.trim().replace(/\s+/g, ' ');
 const isValidDisplayName = (value: string) => {
   const normalized = normalizeDisplayName(value);
   return normalized.length >= 3 && normalized.length <= 50;
 };
-
-type PrivacySettingKey = keyof PrivacySettings;
-const visibilityOptions = ['everyone', 'shared_chats', 'nobody'] as const;
-const searchOptions = ['everyone', 'nobody'] as const;
 
 interface ProfileComponentRTKProps {
   username: string;
@@ -53,9 +61,18 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   } = useGetCurrentUserQuery();
   
   const [updateUser, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
-  const { data: privacySettings, isLoading: isLoadingPrivacy } = useGetPrivacySettingsQuery();
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
-  const [updatePrivacySettings, { isLoading: isUpdatingPrivacy }] = useUpdatePrivacySettingsMutation();
+  const { data: dmChatsData } = useGetOneOnOneChatsQuery(userData?.username || '', {
+    skip: !userData?.username,
+  });
+  const {
+    data: requestInbox,
+    refetch: refetchRequestInbox,
+  } = useGetApprovalRequestInboxQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+  const [approveRequest, { isLoading: isApprovingRequest }] = useApproveApprovalRequestMutation();
+  const [rejectRequest, { isLoading: isRejectingRequest }] = useRejectApprovalRequestMutation();
   const [blockUser, { isLoading: isBlockingUser }] = useBlockUserMutation();
   const [unblockUser, { isLoading: isUnblockingUser }] = useUnblockUserMutation();
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
@@ -73,18 +90,27 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const [isUpdatingDisplayName, setIsUpdatingDisplayName] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
-  const [isSecurityOpen, setIsSecurityOpen] = useState(false);
+  const [activeProfilePage, setActiveProfilePage] = useState<'profile' | 'requests' | 'personal' | 'privacy' | 'security'>('profile');
   const [blockUsername, setBlockUsername] = useState('');
+  const [pendingBlockUsername, setPendingBlockUsername] = useState('');
+  const [isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
   const [modal, setModal] = useState<{
-    type: 'logout' | 'deleteAccount' | 'success' | 'error';
+    type: 'logout' | 'deleteAccount' | 'blockUser' | 'success' | 'error';
     message: string;
+    consequences?: string[];
     onConfirm?: () => void;
   } | null>(null);
 
   const { translations, language, setLanguage } = useLanguage();
   const token = localStorage.getItem('access_token');
-  const privacySectionRef = useRef<HTMLElement | null>(null);
+  const blockUserConsequences = translations.blockUserConsequences || [
+    'They will not be able to send you direct messages.',
+    'They will not be able to invite you to groups.',
+    'They will not be able to see your private profile details.',
+    'Existing chats remain in your list, but messaging requires unblocking them first.',
+  ];
+  const pendingRequestCount = requestInbox?.unread_count || 0;
 
   // Initialize component visibility and bio
   useEffect(() => {
@@ -258,20 +284,62 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     setTimeout(onClose, 200);
   };
 
-  const handlePrivacyChange = async (key: PrivacySettingKey, value: string | boolean) => {
-    try {
-      await updatePrivacySettings({ [key]: value }).unwrap();
-    } catch (error: any) {
-      setModal({ type: 'error', message: error?.data?.detail || 'Failed to update privacy settings' });
-    }
+  const blockedUsers = blockedUsersData?.users || [];
+  const blockedUsernameSet = useMemo(() => (
+    new Set(blockedUsers.map((blockedUser) => blockedUser.username.toLowerCase()))
+  ), [blockedUsers]);
+  const blockDmContactSuggestions = useMemo(() => {
+    const currentUsername = userData?.username?.toLowerCase() || '';
+    const query = blockUsername.trim().toLowerCase();
+    const seen = new Set<string>();
+    return (dmChatsData?.chats || [])
+      .filter((chat) => !chat.interlocutor_deleted && !!chat.interlocutor_name)
+      .map((chat) => ({
+        username: chat.interlocutor_name,
+        display_name: chat.interlocutor_display_name || chat.interlocutor_name,
+        avatar_url: chat.avatar_url,
+      }))
+      .filter((contact) => {
+        const usernameKey = contact.username.toLowerCase();
+        if (usernameKey === currentUsername) return false;
+        if (blockedUsernameSet.has(usernameKey)) return false;
+        if (seen.has(usernameKey)) return false;
+        seen.add(usernameKey);
+        if (!query) return true;
+        return usernameKey.includes(query) || (contact.display_name || '').toLowerCase().includes(query);
+      })
+      .slice(0, 6);
+  }, [blockUsername, blockedUsernameSet, dmChatsData?.chats, userData?.username]);
+
+  const handleBlockUser = async (usernameOverride?: string) => {
+    const nextUsername = (usernameOverride || blockUsername).trim();
+    if (!nextUsername) return;
+    setPendingBlockUsername(nextUsername);
+    setModal({
+      type: 'blockUser',
+      message: translations.blockUserConfirmMessage || 'After blocking this user, the following consequences will apply:',
+      consequences: blockUserConsequences,
+      onConfirm: async () => {
+        try {
+          await blockUser(nextUsername).unwrap();
+          setBlockUsername('');
+          setPendingBlockUsername('');
+          setModal(null);
+        } catch (error: any) {
+          setModal({ type: 'error', message: error?.data?.detail || 'Failed to block user' });
+        }
+      },
+    });
   };
 
-  const handleBlockUser = async () => {
-    const nextUsername = blockUsername.trim();
+  const handleBlockUserConfirmed = async () => {
+    const nextUsername = pendingBlockUsername.trim();
     if (!nextUsername) return;
     try {
       await blockUser(nextUsername).unwrap();
       setBlockUsername('');
+      setPendingBlockUsername('');
+      setModal(null);
     } catch (error: any) {
       setModal({ type: 'error', message: error?.data?.detail || 'Failed to block user' });
     }
@@ -285,15 +353,39 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     }
   };
 
+  const handleApproveRequest = async (request: ApprovalRequest) => {
+    try {
+      await approveRequest(request.id).unwrap();
+      refetchRequestInbox();
+    } catch (error: any) {
+      setModal({ type: 'error', message: error?.data?.detail || error?.message || 'Failed to approve request' });
+    }
+  };
+
+  const handleRejectRequest = async (requestId: number) => {
+    try {
+      await rejectRequest(requestId).unwrap();
+      refetchRequestInbox();
+    } catch (error: any) {
+      setModal({ type: 'error', message: error?.data?.detail || error?.message || 'Failed to reject request' });
+    }
+  };
+
   const getAvatarUrl = (avatarUrl?: string | null) => {
     if (!avatarUrl) return DEFAULT_AVATAR;
     if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
     return `${BASE_URL}${avatarUrl}`;
   };
 
+  const getMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => {
+    if (!path) return fallback;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `${BASE_URL}${path}`;
+  };
+
   if (isLoadingUser) {
     return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-white sm:bg-white/80 sm:backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>{translations.loading}</span>
@@ -304,8 +396,8 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
 
   if (userError || !userData) {
     return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-white p-4 sm:bg-white/80 sm:backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-lg">
           <p className="text-red-500 mb-4">Failed to load profile</p>
           <button 
             onClick={onClose}
@@ -322,49 +414,49 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
   const displayNameChanged = normalizeDisplayName(newDisplayName) !== displayName;
   const displayNameInvalid = !!newDisplayName && !isValidDisplayName(newDisplayName);
-  const futureRows = [
+  const settingsRows = [
+    ...(pendingRequestCount > 0 ? [{
+      label: translations.requestInbox || 'Request inbox',
+      description: `${pendingRequestCount} ${translations.pendingRequests || 'pending requests'}`,
+      icon: Inbox,
+      indicatorCount: pendingRequestCount,
+      onClick: () => setActiveProfilePage('requests' as const),
+    }] : []),
+    {
+      label: translations.personalInfo || 'Personal info',
+      description: translations.editProfile || 'Edit how other people see you.',
+      icon: UserRound,
+      indicatorCount: 0,
+      onClick: () => setActiveProfilePage('personal'),
+    },
+    {
+      label: translations.privacy || 'Privacy',
+      description: translations.privacyDescription || 'Control who can see and contact you.',
+      icon: Shield,
+      indicatorCount: 0,
+      onClick: () => setActiveProfilePage('privacy'),
+    },
+    {
+      label: translations.securityDevices || 'Security & devices',
+      description: translations.manageSessionsAndPassword || 'Sessions, password, and two-factor authentication',
+      icon: Smartphone,
+      indicatorCount: 0,
+      onClick: () => setActiveProfilePage('security'),
+    },
+  ];
+  const futureSettingsRows = [
     { label: translations.notifications || 'Notifications', description: translations.comingSoon || 'Coming soon', icon: Bell },
   ];
-  const blockedUsers = blockedUsersData?.users || [];
-  const visibilityLabel = (value: string) => {
-    if (value === 'shared_chats') return translations.sharedChats || 'Shared chats';
-    if (value === 'nobody') return translations.nobody || 'Nobody';
-    return translations.everyone || 'Everyone';
-  };
-  const renderPrivacySelect = (
-    key: PrivacySettingKey,
-    label: string,
-    description: string,
-    options: readonly string[],
-  ) => (
-    <div className="flex flex-col gap-2 rounded-md border border-gray-200 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-gray-800">{label}</div>
-        <div className="text-xs text-gray-500">{description}</div>
-      </div>
-      <select
-        value={String(privacySettings?.[key] ?? options[0])}
-        onChange={(event) => handlePrivacyChange(key, event.target.value)}
-        disabled={!privacySettings || isUpdatingPrivacy}
-        className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>{visibilityLabel(option)}</option>
-        ))}
-      </select>
-    </div>
-  );
-
   return (
     <div
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      className={`fixed inset-0 z-[1000] flex items-stretch justify-stretch bg-white p-0 transition-opacity duration-200 sm:items-center sm:justify-center sm:bg-black/40 sm:px-4 sm:py-6 ${isVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
       <div
         ref={ref}
-        className={`relative flex h-[min(760px,calc(100vh-3rem))] w-full max-w-xl transform flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-gray-950 shadow-2xl transition-all duration-200 ease-out ${isVisible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-95 opacity-0'}`}
+        className={`relative flex h-[100dvh] w-full max-w-none transform flex-col overflow-hidden border-0 bg-white text-gray-950 shadow-none transition-all duration-200 ease-out sm:h-[min(760px,calc(100vh-3rem))] sm:max-w-xl sm:rounded-lg sm:border sm:border-gray-200 sm:shadow-2xl ${isVisible ? 'translate-x-0 scale-100 opacity-100 sm:translate-y-0' : 'translate-x-full opacity-0 sm:translate-x-0 sm:translate-y-2 sm:scale-95'}`}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
@@ -381,7 +473,14 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <div
+            aria-hidden={activeProfilePage !== 'profile'}
+            inert={activeProfilePage !== 'profile' ? true : undefined}
+            className={`absolute inset-0 overflow-y-auto bg-white transition-transform duration-300 ease-out will-change-transform ${
+              activeProfilePage === 'profile' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none -translate-x-full'
+            }`}
+          >
           <div className="px-6 pb-5 pt-7 text-center">
             <div className="relative mx-auto h-28 w-28">
               {hasCustomAvatar ? (
@@ -428,7 +527,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 border-y border-gray-200 px-4 py-3">
+          <div className="grid grid-cols-2 gap-2 border-y border-gray-200 px-4 py-3">
             <button
               type="button"
               onClick={() => setIsGroupModalOpen(true)}
@@ -446,113 +545,76 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
               <Image className="h-5 w-5" />
               <span className="text-xs font-medium">{translations.avatarHistory || 'Avatar history'}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => privacySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm text-primary transition-colors hover:bg-gray-100"
-            >
-              <Shield className="h-5 w-5" />
-              <span className="text-xs font-medium">{translations.privacy || 'Privacy'}</span>
-            </button>
           </div>
 
           <div className="space-y-4 px-5 py-5">
-            <section className="rounded-lg border border-gray-200 bg-white p-4">
-              <div className="mb-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.personalInfo || 'Personal info'}</p>
-                <p className="mt-1 text-sm text-gray-500">{translations.editProfile || 'Edit how other people see you.'}</p>
+            <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+              <div className="border-b border-gray-200 px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.account || 'Account'}</p>
+                <p className="mt-1 text-sm text-gray-500">{translations.accountDetails || 'Username, account age, and app language.'}</p>
               </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">{translations.displayName || 'Display name'}</label>
-                  <input
-                    type="text"
-                    value={newDisplayName}
-                    onChange={(e) => setNewDisplayName(e.target.value)}
-                    maxLength={50}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-ring"
-                    placeholder={translations.displayNameHint || 'Display name (3-50 characters)'}
-                  />
-                  {displayNameInvalid && (
-                    <p className="text-sm text-destructive">
-                      {translations.displayNameError || 'Display name must be between 3 and 50 characters'}
-                    </p>
-                  )}
-                  <button
-                    onClick={handleUpdateDisplayName}
-                    disabled={isUpdatingDisplayName || !displayNameChanged || !isValidDisplayName(newDisplayName)}
-                    className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {translations.saveDisplayName || 'Save display name'}
-                    {isUpdatingDisplayName && <Loader2 className="h-4 w-4 animate-spin" />}
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">{translations.bio}</label>
-                  <textarea
-                    value={newBio}
-                    onChange={(e) => setNewBio(e.target.value)}
-                    className="h-24 w-full resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-ring"
-                    placeholder={translations.bio}
-                  />
-                  <button
-                    onClick={handleUpdateBio}
-                    disabled={isUpdatingBio || newBio === bio}
-                    className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {translations.saveBio}
-                    {isUpdatingBio && <Loader2 className="h-4 w-4 animate-spin" />}
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.account || 'Account'}</p>
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500">{translations.userName}</span>
-                  <span className="min-w-0 truncate font-medium text-gray-900">@{userData.username}</span>
+              <div className="divide-y divide-gray-200">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600">
+                    <AtSign className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-xs text-gray-500">{translations.userName}</span>
+                    <span className="block truncate text-sm font-medium text-gray-900">@{userData.username}</span>
+                  </div>
                 </div>
                 {userData.created_at && (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-500">{translations.created || 'Created'}</span>
-                    <span className="min-w-0 truncate font-medium text-gray-900">
-                      {formatDate(userData.created_at, language)}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600">
+                      <CalendarDays className="h-4 w-4" />
                     </span>
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-xs text-gray-500">{translations.created || 'Created'}</span>
+                      <span className="block truncate text-sm font-medium text-gray-900">
+                        {formatDate(userData.created_at, language)}
+                      </span>
+                    </div>
                   </div>
                 )}
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500">{translations.language || 'Language'}</span>
-                  <div className="flex shrink-0 gap-2">
+                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600">
+                      <Globe className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <span className="block text-xs text-gray-500">{translations.language || 'Language'}</span>
+                      <span className="block truncate text-sm font-medium text-gray-900">
+                        {language === 'ru' ? 'Русский' : 'English'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid h-9 grid-cols-2 rounded-md border border-gray-200 bg-gray-100 p-1 sm:w-36">
                     <button
+                      type="button"
                       onClick={() => {
                         setLanguage('en');
                         window.location.reload();
                       }}
-                      className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`rounded px-3 text-xs font-medium transition-colors ${
                         language === 'en'
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+                          ? 'bg-white text-gray-950 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-950'
                       }`}
                     >
-                      <Globe className="mr-1 inline-block h-3 w-3" />
                       EN
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         setLanguage('ru');
                         window.location.reload();
                       }}
-                      className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`rounded px-3 text-xs font-medium transition-colors ${
                         language === 'ru'
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+                          ? 'bg-white text-gray-950 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-950'
                       }`}
                     >
-                      <Globe className="mr-1 inline-block h-3 w-3" />
                       RU
                     </button>
                   </div>
@@ -560,41 +622,49 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
               </div>
             </section>
 
-            <section ref={privacySectionRef} className="rounded-lg border border-gray-200 bg-white p-4">
-              <div className="mb-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.privacy || 'Privacy'}</p>
-                <p className="mt-1 text-sm text-gray-500">{translations.privacyDescription || 'Control who can see and contact you.'}</p>
+            <section className="rounded-lg border border-gray-200 bg-white">
+              <div className="border-b border-gray-200 px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.settings || 'Settings'}</p>
+                <p className="mt-1 text-sm text-gray-500">{translations.manageAccountSettings || 'Manage privacy, sessions, and account preferences.'}</p>
               </div>
-
-              {isLoadingPrivacy ? (
-                <div className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-4 text-sm text-gray-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {translations.loading}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {renderPrivacySelect('avatar_visibility', translations.avatarVisibility || 'Avatar visibility', translations.avatarVisibilityDescription || 'Who can see your avatar.', visibilityOptions)}
-                  {renderPrivacySelect('profile_visibility', translations.profileVisibility || 'Profile visibility', translations.profileVisibilityDescription || 'Who can see your bio.', visibilityOptions)}
-                  {renderPrivacySelect('presence_visibility', translations.presenceVisibility || 'Online status', translations.presenceVisibilityDescription || 'Who can see online and last seen.', visibilityOptions)}
-                  {renderPrivacySelect('direct_messages', translations.directMessages || 'Direct messages', translations.directMessagesDescription || 'Who can start a direct chat with you.', visibilityOptions)}
-                  {renderPrivacySelect('group_invites', translations.groupInvites || 'Group invites', translations.groupInvitesDescription || 'Who can add you to groups.', visibilityOptions)}
-                  {renderPrivacySelect('search_visibility', translations.searchVisibility || 'Search visibility', translations.searchVisibilityDescription || 'Whether you appear in user search.', searchOptions)}
-
-                  <label className="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-3">
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium text-gray-800">{translations.readReceipts || 'Read receipts'}</span>
-                      <span className="block text-xs text-gray-500">{translations.readReceiptsDescription || 'Let others see when you read messages.'}</span>
+              {settingsRows.map(({ label, description, icon: Icon, indicatorCount, onClick }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={onClick}
+                  className="flex w-full items-center gap-3 border-b border-gray-200 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-gray-50"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-gray-800">{label}</span>
+                    <span className="block truncate text-xs text-gray-500">{description}</span>
+                  </span>
+                  {indicatorCount > 0 && (
+                    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+                      {indicatorCount > 99 ? '99+' : indicatorCount}
                     </span>
-                    <input
-                      type="checkbox"
-                      checked={!!privacySettings?.read_receipts_enabled}
-                      disabled={!privacySettings || isUpdatingPrivacy}
-                      onChange={(event) => handlePrivacyChange('read_receipts_enabled', event.target.checked)}
-                      className="h-4 w-4 accent-primary"
-                    />
-                  </label>
-                </div>
-              )}
+                  )}
+                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+                </button>
+              ))}
+              {futureSettingsRows.map(({ label, description, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled
+                  className="flex w-full items-center gap-3 border-t border-gray-200 px-4 py-3 text-left disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-gray-800">{label}</span>
+                    <span className="block truncate text-xs text-gray-500">{description}</span>
+                  </span>
+                </button>
+              ))}
             </section>
 
             <section className="rounded-lg border border-gray-200 bg-white p-4">
@@ -619,6 +689,47 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
                   {isBlockingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : translations.block || 'Block'}
                 </button>
               </div>
+              {blockDmContactSuggestions.length > 0 && (
+                <div className="mt-3 overflow-hidden rounded-md border border-dashed border-gray-200 bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => setIsBlockDmContactsCollapsed((collapsed) => !collapsed)}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-gray-100"
+                    aria-expanded={!isBlockDmContactsCollapsed}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-gray-800">
+                        {translations.directMessages || 'Direct messages'}
+                      </span>
+                      <span className="block truncate text-xs text-gray-500">
+                        {blockDmContactSuggestions.length} {translations.available || 'available'}
+                      </span>
+                    </span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200 ${isBlockDmContactsCollapsed ? '-rotate-90' : 'rotate-0'}`} />
+                  </button>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isBlockDmContactsCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
+                    <div className="min-h-0 overflow-hidden">
+                      <div className="max-h-44 overflow-y-auto border-t border-gray-200 p-1">
+                        {blockDmContactSuggestions.map((contact) => (
+                          <button
+                            key={contact.username}
+                            type="button"
+                            onClick={() => handleBlockUser(contact.username)}
+                            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-white"
+                          >
+                            <img src={getAvatarUrl(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-medium text-gray-900">{contact.display_name || contact.username}</span>
+                              <span className="block truncate text-xs text-gray-500">@{contact.username}</span>
+                            </span>
+                            <Shield className="h-4 w-4 text-gray-500" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="mt-3 rounded-md border border-gray-200">
                 {blockedUsers.length ? blockedUsers.map((blockedUser) => (
                   <div key={blockedUser.username} className="flex items-center justify-between gap-3 border-b border-gray-200 px-3 py-2 last:border-b-0">
@@ -641,41 +752,6 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
               </div>
             </section>
 
-            <section className="rounded-lg border border-gray-200 bg-white">
-              <button
-                type="button"
-                onClick={() => setIsSecurityOpen(true)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                  <Smartphone className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-gray-800">{translations.securityDevices || 'Security & devices'}</span>
-                  <span className="block truncate text-xs text-gray-500">{translations.manageSessionsAndPassword || 'Sessions, password, and two-factor authentication'}</span>
-                </span>
-              </button>
-            </section>
-
-            <section className="rounded-lg border border-gray-200 bg-white">
-              {futureRows.map(({ label, description, icon: Icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled
-                  className="flex w-full items-center gap-3 border-b border-gray-200 px-4 py-3 text-left last:border-b-0 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-gray-800">{label}</span>
-                    <span className="block truncate text-xs text-gray-500">{description}</span>
-                  </span>
-                </button>
-              ))}
-            </section>
-
             <section className="space-y-2">
               <button
                 onClick={handleLogout}
@@ -694,6 +770,247 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
                 {translations.deleteAccount}
               </button>
             </section>
+          </div>
+          </div>
+
+          <div
+            aria-hidden={activeProfilePage !== 'requests'}
+            inert={activeProfilePage !== 'requests' ? true : undefined}
+            className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${
+              activeProfilePage === 'requests' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'
+            }`}
+          >
+            <div className="flex h-full flex-col bg-white">
+              <div className="border-b border-border px-5 py-4">
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild className="cursor-pointer">
+                        <button type="button" onClick={() => setActiveProfilePage('profile')}>
+                          {translations.profile || 'Profile'}
+                        </button>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="inline-flex items-center gap-2 font-medium">
+                        <Inbox className="h-4 w-4 text-muted-foreground" />
+                        {translations.requestInbox || 'Request inbox'}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+                <div className="mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    {pendingRequestCount} {translations.pendingRequests || 'pending requests'}
+                  </p>
+                </div>
+
+                {(requestInbox?.requests || []).length === 0 ? (
+                  <div className="flex min-h-[320px] flex-col items-center justify-center text-center text-sm text-muted-foreground">
+                    <MessageSquare className="mb-2 h-10 w-10" />
+                    {translations.noRequests || 'No pending requests'}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {(requestInbox?.requests || []).map((request) => {
+                      const requester = request.requester;
+                      const isDmRequest = request.type === 'direct_message';
+                      const title = isDmRequest
+                        ? translations.directMessageRequest || 'Direct message request'
+                        : translations.groupInviteRequest || 'Group invite request';
+                      const subject = isDmRequest
+                        ? requester?.display_name || requester?.username || translations.deletedUser || 'Deleted User'
+                        : request.group?.name || translations.group || 'Group';
+                      const subtitle = isDmRequest
+                        ? `@${requester?.username || ''}`
+                        : `${translations.from || 'From'} ${requester?.display_name || requester?.username || translations.deletedUser || 'Deleted User'}`;
+                      const avatar = isDmRequest
+                        ? getMediaUrl(requester?.avatar_url)
+                        : getMediaUrl(request.group?.avatar_url, `${BASE_URL}${DEFAULT_GROUP_AVATAR}`);
+
+                      return (
+                        <div key={request.id} className="rounded-lg border border-border bg-white p-3 shadow-sm">
+                          <div className="flex gap-3">
+                            <img src={avatar} alt={subject} className="h-11 w-11 rounded-full object-cover" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-medium uppercase text-muted-foreground">{title}</div>
+                              <div className="truncate text-sm font-semibold text-foreground">{subject}</div>
+                              <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
+                              {isDmRequest && request.message_text && (
+                                <div className="mt-2 rounded-md bg-muted px-3 py-2 text-sm text-foreground">
+                                  {request.message_text}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-3 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              disabled={isApprovingRequest || isRejectingRequest}
+                              onClick={() => handleRejectRequest(request.id)}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <X className="h-4 w-4" />
+                              {translations.reject || 'Reject'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isApprovingRequest || isRejectingRequest}
+                              onClick={() => handleApproveRequest(request)}
+                              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Check className="h-4 w-4" />
+                              {translations.approve || 'Approve'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div
+            aria-hidden={activeProfilePage !== 'personal'}
+            inert={activeProfilePage !== 'personal' ? true : undefined}
+            className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${
+              activeProfilePage === 'personal' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'
+            }`}
+          >
+            <div className="flex h-full flex-col bg-white">
+              <div className="border-b border-border px-5 py-4">
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild className="cursor-pointer">
+                        <button type="button" onClick={() => setActiveProfilePage('profile')}>
+                          {translations.profile || 'Profile'}
+                        </button>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild className="cursor-pointer">
+                        <button type="button" onClick={() => setActiveProfilePage('profile')}>
+                          {translations.settings || 'Settings'}
+                        </button>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="inline-flex items-center gap-2 font-medium">
+                        <UserRound className="h-4 w-4 text-muted-foreground" />
+                        {translations.personalInfo || 'Personal info'}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
+
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+                <p className="text-sm text-muted-foreground">
+                  {translations.editProfile || 'Edit how other people see you.'}
+                </p>
+
+                <section className="rounded-lg border border-border p-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">{translations.displayName || 'Display name'}</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={newDisplayName}
+                        onChange={(e) => setNewDisplayName(e.target.value)}
+                        maxLength={50}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 pr-12 text-foreground outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={translations.displayNameHint || 'Display name (3-50 characters)'}
+                      />
+                      {displayNameChanged && (
+                        <button
+                          type="button"
+                          onClick={handleUpdateDisplayName}
+                          disabled={isUpdatingDisplayName || !isValidDisplayName(newDisplayName)}
+                          className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent"
+                          aria-label={translations.saveDisplayName || 'Save display name'}
+                          title={translations.saveDisplayName || 'Save display name'}
+                        >
+                          {isUpdatingDisplayName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        </button>
+                      )}
+                    </div>
+                    {displayNameInvalid && (
+                      <p className="text-sm text-destructive">
+                        {translations.displayNameError || 'Display name must be between 3 and 50 characters'}
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-lg border border-border p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-sm font-medium text-foreground">{translations.bio}</label>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {newBio.length}/{BIO_MAX_LENGTH}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <textarea
+                        value={newBio}
+                        onChange={(e) => setNewBio(e.target.value)}
+                        maxLength={BIO_MAX_LENGTH}
+                        className="h-28 w-full resize-none rounded-md border border-input bg-background px-3 py-2 pr-12 text-foreground outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={translations.bio}
+                      />
+                      {newBio !== bio && (
+                        <button
+                          type="button"
+                          onClick={handleUpdateBio}
+                          disabled={isUpdatingBio}
+                          className="absolute right-1.5 top-1.5 inline-flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent"
+                          aria-label={translations.saveBio || 'Save bio'}
+                          title={translations.saveBio || 'Save bio'}
+                        >
+                          {isUpdatingBio ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+
+          <div
+            aria-hidden={activeProfilePage !== 'privacy'}
+            inert={activeProfilePage !== 'privacy' ? true : undefined}
+            className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${
+              activeProfilePage === 'privacy' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'
+            }`}
+          >
+            <PrivacySettingsPanel
+              isActive={activeProfilePage === 'privacy'}
+              onBack={() => setActiveProfilePage('profile')}
+            />
+          </div>
+
+          <div
+            aria-hidden={activeProfilePage !== 'security'}
+            inert={activeProfilePage !== 'security' ? true : undefined}
+            className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${
+              activeProfilePage === 'security' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'
+            }`}
+          >
+            <SecuritySettingsPanel
+              isActive={activeProfilePage === 'security'}
+              onBack={() => setActiveProfilePage('profile')}
+              onLoggedOut={onLogout}
+            />
           </div>
         </div>
       </div>
@@ -756,13 +1073,20 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
               ? translations.logout
               : modal.type === 'deleteAccount'
               ? translations.deleteAccount
+              : modal.type === 'blockUser'
+              ? translations.blockUserConfirmTitle || `Block ${pendingBlockUsername}?`
               : translations.error
           }
           message={modal.message}
-          onConfirm={modal.onConfirm || (() => setModal(null))}
-          onCancel={() => setModal(null)}
-          confirmText={modal.type === 'success' || modal.type === 'error' ? 'OK' : translations.confirm}
+          consequences={modal.consequences}
+          onConfirm={modal.type === 'blockUser' ? handleBlockUserConfirmed : modal.onConfirm || (() => setModal(null))}
+          onCancel={() => {
+            if (modal.type === 'blockUser') setPendingBlockUsername('');
+            setModal(null);
+          }}
+          confirmText={modal.type === 'success' || modal.type === 'error' ? 'OK' : modal.type === 'blockUser' ? translations.block || 'Block' : translations.confirm}
           isError={modal.type === 'error'}
+          isDestructive={modal.type === 'blockUser' || modal.type === 'deleteAccount'}
         />
       )}
 
@@ -790,11 +1114,6 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         />
       )}
 
-      <SecuritySettingsDialog
-        open={isSecurityOpen}
-        onOpenChange={setIsSecurityOpen}
-        onLoggedOut={onLogout}
-      />
     </div>
   );
 });
