@@ -33,6 +33,6 @@ const baseQueryWithRefresh: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQu
 export const messengerApi = createApi({
   reducerPath: 'messengerApi',
   baseQuery: baseQueryWithRefresh,
-  tagTypes: ['User', 'Chat', 'Message', 'Auth', 'Avatar', 'Privacy'],
+  tagTypes: ['User', 'Chat', 'Message', 'Auth', 'Avatar', 'Privacy', 'Request'],
   endpoints: () => ({}),
 });

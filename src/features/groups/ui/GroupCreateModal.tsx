@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, Check, ChevronLeft, Loader2, Search, UserPlus, X } from 'lucide-react';
-import { useSearchUsersQuery } from '@/app/api/messengerApi';
+import { Camera, Check, ChevronDown, ChevronLeft, Loader2, Search, UserPlus, X } from 'lucide-react';
+import { useGetOneOnOneChatsQuery, useSearchUsersQuery } from '@/app/api/messengerApi';
 import { User } from '@/entities/user';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -38,6 +38,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [isDmContactsCollapsed, setIsDmContactsCollapsed] = useState(true);
   const [rejectedParticipants, setRejectedParticipants] = useState<Record<string, string>>({});
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -56,11 +57,36 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
   const { data: searchData, isFetching: isSearching } = useSearchUsersQuery(debouncedSearch, {
     skip: debouncedSearch.length < 2,
   });
+  const { data: dmChatsData } = useGetOneOnOneChatsQuery(currentUsername, {
+    skip: !currentUsername,
+  });
 
   const selectedUsernames = useMemo(
     () => new Set(selectedUsers.map((user) => user.username.toLowerCase())),
     [selectedUsers],
   );
+  const dmContactSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const query = searchTerm.trim().toLowerCase();
+    return (dmChatsData?.chats || [])
+      .filter((chat) => !chat.interlocutor_deleted && !!chat.interlocutor_name)
+      .map((chat) => ({
+        id: -Math.abs(chat.id || 0),
+        username: chat.interlocutor_name,
+        display_name: chat.interlocutor_display_name || chat.interlocutor_name,
+        avatar_url: chat.avatar_url,
+      } as User))
+      .filter((user) => {
+        const usernameKey = user.username.toLowerCase();
+        if (usernameKey === currentUsername.toLowerCase()) return false;
+        if (selectedUsernames.has(usernameKey)) return false;
+        if (seen.has(usernameKey)) return false;
+        seen.add(usernameKey);
+        if (!query) return true;
+        return usernameKey.includes(query) || (user.display_name || '').toLowerCase().includes(query);
+      })
+      .slice(0, 6);
+  }, [currentUsername, dmChatsData?.chats, searchTerm, selectedUsernames]);
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -201,6 +227,48 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                   className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+
+              {dmContactSuggestions.length > 0 && (
+                <div className="overflow-hidden rounded-md border border-dashed border-border bg-muted/25">
+                  <button
+                    type="button"
+                    onClick={() => setIsDmContactsCollapsed((collapsed) => !collapsed)}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                    aria-expanded={!isDmContactsCollapsed}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-foreground">
+                        {translations.directMessages || 'Direct messages'}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {dmContactSuggestions.length} {translations.available || 'available'}
+                      </span>
+                    </span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isDmContactsCollapsed ? '-rotate-90' : 'rotate-0'}`} />
+                  </button>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isDmContactsCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
+                    <div className="min-h-0 overflow-hidden">
+                      <div className="max-h-52 overflow-y-auto border-t border-border/70 p-1">
+                        {dmContactSuggestions.map((user) => (
+                          <button
+                            key={user.username}
+                            type="button"
+                            onClick={() => handleSelectUser(user)}
+                            className="motion-list-item motion-press flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-background"
+                          >
+                            <img src={getAvatarSrc(user.avatar_url)} alt={user.username} className="motion-avatar h-9 w-9 rounded-full object-cover" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-medium">{user.display_name || user.username}</span>
+                              <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
+                            </span>
+                            <UserPlus className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-md border border-border">
                 {isSearching ? (

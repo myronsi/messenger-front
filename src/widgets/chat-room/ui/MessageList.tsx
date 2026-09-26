@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { forwardRef, useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { Message, ReactionInfo } from '@/entities/message';
 import { getFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -8,9 +8,48 @@ import ReactionList from './ReactionList';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
 import FileMessage from './FileMessage';
-import { AlertCircle, Check, CheckCheck } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  CheckCheck,
+  Clock1,
+  Clock2,
+  Clock3,
+  Clock4,
+  Clock5,
+  Clock6,
+  Clock7,
+  Clock8,
+  Clock9,
+  Clock10,
+  Clock11,
+  Clock12,
+} from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+const uploadClockIcons = [Clock1, Clock2, Clock3, Clock4, Clock5, Clock6, Clock7, Clock8, Clock9, Clock10, Clock11, Clock12];
+
+const UploadClockStatus: React.FC<{ progress?: number; showCount?: boolean; count?: number }> = ({ progress, showCount = false, count = 0 }) => {
+  const [clockIndex, setClockIndex] = useState(0);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setClockIndex((current) => (current + 1) % uploadClockIcons.length);
+    }, 95);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const ClockIcon = uploadClockIcons[clockIndex];
+
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      <ClockIcon size={14} className="transition-opacity duration-75" />
+      {typeof progress === 'number' && <span className="tabular-nums">{Math.max(1, Math.min(99, progress))}%</span>}
+      {showCount && count > 0 && <span>{count}</span>}
+    </span>
+  );
+};
 
 interface MessageListProps {
   messages: Message[];
@@ -32,14 +71,19 @@ interface MessageListProps {
   tempHighlightedMessageId: number | null;
   setTempHighlightedMessageId: (id: number | null) => void;
   onLoadOlderMessages?: () => Promise<void>;
+  onLoadNewerMessages?: () => Promise<void>;
   hasMoreMessages?: boolean;
+  hasMoreNewerMessages?: boolean;
   isLoadingOlderMessages?: boolean;
+  isLoadingNewerMessages?: boolean;
   isLoadingInitialMessages?: boolean;
+  onMarkMessagesRead?: (messageIds: number[]) => Promise<void>;
   isGroup?: boolean;
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
   onResendMessage?: (message: Message) => void;
   scrollToBottomKey?: string | number;
+  onScrollStart?: () => void;
 }
 
 const isValidTimestamp = (timestamp: string | undefined | null): boolean => {
@@ -73,8 +117,11 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     tempHighlightedMessageId,
     setTempHighlightedMessageId,
     onLoadOlderMessages,
+    onLoadNewerMessages,
     hasMoreMessages = false,
+    hasMoreNewerMessages = false,
     isLoadingOlderMessages = false,
+    isLoadingNewerMessages = false,
     isLoadingInitialMessages = false,
   } = props;
 
@@ -85,6 +132,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const onOpenReactionDetails = props.onOpenReactionDetails;
   const onResendMessage = props.onResendMessage;
   const scrollToBottomKey = props.scrollToBottomKey;
+  const onScrollStart = props.onScrollStart;
+  const onMarkMessagesRead = props.onMarkMessagesRead;
 
   const isOwnMessage = (message: Message) => {
     if (message.is_own) return true;
@@ -114,21 +163,81 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const firstUnreadMarkerRef = useRef<HTMLDivElement | null>(null);
   const sentReadReceiptsRef = useRef<Set<number>>(new Set());
+  const queuedReadReceiptsRef = useRef<Set<number>>(new Set());
+  const readFlushTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const onMarkMessagesReadRef = useRef(onMarkMessagesRead);
   const isRestoringScrollRef = useRef(false);
   const hasScrolledInitialRef = useRef(false);
+  const hasScrolledToFirstUnreadRef = useRef(false);
+  const isSeekingFirstUnreadRef = useRef(false);
   const shouldStickToBottomRef = useRef(true);
   const lastMessageIdRef = useRef<number | null>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const previousScrollHeightRef = useRef(0);
 
   useEffect(() => {
     setVisibleFirstUnreadId(firstUnreadMessageId ?? null);
+    hasScrolledToFirstUnreadRef.current = false;
   }, [firstUnreadMessageId]);
 
   useEffect(() => {
+    onMarkMessagesReadRef.current = onMarkMessagesRead;
+  }, [onMarkMessagesRead]);
+
+  useEffect(() => {
     hasScrolledInitialRef.current = false;
+    hasScrolledToFirstUnreadRef.current = false;
+    isSeekingFirstUnreadRef.current = false;
+    firstUnreadMarkerRef.current = null;
     shouldStickToBottomRef.current = true;
     lastMessageIdRef.current = null;
   }, [scrollToBottomKey]);
+
+  const scrollFirstUnreadIntoView = useCallback(() => {
+    const targetElement = firstUnreadMarkerRef.current || (visibleFirstUnreadId ? messageRefs.current[visibleFirstUnreadId] : null);
+    if (!targetElement) return false;
+    targetElement.scrollIntoView({ block: 'start' });
+    shouldStickToBottomRef.current = false;
+    hasScrolledInitialRef.current = true;
+    hasScrolledToFirstUnreadRef.current = true;
+    return true;
+  }, [messageRefs, visibleFirstUnreadId]);
+
+  useEffect(() => {
+    const targetId = tempHighlightedMessageId ?? highlightedMessageId;
+    if (!targetId) return;
+
+    const targetElement = messageRefs.current[targetId];
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    if (hasMoreMessages && !isLoadingOlderMessages && onLoadOlderMessages) {
+      onLoadOlderMessages();
+    }
+  }, [hasMoreMessages, highlightedMessageId, isLoadingOlderMessages, messageRefs, onLoadOlderMessages, tempHighlightedMessageId, messages]);
+
+  useEffect(() => {
+    if (!visibleFirstUnreadId || isLoadingInitialMessages || hasScrolledToFirstUnreadRef.current) return;
+
+    const targetElement = messageRefs.current[visibleFirstUnreadId];
+    if (targetElement) {
+      requestAnimationFrame(() => {
+        scrollFirstUnreadIntoView();
+      });
+      return;
+    }
+
+    if (hasMoreMessages && !isLoadingOlderMessages && onLoadOlderMessages && !isSeekingFirstUnreadRef.current) {
+      isSeekingFirstUnreadRef.current = true;
+      onLoadOlderMessages().finally(() => {
+        isSeekingFirstUnreadRef.current = false;
+      });
+    }
+  }, [hasMoreMessages, isLoadingInitialMessages, isLoadingOlderMessages, messageRefs, messages, onLoadOlderMessages, scrollFirstUnreadIntoView, visibleFirstUnreadId]);
 
 
   useEffect(() => {
@@ -151,12 +260,31 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     );
   };
 
-  const sendReadReceipt = (messageId: number) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || userId <= 0) return;
+  const flushReadReceipts = async () => {
+    if (!onMarkMessagesReadRef.current || queuedReadReceiptsRef.current.size === 0) return;
+    const messageIds = Array.from(queuedReadReceiptsRef.current);
+    queuedReadReceiptsRef.current.clear();
+
+    try {
+      await onMarkMessagesReadRef.current(messageIds);
+    } catch (error) {
+      messageIds.forEach((messageId) => sentReadReceiptsRef.current.delete(messageId));
+    }
+  };
+
+  const queueReadReceipt = (messageId: number) => {
+    if (!onMarkMessagesReadRef.current || userId <= 0) return;
     if (sentReadReceiptsRef.current.has(messageId)) return;
 
     sentReadReceiptsRef.current.add(messageId);
-    wsRef.current.send(JSON.stringify({ type: 'is_read', message_id: messageId }));
+    queuedReadReceiptsRef.current.add(messageId);
+    if (readFlushTimeoutRef.current) {
+      clearTimeout(readFlushTimeoutRef.current);
+    }
+    readFlushTimeoutRef.current = setTimeout(() => {
+      readFlushTimeoutRef.current = null;
+      flushReadReceipts();
+    }, 500);
   };
 
   const markVisibleMessagesAsRead = () => {
@@ -165,57 +293,53 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         const el = messageRefs.current[message.id];
         if (el && isElementInViewport(el, chatContainerRef.current)) {
           console.log(`Marking message ${message.id} as read for user ${userId}`);
-          sendReadReceipt(message.id);
+          queueReadReceipt(message.id);
         }
       }
     });
   };
 
   useEffect(() => {
-    if (!wsRef.current) return;
-    const socket = wsRef.current;
-
-    const handleWebSocketOpen = () => {
-      observerRef.current?.disconnect();
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
-              const message = messages.find((msg) => msg.id === messageId);
-              if (message && !isOwnMessage(message) && !message.read_by?.some((r) => r.user_id === userId)) {
-                console.log(`IntersectionObserver: Marking message ${messageId} as read for user ${userId}`);
-                sendReadReceipt(messageId);
-              }
+    observerRef.current?.disconnect();
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
+            const message = messages.find((msg) => msg.id === messageId);
+            if (message && !isOwnMessage(message) && !message.read_by?.some((r) => r.user_id === userId)) {
+              console.log(`IntersectionObserver: queueing message ${messageId} as read for user ${userId}`);
+              queueReadReceipt(messageId);
             }
-          });
-        },
-        { threshold: 0.5, root: chatContainerRef.current }
-      );
+          }
+        });
+      },
+      { threshold: 0.5, root: chatContainerRef.current }
+    );
 
-      Object.values(messageRefs.current).forEach((el) => {
-        if (el) {
-          el.setAttribute('data-message-id', el.getAttribute('data-message-id') || '');
-          observerRef.current?.observe(el);
-        }
-      });
+    Object.values(messageRefs.current).forEach((el) => {
+      if (el) {
+        el.setAttribute('data-message-id', el.getAttribute('data-message-id') || '');
+        observerRef.current?.observe(el);
+      }
+    });
 
-      requestAnimationFrame(() => {
-        markVisibleMessagesAsRead();
-      });
-    };
-
-    if (wsRef.current.readyState === WebSocket.OPEN) {
-      handleWebSocketOpen();
-    } else {
-      socket.addEventListener('open', handleWebSocketOpen);
-    }
+    requestAnimationFrame(() => {
+      markVisibleMessagesAsRead();
+    });
 
     return () => {
       observerRef.current?.disconnect();
-      socket.removeEventListener('open', handleWebSocketOpen);
     };
-  }, [messages, username, userId, wsRef]);
+  }, [messages, username, userId, messageRefs]);
+
+  useEffect(() => () => {
+    if (readFlushTimeoutRef.current) {
+      clearTimeout(readFlushTimeoutRef.current);
+      readFlushTimeoutRef.current = null;
+    }
+    flushReadReceipts();
+  }, []);
 
   const updateCurrentDate = () => {
     if (!chatContainerRef.current || messages.length === 0) {
@@ -248,9 +372,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
 
   useEffect(() => {
     const handleScroll = async () => {
+      onScrollStart?.();
+
       const container = chatContainerRef.current;
       if (container) {
-        shouldStickToBottomRef.current = container.scrollHeight - container.scrollTop - container.clientHeight < 160;
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 160;
+        shouldStickToBottomRef.current = !visibleFirstUnreadId && isNearBottom;
       }
 
       if (
@@ -272,6 +399,16 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           }
           isRestoringScrollRef.current = false;
         });
+      }
+
+      if (
+        container &&
+        container.scrollHeight - container.scrollTop - container.clientHeight <= 160 &&
+        hasMoreNewerMessages &&
+        !isLoadingNewerMessages &&
+        onLoadNewerMessages
+      ) {
+        await onLoadNewerMessages();
       }
 
       setIsScrolling(true);
@@ -299,35 +436,65 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [messages, getFormattedDateLabel, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages]);
+  }, [messages, getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages, onScrollStart]);
 
   useLayoutEffect(() => {
     const container = chatContainerRef.current;
     const lastMessageId = messages[messages.length - 1]?.id || null;
     if (!container || !lastMessageId || isRestoringScrollRef.current) {
+      previousScrollHeightRef.current = container?.scrollHeight || 0;
       lastMessageIdRef.current = lastMessageId;
       return;
     }
 
-    if (!hasScrolledInitialRef.current) {
-      const forceScrollToBottom = () => {
-        const nextContainer = chatContainerRef.current;
-        if (!nextContainer || isRestoringScrollRef.current) return;
-        if (hasScrolledInitialRef.current && !shouldStickToBottomRef.current) return;
-        nextContainer.scrollTop = nextContainer.scrollHeight;
-      };
+    const previousScrollHeight = previousScrollHeightRef.current;
+    const scrollHeightDelta = container.scrollHeight - previousScrollHeight;
+    const isSameLastMessage = lastMessageIdRef.current === lastMessageId;
+    if (isSameLastMessage && scrollHeightDelta !== 0) {
+      if (shouldStickToBottomRef.current) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
 
-      forceScrollToBottom();
+    if (
+      !hasScrolledInitialRef.current &&
+      visibleFirstUnreadId &&
+      !messageRefs.current[visibleFirstUnreadId] &&
+      hasMoreMessages
+    ) {
+      shouldStickToBottomRef.current = false;
+      previousScrollHeightRef.current = container.scrollHeight;
+      lastMessageIdRef.current = lastMessageId;
+      return;
+    }
+
+	    if (!hasScrolledInitialRef.current) {
+	      const shouldPreferFirstUnread = !!visibleFirstUnreadId;
+	      const forceInitialScroll = () => {
+	        const nextContainer = chatContainerRef.current;
+	        if (!nextContainer || isRestoringScrollRef.current) return;
+	        if (hasScrolledInitialRef.current && !shouldStickToBottomRef.current && !visibleFirstUnreadId) return;
+	        if (visibleFirstUnreadId && scrollFirstUnreadIntoView()) {
+	          return;
+	        }
+	        if (shouldPreferFirstUnread) {
+	          shouldStickToBottomRef.current = false;
+	          return;
+	        }
+	        nextContainer.scrollTop = nextContainer.scrollHeight;
+	        shouldStickToBottomRef.current = true;
+	      };
+
+      forceInitialScroll();
       let secondFrame = 0;
       const firstFrame = requestAnimationFrame(() => {
-        forceScrollToBottom();
-        secondFrame = requestAnimationFrame(forceScrollToBottom);
+        forceInitialScroll();
+        secondFrame = requestAnimationFrame(forceInitialScroll);
       });
-      const settleTimeout = window.setTimeout(forceScrollToBottom, 120);
-      const mediaSettleTimeout = window.setTimeout(forceScrollToBottom, 400);
+      const settleTimeout = window.setTimeout(forceInitialScroll, 120);
+      const mediaSettleTimeout = window.setTimeout(forceInitialScroll, 400);
 
       hasScrolledInitialRef.current = true;
-      shouldStickToBottomRef.current = true;
       lastMessageIdRef.current = lastMessageId;
 
       return () => {
@@ -339,33 +506,100 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     }
 
     if (lastMessageIdRef.current !== lastMessageId && shouldStickToBottomRef.current) {
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+      }
+      scrollAnimationFrameRef.current = requestAnimationFrame(() => {
+        const nextContainer = chatContainerRef.current;
+        if (!nextContainer || isRestoringScrollRef.current) return;
+        nextContainer.scrollTo({ top: nextContainer.scrollHeight, behavior: 'smooth' });
+        scrollAnimationFrameRef.current = null;
+      });
     }
 
     lastMessageIdRef.current = lastMessageId;
-  }, [messages, scrollToBottomKey]);
+    previousScrollHeightRef.current = container.scrollHeight;
+
+    return () => {
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+    };
+  }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView]);
+
+  const isMessageDeletedForMe = (message: Message): boolean => {
+    if (!message.deleted_for || !Array.isArray(message.deleted_for)) return false;
+    return message.deleted_for.includes(userId);
+  };
 
   const renderContent = (message: Message) => {
+    // Show placeholder for deleted messages in group chats
+    if (isMessageDeletedForMe(message)) {
+      if (isGroup) {
+        return (
+          <div className="italic opacity-70 text-sm">
+            [{translations.deleted || 'Deleted'} {translations.forYou || 'for you'}]
+          </div>
+        );
+      }
+      // For 1-on-1 chats, return early so message won't be rendered
+      return null;
+    }
+
     if (message.type === 'file' && typeof message.content !== 'string') {
       const fileName = message.content.file_name || '';
       const fileUrl = message.content.file_url || '';
-      const fullFileUrl = `${BASE_URL}${fileUrl}`;
+      const fullFileUrl = fileUrl.startsWith('blob:') || fileUrl.startsWith('data:') || fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
+        ? fileUrl
+        : `${BASE_URL}${fileUrl}`;
       const config = getFileTypeConfig(fileName);
+      const isVoiceMessage = message.content.file_type === 'voice';
+      const audioMetadata = message.content.audio_metadata;
+      const caption = message.content.caption?.trim();
+      const withCaption = (content: React.ReactNode, isImage = false) => (
+        <>
+          {content}
+          {caption && (
+            <div className={`whitespace-pre-wrap text-sm leading-snug ${isImage ? 'px-3 pb-2 pt-1' : 'mt-2'}`}>
+              {caption}
+            </div>
+          )}
+        </>
+      );
+
+      if (isVoiceMessage) {
+        return withCaption(
+          <AudioMessage
+            fileUrl={fullFileUrl}
+            messageId={message.id}
+            duration={audioMetadata?.duration}
+            waveform={audioMetadata?.waveform}
+            playingMessageId={playingMessageId}
+            setPlayingMessageId={setPlayingMessageId}
+            audioStates={audioStates}
+            setAudioStates={setAudioStates}
+          />
+        );
+      }
 
       if (config && config.isSpecial) {
         if (config.replyText === translations.image) {
-          return (
+          return withCaption(
             <ImageMessage 
               fileUrl={fullFileUrl} 
               fileName={fileName}
               isMine={isOwnMessage(message)}
-            />
+            />,
+            true
           );
         } else if (config.replyText === translations.voiceMessage) {
-          return (
+          return withCaption(
             <AudioMessage
               fileUrl={fullFileUrl}
               messageId={message.id}
+              duration={audioMetadata?.duration}
+              waveform={audioMetadata?.waveform}
               playingMessageId={playingMessageId}
               setPlayingMessageId={setPlayingMessageId}
               audioStates={audioStates}
@@ -374,7 +608,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           );
         }
       } else if (config) {
-        return (
+        return withCaption(
           <FileMessage
             config={config}
             fileName={fileName}
@@ -404,8 +638,33 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     }
   };
 
+  const getMessageSenderKey = (message: Message) => {
+    if (isOwnMessage(message)) return 'own';
+    if (message.sender_id) return `id:${message.sender_id}`;
+    const senderName = message.sender_username || message.sender || '';
+    return `name:${senderName.toLowerCase()}`;
+  };
+
+  const hasDateBoundary = (message: Message, adjacentMessage: Message) => (
+    isValidTimestamp(message.timestamp) &&
+    isValidTimestamp(adjacentMessage.timestamp) &&
+    getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(adjacentMessage.timestamp)
+  );
+
+  const isSameMessageSender = (message: Message, adjacentMessage: Message) => (
+    getMessageSenderKey(message) === getMessageSenderKey(adjacentMessage)
+  );
+
+  const getForwardedLabel = (message: Message) => {
+    const forwardedFrom = message.forwarded_from;
+    if (!forwardedFrom) return null;
+    const sender = forwardedFrom.sender_name || forwardedFrom.sender_username || translations.deletedUser || 'Deleted User';
+    const template = translations.forwardedFrom || 'Forwarded from {sender}';
+    return template.replace('{sender}', sender);
+  };
+
   return (
-    <div className="relative flex-1 overflow-y-auto" ref={chatContainerRef}>
+    <div className="relative flex-1 overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
         <div className="sticky pt-0.5 top-0 z-50 flex justify-center pointer-events-none md:w-2/3 md:mx-auto md:px-0">
           <div
@@ -417,7 +676,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         </div>
       )}
-      <div ref={ref} className="py-6 px-[10px] md:w-2/3 md:mx-auto md:px-0 space-y-4">
+      <div ref={ref} className="px-[10px] pt-6 pb-32 md:w-2/3 md:mx-auto md:px-0 md:pb-36 space-y-4">
         {isLoadingOlderMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
@@ -431,20 +690,46 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         )}
         {messages.map((message, index) => {
+          // In 1-on-1 chats, completely hide messages deleted for me
+          // In group chats, show a placeholder
+          if (isMessageDeletedForMe(message) && !isGroup) {
+            return null; // Skip rendering in 1-on-1 chats
+          }
+
           const isMine = isOwnMessage(message);
+          const isOutgoingSend = isMine && (message.id < 0 || !!message.client_temp_id);
+          const isUploadingMessage = isMine && message.upload_status === 'uploading';
+          const messageRenderKey = message.client_temp_id ?? message.id;
+          const hasReactions = !!message.reactions?.length;
           const showNewMessagesMarker = visibleFirstUnreadId === message.id && !isMine;
           const prevMessage = index > 0 ? messages[index - 1] : null;
+          const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
           const showDateSeparator =
             !prevMessage || 
             (isValidTimestamp(message.timestamp) && 
              isValidTimestamp(prevMessage.timestamp) && 
              getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(prevMessage.timestamp));
           const isImageMessage = message.type === 'file' && typeof message.content !== 'string' && getFileTypeConfig(message.content.file_name)?.replyText === translations.image;
+          const nextIsMine = nextMessage ? isOwnMessage(nextMessage) : false;
+          const groupedWithPrevious = !!prevMessage &&
+            isSameMessageSender(message, prevMessage) &&
+            !showDateSeparator &&
+            !showNewMessagesMarker;
+          const groupedWithNext = !!nextMessage &&
+            isSameMessageSender(message, nextMessage) &&
+            !hasDateBoundary(message, nextMessage) &&
+            !(visibleFirstUnreadId === nextMessage.id && !nextIsMine);
+          const isFirstInGroup = !groupedWithPrevious;
+          const isLastInGroup = !groupedWithNext;
+          const showSenderName = isGroup && !isMine && isFirstInGroup;
+          const reserveAvatarSpace = isGroup && !isMine;
+          const showAvatar = reserveAvatarSpace && isLastInGroup;
+          const showTail = isLastInGroup && !isImageMessage;
 
           return (
-            <React.Fragment key={message.id}>
+            <React.Fragment key={messageRenderKey}>
               {showNewMessagesMarker && (
-                <div className="flex justify-center">
+                <div ref={firstUnreadMarkerRef} className="scroll-mt-2 flex justify-center">
                   <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">
                     {translations.newMessages}
                   </div>
@@ -468,15 +753,16 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                     observerRef.current.observe(el);
                   }
                 }}
-                className={`motion-message flex ${isMine ? 'justify-end' : 'justify-start'} ${
+                className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} flex ${isMine ? 'justify-end' : 'justify-start'} ${
                   highlightedMessageId === message.id ? 'highlight' : ''
                 } ${contextMenuMessageId === message.id ? 'context-menu-highlight' : ''
                 } ${tempHighlightedMessageId === message.id ? 'context-menu-highlight' : ''}`}
+                style={groupedWithPrevious ? { marginTop: '0.25rem' } : undefined}
                 onClick={(e) => handleMessageClick(e, message)}
                 onContextMenu={(e) => onMessageClick(e, message)}
               >
                 <div className={`flex items-end space-x-2 max-w-[350px] md:max-w-2/3 ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                  {isGroup && !isMine && (
+                  {showAvatar && (
                     <button
                       type="button"
                       className="mb-1 shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
@@ -492,8 +778,9 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                       />
                     </button>
                   )}
+                  {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}
                   <div className={`group relative flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                    {isGroup && !isMine && (
+                    {showSenderName && (
                       <button
                         type="button"
                         onClick={(event) => {
@@ -508,12 +795,19 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                     <div
                       className={`motion-message-bubble relative rounded-2xl break-words overflow-wrap-anywhere w-full max-w-[350px] md:max-w-full ${
                         isMine
-                          ? 'bg-primary text-primary-foreground' + (isImageMessage ? '' : ' message-tail-right')
-                          : 'bg-accent text-accent-foreground' + (isImageMessage ? '' : ' message-tail-left')
+                          ? 'bg-primary text-primary-foreground' + (showTail ? ' message-tail-right' : '')
+                          : 'bg-accent text-accent-foreground' + (showTail ? ' message-tail-left' : '')
                       } ${isImageMessage 
                           ? 'p-0 border' + (isMine ? ' border-primary' : ' border-accent')
-                          : 'px-4 py-2 border' + (isMine ? ' border-primary' : ' border-accent')}`}
+                          : 'px-4 py-2 border' + (isMine ? ' border-primary' : ' border-accent')} ${
+                        hasReactions ? (isImageMessage ? 'mb-4' : 'mb-3.5') : ''
+                      }`}
                     >
+                      {getForwardedLabel(message) && (
+                        <div className="mb-1 text-xs font-medium opacity-70">
+                          {getForwardedLabel(message)}
+                        </div>
+                      )}
                       {message.reply_to && (
                         <ReplyPreview
                           replyMessage={messages.find((m) => m.id === message.reply_to)}
@@ -549,8 +843,14 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                                   if (isGroup) onOpenReadStatus?.(message);
                                 }}
                               >
-                                {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
-                                {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+                                {isUploadingMessage ? (
+                                  <UploadClockStatus progress={message.upload_progress} />
+                                ) : (
+                                  <>
+                                    {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
+                                    {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+                                  </>
+                                )}
                               </button>
                             )}
                           </div>
@@ -562,6 +862,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                           messageId={message.id}
                           userId={userId}
                           isMine={isMine}
+                          isImage={isImageMessage}
                           wsRef={wsRef}
                           onOpenReactionDetails={(reaction, reactions) => onOpenReactionDetails?.(message, reaction, reactions)}
                         />
@@ -579,8 +880,14 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
                                 if (isGroup) onOpenReadStatus?.(message);
                               }}
                             >
-                              {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
-                              {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+                              {isUploadingMessage ? (
+                                <UploadClockStatus progress={message.upload_progress} />
+                              ) : (
+                                <>
+                                  {message.read_by?.some((r) => r.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
+                                  {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+                                </>
+                              )}
                             </button>
                           )}
                         </div>
@@ -614,6 +921,13 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
             </React.Fragment>
           );
         })}
+        {isLoadingNewerMessages && (
+          <div className="flex justify-center">
+            <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
+              {translations.loading}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -6,9 +6,10 @@ interface ChatsListHeaderProps {
   onOpenProfile: () => void;
   // parent wants the button bounding rect so it can animate from that point
   onOpenSearch: (rect: DOMRect) => void;
+  profileIndicatorCount?: number;
 }
 
-const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({ translations, onOpenProfile, onOpenSearch }) => {
+const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({ translations, onOpenProfile, onOpenSearch, profileIndicatorCount = 0 }) => {
   const searchBtnRef = React.useRef<HTMLButtonElement | null>(null);
 
   const handleOpen = () => {
@@ -36,8 +37,13 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({ translations, onOpenP
         >
           <Search className="w-5 h-5" />
         </button>
-        <button onClick={onOpenProfile} className="p-2 hover:bg-accent rounded-full transition-colors">
+        <button onClick={onOpenProfile} className="relative p-2 hover:bg-accent rounded-full transition-colors">
           <Menu className="w-5 h-5" />
+          {profileIndicatorCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+              {profileIndicatorCount > 99 ? '99+' : profileIndicatorCount}
+            </span>
+          )}
         </button>
       </div>
     </div>

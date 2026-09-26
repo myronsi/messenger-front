@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useEffect } from 'react';
-import { Edit, Trash2, Copy, Reply } from 'lucide-react';
+import { Edit, Trash2, Copy, Reply, Forward } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ContextMenuProps {
@@ -8,19 +8,22 @@ interface ContextMenuProps {
   isMine: boolean;
   canDelete?: boolean;
   onEdit?: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onCopy?: () => void;
   onReply: () => void;
+  onForward?: () => void;
   isClosing: boolean;
   onClose: () => void;
 }
 
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ x, y, isMine, canDelete, onEdit, onDelete, onCopy, onReply, isClosing, onClose }, ref) => {
+  ({ x, y, isMine, canDelete, onEdit, onDelete, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
     const [isAnimated, setIsAnimated] = useState(false);
+
+    console.log('ContextMenuComponent rendered', { isMine, canDelete, hasOnDelete: !!onDelete, hasOnEdit: !!onEdit, hasOnCopy: !!onCopy });
 
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
@@ -55,6 +58,8 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
     const relativeY = y - adjustedY;
     const showDelete = canDelete ?? isMine;
 
+    console.log('About to render buttons', { showDelete, hasOnDelete: !!onDelete, isMine, canDelete });
+
     const handleTransitionEnd = (event: React.TransitionEvent) => {
       if (isClosing && event.propertyName === 'transform') {
         onClose();
@@ -86,10 +91,13 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
             <span className="truncate">{translations.editMessage}</span>
           </button>
         )}
-        {showDelete && (
+        {showDelete && onDelete && (
           <button
             className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-destructive hover:text-destructive"
-            onClick={onDelete}
+            onClick={() => {
+              console.log('DELETE BUTTON CLICKED');
+              onDelete();
+            }}
           >
             <Trash2 className="w-4 h-4 mr-2" />
             <span className="truncate">{translations.deleteMessage}</span>
@@ -111,6 +119,15 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
           <Reply className="w-4 h-4 mr-2" />
           <span className="truncate">{translations.replyToMessage}</span>
         </button>
+        {onForward && (
+          <button
+            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+            onClick={onForward}
+          >
+            <Forward className="w-4 h-4 mr-2" />
+            <span className="truncate">{translations.forward || 'Forward'}</span>
+          </button>
+        )}
       </div>
     );
   }

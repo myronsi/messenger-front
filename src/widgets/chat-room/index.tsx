@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Message } from '@/entities/message';
+import { FileMessageContent, Message } from '@/entities/message';
 import { useChat } from './model/useChat';
-import { useCreateChatMutation, useUploadFileMutation } from '@/app/api/messengerApi';
+import { useCreateChatMutation, useGetBlockedUsersQuery, useUnblockUserMutation, useDeleteMessageForMeMutation } from '@/app/api/messengerApi';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import ChatHeader from './ui/ChatHeader';
 import MessageList from './ui/MessageList';
@@ -11,10 +11,25 @@ import ContextMenu from './ui/ContextMenu';
 import ReactionMenu from './ui/ReactionMenu';
 import { DELETED_AVATAR, DEFAULT_AVATAR } from '@/shared/base/ui';
 import MessageSearchDialog from './ui/MessageSearchDialog';
+import ForwardMessageDialog from './ui/ForwardMessageDialog';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { authFetch, useAccessToken } from '@/shared/auth/session';
+import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { Loader2 } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+const getLocalUploadFileType = (fileName: string, mimeType = '') => {
+  const extension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
+  if (mimeType.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'].includes(extension)) return 'image';
+  if (mimeType.startsWith('video/') || ['.mp4', '.mov', '.ogg'].includes(extension)) return 'video';
+  if (mimeType.startsWith('audio/') || ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'].includes(extension)) return 'audio';
+  if (['.pdf', '.doc', '.docx', '.txt'].includes(extension)) return 'document';
+  if (extension === '.pptx') return 'presention';
+  if (extension === '.zip') return 'arcive';
+  if (['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css'].includes(extension)) return 'code';
+  return 'none';
+};
 
 interface ChatProps {
   chatId: number;
@@ -30,13 +45,16 @@ interface ChatProps {
   setIsUserProfileOpen: (isOpen: boolean) => void;
   onOpenUserProfile?: (username: string) => void;
   searchRequestKey?: number;
+  messageJumpRequest?: { messageId: number; key: number } | null;
   directDraftDisabled?: boolean;
   directDraftReason?: 'self' | 'blocked' | 'privacy' | null;
+  initialPendingApprovalRequest?: boolean;
+  initialPendingApprovalMessage?: string;
   // Called when a preview chat is upgraded to a real chat after first message is sent
   onChatCreated?: (newId: number, newName: string) => void;
 }
 
-const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interlocutorIsOnline, interlocutorLastSeen, interlocutorAvatarUrl, username, interlocutorDeleted, firstUnreadMessageId, onBack, setIsUserProfileOpen, onOpenUserProfile, searchRequestKey = 0, directDraftDisabled = false, directDraftReason = null, onChatCreated }) => {
+const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interlocutorIsOnline, interlocutorLastSeen, interlocutorAvatarUrl, username, interlocutorDeleted, firstUnreadMessageId, onBack, setIsUserProfileOpen, onOpenUserProfile, searchRequestKey = 0, messageJumpRequest = null, directDraftDisabled = false, directDraftReason = null, initialPendingApprovalRequest = false, initialPendingApprovalMessage = '', onChatCreated }) => {
   const token = useAccessToken() || '';
   const { translations } = useLanguage();
   const [userId, setUserId] = useState<number | null>(null);
@@ -55,7 +73,10 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
 
   // Mutations for creating a chat and sending messages (used in preview mode)
   const [createChat] = useCreateChatMutation();
-  const [uploadFile] = useUploadFileMutation();
+  const { data: blockedUsersData } = useGetBlockedUsersQuery();
+  const [unblockUser, { isLoading: isUnblockingUser }] = useUnblockUserMutation();
+  const [deleteMessageForMe] = useDeleteMessageForMeMutation();
+  const isBlockedByMe = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username.toLowerCase() === chatName.toLowerCase());
 
   // When not preview — use the normal hook
   const {
@@ -75,12 +96,20 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     highlightedMessageId,
     isLoadingInitialMessages,
     isLoadingOlderMessages,
+    isLoadingNewerMessages,
     hasMoreMessages,
+    hasMoreNewerMessages,
     scrollToMessage,
     loadOlderMessages,
+    loadNewerMessages,
+    markMessagesRead,
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,
+    createOptimisticUploadMessage,
+    updateOptimisticUploadProgress,
+    markOptimisticUploadFailed,
+    settleOptimisticUpload,
     handleDeleteChat,
     getFormattedDateLabel,
     getMessageTime,
@@ -103,18 +132,26 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     highlightedMessageId: null,
     isLoadingInitialMessages: false,
     isLoadingOlderMessages: false,
+    isLoadingNewerMessages: false,
     hasMoreMessages: false,
+    hasMoreNewerMessages: false,
     scrollToMessage: (_: number) => {},
     loadOlderMessages: async () => {},
+    loadNewerMessages: async () => {},
+    markMessagesRead: async (_: number[]) => {},
     handleSendMessage: () => {},
     handleResendMessage: (_: Message) => {},
     handleFileUpload: (_: any) => {},
+    createOptimisticUploadMessage: (_file: Blob, _fileName: string, _fileType?: string, _caption?: string) => null as number | null,
+    updateOptimisticUploadProgress: (_messageId: number, _percent: number) => {},
+    markOptimisticUploadFailed: (_messageId: number, _errorMessage?: string) => {},
+    settleOptimisticUpload: (_messageId: number) => {},
     handleDeleteChat: () => {},
     getFormattedDateLabel: (s: string) => formatDateLabel(s, 'en', new Date(), new Date()),
     getMessageTime: (s: string) => formatTime(s, 'en'),
     renderMessageContent: (m: Message) => <>{typeof m.content === 'string' ? m.content : ''}</>,
     wsRef: { current: null } as any,
-  } : useChat(chatId, username, token, onBack, userId || 0, (update) => {
+  } : useChat(chatId, username, token, onBack, userId || 0, firstUnreadMessageId, (update) => {
     if (update.username === chatName) {
       setPresence({
         is_online: update.is_online,
@@ -127,6 +164,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const [previewMessageInput, setPreviewMessageInput] = useState('');
   const [previewFailedMessages, setPreviewFailedMessages] = useState<Message[]>([]);
   const [isCreatingPreviewChat, setIsCreatingPreviewChat] = useState(false);
+  const [hasPendingApprovalRequest, setHasPendingApprovalRequest] = useState(false);
 
   const getDeliveryBlockedMessage = () => (
     directDraftReason === 'blocked'
@@ -154,9 +192,81 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     ]);
   };
 
+  const createPendingApprovalPreviewMessage = (content: string): Message => ({
+    id: -Date.now(),
+    sender_id: userId || undefined,
+    is_own: true,
+    sender: username,
+    sender_username: username,
+    content,
+    timestamp: new Date().toISOString(),
+    type: 'message',
+    delivery_error: translations.waitingForApproval || 'Waiting for user approval',
+    read_by: [],
+  });
+
+  const addPendingApprovalPreviewMessage = (content: string) => {
+    setPreviewFailedMessages((current) => [
+      ...current,
+      createPendingApprovalPreviewMessage(content),
+    ]);
+  };
+
+  const createPreviewUploadMessage = (file: File, caption = '') => {
+    const tempId = -Date.now();
+    const objectUrl = URL.createObjectURL(file);
+    const content: FileMessageContent = {
+      file_url: objectUrl,
+      file_name: file.name,
+      file_type: getLocalUploadFileType(file.name, file.type),
+      file_size: file.size,
+      ...(caption.trim() ? { caption: caption.trim() } : {}),
+    };
+    const optimisticMessage: Message = {
+      id: tempId,
+      client_temp_id: tempId,
+      local_object_url: objectUrl,
+      upload_status: 'uploading',
+      upload_progress: 1,
+      sender_id: userId || undefined,
+      is_own: true,
+      sender: username,
+      sender_username: username,
+      content,
+      timestamp: new Date().toISOString(),
+      type: 'file',
+      reactions: [],
+      read_by: [],
+    };
+
+    setPreviewFailedMessages((current) => [...current, optimisticMessage]);
+    return tempId;
+  };
+
+  const updatePreviewUploadProgress = (messageId: number, percent: number) => {
+    setPreviewFailedMessages((current) => current.map((message) => (
+      message.id === messageId
+        ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
+        : message
+    )));
+  };
+
+  const markPreviewUploadFailed = (messageId: number, errorMessage?: string) => {
+    setPreviewFailedMessages((current) => current.map((message) => (
+      message.id === messageId
+        ? {
+            ...message,
+            upload_status: 'failed',
+            delivery_error: errorMessage || translations.errorLoading || 'Upload failed',
+          }
+        : message
+    )));
+  };
+
   const handleSendMessagePreview = async () => {
     const content = previewMessageInput.trim();
     if (!content || isCreatingPreviewChat) return;
+    if (hasPendingApprovalRequest) return;
     if (directDraftDisabled) {
       addFailedPreviewMessage(content);
       setPreviewMessageInput('');
@@ -165,16 +275,25 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     setIsCreatingPreviewChat(true);
     try {
       // create the chat on the server
-      const res = await createChat({ user1: username, user2: chatName }).unwrap();
-      const newChatId = res.chat_id;
-      // store the pending message so Chat's WebSocket can send it once connected
-      try {
-        sessionStorage.setItem(`pendingMsg:${newChatId}`, content);
-      } catch (e) {
-        console.warn('Could not store pending message in sessionStorage', e);
+      const res = await createChat({ user1: username, user2: chatName, initial_message: content }).unwrap();
+      if (res.approval_required) {
+        setHasPendingApprovalRequest(true);
+        if (res.already_pending) {
+          setPreviewModal({
+            type: 'error',
+            message: translations.alreadyWaitingForApproval || 'You already sent a request. Wait for approval before sending more messages.',
+          });
+        } else {
+          addPendingApprovalPreviewMessage(content);
+        }
+        setPreviewMessageInput('');
+        return;
       }
+      if (!res.chat_id) {
+        throw new Error('Chat was not created');
+      }
+      const newChatId = res.chat_id;
       setPreviewMessageInput('');
-      // notify parent to switch to the real chat id (will remount Chat and send pending message)
       if (onChatCreated) onChatCreated(newChatId, chatName);
     } catch (err) {
       console.error('Failed to create chat/send message:', err);
@@ -184,29 +303,60 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     }
   };
 
-  const handleFileUploadPreview = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileUploadPreview = async (file: File, caption = '') => {
     if (!file || isCreatingPreviewChat) return;
+    if (hasPendingApprovalRequest) {
+      return;
+    }
     if (directDraftDisabled) {
       addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${file.name}`);
-      event.target.value = '';
       return;
     }
     setIsCreatingPreviewChat(true);
+    let optimisticMessageId: number | null = null;
     try {
       const res = await createChat({ user1: username, user2: chatName }).unwrap();
+      if (res.approval_required || !res.chat_id) {
+        throw new Error(translations.waitingForApproval || 'Waiting for user approval');
+      }
       const newChatId = res.chat_id;
+      optimisticMessageId = createPreviewUploadMessage(file, caption);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('chat_id', newChatId.toString());
-      await uploadFile(formData).unwrap();
+      if (caption.trim()) {
+        formData.append('caption', caption.trim());
+      }
+      await uploadWithProgress({
+        url: `${BASE_URL}/messages/upload`,
+        formData,
+        onProgress: (percent) => {
+          updatePreviewUploadProgress(optimisticMessageId, percent);
+        },
+      });
+      updatePreviewUploadProgress(optimisticMessageId, 99);
       if (onChatCreated) onChatCreated(newChatId, chatName);
     } catch (err) {
       console.error('Failed to create chat/upload file:', err);
-      addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${file.name}`);
+      if (optimisticMessageId !== null) {
+        markPreviewUploadFailed(optimisticMessageId, translations.errorLoading || 'Upload failed');
+      } else {
+        addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${file.name}`);
+      }
     } finally {
-      event.target.value = '';
       setIsCreatingPreviewChat(false);
+    }
+  };
+
+  const handleUnblockFromChat = async () => {
+    if (isUnblockingUser) return;
+    try {
+      await unblockUser(chatName).unwrap();
+    } catch (error: any) {
+      setModal({
+        type: 'error',
+        message: error?.data?.detail || 'Failed to unblock user',
+      });
     }
   };
 
@@ -220,6 +370,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const [reactionMenu, setReactionMenu] = useState<{ message: Message; x: number; y: number; isClosing?: boolean } | null>(null);
+  const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
 
   useEffect(() => {
     if (searchRequestKey !== lastSearchRequestKeyRef.current && searchRequestKey > 0 && !isPreview) {
@@ -232,6 +383,21 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     setIsSearchOpen(false);
     lastSearchRequestKeyRef.current = searchRequestKey;
   }, [chatId, chatName]);
+
+  useEffect(() => {
+    setHasPendingApprovalRequest(!!initialPendingApprovalRequest);
+    setPreviewFailedMessages(
+      initialPendingApprovalRequest && initialPendingApprovalMessage
+        ? [createPendingApprovalPreviewMessage(initialPendingApprovalMessage)]
+        : []
+    );
+    setPreviewMessageInput('');
+  }, [chatId, chatName, initialPendingApprovalRequest, initialPendingApprovalMessage]);
+
+  useEffect(() => {
+    if (!messageJumpRequest || isPreview) return;
+    jumpToSearchResult(messageJumpRequest.messageId);
+  }, [isPreview, messageJumpRequest?.key]);
 
   useEffect(() => {
     setPresence({
@@ -345,7 +511,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const displayedMessages = isPreview ? previewFailedMessages : messages;
 
   const content = (
-    <div className="flex flex-col h-full">
+    <div className="relative flex h-full flex-col overflow-hidden">
       <ChatHeader
         chatName={chatName}
         chatDisplayName={chatDisplayName}
@@ -411,35 +577,62 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           tempHighlightedMessageId={tempHighlightedMessageId}
           setTempHighlightedMessageId={setTempHighlightedMessageId}
           onLoadOlderMessages={loadOlderMessages}
+          onLoadNewerMessages={loadNewerMessages}
           hasMoreMessages={hasMoreMessages}
+          hasMoreNewerMessages={hasMoreNewerMessages}
           isLoadingInitialMessages={isLoadingInitialMessages}
           isLoadingOlderMessages={isLoadingOlderMessages}
+          isLoadingNewerMessages={isLoadingNewerMessages}
+          onMarkMessagesRead={markMessagesRead}
           onResendMessage={!isPreview ? handleResendMessage : undefined}
           scrollToBottomKey={chatId}
-        />
-      {!interlocutorDeleted && (
-        <MessageInput
-          ref={messageInputRef}
-          messageInput={isPreview ? previewMessageInput : messageInput}
-          setMessageInput={isPreview ? setPreviewMessageInput : setMessageInput}
-          replyTo={replyTo}
-          editingMessage={editingMessage}
-          onSendMessage={isPreview ? handleSendMessagePreview : handleSendMessage}
-          onFileUpload={isPreview ? handleFileUploadPreview : handleFileUpload}
-          onCancelReplyOrEdit={() => {
-            if (isPreview) {
-              setPreviewMessageInput('');
-            } else {
-              setReplyTo(null);
-              setEditingMessage(null);
-              setMessageInput('');
-            }
+          onScrollStart={() => {
+            if (!contextMenu && !reactionMenu) return;
+            closeMenus();
           }}
-          chatId={chatId}
-          token={token}
-          disableVoice={isPreview}
-          isSending={isPreview && isCreatingPreviewChat}
         />
+      {!interlocutorDeleted && !isBlockedByMe && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+          <MessageInput
+            ref={messageInputRef}
+            messageInput={isPreview ? previewMessageInput : messageInput}
+            setMessageInput={isPreview ? setPreviewMessageInput : setMessageInput}
+            replyTo={replyTo}
+            editingMessage={editingMessage}
+            onSendMessage={isPreview ? handleSendMessagePreview : handleSendMessage}
+            onFileUpload={isPreview ? handleFileUploadPreview : handleFileUpload}
+            onCancelReplyOrEdit={() => {
+              if (isPreview) {
+                setPreviewMessageInput('');
+              } else {
+                setReplyTo(null);
+                setEditingMessage(null);
+                setMessageInput('');
+              }
+            }}
+            chatId={chatId}
+            token={token}
+            disableVoice={isPreview}
+            isSending={isPreview && isCreatingPreviewChat}
+            disabled={isPreview && hasPendingApprovalRequest}
+            onVoiceUploadStart={createOptimisticUploadMessage}
+            onVoiceUploadProgress={updateOptimisticUploadProgress}
+            onVoiceUploadError={markOptimisticUploadFailed}
+            onVoiceUploadComplete={settleOptimisticUpload}
+          />
+        </div>
+      )}
+      {!interlocutorDeleted && isBlockedByMe && (
+        <div className="p-4 border-t border-border">
+          <button
+            onClick={handleUnblockFromChat}
+            disabled={isUnblockingUser}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary p-3 text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isUnblockingUser && <Loader2 className="h-4 w-4 animate-spin" />}
+            {translations.unblock || 'Unblock'}
+          </button>
+        </div>
       )}
       {interlocutorDeleted && !isPreview && (
         <div className="p-4 border-t border-border">
@@ -468,6 +661,11 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           reactionMenu={reactionMenu}
           setReactionMenu={setReactionMenu}
           messageInputRef={messageInputRef}
+          onForward={setForwardMessage}
+          onDeleteForMe={(messageId) => {
+            console.log('Chat: onDeleteForMe callback called with messageId:', messageId);
+            return deleteMessageForMe(messageId).unwrap();
+          }}
         />
       )}
       {reactionMenu && userId !== null && (
@@ -489,6 +687,15 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         messages={messages}
         getMessageTime={getMessageTime}
         onJumpToMessage={jumpToSearchResult}
+      />
+      <ForwardMessageDialog
+        open={!!forwardMessage}
+        onOpenChange={(open) => {
+          if (!open) setForwardMessage(null);
+        }}
+        message={forwardMessage}
+        username={username}
+        onForwarded={() => setModal({ type: 'copy', message: translations.messageForwarded || 'Message forwarded' })}
       />
       <Modal modal={modal} onClose={() => setModal(null)} />
     </div>

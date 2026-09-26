@@ -2,6 +2,8 @@ import { messengerApi } from '@/shared/api/baseApi';
 import type { User } from '@/entities/user';
 import type {
   BlockedUsersResponse,
+  PrivacyExceptionEffect,
+  PrivacyExceptionKey,
   PrivacySettings,
   SecuritySettings,
   TwoFactorConfirmResponse,
@@ -135,6 +137,15 @@ export const profileApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Privacy', 'User', 'Chat', 'Message'],
     }),
 
+    updatePrivacyExceptions: builder.mutation<PrivacySettings, { settingKey: PrivacyExceptionKey; effect: PrivacyExceptionEffect; usernames: string[] }>({
+      query: ({ settingKey, effect, usernames }) => ({
+        url: `/auth/me/privacy/exceptions/${settingKey}/${effect}`,
+        method: 'PUT',
+        body: { usernames },
+      }),
+      invalidatesTags: ['Privacy', 'User', 'Chat', 'Message'],
+    }),
+
     getBlockedUsers: builder.query<BlockedUsersResponse, void>({
       query: () => '/auth/me/blocked-users',
       providesTags: ['Privacy'],
@@ -175,6 +186,7 @@ export const {
   useDisableTwoFactorMutation,
   useGetPrivacySettingsQuery,
   useUpdatePrivacySettingsMutation,
+  useUpdatePrivacyExceptionsMutation,
   useGetBlockedUsersQuery,
   useBlockUserMutation,
   useUnblockUserMutation,

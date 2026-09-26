@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Search, Settings } from 'lucide-react';
-import { Message, ModalState, ReactionInfo } from '@/entities/message';
+import { ArrowLeft } from 'lucide-react';
+import { FileMessageContent, Message, ModalState, ReactionInfo } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
@@ -10,17 +10,29 @@ import MessageInput from '@/widgets/chat-room/ui/MessageInput';
 import ContextMenu from '@/widgets/chat-room/ui/ContextMenu';
 import ReactionMenu from '@/widgets/chat-room/ui/ReactionMenu';
 import Modal from '@/widgets/chat-room/ui/Modal';
-import MessageSearchDialog from '@/widgets/chat-room/ui/MessageSearchDialog';
-import ConfirmModal from '@/shared/ui/ConfirmModal';
+import ForwardMessageDialog from '@/widgets/chat-room/ui/ForwardMessageDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
-import GroupSettingsDialog, { GroupDetails, GroupParticipant, GroupRole } from './GroupSettingsDialog';
+import GroupProfileDialog, { type GroupDetails, type GroupParticipant, type GroupPendingInvite, type GroupProfileConfirmState, type GroupRole } from './GroupProfileDialog';
 import { authFetch, ensureAccessToken, useAccessToken } from '@/shared/auth/session';
+import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { messengerApi, useGetGroupDetailsQuery, useGetMessageHistoryQuery } from '@/app/api/messengerApi';
 import { useAppDispatch } from '@/shared/hooks/redux';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
 const MESSAGE_PAGE_SIZE = 50;
+
+const getLocalUploadFileType = (fileName: string, mimeType = '') => {
+  const extension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
+  if (mimeType.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'].includes(extension)) return 'image';
+  if (mimeType.startsWith('video/') || ['.mp4', '.mov', '.ogg'].includes(extension)) return 'video';
+  if (mimeType.startsWith('audio/') || ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'].includes(extension)) return 'audio';
+  if (['.pdf', '.doc', '.docx', '.txt'].includes(extension)) return 'document';
+  if (extension === '.pptx') return 'presention';
+  if (extension === '.zip') return 'arcive';
+  if (['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css'].includes(extension)) return 'code';
+  return 'none';
+};
 
 interface GroupComponentProps {
   chatId: number;
@@ -29,6 +41,7 @@ interface GroupComponentProps {
   firstUnreadMessageId?: number | null;
   onBack: () => void;
   onOpenUserProfile?: (username: string) => void;
+  messageJumpRequest?: { messageId: number; key: number } | null;
 }
 
 const permissionsForRole = (role?: GroupRole | null) => ({
@@ -47,6 +60,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   firstUnreadMessageId,
   onBack,
   onOpenUserProfile,
+  messageJumpRequest = null,
 }) => {
   const token = useAccessToken() || '';
   const dispatch = useAppDispatch();
@@ -56,17 +70,20 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   const [messageInput, setMessageInput] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number; isMine: boolean; isClosing?: boolean } | null>(null);
   const [reactionMenu, setReactionMenu] = useState<{ message: Message; x: number; y: number; isClosing?: boolean } | null>(null);
+  const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
-  const [groupConfirm, setGroupConfirm] = useState<{ title: string; message: string; onConfirm: () => void; isError?: boolean } | null>(null);
+  const [groupConfirm, setGroupConfirm] = useState<GroupProfileConfirmState | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number>(0);
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [groupForm, setGroupForm] = useState({ name: groupName, description: '' });
   const [participantInput, setParticipantInput] = useState('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isGroupProfileOpen, setIsGroupProfileOpen] = useState(false);
+  const [renderGroupProfile, setRenderGroupProfile] = useState(false);
+  const [isGroupProfileClosing, setIsGroupProfileClosing] = useState(false);
   const [isSavingGroup, setIsSavingGroup] = useState(false);
   const [isLoadingInitialMessages, setIsLoadingInitialMessages] = useState(false);
   const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
@@ -75,7 +92,6 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   const [readStatusMessage, setReadStatusMessage] = useState<Message | null>(null);
   const [reactionDetails, setReactionDetails] = useState<{ message: Message; reaction: string; reactions: ReactionInfo[] } | null>(null);
   const [isClosing, setIsClosing] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -100,6 +116,33 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
+
+  useEffect(() => {
+    if (isGroupProfileOpen) {
+      setRenderGroupProfile(true);
+      setIsGroupProfileClosing(true);
+      const frameId = window.requestAnimationFrame(() => setIsGroupProfileClosing(false));
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    if (!renderGroupProfile) return;
+    setIsGroupProfileClosing(true);
+    const timeoutId = window.setTimeout(() => {
+      setRenderGroupProfile(false);
+      setIsGroupProfileClosing(false);
+      setGroupConfirm(null);
+    }, 200);
+    return () => window.clearTimeout(timeoutId);
+  }, [isGroupProfileOpen, renderGroupProfile]);
+
+  const requestCloseGroupProfile = useCallback(() => {
+    if (isGroupProfileClosing) return;
+    setIsGroupProfileOpen(false);
+  }, [isGroupProfileClosing]);
+
+  const openGroupProfile = useCallback(() => {
+    setIsGroupProfileOpen(true);
+  }, []);
 
   useEffect(() => {
     setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
@@ -153,6 +196,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
         is_admin: role === 'owner' || role === 'admin',
       };
     });
+    const pendingInvites: GroupPendingInvite[] = (raw?.pending_invites || []).map((invite: any) => ({
+      request_id: invite.request_id,
+      id: invite.id,
+      username: invite.username,
+      display_name: invite.display_name || invite.username,
+      avatar_url: invite.avatar_url || DEFAULT_AVATAR,
+      status: 'pending',
+    }));
     const currentParticipant = participants.find((participant) => participant.username === username);
     const currentRole = (raw?.current_user_role || currentParticipant?.role || (raw?.owner_username === username ? 'owner' : 'member')) as GroupRole;
 
@@ -168,6 +219,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
       current_user_role: currentRole,
       permissions: permissionsForRole(currentRole),
       participants,
+      pending_invites: pendingInvites,
     };
   }, [groupName, username]);
 
@@ -183,6 +235,19 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
       dispatch(messengerApi.util.upsertQueryData('getGroupDetails', chatId, rawDetails));
     }
   }, [chatId, dispatch, groupName, normalizeGroupDetails]);
+
+  const refreshGroupDetails = useCallback(async () => {
+    if (!token || chatId <= 0) return;
+    try {
+      const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error(await response.text());
+      applyGroupDetails(await response.json());
+    } catch (error) {
+      console.error('Error refreshing group details:', error);
+    }
+  }, [applyGroupDetails, chatId, token]);
 
   const {
     data: latestGroupDetails,
@@ -230,6 +295,69 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
       .filter(Boolean)
       .some((value) => String(value).toLowerCase() === ownUsername);
   }, [currentUserId, username]);
+
+  const createOptimisticUploadMessage = useCallback((
+    file: Blob,
+    fileName: string,
+    fileType = getLocalUploadFileType(fileName, file.type),
+    caption = ''
+  ) => {
+    const tempId = -Date.now();
+    const objectUrl = URL.createObjectURL(file);
+    const content: FileMessageContent = {
+      file_url: objectUrl,
+      file_name: fileName,
+      file_type: fileType,
+      file_size: file.size,
+      ...(caption.trim() ? { caption: caption.trim() } : {}),
+    };
+    const optimisticMessage: Message = {
+      id: tempId,
+      client_temp_id: tempId,
+      local_object_url: objectUrl,
+      upload_status: 'uploading',
+      upload_progress: 1,
+      sender_id: currentUserIdRef.current || currentUserId || undefined,
+      is_own: true,
+      sender: username,
+      sender_username: username,
+      content,
+      timestamp: new Date().toISOString(),
+      avatar_url: DEFAULT_AVATAR,
+      reply_to: null,
+      is_deleted: false,
+      type: 'file',
+      reactions: [],
+      read_by: [],
+    };
+
+    setMessages((current) => [...current, optimisticMessage]);
+    return tempId;
+  }, [currentUserId, username]);
+
+  const updateOptimisticUploadProgress = useCallback((messageId: number, percent: number) => {
+    setMessages((current) => current.map((message) => (
+      message.id === messageId
+        ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
+        : message
+    )));
+  }, []);
+
+  const markOptimisticUploadFailed = useCallback((messageId: number, errorMessage?: string) => {
+    setMessages((current) => current.map((message) => (
+      message.id === messageId
+        ? {
+            ...message,
+            upload_status: 'failed',
+            delivery_error: errorMessage || translations.errorLoading || 'Upload failed',
+          }
+        : message
+    )));
+  }, [translations.errorLoading]);
+
+  const settleOptimisticUpload = useCallback((messageId: number) => {
+    updateOptimisticUploadProgress(messageId, 99);
+  }, [updateOptimisticUploadProgress]);
 
   const canDeleteMessage = useCallback((message: Message) => {
     return isOwnMessage(message) || !!groupDetails?.permissions?.can_delete_any_message;
@@ -323,7 +451,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
 
   const scrollToMessage = (messageId: number) => {
     setHighlightedMessageId(messageId);
-    setTimeout(() => setHighlightedMessageId(null), 1500);
+    setTimeout(() => setHighlightedMessageId(null), 6000);
   };
 
   const jumpToSearchResult = (messageId: number) => {
@@ -336,6 +464,11 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
     }
     scrollToMessage(messageId);
   };
+
+  useEffect(() => {
+    if (!messageJumpRequest) return;
+    jumpToSearchResult(messageJumpRequest.messageId);
+  }, [messageJumpRequest?.key]);
 
   const handleSendMessage = () => {
     const content = messageInput.trim();
@@ -352,26 +485,30 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
     setEditingMessage(null);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileUpload = async (file: File, caption = '') => {
     if (!file) return;
 
+    const optimisticMessageId = createOptimisticUploadMessage(file, file.name, undefined, caption);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chat_id', chatId.toString());
-
+    if (caption.trim()) {
+      formData.append('caption', caption.trim());
+    }
     try {
-      const response = await authFetch(`${BASE_URL}/messages/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+      await uploadWithProgress({
+        url: `${BASE_URL}/messages/upload`,
+        formData,
+        onProgress: (percent) => {
+          updateOptimisticUploadProgress(optimisticMessageId, percent);
+        },
       });
-      if (!response.ok) throw new Error(await response.text());
+      settleOptimisticUpload(optimisticMessageId);
     } catch (error) {
       console.error('Group upload error:', error);
+      markOptimisticUploadFailed(optimisticMessageId, translations.errorLoading || 'Upload failed');
       setModal({ type: 'error', message: translations.errorLoading });
     } finally {
-      event.target.value = '';
     }
   };
 
@@ -422,11 +559,45 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
             avatar_url: parsedData.avatar_url || DEFAULT_AVATAR,
             reply_to: parsedData.data.reply_to || null,
             is_deleted: parsedData.is_deleted || false,
+            delivery_error: parsedData.delivery_error || undefined,
+            forwarded_from: parsedData.forwarded_from || null,
             type: parsedData.type,
             reactions: parsedData.reactions || [],
             read_by: parsedData.read_by || [],
           };
-          setMessages((prev) => prev.some((message) => message.id === newMessage.id) ? prev : [...prev, newMessage]);
+          setMessages((prev) => {
+            const existingIndex = prev.findIndex((message) => message.id === newMessage.id);
+            if (existingIndex !== -1) {
+              const copy = [...prev];
+              copy[existingIndex] = newMessage;
+              return copy;
+            }
+
+            const pendingUploadIndex = prev.findIndex((message) => {
+              if (message.upload_status !== 'uploading' || message.type !== 'file' || newMessage.type !== 'file') return false;
+              if (typeof message.content === 'string' || typeof newMessage.content === 'string') return false;
+              const sameSender = (message.sender_id && message.sender_id === newMessage.sender_id) || message.sender === newMessage.sender;
+              return sameSender &&
+                message.content.file_name === newMessage.content.file_name &&
+                message.content.file_size === newMessage.content.file_size;
+            });
+
+            if (pendingUploadIndex !== -1) {
+              const copy = [...prev];
+              const pendingMessage = copy[pendingUploadIndex];
+              if (pendingMessage.local_object_url) {
+                window.setTimeout(() => URL.revokeObjectURL(pendingMessage.local_object_url as string), 1000);
+              }
+              copy[pendingUploadIndex] = {
+                ...newMessage,
+                client_temp_id: pendingMessage.client_temp_id ?? pendingMessage.id,
+                is_own: pendingMessage.is_own || newMessage.is_own,
+              };
+              return copy;
+            }
+
+            return [...prev, newMessage];
+          });
         } else if (parsedData.type === 'edit') {
           setMessages((prev) => prev.map((message) => (
             message.id === parsedData.message_id
@@ -482,12 +653,21 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
             };
           }));
         } else if (parsedData.type === 'group_updated' && parsedData.group?.chat_id === chatId) {
-          applyGroupDetails(parsedData.group);
+          if (parsedData.group?.participants) {
+            applyGroupDetails(parsedData.group);
+          } else {
+            void refreshGroupDetails();
+          }
           if (parsedData.removed_username === username) {
             setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
             socket.close(1000, 'Removed from group');
             setTimeout(onBack, 1000);
           }
+        } else if (
+          (parsedData.type === 'group_invite_rejected' || parsedData.type === 'group_invite_approved') &&
+          parsedData.chat_id === chatId
+        ) {
+          void refreshGroupDetails();
         } else if (parsedData.type === 'chat_deleted' && parsedData.chat_id === chatId) {
           setModal({ type: 'error', message: translations.groupDeleted });
           socket.close(1000, 'Group deleted');
@@ -522,7 +702,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
       }
       isLoadingOlderMessagesRef.current = false;
     };
-  }, [applyGroupDetails, chatId, onBack, token, translations, username]);
+  }, [applyGroupDetails, chatId, onBack, refreshGroupDetails, token, translations, username]);
 
   const handleSaveGroup = async () => {
     if (!groupForm.name.trim()) {
@@ -567,8 +747,8 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
     }
   };
 
-  const handleAddParticipant = async () => {
-    const newUsername = participantInput.trim();
+  const handleAddParticipant = async (usernameOverride?: string) => {
+    const newUsername = (usernameOverride || participantInput).trim();
     if (!newUsername) return;
     try {
       const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants`, {
@@ -577,7 +757,12 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
         body: JSON.stringify({ username: newUsername }),
       });
       if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
+      const data = await response.json();
+      if (data?.participants || data?.pending_invites) {
+        applyGroupDetails(data);
+      } else {
+        await refreshGroupDetails();
+      }
       setParticipantInput('');
     } catch (error) {
       console.error('Error adding participant:', error);
@@ -586,17 +771,28 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   };
 
   const handleRemoveParticipant = async (participantUsername: string) => {
-    try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants/${encodeURIComponent(participantUsername)}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+    window.setTimeout(() => {
+      setGroupConfirm({
+        title: translations.removeParticipant || 'Remove participant',
+        message: translations.removeParticipantConfirm || `Remove @${participantUsername} from this group? They will lose access to the group chat until someone adds them again.`,
+        confirmText: translations.remove || 'Remove',
+        isDestructive: true,
+        onConfirm: async () => {
+          setGroupConfirm(null);
+          try {
+            const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants/${encodeURIComponent(participantUsername)}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error(await response.text());
+            applyGroupDetails(await response.json());
+          } catch (error) {
+            console.error('Error removing participant:', error);
+            setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
+          }
+        },
       });
-      if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
-    } catch (error) {
-      console.error('Error removing participant:', error);
-      setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
-    }
+    }, 0);
   };
 
   const handleRoleChange = async (participantUsername: string, role: GroupRole) => {
@@ -615,11 +811,11 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   };
 
   const handleTransferOwner = (participantUsername: string) => {
-    setIsSettingsOpen(false);
     window.setTimeout(() => {
       setGroupConfirm({
         title: translations.transferOwnership || 'Transfer ownership',
-        message: translations.transferOwnershipConfirm || 'Transfer ownership to this participant?',
+        message: translations.transferOwnershipConfirm || `Transfer group ownership to @${participantUsername}? They will become the owner and you will stay in the group as an admin.`,
+        confirmText: translations.transferOwnership || 'Transfer ownership',
         onConfirm: async () => {
           setGroupConfirm(null);
           try {
@@ -640,12 +836,11 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   };
 
   const handleLeaveGroup = () => {
-    setIsSettingsOpen(false);
     window.setTimeout(() => {
       if (groupDetails?.current_user_role === 'owner') {
         setGroupConfirm({
           title: translations.leaveGroup || 'Leave group',
-          message: translations.ownerLeaveGroupHint || 'Transfer ownership before leaving the group.',
+          message: translations.ownerLeaveGroupHint || 'You are the group owner. Transfer ownership before leaving the group.',
           isError: true,
           onConfirm: () => setGroupConfirm(null),
         });
@@ -654,7 +849,14 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
 
       setGroupConfirm({
         title: translations.leaveGroup || 'Leave group',
-        message: translations.leaveGroupConfirm || 'Are you sure you want to leave this group?',
+        message: translations.leaveGroupConfirm || 'After leaving this group, the following consequences will apply:',
+        consequences: translations.leaveGroupConsequences || [
+          'You will be removed from the participants list.',
+          'You will lose access to new messages and group updates.',
+          'Another admin or owner will need to add you back.',
+        ],
+        confirmText: translations.leaveGroup || 'Leave group',
+        isDestructive: true,
         onConfirm: async () => {
           setGroupConfirm(null);
           try {
@@ -674,11 +876,17 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   };
 
   const handleDeleteGroup = () => {
-    setIsSettingsOpen(false);
     window.setTimeout(() => {
       setGroupConfirm({
         title: translations.deleteGroup || 'Delete group',
-        message: translations.deleteGroupConfirm || 'Are you sure you want to delete this group?',
+        message: translations.deleteGroupConfirm || 'After deleting this group, the following consequences will apply:',
+        consequences: translations.deleteGroupConsequences || [
+          'The group will be deleted for every participant.',
+          'Members will lose access to this conversation in the app.',
+          'This action cannot be undone.',
+        ],
+        confirmText: translations.deleteGroup || 'Delete group',
+        isDestructive: true,
         onConfirm: async () => {
           setGroupConfirm(null);
           try {
@@ -698,7 +906,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
   };
 
   const handleOpenUserProfile = (profileUsername: string) => {
-    setIsSettingsOpen(false);
+    requestCloseGroupProfile();
     setReadStatusMessage(null);
     setReactionDetails(null);
     onOpenUserProfile?.(profileUsername);
@@ -711,35 +919,25 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
     : [];
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col overflow-hidden">
       <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 items-center space-x-4">
           <button onClick={onBack} className="motion-press rounded-full p-2 transition-colors hover:bg-accent">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <img src={currentGroupAvatar} alt={currentGroupName} className="motion-avatar h-10 w-10 rounded-full object-cover" />
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold leading-tight">{currentGroupName}</h2>
-            <p className="truncate text-sm text-muted-foreground">
-              {groupDetails?.participants.length || 0} {translations.participants || 'participants'}
-              {groupDetails?.description ? ` - ${groupDetails.description}` : ''}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
           <button
-            onClick={() => setIsSearchOpen(true)}
-            className="motion-press rounded-full p-2 transition-colors hover:bg-accent"
-            title={translations.search || 'Search'}
+            type="button"
+            onClick={openGroupProfile}
+            className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 text-left outline-none focus:outline-none"
           >
-            <Search className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="motion-press rounded-full p-2 transition-colors hover:bg-accent"
-            title={translations.groupSettings || 'Group settings'}
-          >
-            <Settings className="h-5 w-5" />
+            <img src={currentGroupAvatar} alt={currentGroupName} className="motion-avatar h-9 w-9 rounded-full border border-gray-200 object-cover" />
+            <span className="flex min-w-0 flex-col items-start">
+              <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{currentGroupName}</span>
+              <span className="max-w-[52vw] truncate text-xs font-normal text-muted-foreground sm:max-w-none">
+                {groupDetails?.participants.length || 0} {translations.participants || 'participants'}
+                {groupDetails?.description ? ` - ${groupDetails.description}` : ''}
+              </span>
+            </span>
           </button>
         </div>
       </div>
@@ -773,24 +971,34 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
         }}
         onOpenReactionDetails={(message, reaction, reactions) => setReactionDetails({ message, reaction, reactions })}
         scrollToBottomKey={chatId}
+        onScrollStart={() => {
+          if (!contextMenu && !reactionMenu) return;
+          closeMenus();
+        }}
       />
 
-      <MessageInput
-        ref={messageInputRef}
-        messageInput={messageInput}
-        setMessageInput={setMessageInput}
-        replyTo={replyTo}
-        editingMessage={editingMessage}
-        onSendMessage={handleSendMessage}
-        onFileUpload={handleFileUpload}
-        onCancelReplyOrEdit={() => {
-          setReplyTo(null);
-          setEditingMessage(null);
-          setMessageInput('');
-        }}
-        chatId={chatId}
-        token={token}
-      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+        <MessageInput
+          ref={messageInputRef}
+          messageInput={messageInput}
+          setMessageInput={setMessageInput}
+          replyTo={replyTo}
+          editingMessage={editingMessage}
+          onSendMessage={handleSendMessage}
+          onFileUpload={handleFileUpload}
+          onCancelReplyOrEdit={() => {
+            setReplyTo(null);
+            setEditingMessage(null);
+            setMessageInput('');
+          }}
+          chatId={chatId}
+          token={token}
+          onVoiceUploadStart={createOptimisticUploadMessage}
+          onVoiceUploadProgress={updateOptimisticUploadProgress}
+          onVoiceUploadError={markOptimisticUploadFailed}
+          onVoiceUploadComplete={settleOptimisticUpload}
+        />
+      </div>
 
       {contextMenu && currentUserId > 0 && (
         <ContextMenu
@@ -812,6 +1020,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
           setReactionMenu={setReactionMenu}
           messageInputRef={messageInputRef}
           canDeleteMessage={canDeleteMessage}
+          onForward={setForwardMessage}
         />
       )}
 
@@ -828,9 +1037,17 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
         />
       )}
 
-      <GroupSettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
+      <GroupProfileDialog
+        open={renderGroupProfile}
+        isClosing={isGroupProfileClosing}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) {
+            openGroupProfile();
+          } else {
+            requestCloseGroupProfile();
+          }
+        }}
+        chatId={chatId}
         groupDetails={groupDetails}
         currentGroupName={currentGroupName}
         currentGroupAvatar={currentGroupAvatar}
@@ -848,9 +1065,15 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
         onRemoveParticipant={handleRemoveParticipant}
         onRoleChange={handleRoleChange}
         onTransferOwner={handleTransferOwner}
-        onDeleteGroup={handleDeleteGroup}
         onLeaveGroup={handleLeaveGroup}
+        onDeleteGroup={handleDeleteGroup}
         onOpenUserProfile={handleOpenUserProfile}
+        onJumpToMessage={(messageId) => {
+          requestCloseGroupProfile();
+          jumpToSearchResult(messageId);
+        }}
+        groupConfirm={groupConfirm}
+        onCloseGroupConfirm={() => setGroupConfirm(null)}
       />
 
       <Dialog open={!!readStatusMessage} onOpenChange={(open) => !open && setReadStatusMessage(null)}>
@@ -899,14 +1122,6 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
         </DialogContent>
       </Dialog>
 
-      <MessageSearchDialog
-        open={isSearchOpen}
-        onOpenChange={setIsSearchOpen}
-        messages={messages}
-        getMessageTime={getMessageTime}
-        onJumpToMessage={jumpToSearchResult}
-      />
-
       <Dialog open={!!reactionDetails} onOpenChange={(open) => !open && setReactionDetails(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -927,15 +1142,15 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
       </Dialog>
 
       <Modal modal={modal} onClose={() => setModal(null)} />
-      {groupConfirm && (
-        <ConfirmModal
-          title={groupConfirm.title}
-          message={groupConfirm.message}
-          onConfirm={groupConfirm.onConfirm}
-          onCancel={() => setGroupConfirm(null)}
-          isError={!!groupConfirm.isError}
-        />
-      )}
+      <ForwardMessageDialog
+        open={!!forwardMessage}
+        onOpenChange={(open) => {
+          if (!open) setForwardMessage(null);
+        }}
+        message={forwardMessage}
+        username={username}
+        onForwarded={() => setModal({ type: 'copy', message: translations.messageForwarded || 'Message forwarded' })}
+      />
     </div>
   );
 };

@@ -49,6 +49,8 @@ export interface OneOnOneChatResponse {
     unread_count?: number;
     first_unread_message_id?: number | null;
     is_pinned?: boolean;
+    pending_approval_request?: boolean;
+    pending_request_id?: number;
   }>;
 }
 
@@ -63,4 +65,49 @@ export interface GroupChatResponse {
     first_unread_message_id?: number | null;
     is_pinned?: boolean;
   }>;
+}
+
+export interface ApprovalRequestGroup {
+  chat_id: number;
+  name: string;
+  description?: string;
+  avatar_url?: string;
+}
+
+export interface ApprovalRequest {
+  id: number;
+  type: 'direct_message' | 'group_invite';
+  status: 'pending' | 'approved' | 'rejected';
+  message_text?: string;
+  created_at?: string | null;
+  responded_at?: string | null;
+  requester: User | null;
+  group?: ApprovalRequestGroup | null;
+}
+
+export interface ApprovalRequestInboxResponse {
+  requests: ApprovalRequest[];
+  unread_count: number;
+}
+
+export interface CreateChatResponse {
+  chat_id?: number;
+  message: string;
+  approval_required?: boolean;
+  already_pending?: boolean;
+  request_id?: number;
+}
+
+export interface MarkChatReadRequest {
+  chatId: number;
+  messageIds?: number[];
+  markAll?: boolean;
+}
+
+export interface MarkChatReadResponse {
+  chat_id: number;
+  unread_count: number;
+  first_unread_message_id: number | null;
+  read_message_ids: number[];
+  read_at: string;
 }

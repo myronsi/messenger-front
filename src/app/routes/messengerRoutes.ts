@@ -34,4 +34,6 @@ export interface CurrentChat {
   firstUnreadMessageId?: number | null;
   directDraftDisabled?: boolean;
   directDraftReason?: 'self' | 'blocked' | 'privacy' | null;
+  pendingApprovalRequest?: boolean;
+  pendingApprovalMessage?: string;
 }

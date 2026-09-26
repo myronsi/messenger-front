@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Plus, Menu, Search, X, Pin, PinOff } from 'lucide-react';
+import { CheckCheck, MessageSquare, Plus, Menu, Search, X, Pin, PinOff } from 'lucide-react';
 import { Chat, ChatLastMessage } from '@/entities/message';
 import UserProfileComponentRTK from '@/widgets/profile-panel/UserProfileComponentRTK';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
-import { useGetOneOnOneChatsQuery, useGetGroupChatsQuery, useCreateChatMutation, useGetCurrentUserQuery, useSetChatPinnedMutation } from '@/app/api/messengerApi';
+import { useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useGetGroupChatsQuery, useCreateChatMutation, useGetCurrentUserQuery, useSetChatPinnedMutation, useMarkChatReadMutation } from '@/app/api/messengerApi';
 import SearchUsers from './SearchUsers';
 import ChatsListHeader from './ChatsListHeader';
 import ChatListItem from './ui/ChatListItem';
@@ -16,19 +16,28 @@ import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
 
+const getMediaSrc = (path?: string | null, fallback = DEFAULT_AVATAR) => {
+  if (!path) return fallback;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return `${BASE_URL}${path}`;
+};
+
 interface ChatsListComponentProps {
   username: string;
-  onChatOpen: (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: number | null, avatarUrl?: string) => void;
+  onChatOpen: (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: number | null, avatarUrl?: string, pendingApprovalRequest?: boolean, pendingApprovalMessage?: string) => void;
   setIsProfileOpen: (open: boolean) => void;
   activeChatId?: number;
+  activeChatName?: string;
   onActiveChatUpdate?: (chat: Chat) => void;
   onChatDeleted?: (chatId: number) => void;
 }
 
 // WebSocket message interface
 interface WebSocketMessage {
-  type: 'chat_created' | 'chat_deleted' | 'group_created' | 'group_updated' | 'presence_update' | 'chat_list_message' | 'chat_list_read' | 'error';
+  type: 'approval_request_created' | 'chat_created' | 'chat_deleted' | 'group_created' | 'group_updated' | 'presence_update' | 'chat_list_message' | 'chat_list_read' | 'chat_read_batch' | 'chat_list_delete' | 'edit' | 'error';
   message?: string;
+  request_id?: number;
+  request_type?: 'direct_message' | 'group_invite';
   username?: string;
   user_id?: number;
   is_online?: boolean;
@@ -50,7 +59,12 @@ interface WebSocketMessage {
   sender_id?: number;
   reader_user_id?: number;
   message_id?: number;
+  message_ids?: number[];
+  read_at?: string;
+  new_content?: string;
   last_message?: ChatLastMessage | null;
+  unread_count?: number;
+  first_unread_message_id?: number | null;
   timestamp?: string;
 }
 
@@ -59,6 +73,7 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   onChatOpen,
   setIsProfileOpen,
   activeChatId,
+  activeChatName,
   onActiveChatUpdate,
   onChatDeleted,
 }) => {
@@ -79,6 +94,10 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   
   const [createChat, { isLoading: isCreatingChat }] = useCreateChatMutation();
   const [setChatPinned] = useSetChatPinnedMutation();
+  const [markChatRead] = useMarkChatReadMutation();
+  const { data: requestInbox, refetch: refetchRequestInbox } = useGetApprovalRequestInboxQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const { data: currentUserData } = useGetCurrentUserQuery();
 
   // Combine loading states and errors
@@ -107,15 +126,19 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   } | null>(null);
   const [presenceByUsername, setPresenceByUsername] = useState<Record<string, { is_online: boolean; last_seen: string | null }>>({});
   const [chatOverrides, setChatOverrides] = useState<Record<number, Partial<Pick<Chat, 'last_message' | 'unread_count' | 'first_unread_message_id' | 'is_pinned'>>>>({});
-  const [chatContextMenu, setChatContextMenu] = useState<{ x: number; y: number; chatId: number; isPinned: boolean } | null>(null);
+  const [chatContextMenu, setChatContextMenu] = useState<{ x: number; y: number; chatId: number; isPinned: boolean; unreadCount: number } | null>(null);
   
   const token = useAccessToken();
   const wsRef = useRef<WebSocket | null>(null);
   const chatsByIdRef = useRef<Record<number, Chat>>({});
   const activeChatIdRef = useRef(activeChatId);
+  const activeChatNameRef = useRef(activeChatName);
+  const usernameRef = useRef(username);
+  const onChatOpenRef = useRef(onChatOpen);
   const currentUserIdRef = useRef<number | undefined>(currentUserData?.id);
   const onChatDeletedRef = useRef(onChatDeleted);
   const refetchRef = useRef(refetch);
+  const refetchRequestInboxRef = useRef(refetchRequestInbox);
   const { translations, language } = useLanguage();
 
   // search logic moved to SearchUsers component
@@ -142,6 +165,8 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
       unread_count: chat.unread_count || 0,
       first_unread_message_id: chat.first_unread_message_id || null,
       is_pinned: !!chat.is_pinned,
+      pending_approval_request: !!chat.pending_approval_request,
+      pending_request_id: chat.pending_request_id,
     }));
 
     const groupChats: Chat[] = (groupChatsData?.groups || []).map((group) => withOverrides({
@@ -186,6 +211,18 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   }, [activeChatId]);
 
   useEffect(() => {
+    activeChatNameRef.current = activeChatName;
+  }, [activeChatName]);
+
+  useEffect(() => {
+    usernameRef.current = username;
+  }, [username]);
+
+  useEffect(() => {
+    onChatOpenRef.current = onChatOpen;
+  }, [onChatOpen]);
+
+  useEffect(() => {
     currentUserIdRef.current = currentUserData?.id;
   }, [currentUserData?.id]);
 
@@ -196,6 +233,10 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
   useEffect(() => {
     refetchRef.current = refetch;
   }, [refetch]);
+
+  useEffect(() => {
+    refetchRequestInboxRef.current = refetchRequestInbox;
+  }, [refetchRequestInbox]);
 
   useEffect(() => {
     if (!chatContextMenu) return;
@@ -223,14 +264,19 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
 
   const getLastMessagePreview = (lastMessage?: ChatLastMessage | null) => {
     if (!lastMessage) return translations.noMessagesYet;
+    const withEditedLabel = (preview: string) => (
+      lastMessage.edited_at ? `${translations.edited}: ${preview}` : preview
+    );
+
     if (lastMessage.type === 'file' && typeof lastMessage.content !== 'string') {
       const fileType = lastMessage.content.file_type;
       const fileName = lastMessage.content.file_name || '';
-      if (fileType === 'voice' || /\.opus$/i.test(fileName)) return translations.voiceMessagePreview;
-      if (fileType === 'image' || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) return translations.photoMessage;
-      return translations.fileMessagePreview;
+      if (fileType === 'voice' || /\.opus$/i.test(fileName)) return withEditedLabel(translations.voiceMessagePreview);
+      if (fileType === 'image' || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) return withEditedLabel(translations.photoMessage);
+      return withEditedLabel(translations.fileMessagePreview);
     }
-    return typeof lastMessage.content === 'string' ? lastMessage.content : translations.fileMessagePreview;
+    if (lastMessage.delivery_error) return lastMessage.delivery_error;
+    return withEditedLabel(typeof lastMessage.content === 'string' ? lastMessage.content : translations.fileMessagePreview);
   };
 
   const getLastMessageTime = (lastMessage?: ChatLastMessage | null) => {
@@ -324,6 +370,7 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
       wsRef.current.onopen = () => {
         if (!isMounted) return;
         console.log('WebSocket successfully connected for chat list');
+        refetchRequestInboxRef.current();
       };
 
       wsRef.current.onmessage = (event) => {
@@ -339,7 +386,46 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
         console.log('WebSocket message received:', parsedData);
 
         switch (parsedData.type) {
+          case 'approval_request_created':
+            refetchRequestInboxRef.current();
+            refetchRef.current();
+            break;
           case 'chat_created':
+            if (parsedData.chat?.chat_id) {
+              const chat = parsedData.chat;
+              const ownUsername = usernameRef.current.toLowerCase();
+              const user1 = chat.user1?.toLowerCase();
+              const user2 = chat.user2?.toLowerCase();
+              const otherUsername = user1 === ownUsername
+                ? chat.user2
+                : user2 === ownUsername
+                ? chat.user1
+                : null;
+              const activeId = activeChatIdRef.current;
+              const activeName = activeChatNameRef.current?.toLowerCase();
+
+              if (
+                typeof activeId === 'number' &&
+                activeId <= 0 &&
+                otherUsername &&
+                activeName === otherUsername.toLowerCase()
+              ) {
+                const otherAvatarUrl = user1 === ownUsername ? chat.user2_avatar_url : chat.user1_avatar_url;
+                onChatOpenRef.current(
+                  chat.chat_id,
+                  otherUsername,
+                  false,
+                  'one-on-one',
+                  otherUsername,
+                  undefined,
+                  undefined,
+                  null,
+                  getMediaSrc(otherAvatarUrl),
+                );
+              }
+            }
+            refetchRef.current();
+            break;
           case 'group_created':
           case 'group_updated':
             // Refetch chats when a new chat is created
@@ -403,6 +489,110 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
                     first_unread_message_id: parsedData.reader_user_id === currentUserIdRef.current ? null : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,
                   },
                 };
+              });
+            }
+            break;
+          case 'chat_read_batch':
+            if (parsedData.chat_id) {
+              setChatOverrides((prev) => {
+                const chatId = parsedData.chat_id as number;
+                const existing = prev[chatId] || {};
+                const baseChat = chatsByIdRef.current[chatId];
+                const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
+                const readMessageIds = parsedData.message_ids || [];
+                const readAt = parsedData.read_at || parsedData.timestamp || new Date().toISOString();
+                const readerUserId = parsedData.reader_user_id;
+                const nextLastMessage = lastMessage && readerUserId && readMessageIds.includes(lastMessage.id)
+                  ? {
+                      ...lastMessage,
+                      read_by: [
+                        ...(lastMessage.read_by || []).filter((read) => read.user_id !== readerUserId),
+                        { user_id: readerUserId, read_at: readAt },
+                      ],
+                    }
+                  : lastMessage;
+
+                return {
+                  ...prev,
+                  [chatId]: {
+                    ...existing,
+                    last_message: nextLastMessage,
+                    unread_count: readerUserId === currentUserIdRef.current
+                      ? parsedData.unread_count ?? 0
+                      : existing.unread_count ?? baseChat?.unread_count ?? 0,
+                    first_unread_message_id: readerUserId === currentUserIdRef.current
+                      ? parsedData.first_unread_message_id ?? null
+                      : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,
+                  },
+                };
+              });
+            }
+            break;
+          case 'chat_list_delete':
+            if (parsedData.chat_id) {
+              setChatOverrides((prev) => {
+                const chatId = parsedData.chat_id as number;
+                const existing = prev[chatId] || {};
+                const baseChat = chatsByIdRef.current[chatId];
+
+                return {
+                  ...prev,
+                  [chatId]: {
+                    ...existing,
+                    last_message: parsedData.last_message ?? null,
+                    unread_count: parsedData.unread_count ?? existing.unread_count ?? baseChat?.unread_count ?? 0,
+                    first_unread_message_id: parsedData.first_unread_message_id ?? null,
+                  },
+                };
+              });
+            }
+            break;
+          case 'edit':
+            if (parsedData.message_id) {
+              setChatOverrides((prev) => {
+                const updateLastMessage = (chatId: number, existing: Partial<Pick<Chat, 'last_message' | 'unread_count' | 'first_unread_message_id' | 'is_pinned'>>) => {
+                  const baseChat = chatsByIdRef.current[chatId];
+                  const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
+                  if (lastMessage?.id !== parsedData.message_id) return existing;
+
+                  return {
+                    ...existing,
+                    last_message: {
+                      ...lastMessage,
+                      content: parsedData.new_content ?? lastMessage.content,
+                      edited_at: parsedData.timestamp || new Date().toISOString(),
+                    },
+                  };
+                };
+
+                if (parsedData.chat_id) {
+                  const chatId = parsedData.chat_id as number;
+                  const existing = prev[chatId] || {};
+                  const updated = updateLastMessage(chatId, existing);
+                  if (updated === existing) return prev;
+                  return {
+                    ...prev,
+                    [chatId]: updated,
+                  };
+                }
+
+                const next = { ...prev };
+                let changed = false;
+                const chatIds = new Set<number>([
+                  ...Object.keys(chatsByIdRef.current).map(Number),
+                  ...Object.keys(prev).map(Number),
+                ]);
+
+                chatIds.forEach((chatId) => {
+                  const existing = prev[chatId] || {};
+                  const updated = updateLastMessage(chatId, existing);
+                  if (updated !== existing) {
+                    next[chatId] = updated;
+                    changed = true;
+                  }
+                });
+
+                return changed ? next : prev;
               });
             }
             break;
@@ -574,14 +764,6 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
     if (chat.id === activeChatId) {
       return;
     }
-    setChatOverrides((prev) => ({
-      ...prev,
-      [chat.id]: {
-        ...(prev[chat.id] || {}),
-        unread_count: 0,
-        first_unread_message_id: null,
-      },
-    }));
     onChatOpen(
       chat.id,
       chat.name,
@@ -591,18 +773,22 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
       chat.is_online,
       chat.last_seen,
       chat.first_unread_message_id,
-      chat.avatar_url
+      chat.avatar_url,
+      chat.pending_approval_request,
+      typeof chat.last_message?.content === 'string' ? chat.last_message.content : undefined,
     );
   };
 
   const handleChatContextMenu = (event: React.MouseEvent, chat: Chat) => {
     event.preventDefault();
     event.stopPropagation();
+    if (chat.pending_approval_request) return;
     setChatContextMenu({
       x: event.clientX,
       y: event.clientY,
       chatId: chat.id,
       isPinned: !!chat.is_pinned,
+      unreadCount: chat.unread_count || 0,
     });
   };
 
@@ -636,6 +822,47 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
     }
   };
 
+  const handleMarkChatRead = async (chatId: number) => {
+    const chat = chatsByIdRef.current[chatId];
+    const previousUnreadCount = chat?.unread_count ?? 0;
+    const previousFirstUnreadId = chat?.first_unread_message_id ?? null;
+    setChatContextMenu(null);
+    setChatOverrides((prev) => ({
+      ...prev,
+      [chatId]: {
+        ...(prev[chatId] || {}),
+        unread_count: 0,
+        first_unread_message_id: null,
+      },
+    }));
+
+    try {
+      const result = await markChatRead({ chatId, markAll: true }).unwrap();
+      setChatOverrides((prev) => ({
+        ...prev,
+        [chatId]: {
+          ...(prev[chatId] || {}),
+          unread_count: result.unread_count,
+          first_unread_message_id: result.first_unread_message_id,
+        },
+      }));
+      refetch();
+    } catch (error: any) {
+      setChatOverrides((prev) => ({
+        ...prev,
+        [chatId]: {
+          ...(prev[chatId] || {}),
+          unread_count: previousUnreadCount,
+          first_unread_message_id: previousFirstUnreadId,
+        },
+      }));
+      setModal({
+        type: 'error',
+        message: error?.data?.detail || error?.message || translations.errorLoading || 'Failed to mark chat as read',
+      });
+    }
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -643,6 +870,7 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
         <ChatsListHeader
           translations={translations}
           onOpenSearch={(rect: DOMRect) => handleOpenSearch(rect)}
+          profileIndicatorCount={requestInbox?.unread_count || 0}
           onOpenProfile={() => setIsProfileOpen(true)}
         />
         <ChatListBodySkeleton />
@@ -656,6 +884,7 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
       <ChatsListHeader
         translations={translations}
         onOpenSearch={(rect: DOMRect) => handleOpenSearch(rect)}
+        profileIndicatorCount={requestInbox?.unread_count || 0}
         onOpenProfile={() => setIsProfileOpen(true)}
       />
 
@@ -764,11 +993,21 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
           className="fixed z-50 min-w-40 rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-lg"
           style={{
             left: Math.min(chatContextMenu.x, window.innerWidth - 176),
-            top: Math.min(chatContextMenu.y, window.innerHeight - 48),
+            top: Math.min(chatContextMenu.y, window.innerHeight - (chatContextMenu.unreadCount > 0 ? 96 : 48)),
           }}
           onClick={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
         >
+          {chatContextMenu.unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={() => handleMarkChatRead(chatContextMenu.chatId)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <CheckCheck className="h-4 w-4" />
+              <span>{translations.markAsRead || 'Mark as read'}</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => handleTogglePinnedChat(chatContextMenu.chatId)}

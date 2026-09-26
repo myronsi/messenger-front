@@ -1,13 +1,36 @@
 
+export interface AudioMetadata {
+  duration?: number;
+  waveform?: number[];
+}
+
+export interface FileMessageContent {
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  caption?: string;
+  audio_metadata?: AudioMetadata;
+}
+
+export interface ForwardedFrom {
+  message_id: number;
+  sender_id?: number | null;
+  sender_name?: string | null;
+  sender_username?: string | null;
+}
+
 export interface ChatLastMessage {
   id: number;
   sender_id: number;
   sender_name: string;
-  content: string | { file_url: string; file_name: string; file_type: string; file_size: number };
+  content: string | FileMessageContent;
   type: 'message' | 'file';
   timestamp: string;
+  edited_at?: string | null;
   read_by?: ReadReceiptInfo[];
   delivery_error?: string | null;
+  forwarded_from?: ForwardedFrom | null;
 }
 
 export interface UserMessageMeta {
@@ -27,20 +50,79 @@ export interface ReadReceiptInfo extends UserMessageMeta {
 
 export interface Message {
   id: number;
+  client_temp_id?: number | null;
+  local_object_url?: string | null;
+  upload_status?: 'uploading' | 'failed';
+  upload_progress?: number;
   sender_id?: number;
   is_own?: boolean;
   sender: string;
   sender_username?: string | null;
-  content: string | { file_url: string; file_name: string; file_type: string; file_size: number };
+  content: string | FileMessageContent;
   timestamp: string;
   avatar_url?: string;
   reply_to?: number | null;
   is_deleted?: boolean;
+  deleted_for?: number[];
   edited_at?: string | null;
   type: 'message' | 'file';
   delivery_error?: string;
+  forwarded_from?: ForwardedFrom | null;
   reactions?: ReactionInfo[];
   read_by: ReadReceiptInfo[];
+}
+
+export interface ChatPhoto {
+  id: number;
+  file_url?: string;
+  url?: string;
+  file_name?: string;
+  name?: string;
+  file_type?: string;
+  file_size?: number;
+  timestamp: string;
+}
+
+export interface ChatPhotosResponse {
+  photos: ChatPhoto[];
+}
+
+export interface ChatAudio {
+  id: number;
+  file_url?: string;
+  url?: string;
+  file_name?: string;
+  name?: string;
+  file_type?: string;
+  file_size?: number;
+  audio_metadata?: AudioMetadata;
+  audio_kind: 'voice' | 'file';
+  timestamp: string;
+}
+
+export interface ChatAudiosResponse {
+  audios: ChatAudio[];
+}
+
+export interface ChatSearchResult {
+  id: number;
+  sender_id?: number;
+  sender: string;
+  sender_username?: string | null;
+  avatar_url?: string | null;
+  content: Message['content'];
+  type: Message['type'];
+  forwarded_from?: ForwardedFrom | null;
+  timestamp: string;
+}
+
+export interface ForwardMessagesResponse {
+  forwarded: Array<{ chat_id: number; message_id: number }>;
+  failed: Array<{ chat_id: number; reason: string }>;
+}
+
+export interface ChatSearchResponse {
+  results: ChatSearchResult[];
 }
 
 export interface Chat {
@@ -57,6 +139,8 @@ export interface Chat {
   unread_count?: number;
   first_unread_message_id?: number | null;
   is_pinned?: boolean;
+  pending_approval_request?: boolean;
+  pending_request_id?: number;
 }
 
 export interface ContextMenuState {

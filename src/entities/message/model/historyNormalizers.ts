@@ -59,6 +59,14 @@ export const prependUniqueMessages = (currentMessages: Message[], olderMessages:
   ];
 };
 
+export const appendUniqueMessages = (currentMessages: Message[], newerMessages: Message[]) => {
+  const existingIds = new Set(currentMessages.map((message) => message.id));
+  return [
+    ...currentMessages,
+    ...newerMessages.filter((message) => !existingIds.has(message.id)),
+  ];
+};
+
 export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {
   if (freshMessages.length === 0) {
     return currentMessages.filter((message) => message.id < 0);
@@ -78,6 +86,7 @@ export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessa
     return current
       ? {
           ...message,
+          client_temp_id: current.client_temp_id ?? message.client_temp_id,
           is_own: current.is_own || message.is_own,
           delivery_error: current.delivery_error || message.delivery_error,
         }

@@ -21,6 +21,7 @@ const MessengerApp = () => {
     setIsUserProfileOpen,
     profileUsername,
     chatSearchRequestKey,
+    messageJumpRequest,
     isLoading,
     isMobile,
     translations,
@@ -29,8 +30,7 @@ const MessengerApp = () => {
     updateActiveChatFromList,
     openUserProfile,
     closeUserProfile,
-    openCurrentChatSearch,
-    canSearchCurrentDirectChat,
+    jumpToCurrentChatMessage,
     openDirectChatFromProfile,
     handleDirectChatCreated,
     backToChats,
@@ -41,9 +41,15 @@ const MessengerApp = () => {
 
   const currentUserProfileProps = useMemo(() => ({
     username: profileUsername || currentChat?.name || '',
+    directChatId: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
+      ? currentChat.id
+      : undefined,
     onClose: closeUserProfile,
     onMessage: openDirectChatFromProfile,
-    onSearchMessages: canSearchCurrentDirectChat() ? openCurrentChatSearch : undefined,
+    onJumpToMessage: currentChat?.id && currentChat.id > 0 && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
+      ? jumpToCurrentChatMessage
+      : undefined,
+    hideMessageAction: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name,
     onDeleteChat: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
       ? handleDeleteCurrentChat
       : undefined,
@@ -97,6 +103,7 @@ const MessengerApp = () => {
           firstUnreadMessageId={currentChat.firstUnreadMessageId}
           onBack={backToChats}
           onOpenUserProfile={openUserProfile}
+          messageJumpRequest={messageJumpRequest}
         />
       )
       : (
@@ -115,8 +122,11 @@ const MessengerApp = () => {
           setIsUserProfileOpen={setIsUserProfileOpen}
           onOpenUserProfile={openUserProfile}
           searchRequestKey={chatSearchRequestKey}
+          messageJumpRequest={messageJumpRequest}
           directDraftDisabled={currentChat.directDraftDisabled}
           directDraftReason={currentChat.directDraftReason}
+          initialPendingApprovalRequest={currentChat.pendingApprovalRequest}
+          initialPendingApprovalMessage={currentChat.pendingApprovalMessage}
           onChatCreated={handleDirectChatCreated}
         />
       )
@@ -141,7 +151,8 @@ const MessengerApp = () => {
                   username={username}
                   onChatOpen={openChat}
                   setIsProfileOpen={setIsProfileOpen}
-                  activeChatId={undefined}
+                  activeChatId={currentChat?.id}
+                  activeChatName={currentChat?.name}
                   onActiveChatUpdate={updateActiveChatFromList}
                   onChatDeleted={handleChatDeleted}
                 />
@@ -176,6 +187,7 @@ const MessengerApp = () => {
                   onChatOpen={openChat}
                   setIsProfileOpen={setIsProfileOpen}
                   activeChatId={currentChat?.id}
+                  activeChatName={currentChat?.name}
                   onActiveChatUpdate={updateActiveChatFromList}
                   onChatDeleted={handleChatDeleted}
                 />

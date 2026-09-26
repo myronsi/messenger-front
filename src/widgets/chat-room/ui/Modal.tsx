@@ -1,12 +1,18 @@
 import React from 'react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
+import DeleteMessageChoiceModal from '@/shared/ui/DeleteMessageChoiceModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ModalProps {
   modal: {
-    type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser';
-    message: string;
+    type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
+    message?: string;
+    consequences?: string[];
     onConfirm?: () => void;
+    isMessageSender?: boolean;
+    messageId?: number;
+    onDeleteForMe?: () => void | Promise<void>;
+    onDeleteForAll?: () => void;
   } | null;
   onClose: () => void;
 }
@@ -15,11 +21,28 @@ const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
   const { translations } = useLanguage();
   if (!modal) return null;
 
+  // Handle delete message choice modal
+  if (modal.type === 'deleteMessageChoice') {
+    console.log('Rendering DeleteMessageChoiceModal', {
+      isMessageSender: modal.isMessageSender,
+      hasOnDeleteForMe: !!modal.onDeleteForMe,
+      hasOnDeleteForAll: !!modal.onDeleteForAll,
+    });
+    return (
+      <DeleteMessageChoiceModal
+        isMessageSender={modal.isMessageSender || false}
+        onDeleteForMe={modal.onDeleteForMe || onClose}
+        onDeleteForAll={modal.onDeleteForAll || onClose}
+        onCancel={onClose}
+      />
+    );
+  }
+
   const title =
     modal.type === 'deleteMessage'
       ? translations.deleteMessageConfirm
       : modal.type === 'deleteChat'
-      ? translations.deleteChatConfirm
+      ? translations.deleteChatConfirmTitle || translations.deleteChatConfirm
       : modal.type === 'copy'
       ? translations.success
       : translations.error;
@@ -29,11 +52,13 @@ const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
   return (
     <ConfirmModal
       title={title}
-      message={modal.message}
+      message={modal.message || ''}
+      consequences={modal.consequences}
       onConfirm={modal.onConfirm || onClose}
       onCancel={onClose}
       confirmText={confirmText}
       isError={modal.type === 'error'}
+      isDestructive={modal.type === 'deleteChat' || modal.type === 'deleteMessage'}
     />
   );
 };

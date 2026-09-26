@@ -81,6 +81,11 @@
     animation: messageIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  .motion-message-send {
+    animation: messageSendIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform;
+  }
+
   .motion-message-bubble {
     transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
   }
@@ -88,6 +93,11 @@
   .motion-message-bubble:hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 18px hsl(222.2 47.4% 11.2% / 0.08);
+  }
+
+  .motion-reaction-pop {
+    animation: reactionPop 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: center;
   }
 
   .motion-press {
@@ -117,6 +127,30 @@
 
   .motion-error-in {
     animation: errorIn 180ms ease-out both;
+  }
+
+  .profile-panel-slide-in-right {
+    animation: profilePanelSlideInRight 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .profile-panel-slide-in-left {
+    animation: profilePanelSlideInLeft 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .profile-panel-slide-out-left {
+    animation: profilePanelSlideOutLeft 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .profile-panel-slide-out-right {
+    animation: profilePanelSlideOutRight 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .overflow-anchor-none {
+    overflow-anchor: none;
   }
 
   .motion-avatar-viewer-backdrop {
@@ -195,6 +229,36 @@
     to { transform: translateY(0) scale(1); opacity: 1; }
   }
 
+  @keyframes messageSendIn {
+    from {
+      transform: translate3d(0, 42px, 0) scale(0.985);
+      opacity: 1;
+    }
+    70% {
+      transform: translate3d(0, -2px, 0) scale(1);
+      opacity: 1;
+    }
+    to {
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes reactionPop {
+    from {
+      transform: translate3d(0, 6px, 0) scale(0.72);
+      opacity: 0;
+    }
+    65% {
+      transform: translate3d(0, -1px, 0) scale(1.08);
+      opacity: 1;
+    }
+    to {
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 1;
+    }
+  }
+
   @keyframes replyIn {
     from { transform: translateY(6px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -203,6 +267,26 @@
   @keyframes errorIn {
     from { transform: translateY(4px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes profilePanelSlideInRight {
+    from { transform: translateX(100%); opacity: 0.92; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes profilePanelSlideInLeft {
+    from { transform: translateX(-100%); opacity: 0.92; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes profilePanelSlideOutLeft {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(-100%); opacity: 0.92; }
+  }
+
+  @keyframes profilePanelSlideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0.92; }
   }
 
   @keyframes presencePulse {

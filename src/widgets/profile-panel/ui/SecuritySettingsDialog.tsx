@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
-import { Loader2, Shield, Smartphone, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle2, Loader2, Shield, Smartphone, Trash2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/shared/ui/breadcrumb';
 import {
   useChangePasswordMutation,
   useConfirmTwoFactorMutation,
@@ -15,10 +22,17 @@ import {
 } from '@/app/api/messengerApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { clearAuthTokens } from '@/shared/auth/session';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
 
-interface SecuritySettingsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface SecuritySettingsPanelProps {
+  isActive: boolean;
+  onBack: () => void;
   onLoggedOut: () => void;
 }
 
@@ -28,6 +42,7 @@ const sessionDurationOptions = [
   { value: 180, label: '6 months' },
   { value: 365, label: '1 year' },
 ];
+type StatusMessage = { type: 'success' | 'error'; text: string };
 
 const shortDeviceLabel = (userAgent: string) => {
   if (!userAgent) return 'Unknown device';
@@ -54,11 +69,11 @@ const shortDeviceLabel = (userAgent: string) => {
   return `${browser} on ${os}`;
 };
 
-const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, onOpenChange, onLoggedOut }) => {
+const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, onBack, onLoggedOut }) => {
   const { translations } = useLanguage();
-  const { data: securitySettings, isLoading: isLoadingSecurity } = useGetSecuritySettingsQuery(undefined, { skip: !open });
-  const { data: sessionsData, isLoading: isLoadingSessions } = useGetSessionsQuery(undefined, { skip: !open });
-  const [updateSessionDuration, { isLoading: isUpdatingDuration }] = useUpdateSessionDurationMutation();
+  const { data: securitySettings, isLoading: isLoadingSecurity } = useGetSecuritySettingsQuery(undefined, { skip: !isActive });
+  const { data: sessionsData, isLoading: isLoadingSessions } = useGetSessionsQuery(undefined, { skip: !isActive });
+  const [updateSessionDuration] = useUpdateSessionDurationMutation();
   const [revokeSession] = useRevokeSessionMutation();
   const [revokeOtherSessions, { isLoading: isRevokingOthers }] = useRevokeOtherSessionsMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
@@ -66,20 +81,31 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
   const [confirmTwoFactor, { isLoading: isConfirming2fa }] = useConfirmTwoFactorMutation();
   const [disableTwoFactor, { isLoading: isDisabling2fa }] = useDisableTwoFactorMutation();
 
-  const [message, setMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusMessage | null>(null);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string; otpauth_uri: string } | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [disableForm, setDisableForm] = useState({ password: '', code: '' });
+  const [isSessionDurationOpen, setIsSessionDurationOpen] = useState(false);
+
+  useEffect(() => {
+    if (!status) return undefined;
+    const timeout = window.setTimeout(() => setStatus(null), status.type === 'success' ? 2200 : 4000);
+    return () => window.clearTimeout(timeout);
+  }, [status]);
+
+  const showStatus = (type: StatusMessage['type'], text: string) => {
+    setStatus({ type, text });
+  };
 
   const handleChangePassword = async () => {
     if (passwordForm.newPassword.length < 8) {
-      setMessage(translations.passwordTooShort || 'Password must be at least 8 characters');
+      showStatus('error', translations.passwordTooShort || 'Password must be at least 8 characters');
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setMessage(translations.passwordsDoNotMatch || 'Passwords do not match');
+      showStatus('error', translations.passwordsDoNotMatch || 'Passwords do not match');
       return;
     }
     try {
@@ -88,9 +114,9 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
         newPassword: passwordForm.newPassword,
       }).unwrap();
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setMessage(translations.passwordChanged || 'Password changed. Other sessions were signed out.');
+      showStatus('success', translations.saved || 'Saved');
     } catch (error: any) {
-      setMessage(error?.data?.detail || 'Failed to change password');
+      showStatus('error', error?.data?.detail || 'Failed to change password');
     }
   };
 
@@ -98,9 +124,9 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
     try {
       setRecoveryCodes([]);
       setTwoFactorSetup(await setupTwoFactor().unwrap());
-      setMessage(null);
+      setStatus(null);
     } catch (error: any) {
-      setMessage(error?.data?.detail || 'Failed to start two-factor setup');
+      showStatus('error', error?.data?.detail || 'Failed to start two-factor setup');
     }
   };
 
@@ -110,9 +136,9 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
       setRecoveryCodes(result.recovery_codes || []);
       setTwoFactorCode('');
       setTwoFactorSetup(null);
-      setMessage(translations.twoFactorEnabled || 'Two-factor authentication enabled.');
+      showStatus('success', translations.saved || 'Saved');
     } catch (error: any) {
-      setMessage(error?.data?.detail || 'Failed to enable two-factor authentication');
+      showStatus('error', error?.data?.detail || 'Failed to enable two-factor authentication');
     }
   };
 
@@ -121,9 +147,9 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
       await disableTwoFactor(disableForm).unwrap();
       setDisableForm({ password: '', code: '' });
       setRecoveryCodes([]);
-      setMessage(translations.twoFactorDisabled || 'Two-factor authentication disabled.');
+      showStatus('success', translations.saved || 'Saved');
     } catch (error: any) {
-      setMessage(error?.data?.detail || 'Failed to disable two-factor authentication');
+      showStatus('error', error?.data?.detail || 'Failed to disable two-factor authentication');
     }
   };
 
@@ -135,24 +161,56 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
         onLoggedOut();
       }
     } catch (error: any) {
-      setMessage(error?.data?.detail || 'Failed to revoke session');
+      showStatus('error', error?.data?.detail || 'Failed to revoke session');
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[86vh] max-h-[760px] max-w-2xl flex-col overflow-hidden p-0">
-        <DialogHeader className="border-b border-border px-6 py-4">
-          <DialogTitle>{translations.securityDevices || 'Security & devices'}</DialogTitle>
-        </DialogHeader>
+    <div className="relative flex h-full flex-col bg-white">
+      <div className="border-b border-border px-5 py-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild className="cursor-pointer">
+                <button type="button" onClick={onBack}>
+                  {translations.profile || 'Profile'}
+                </button>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild className="cursor-pointer">
+                <button type="button" onClick={onBack}>
+                  {translations.settings || 'Settings'}
+                </button>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="inline-flex items-center gap-2 font-medium">
+                <Smartphone className="h-4 w-4 text-muted-foreground" />
+                {translations.securityDevices || 'Security & devices'}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          {message && (
-            <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
-              {message}
-            </div>
-          )}
+      {status && (
+        <div
+          aria-live="polite"
+          className={`pointer-events-none absolute right-4 top-[58px] z-10 inline-flex max-w-[min(18rem,calc(100%-2rem))] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm ${
+            status.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-destructive/20 bg-destructive/10 text-destructive'
+          }`}
+        >
+          {status.type === 'success' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+          <span className="truncate">{status.text}</span>
+        </div>
+      )}
 
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
           <section className="rounded-lg border border-border p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium">
               <Shield className="h-4 w-4 text-muted-foreground" />
@@ -161,23 +219,44 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
             {isLoadingSecurity ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <select
-                value={securitySettings?.session_duration_days || 90}
-                onChange={async (event) => {
+              <Select
+                open={isSessionDurationOpen}
+                onOpenChange={setIsSessionDurationOpen}
+                value={String(securitySettings?.session_duration_days || 90)}
+                onValueChange={(value) => {
+                  setIsSessionDurationOpen(false);
+                  void (async () => {
                   try {
-                    await updateSessionDuration(Number(event.target.value)).unwrap();
-                    setMessage(translations.securitySettingsSaved || 'Security settings saved.');
+                    await updateSessionDuration(Number(value)).unwrap();
+                    showStatus('success', translations.saved || 'Saved');
                   } catch (error: any) {
-                    setMessage(error?.data?.detail || 'Failed to save session duration');
+                    showStatus('error', error?.data?.detail || 'Failed to save session duration');
                   }
+                  })();
                 }}
-                disabled={isUpdatingDuration}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                {sessionDurationOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+                <SelectTrigger
+                  className="w-full"
+                  onPointerDown={(event) => {
+                    if (isSessionDurationOpen) {
+                      event.preventDefault();
+                      setIsSessionDurationOpen(false);
+                    }
+                  }}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent
+                  className="z-[1300]"
+                  onEscapeKeyDown={() => setIsSessionDurationOpen(false)}
+                  onFocusOutside={() => setIsSessionDurationOpen(false)}
+                  onPointerDownOutside={() => setIsSessionDurationOpen(false)}
+                >
+                  {sessionDurationOptions.map((option) => (
+                    <SelectItem key={option.value} value={String(option.value)}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </section>
 
@@ -192,9 +271,9 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
                 onClick={async () => {
                   try {
                     await revokeOtherSessions().unwrap();
-                    setMessage(translations.otherSessionsRevoked || 'Other sessions signed out.');
+                    showStatus('success', translations.saved || 'Saved');
                   } catch (error: any) {
-                    setMessage(error?.data?.detail || 'Failed to sign out other devices');
+                    showStatus('error', error?.data?.detail || 'Failed to sign out other devices');
                   }
                 }}
                 disabled={isRevokingOthers}
@@ -284,10 +363,9 @@ const SecuritySettingsDialog: React.FC<SecuritySettingsDialogProps> = ({ open, o
               </div>
             )}
           </section>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
 
-export default SecuritySettingsDialog;
+export default SecuritySettingsPanel;
