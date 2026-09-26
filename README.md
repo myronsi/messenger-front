@@ -66,6 +66,20 @@ This project is a simple web-based messenger application designed for sending an
 or<br>
 `npm i --legacy-peer-deps`<br>
 
+### Configure the frontend
+
+Create a `.env.local` file with the API server URL:
+
+```env
+VITE_BASE_URL=http://localhost:8000
+```
+
+The WebSocket endpoint defaults to the same origin as `VITE_BASE_URL`, using `ws://` or `wss://` as appropriate. Set `VITE_WS_URL` only when WebSockets are hosted on a different origin:
+
+```env
+VITE_WS_URL=ws://localhost:8000
+```
+
 ## Usage
 
 ### Change your app.js file

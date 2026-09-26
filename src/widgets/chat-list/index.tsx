@@ -11,10 +11,10 @@ import ChatsListHeader from './ChatsListHeader';
 import ChatListItem from './ui/ChatListItem';
 import { formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
 import { clearAuthTokens, ensureAccessToken, useAccessToken } from '@/shared/auth/session';
+import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-const WS_URL = import.meta.env.VITE_WS_URL;
 
 const getMediaSrc = (path?: string | null, fallback = DEFAULT_AVATAR) => {
   if (!path) return fallback;
@@ -361,7 +361,7 @@ const ChatsListComponentRTK: React.FC<ChatsListComponentProps> = ({
       try {
         const wsToken = await ensureAccessToken();
         if (!isMounted || !wsToken) return;
-        wsRef.current = new WebSocket(`${WS_URL}/ws/chat/0?token=${wsToken}`);
+        wsRef.current = new WebSocket(getChatWebSocketUrl(0, wsToken));
       } catch (e) {
         console.error('Failed to create WebSocket for chat list', e);
         return;
