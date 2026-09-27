@@ -664,7 +664,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   };
 
   return (
-    <div className="relative flex-1 overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
+    <div className="relative min-h-0 flex-1 overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
         <div className="sticky pt-0.5 top-0 z-50 flex justify-center pointer-events-none md:w-2/3 md:mx-auto md:px-0">
           <div
