@@ -5,11 +5,11 @@ import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
 import { authFetch, ensureAccessToken } from '@/shared/auth/session';
+import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import { useGetMessageHistoryQuery, useMarkChatReadMutation } from '@/app/api/messengerApi';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-const WS_URL = import.meta.env.VITE_WS_URL;
 const MESSAGE_PAGE_SIZE = 50;
 
 const getLocalUploadFileType = (fileName: string, mimeType = '') => {
@@ -380,9 +380,10 @@ export const useChat = (
         }
         const wsToken = await ensureAccessToken();
         if (!isMounted || !wsToken) return;
-        console.log('Attempting to establish WebSocket connection to:', `${WS_URL}/ws/chat/${chatId}`);
+        const webSocketUrl = getChatWebSocketUrl(chatId, wsToken);
+        console.log('Attempting to establish WebSocket connection to:', webSocketUrl.replace(/[?].*$/, ''));
         try {
-          const socket = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${wsToken}`);
+          const socket = new WebSocket(webSocketUrl);
           wsRef.current = socket;
 
           socket.onopen = () => {

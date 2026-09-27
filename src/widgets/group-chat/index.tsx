@@ -14,12 +14,12 @@ import ForwardMessageDialog from '@/widgets/chat-room/ui/ForwardMessageDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import GroupProfileDialog, { type GroupDetails, type GroupParticipant, type GroupPendingInvite, type GroupProfileConfirmState, type GroupRole } from './GroupProfileDialog';
 import { authFetch, ensureAccessToken, useAccessToken } from '@/shared/auth/session';
+import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { messengerApi, useGetGroupDetailsQuery, useGetMessageHistoryQuery } from '@/app/api/messengerApi';
 import { useAppDispatch } from '@/shared/hooks/redux';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-const WS_URL = import.meta.env.VITE_WS_URL;
 const MESSAGE_PAGE_SIZE = 50;
 
 const getLocalUploadFileType = (fileName: string, mimeType = '') => {
@@ -523,7 +523,7 @@ const GroupComponent: React.FC<GroupComponentProps> = ({
       const wsToken = await ensureAccessToken();
       if (!isMounted || !wsToken) return;
 
-      const socket = new WebSocket(`${WS_URL}/ws/chat/${chatId}?token=${wsToken}`);
+      const socket = new WebSocket(getChatWebSocketUrl(chatId, wsToken));
       wsRef.current = socket;
 
       socket.onopen = () => {
