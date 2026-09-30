@@ -22,6 +22,7 @@ export const chat = {
   messageDeleted: "[Message deleted]",
   deletedUserInfo: "Deleted user information is unavailable.",
   newMessages: "New messages",
+  moveDown: "Move down",
   markAsRead: "Mark as read",
   noMessagesYet: "No messages yet",
   photoMessage: "Photo",
