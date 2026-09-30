@@ -58,9 +58,9 @@ export const useMessageListScroll = ({
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const previousScrollHeightRef = useRef(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setVisibleFirstUnreadId(firstUnreadMessageId ?? null);
-    hasScrolledToFirstUnreadRef.current = false;
+    if (!hasScrolledInitialRef.current) hasScrolledToFirstUnreadRef.current = false;
   }, [firstUnreadMessageId]);
 
   useEffect(() => {

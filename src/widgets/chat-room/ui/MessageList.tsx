@@ -83,20 +83,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const onScrollStart = props.onScrollStart;
   const onMarkMessagesRead = props.onMarkMessagesRead;
 
-  const {
-    currentDate,
-    isScrolling,
-    visibleFirstUnreadId,
-    setVisibleFirstUnreadId,
-    chatContainerRef,
-    firstUnreadMarkerRef,
-  } = useMessageListScroll({
-    messages, messageRefs, firstUnreadMessageId, highlightedMessageId, tempHighlightedMessageId,
-    getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages,
-    isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages,
-    onScrollStart, scrollToBottomKey,
-  });
-
   const isOwnMessage = (message: Message) => {
     if (message.is_own) return true;
     if (userId && message.sender_id) return message.sender_id === userId;
@@ -106,6 +92,28 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
       .some((value) => String(value).toLowerCase() === ownUsername);
   };
 
+  const visibleUnreadBoundaryId = (() => {
+    if (!firstUnreadMessageId) return null;
+    const boundaryIndex = messages.findIndex((message) => message.id === firstUnreadMessageId);
+    if (boundaryIndex === -1) return firstUnreadMessageId;
+    const firstUnreadMessage = messages.slice(boundaryIndex).find((message) => (
+      !isOwnMessage(message) &&
+      !(userId > 0 && message.read_by?.some((reader) => reader.user_id === userId))
+    ));
+    return firstUnreadMessage?.id ?? null;
+  })();
+
+  const {
+    currentDate,
+    isScrolling,
+    chatContainerRef,
+    firstUnreadMarkerRef,
+  } = useMessageListScroll({
+    messages, messageRefs, firstUnreadMessageId, highlightedMessageId, tempHighlightedMessageId,
+    getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages,
+    isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages,
+    onScrollStart, scrollToBottomKey,
+  });
 
   const observerRef = useMessageReadReceipts({
     messages, username, userId, messageRefs, chatContainerRef, isOwnMessage,
@@ -190,7 +198,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
             messages={messages}
             userId={userId}
             isGroup={isGroup}
-            visibleFirstUnreadId={visibleFirstUnreadId}
+            visibleFirstUnreadId={visibleUnreadBoundaryId}
             translations={translations}
             interlocutorDeleted={interlocutorDeleted}
             highlightedMessageId={highlightedMessageId}
