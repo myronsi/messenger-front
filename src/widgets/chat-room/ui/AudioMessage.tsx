@@ -240,7 +240,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
           })}
         </button>
         <span className="text-[11px] leading-none opacity-75">
-          {loadError ? 'Ошибка' : isDurationUnknown ? `${formatAudioTime(audioState.currentTime)} / Неизвестно` : `${formatTime(audioState.currentTime)} / ${formatAudioTime(audioState.duration)}`}
+          {loadError ? 'Ошибка' : isDurationUnknown ? `${formatAudioTime(audioState.currentTime)} / Неизвестно` : `${formatAudioTime(audioState.currentTime)} / ${formatAudioTime(audioState.duration)}`}
         </span>
       </div>
       <audio ref={audioRef} src={fileUrl} preload="auto" />
