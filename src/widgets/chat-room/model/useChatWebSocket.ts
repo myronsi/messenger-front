@@ -285,7 +285,7 @@ export const useChatWebSocket = ({
       if (wsRef.current) {
         try { wsRef.current.close(1000, 'Component unmounted'); } catch (e) {}
         wsRef.current = null;
-          }
-        };
+      }
+    };
   }, [applyReadReceiptBatch, chatId, token, connectionRetryKey]);
 };

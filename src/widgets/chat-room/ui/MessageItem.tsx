@@ -97,7 +97,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const showSenderName = isGroup && !isMine && !groupedWithPrevious;
   const reserveAvatarSpace = isGroup && !isMine;
   const showAvatar = reserveAvatarSpace && isLastInGroup;
-  const showTail = isLastInGroup && !isImageMessage(message);
+  const isImage = isImageMessage(message);
+  const showTail = isLastInGroup && !isImage;
   const forwardedFrom = message.forwarded_from;
   const forwardedLabel = forwardedFrom
     ? (translations.forwardedFrom || 'Forwarded from {sender}').replace(
@@ -153,7 +154,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }}
         onContextMenu={(event) => onMessageClick(event, message)}
       >
-        <div className={`flex items-end space-x-2 max-w-[350px] md:max-w-2/3 ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
+        <div className={`flex min-w-0 items-end space-x-2 max-w-[85%] md:max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
           {showAvatar && (
             <button type="button" className="mb-1 shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring" onClick={(event) => {
               event.stopPropagation();
@@ -163,7 +164,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             </button>
           )}
           {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}
-          <div className={`group relative flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+          <div className={`group relative flex min-w-0 flex-col ${isMine ? 'items-end' : 'items-start'}`}>
             {showSenderName && (
               <button type="button" onClick={(event) => {
                 event.stopPropagation();
@@ -172,16 +173,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 {message.sender}
               </button>
             )}
-            <div className={`motion-message-bubble relative rounded-2xl break-words overflow-wrap-anywhere w-full max-w-[350px] md:max-w-full ${
+            <div className={`motion-message-bubble relative w-fit min-w-0 max-w-full rounded-2xl [overflow-wrap:anywhere] ${
               isMine ? `bg-primary text-primary-foreground${showTail ? ' message-tail-right' : ''}` : `bg-accent text-accent-foreground${showTail ? ' message-tail-left' : ''}`
-            } ${isImageMessage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}` : `px-4 py-2 border${isMine ? ' border-primary' : ' border-accent'}`} ${
-              hasReactions ? (isImageMessage ? 'mb-4' : 'mb-3.5') : ''
+            } ${isImage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}` : `px-4 py-2 border${isMine ? ' border-primary' : ' border-accent'}`} ${
+              hasReactions ? (isImage ? 'mb-4' : 'mb-3.5') : ''
             }`}>
               {forwardedLabel && <div className="mb-1 text-xs font-medium opacity-70">{forwardedLabel}</div>}
               {message.reply_to && <ReplyPreview replyMessage={messages.find((item) => item.id === message.reply_to)} isMine={isMine} onClick={handleReply} />}
               <div className="relative">
                 {renderContent(message)}
-                {isImageMessage(message) && isValidTimestamp(message.timestamp) && (
+                {isImage && isValidTimestamp(message.timestamp) && (
                   <div className={`absolute bottom-1 text-[10px] px-2 py-1 bg-gray-500/50 rounded-xl flex items-center space-x-1 ${isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'}`}>
                     {message.edited_at && <span>{translations.edited}</span>}
                     <span>{getMessageTime(message.timestamp)}</span>
@@ -199,10 +200,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 )}
               </div>
               {message.reactions?.length ? (
-                <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImageMessage(message)} wsRef={wsRef}
+                <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} wsRef={wsRef}
                   onOpenReactionDetails={(reaction, reactions) => onOpenReactionDetails?.(message, reaction, reactions)} />
               ) : null}
-              {!isImageMessage(message) && isValidTimestamp(message.timestamp) && (
+              {!isImage && isValidTimestamp(message.timestamp) && (
                 <div className={`text-[10px] mt-1 opacity-80 select-none flex items-center space-x-1 ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
                   {message.edited_at && <span>{translations.edited}</span>}
                   <span>{getMessageTime(message.timestamp)}</span>

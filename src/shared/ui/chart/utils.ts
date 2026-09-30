@@ -1,5 +1,5 @@
 import type { ChartConfig } from "./chart-context"
-function getPayloadConfigFromPayload(
+export function getPayloadConfigFromPayload(
   config: ChartConfig,
   payload: unknown,
   key: string

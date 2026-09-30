@@ -185,7 +185,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
                 />
                 <button
                   type="button"
-                  onClick={handleBlockUser}
+                  onClick={() => handleBlockUser()}
                   disabled={!blockUsername.trim() || isBlockingUser}
                   className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
