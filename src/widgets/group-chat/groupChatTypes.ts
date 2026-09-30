@@ -1,0 +1,107 @@
+import type * as React from 'react';
+import type { Message, ModalState, ReactionInfo } from '@/entities/message';
+import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupProfileConfirmState, GroupRole } from './GroupProfileTypes';
+
+export interface GroupComponentProps {
+  chatId: number;
+  groupName: string;
+  username: string;
+  firstUnreadMessageId?: number | null;
+  onBack: () => void;
+  onOpenUserProfile?: (username: string) => void;
+  messageJumpRequest?: { messageId: number; key: number } | null;
+}
+
+export type GroupTranslations = Record<string, string> & { leaveGroupConsequences?: string[]; deleteGroupConsequences?: string[] };
+export interface RawGroupParticipant { id: number; username: string; display_name?: string; avatar_url?: string; role?: GroupRole; is_owner?: boolean; is_admin?: boolean; }
+export interface RawGroupPendingInvite { request_id: number; id: number; username: string; display_name?: string; avatar_url?: string; }
+export interface RawGroupDetails { chat_id: number; name?: string; description?: string; avatar_url?: string; owner_id?: number; owner_username?: string; admin_id?: number; admin_username?: string; current_user_role?: GroupRole; participants?: RawGroupParticipant[]; pending_invites?: RawGroupPendingInvite[]; }
+
+type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
+type ContextMenuState = { x: number; y: number; messageId: number; isMine: boolean; isClosing?: boolean } | null;
+type ReactionMenuState = { message: Message; x: number; y: number; isClosing?: boolean } | null;
+type ReactionDetailsState = { message: Message; reaction: string; reactions: ReactionInfo[] } | null;
+
+export interface GroupChatViewModel {
+  chatId: number;
+  username: string;
+  messages: Message[];
+  onBack: () => void;
+  openGroupProfile: () => void;
+  currentGroupAvatar: string;
+  currentGroupName: string;
+  groupDetails: GroupDetails | null;
+  translations: GroupTranslations;
+  currentUserId: number;
+  firstUnreadMessageId?: number | null;
+  handleMessageClick: (event: React.MouseEvent, message: Message) => void;
+  handleOpenUserProfile: (username: string) => void;
+  highlightedMessageId: number | null;
+  contextMenu: ContextMenuState;
+  getFormattedDateLabel: (timestamp: string) => string;
+  getMessageTime: (timestamp: string) => string;
+  canDeleteMessage: (message: Message) => boolean;
+  jumpToSearchResult: (messageId: number) => void;
+  setHighlightedMessageId: Setter<number | null>;
+  messageRefs: React.MutableRefObject<Record<number, HTMLDivElement | null>>;
+  scrollToMessage: (messageId: number) => void;
+  wsRef: React.MutableRefObject<WebSocket | null>;
+  openMenus: (message: Message, event: React.MouseEvent) => void;
+  tempHighlightedMessageId: number | null;
+  setTempHighlightedMessageId: Setter<number | null>;
+  loadOlderMessages: () => Promise<void>;
+  hasMoreMessages: boolean;
+  isLoadingOlderMessages: boolean;
+  isLoadingInitialMessages: boolean;
+  isOwnMessage: (message: Message) => boolean;
+  setReadStatusMessage: Setter<Message | null>;
+  setReactionDetails: Setter<ReactionDetailsState>;
+  closeMenus: () => void;
+  reactionMenu: ReactionMenuState;
+  messageInputRef: React.RefObject<HTMLInputElement | null>;
+  messageInput: string;
+  setMessageInput: Setter<string>;
+  replyTo: Message | null;
+  editingMessage: Message | null;
+  handleSendMessage: () => void;
+  handleFileUpload: (file: File, caption?: string) => Promise<void>;
+  setReplyTo: Setter<Message | null>;
+  setEditingMessage: Setter<Message | null>;
+  token: string;
+  createOptimisticUploadMessage: (file: Blob, fileName: string, fileType?: string, caption?: string) => number;
+  updateOptimisticUploadProgress: (messageId: number, percent: number) => void;
+  markOptimisticUploadFailed: (messageId: number, errorMessage?: string) => void;
+  settleOptimisticUpload: (messageId: number) => void;
+  contextMenuRef: React.RefObject<HTMLDivElement | null>;
+  setContextMenu: Setter<ContextMenuState>;
+  setModal: Setter<ModalState | null>;
+  isClosing: boolean;
+  setForwardMessage: Setter<Message | null>;
+  reactionMenuRef: React.RefObject<HTMLDivElement | null>;
+  setReactionMenu: Setter<ReactionMenuState>;
+  renderGroupProfile: boolean;
+  isGroupProfileClosing: boolean;
+  requestCloseGroupProfile: () => void;
+  groupForm: { name: string; description: string };
+  setGroupForm: Setter<{ name: string; description: string }>;
+  participantInput: string;
+  setParticipantInput: Setter<string>;
+  isSavingGroup: boolean;
+  groupAvatarInputRef: React.RefObject<HTMLInputElement | null>;
+  getAvatarSrc: (avatarUrl?: string | null) => string;
+  handleGroupAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
+  handleSaveGroup: () => void | Promise<void>;
+  handleAddParticipant: (usernameOverride?: string) => void | Promise<void>;
+  handleRemoveParticipant: (username: string) => void;
+  handleRoleChange: (username: string, role: GroupRole) => void | Promise<void>;
+  handleTransferOwner: (username: string) => void;
+  handleLeaveGroup: () => void;
+  handleDeleteGroup: () => void;
+  groupConfirm: GroupProfileConfirmState | null;
+  setGroupConfirm: Setter<GroupProfileConfirmState | null>;
+  unreadParticipants: GroupParticipant[];
+  readStatusMessage: Message | null;
+  reactionDetails: ReactionDetailsState;
+  modal: ModalState | null;
+  forwardMessage: Message | null;
+}

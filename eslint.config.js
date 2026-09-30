@@ -24,6 +24,60 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      "max-lines": [
+        "error",
+        { max: 299, skipBlankLines: false, skipComments: false },
+      ],
     },
-  }
+  },
+  {
+    files: ["**/index.{ts,tsx}"],
+    rules: {
+      "max-lines": [
+        "error",
+        { max: 30, skipBlankLines: false, skipComments: false },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration",
+          message: "Index files should only re-export public modules.",
+        },
+        {
+          selector: "ExportDefaultDeclaration",
+          message: "Index files should only re-export public modules.",
+        },
+        {
+          selector: "ExportNamedDeclaration:not([source])",
+          message: "Index files should only re-export public modules.",
+        },
+        {
+          selector: "VariableDeclaration",
+          message: "Index files should not contain implementation logic.",
+        },
+        {
+          selector: "FunctionDeclaration",
+          message: "Index files should not contain implementation logic.",
+        },
+        {
+          selector: "ClassDeclaration",
+          message: "Index files should not contain implementation logic.",
+        },
+        {
+          selector: "TSInterfaceDeclaration, TSTypeAliasDeclaration, TSEnumDeclaration, TSImportEqualsDeclaration",
+          message: "Index files should only re-export public modules.",
+        },
+        {
+          selector: "ExpressionStatement, IfStatement, ForStatement, WhileStatement, TryStatement, ReturnStatement",
+          message: "Index files should not contain implementation logic.",
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/shared/ui/sidebar.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );

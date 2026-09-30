@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { AlertCircle, CheckCircle2, Loader2, Shield, Smartphone, Trash2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -9,19 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/shared/ui/breadcrumb';
-import {
-  useChangePasswordMutation,
-  useConfirmTwoFactorMutation,
-  useDisableTwoFactorMutation,
-  useGetSecuritySettingsQuery,
-  useGetSessionsQuery,
-  useRevokeOtherSessionsMutation,
-  useRevokeSessionMutation,
-  useSetupTwoFactorMutation,
-  useUpdateSessionDurationMutation,
-} from '@/app/api/messengerApi';
-import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { clearAuthTokens } from '@/shared/auth/session';
+import { useSecuritySettings } from './useSecuritySettings';
 import {
   Select,
   SelectContent,
@@ -35,14 +23,6 @@ interface SecuritySettingsPanelProps {
   onBack: () => void;
   onLoggedOut: () => void;
 }
-
-const sessionDurationOptions = [
-  { value: 30, label: '1 month' },
-  { value: 90, label: '3 months' },
-  { value: 180, label: '6 months' },
-  { value: 365, label: '1 year' },
-];
-type StatusMessage = { type: 'success' | 'error'; text: string };
 
 const shortDeviceLabel = (userAgent: string) => {
   if (!userAgent) return 'Unknown device';
@@ -69,101 +49,15 @@ const shortDeviceLabel = (userAgent: string) => {
   return `${browser} on ${os}`;
 };
 
+const sessionDurationOptions = [
+  { value: 30, label: '1 month' },
+  { value: 90, label: '3 months' },
+  { value: 180, label: '6 months' },
+  { value: 365, label: '1 year' },
+];
+
 const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, onBack, onLoggedOut }) => {
-  const { translations } = useLanguage();
-  const { data: securitySettings, isLoading: isLoadingSecurity } = useGetSecuritySettingsQuery(undefined, { skip: !isActive });
-  const { data: sessionsData, isLoading: isLoadingSessions } = useGetSessionsQuery(undefined, { skip: !isActive });
-  const [updateSessionDuration] = useUpdateSessionDurationMutation();
-  const [revokeSession] = useRevokeSessionMutation();
-  const [revokeOtherSessions, { isLoading: isRevokingOthers }] = useRevokeOtherSessionsMutation();
-  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
-  const [setupTwoFactor, { isLoading: isSettingUp2fa }] = useSetupTwoFactorMutation();
-  const [confirmTwoFactor, { isLoading: isConfirming2fa }] = useConfirmTwoFactorMutation();
-  const [disableTwoFactor, { isLoading: isDisabling2fa }] = useDisableTwoFactorMutation();
-
-  const [status, setStatus] = useState<StatusMessage | null>(null);
-  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string; otpauth_uri: string } | null>(null);
-  const [twoFactorCode, setTwoFactorCode] = useState('');
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  const [disableForm, setDisableForm] = useState({ password: '', code: '' });
-  const [isSessionDurationOpen, setIsSessionDurationOpen] = useState(false);
-
-  useEffect(() => {
-    if (!status) return undefined;
-    const timeout = window.setTimeout(() => setStatus(null), status.type === 'success' ? 2200 : 4000);
-    return () => window.clearTimeout(timeout);
-  }, [status]);
-
-  const showStatus = (type: StatusMessage['type'], text: string) => {
-    setStatus({ type, text });
-  };
-
-  const handleChangePassword = async () => {
-    if (passwordForm.newPassword.length < 8) {
-      showStatus('error', translations.passwordTooShort || 'Password must be at least 8 characters');
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showStatus('error', translations.passwordsDoNotMatch || 'Passwords do not match');
-      return;
-    }
-    try {
-      await changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      }).unwrap();
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
-      showStatus('error', error?.data?.detail || 'Failed to change password');
-    }
-  };
-
-  const handleStartTwoFactor = async () => {
-    try {
-      setRecoveryCodes([]);
-      setTwoFactorSetup(await setupTwoFactor().unwrap());
-      setStatus(null);
-    } catch (error: any) {
-      showStatus('error', error?.data?.detail || 'Failed to start two-factor setup');
-    }
-  };
-
-  const handleConfirmTwoFactor = async () => {
-    try {
-      const result = await confirmTwoFactor(twoFactorCode).unwrap();
-      setRecoveryCodes(result.recovery_codes || []);
-      setTwoFactorCode('');
-      setTwoFactorSetup(null);
-      showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
-      showStatus('error', error?.data?.detail || 'Failed to enable two-factor authentication');
-    }
-  };
-
-  const handleDisableTwoFactor = async () => {
-    try {
-      await disableTwoFactor(disableForm).unwrap();
-      setDisableForm({ password: '', code: '' });
-      setRecoveryCodes([]);
-      showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
-      showStatus('error', error?.data?.detail || 'Failed to disable two-factor authentication');
-    }
-  };
-
-  const handleRevokeSession = async (sessionId: string, isCurrent: boolean) => {
-    try {
-      await revokeSession(sessionId).unwrap();
-      if (isCurrent) {
-        clearAuthTokens();
-        onLoggedOut();
-      }
-    } catch (error: any) {
-      showStatus('error', error?.data?.detail || 'Failed to revoke session');
-    }
-  };
+  const { translations, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions, isRevokingOthers, isChangingPassword, isSettingUp2fa, isConfirming2fa, isDisabling2fa, status, passwordForm, setPasswordForm, twoFactorSetup, twoFactorCode, setTwoFactorCode, recoveryCodes, disableForm, setDisableForm, isSessionDurationOpen, setIsSessionDurationOpen, handleChangePassword, handleStartTwoFactor, handleConfirmTwoFactor, handleDisableTwoFactor, handleRevokeSession, handleUpdateSessionDuration, handleRevokeOtherSessions } = useSecuritySettings(isActive, onLoggedOut);
 
   return (
     <div className="relative flex h-full flex-col bg-white">
@@ -225,14 +119,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
                 value={String(securitySettings?.session_duration_days || 90)}
                 onValueChange={(value) => {
                   setIsSessionDurationOpen(false);
-                  void (async () => {
-                  try {
-                    await updateSessionDuration(Number(value)).unwrap();
-                    showStatus('success', translations.saved || 'Saved');
-                  } catch (error: any) {
-                    showStatus('error', error?.data?.detail || 'Failed to save session duration');
-                  }
-                  })();
+                  void handleUpdateSessionDuration(value);
                 }}
               >
                 <SelectTrigger
@@ -268,14 +155,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
               </div>
               <button
                 type="button"
-                onClick={async () => {
-                  try {
-                    await revokeOtherSessions().unwrap();
-                    showStatus('success', translations.saved || 'Saved');
-                  } catch (error: any) {
-                    showStatus('error', error?.data?.detail || 'Failed to sign out other devices');
-                  }
-                }}
+                onClick={handleRevokeOtherSessions}
                 disabled={isRevokingOthers}
                 className="rounded-md border border-input px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
               >

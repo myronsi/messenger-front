@@ -104,32 +104,20 @@ run `npm start` (in client directory)
 
 
 ## Project Structure
-<pre>
-messenger/
-├── README.md
-├── LICENSE
-├── requirements.txt
-├── client/
-│   ├── README.md
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── public/
-│   │   ├── index.html
-│   │   ├── manifest.json
-│   │   └── robots.txt
-│   └── src/
-│       ├── App.tsx
-│       ├── index.tsx
-│       ├── styles.css
-│       ├── types.ts
-│       └── components/
-│           ├── ChatComponent.tsx
-│           ├── ChatsListComponent.tsx
-│           ├── ContextMenuComponent.tsx
-│           ├── LoginComponent.tsx
-│           ├── RegisterComponent.tsx
-│           └── .gitignore
-        ├── auth.py
-        ├── chats.py
-        └── messages.py
-</pre>
+
+### Frontend conventions
+
+- Keep `index.ts` and `index.tsx` files as public barrels containing only re-exports; keep them at 30 lines or fewer.
+- Keep frontend source files below 300 lines. Split larger files by responsibility rather than by arbitrary line ranges.
+- Put business logic, hooks, and pure helpers in `.ts` files; keep `.tsx` files focused on rendering and pass explicit, typed props to child views.
+- Use shared context or the existing API/data layer for genuinely shared state instead of threading it through unrelated components.
+
+```text
+src/
+├── app/          # Application setup, routes, store, and API wiring
+├── pages/        # Route-level screens and page controllers
+├── widgets/      # User-facing compositions such as chat room and profile panel
+├── features/     # Focused user actions and workflows
+├── entities/     # Domain models, types, and entity APIs
+└── shared/       # Reusable UI, hooks, utilities, localization, and styles
+```
