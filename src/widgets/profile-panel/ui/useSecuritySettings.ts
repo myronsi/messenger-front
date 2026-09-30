@@ -35,6 +35,10 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
   const [isSessionDurationOpen, setIsSessionDurationOpen] = useState(false);
 
   useEffect(() => {
+    if (!isActive) setIsSessionDurationOpen(false);
+  }, [isActive]);
+
+  useEffect(() => {
     if (!status) return undefined;
     const timeout = window.setTimeout(() => setStatus(null), status.type === 'success' ? 2200 : 4000);
     return () => window.clearTimeout(timeout);
