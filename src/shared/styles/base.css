@@ -1,0 +1,193 @@
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --primary-darker: 221.2 83.2% 43.3%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-darker: 210 40% 91.1%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem; /* adjust to taste: 0.375rem = md-like, 0.5rem = lg-like */
+  }
+
+  * {
+    @apply border-border;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  input, textarea, select, button, [contenteditable], .selectable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+
+  /* Motion system */
+  .animate-fade-in {
+    animation: fadeIn 180ms ease-out both;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .chat-slide-in {
+    animation: chatSlideIn 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-panel-in {
+    animation: panelIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-sheet-in {
+    animation: sheetIn 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-list-item {
+    animation: listItemIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .motion-list-item:hover {
+    transform: translateX(2px);
+  }
+
+  .motion-message {
+    animation: messageIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-message-send {
+    animation: messageSendIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform;
+  }
+
+  .motion-message-bubble {
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .motion-message-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px hsl(222.2 47.4% 11.2% / 0.08);
+  }
+
+  .motion-reaction-pop {
+    animation: reactionPop 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: center;
+  }
+
+  .motion-press {
+    transition: transform 120ms ease, background-color 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+    touch-action: manipulation;
+  }
+
+  .motion-press:active {
+    transform: scale(0.96);
+  }
+
+  .motion-avatar {
+    transition: transform 180ms ease, opacity 160ms ease, box-shadow 180ms ease;
+  }
+
+  .motion-avatar:hover {
+    transform: scale(1.04);
+  }
+
+  .motion-presence {
+    animation: presencePulse 1.8s ease-out infinite;
+  }
+
+  .motion-reply-in {
+    animation: replyIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-error-in {
+    animation: errorIn 180ms ease-out both;
+  }
+
+  .profile-panel-slide-in-right {
+    animation: profilePanelSlideInRight 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .profile-panel-slide-in-left {
+    animation: profilePanelSlideInLeft 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .profile-panel-slide-out-left {
+    animation: profilePanelSlideOutLeft 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .profile-panel-slide-out-right {
+    animation: profilePanelSlideOutRight 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .overflow-anchor-none {
+    overflow-anchor: none;
+  }
+
+  .motion-avatar-viewer-backdrop {
+    animation: fadeIn 160ms ease-out both;
+  }
+
+  .motion-avatar-viewer-image {
+    animation: avatarImageIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  /* Message tails */
+  .message-tail-right {
+    position: relative;
+  }
+
+  .message-tail-right::after {
+    content: "";
+    position: absolute;
+    right: -8px;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    background: hsl(var(--primary));
+    clip-path: polygon(0 0, 0% 100%, 100% 100%);
+    border-bottom-right-radius: 8px;
+  }
+
+  .message-tail-left {
+    position: relative;
+  }
+
+  .message-tail-left::after {
+    content: "";
+    position: absolute;
+    left: -8px;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    background: hsl(var(--accent));
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
+    border-bottom-left-radius: 8px;
+  }
+
+}

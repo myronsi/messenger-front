@@ -1,20 +1,18 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, Check, Image as ImageIcon, Info, Loader2, MessageCircle, Music, Pencil, Search, Trash2, UserRound, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, Image as ImageIcon, Info, Loader2, Music, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { useBlockUserMutation, useGetBlockedUsersQuery, useGetChatAudiosQuery, useGetChatPhotosQuery, useGetCurrentUserQuery, useGetUserByUsernameQuery, useUnblockUserMutation, useUpdateContactDisplayNameMutation } from '@/app/api/messengerApi';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
-import ConfirmModal from '@/shared/ui/ConfirmModal';
-import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
-import { formatDateOnly } from '@/shared/utils/dateFormatters';
-import { UserProfileSkeleton } from '@/shared/ui/messenger-skeletons';
-import {
-  ProfileAudiosPanel,
-  ProfilePhotosPanel,
-  ProfileSearchPanel,
-  toProfileAudios,
-  toProfilePhotos,
-} from './ui/ProfileChatPanels';
+import UserProfileInfoPanel from './ui/UserProfileInfoPanel';
+import UserProfileHeader from './ui/UserProfileHeader';
+import UserProfileActions from './ui/UserProfileActions';
+import { UserProfileShell, UserProfileState } from './ui/UserProfileShell';
+import UserProfileConfirmations from './ui/UserProfileConfirmations';
+import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanelContent';
+import UserProfilePanelView from './ui/UserProfilePanelView';
+import { useProfilePanelTransition } from './useProfilePanelTransition';
+import { toProfileAudios, toProfilePhotos } from './ui/ProfileChatPanels';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -33,14 +31,6 @@ interface UserProfileComponentRTKProps {
   hideMessageAction?: boolean;
 }
 
-type ProfilePanelView = 'details' | 'search' | 'photos' | 'audios';
-type ProfilePanelTransition = {
-  from: ProfilePanelView;
-  to: ProfilePanelView;
-  direction: 'forward' | 'back';
-  key: number;
-};
-
 const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({ 
   username, 
   directChatId,
@@ -51,15 +41,13 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   hideMessageAction = false,
 }) => {
   const { translations, language } = useLanguage();
+  const { activeView, panelTransition, selectView: transitionToView } = useProfilePanelTransition(directChatId, username);
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [customNameInput, setCustomNameInput] = useState('');
   const [isEditingContactName, setIsEditingContactName] = useState(false);
-  const [activeView, setActiveView] = useState<ProfilePanelView>('details');
-  const [panelTransition, setPanelTransition] = useState<ProfilePanelTransition | null>(null);
   const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
   const [isDeleteChatConfirmOpen, setIsDeleteChatConfirmOpen] = useState(false);
-  const panelTransitionTimeoutRef = useRef<number | null>(null);
   
   // Use username-based query instead of user ID
   const { 
@@ -116,19 +104,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     'This does not block the user or change your privacy settings.',
   ];
 
-  useEffect(() => {
-    setActionError(null);
-    setActiveView('details');
-    setPanelTransition(null);
-  }, [directChatId, username]);
-
-  useEffect(() => {
-    return () => {
-      if (panelTransitionTimeoutRef.current !== null) {
-        window.clearTimeout(panelTransitionTimeoutRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => { setActionError(null); }, [directChatId, username]);
 
   useEffect(() => {
     setCustomNameInput(userData?.contact_display_name || '');
@@ -187,46 +163,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     setIsEditingContactName(false);
   };
 
-  const ProfileShell = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950">
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
-        <div className="flex items-center gap-2">
-          <UserRound className="h-5 w-5 text-gray-500" />
-          <h2 className="text-base font-semibold">{translations.userProfile}</h2>
-        </div>
-        <button
-          onClick={onClose}
-          className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">{children}</div>
-    </div>
-  );
-
-  if (isLoading) {
-    return (
-      <ProfileShell>
-        <UserProfileSkeleton />
-      </ProfileShell>
-    );
-  }
-
-  if (error || !userData) {
-    return (
-      <ProfileShell>
-        <div className="flex h-full min-h-[360px] flex-col items-center justify-center px-6 text-center">
-          <div className="mb-4 rounded-full bg-gray-100 p-4">
-            <UserRound className="h-8 w-8 text-gray-500" />
-          </div>
-          <h3 className="mb-2 text-lg font-semibold text-gray-900">{translations.userProfile}</h3>
-          <p className="max-w-xs text-sm text-gray-500">{translations.accountDeletedOrUnavailable}</p>
-        </div>
-      </ProfileShell>
-    );
-  }
+  const profileState = <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose} />;
+  if (profileState) return profileState;
 
   const avatarUrl = getAvatarUrl(userData.avatar_url);
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
@@ -247,340 +185,68 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     ...(canShowAudiosAction ? (['audios'] as const) : []),
     ...(canShowSearchAction ? (['search'] as const) : []),
   ];
-  const selectView = (view: ProfilePanelView) => {
-    if (view === activeView) return;
-
-    const currentIndex = visiblePanelOrder.indexOf(activeView);
-    const nextIndex = visiblePanelOrder.indexOf(view);
-    const direction = nextIndex > currentIndex
-      ? 'forward'
-      : 'back';
-
-    if (panelTransitionTimeoutRef.current !== null) {
-      window.clearTimeout(panelTransitionTimeoutRef.current);
-    }
-
-    setPanelTransition({ from: activeView, to: view, direction, key: Date.now() });
-    setActiveView(view);
-    panelTransitionTimeoutRef.current = window.setTimeout(() => {
-      setPanelTransition(null);
-      panelTransitionTimeoutRef.current = null;
-    }, 340);
-  };
+  const selectView = (view: ProfilePanelView) => transitionToView(view, visiblePanelOrder);
 
   const infoPanel = (
-    <div className="min-h-full space-y-3 px-5 py-4 md:py-3">
-      {actionError && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {actionError}
-        </div>
-      )}
-      {bio && (
-        <section className="rounded-lg border border-gray-200 bg-white p-3">
-          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Info className="h-4 w-4 text-gray-500" />
-            <span>{translations.bio}</span>
-          </div>
-          <p className="whitespace-pre-wrap break-words text-sm leading-5 text-gray-900">
-            {bio}
-          </p>
-        </section>
-      )}
-
-      <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.account || 'Account'}</p>
-        <div className="mt-2 space-y-1.5 text-sm">
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-gray-500">{translations.userName || 'Username'}</span>
-            <span className="min-w-0 truncate font-medium text-gray-900">@{username}</span>
-          </div>
-          {canShowCreatedAt && (
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-500">{translations.created || 'Created'}</span>
-              <span className="min-w-0 truncate font-medium text-gray-900">
-                {formatDateOnly(userData.created_at, language)}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-gray-500">{translations.status || 'Status'}</span>
-            <span className="min-w-0 truncate font-medium text-gray-900">
-              {getPresenceLabel(userData.is_online, userData.last_seen)}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {onDeleteChat && (
-        <button
-          onClick={() => setIsDeleteChatConfirmOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-        >
-          <Trash2 className="h-4 w-4" />
-          {translations.deleteChat}
-        </button>
-      )}
-      {!isCurrentUser && (
-        <button
-          onClick={() => isBlocked ? handleBlockToggle() : setIsBlockConfirmOpen(true)}
-          disabled={isBlockActionLoading}
-          className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
-            isBlocked
-              ? 'border-gray-200 text-primary hover:bg-gray-50 disabled:text-gray-400'
-              : 'border-red-200 text-red-600 hover:bg-red-50 disabled:text-gray-400'
-          }`}
-        >
-          {isBlockActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-          {isBlocked ? translations.unblock || 'Unblock' : translations.block || 'Block'}
-        </button>
-      )}
-    </div>
+    <UserProfileInfoPanel
+      username={username}
+      language={language}
+      bio={bio}
+      actionError={actionError}
+      isCurrentUser={isCurrentUser}
+      isBlocked={isBlocked}
+      isBlockActionLoading={isBlockActionLoading}
+      canShowCreatedAt={canShowCreatedAt}
+      createdAt={userData.created_at}
+      isOnline={userData.is_online}
+      lastSeen={userData.last_seen}
+      canDeleteChat={!!onDeleteChat}
+      onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
+      onBlockToggle={handleBlockToggle}
+      onConfirmBlock={() => setIsBlockConfirmOpen(true)}
+    />
   );
 
-  const renderPanelContent = (view: ProfilePanelView, options: { autoFocusSearch?: boolean } = {}) => {
-    if (view === 'search' && canShowSearchAction) {
-      return (
-        <ProfileSearchPanel
-          chatId={directChatId as number}
-          onJumpToMessage={onJumpToMessage as (messageId: number) => void}
-          autoFocus={options.autoFocusSearch !== false}
-        />
-      );
-    }
-    if (view === 'photos' && canShowPhotosAction) {
-      return <ProfilePhotosPanel photos={dmPhotos} isLoading={isLoadingDmPhotos} error={dmPhotosError} />;
-    }
-    if (view === 'audios' && canShowAudiosAction) {
-      return <ProfileAudiosPanel audios={dmAudios} isLoading={isLoadingDmAudios} error={dmAudiosError} />;
-    }
-    return infoPanel;
-  };
+  const renderPanelContent = (view: ProfilePanelView, options: { autoFocusSearch?: boolean } = {}) => (
+    <UserProfilePanelView
+      view={view} autoFocusSearch={options.autoFocusSearch !== false}
+      canShowSearch={canShowSearchAction} canShowPhotos={canShowPhotosAction} canShowAudios={canShowAudiosAction}
+      chatId={directChatId} onJumpToMessage={onJumpToMessage} photos={dmPhotos} audios={dmAudios}
+      isLoadingPhotos={isLoadingDmPhotos} isLoadingAudios={isLoadingDmAudios}
+      photosError={dmPhotosError} audiosError={dmAudiosError} infoPanel={infoPanel}
+    />
+  );
 
   return (
-    <ProfileShell>
+    <UserProfileShell onClose={onClose}>
       <div className="flex h-full min-h-0 flex-col">
-        <div className="px-5 pb-3 pt-5 text-center md:pt-4">
-          {hasCustomAvatar ? (
-            <button
-              onClick={() => setIsAvatarViewerOpen(true)}
-              className="mx-auto block rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              aria-label="View profile picture history"
-            >
-              <img
-                src={avatarUrl}
-                alt={displayName}
-                className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
-              />
-            </button>
-          ) : (
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="mx-auto h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm md:h-20 md:w-20"
-            />
-          )}
-          <h3 className="mt-3 break-words text-xl font-semibold leading-tight text-gray-950">{displayName}</h3>
-          <p className="mt-1 break-words text-sm text-gray-500">@{username}</p>
-          {!isCurrentUser && (
-            <div className="mt-2 flex justify-center px-2">
-              {isEditingContactName ? (
-                <div className="flex w-full max-w-xs items-center gap-1">
-                  <input
-                    autoFocus
-                    value={customNameInput}
-                    onChange={(event) => setCustomNameInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') handleSaveContactName();
-                      if (event.key === 'Escape') handleCancelContactNameEdit();
-                    }}
-                    maxLength={50}
-                    placeholder={accountDisplayName}
-                    className="min-w-0 flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveContactName}
-                    disabled={isSavingContactName}
-                    className="rounded-md p-2 text-primary transition-colors hover:bg-gray-100 disabled:opacity-50"
-                    aria-label={translations.save || 'Save'}
-                  >
-                    {isSavingContactName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelContactNameEdit}
-                    disabled={isSavingContactName}
-                    className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
-                    aria-label={translations.cancel || 'Cancel'}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="group flex max-w-full items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600">
-                  <span className="min-w-0 truncate">
-                    {(translations.accountName || 'Account name')}: {accountDisplayName}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomNameInput(contactDisplayName || '');
-                      setIsEditingContactName(true);
-                    }}
-                    className="rounded p-1 text-gray-400 opacity-0 transition hover:bg-gray-100 hover:text-gray-800 group-hover:opacity-100 focus:opacity-100"
-                    aria-label={translations.customName || 'Custom name'}
-                    title={translations.customName || 'Custom name'}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
-            <span className={`mr-2 h-2 w-2 rounded-full ${userData.is_online ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-            <span className="truncate">{getPresenceLabel(userData.is_online, userData.last_seen)}</span>
-          </div>
-        </div>
+        <UserProfileHeader
+          avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName} username={username}
+          isCurrentUser={isCurrentUser} isEditingContactName={isEditingContactName} customNameInput={customNameInput}
+          setCustomNameInput={setCustomNameInput} onSaveContactName={handleSaveContactName}
+          onCancelContactNameEdit={handleCancelContactNameEdit}
+          onEditContactName={() => { setCustomNameInput(contactDisplayName || ''); setIsEditingContactName(true); }}
+          isSavingContactName={isSavingContactName} accountDisplayName={accountDisplayName}
+          isOnline={userData.is_online} lastSeen={userData.last_seen} onAvatarHistory={() => setIsAvatarViewerOpen(true)}
+        />
 
-        {actionCount > 0 && (
-          <div
-            className="grid gap-2 border-y border-gray-200 px-4 py-3"
-            style={{ gridTemplateColumns: `repeat(${actionColumns}, minmax(0, 1fr))` }}
-          >
-            {canShowDmSections && (
-              <button
-                onClick={() => selectView('details')}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-                  activeView === 'details'
-                    ? 'bg-gray-100 text-primary'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Info className="h-5 w-5" />
-                <span className="text-xs font-medium">{translations.info || 'Info'}</span>
-              </button>
-            )}
-            {canShowMessageAction && (
-              <button
-                onClick={handleMessage}
-                className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-primary transition-colors hover:bg-gray-100"
-              >
-                <MessageCircle className="h-5 w-5" />
-                <span className="text-xs font-medium">{translations.message || 'Message'}</span>
-              </button>
-            )}
-            {canShowPhotosAction && (
-              <button
-                onClick={() => selectView('photos')}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-                  activeView === 'photos'
-                    ? 'bg-gray-100 text-primary'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <ImageIcon className="h-5 w-5" />
-                <span className="text-xs font-medium">{translations.photos || 'Photos'}</span>
-              </button>
-            )}
-            {canShowAudiosAction && (
-              <button
-                onClick={() => selectView('audios')}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-                  activeView === 'audios'
-                    ? 'bg-gray-100 text-primary'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Music className="h-5 w-5" />
-                <span className="text-xs font-medium">{translations.audios || 'Audios'}</span>
-              </button>
-            )}
-            {canShowSearchAction && (
-              <button
-                onClick={() => selectView('search')}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-                  activeView === 'search'
-                    ? 'bg-gray-100 text-primary'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Search className="h-5 w-5" />
-                <span className="text-xs font-medium">{translations.search || 'Search'}</span>
-              </button>
-            )}
-          </div>
-        )}
+        <UserProfileActions
+          actionCount={actionCount} actionColumns={actionColumns}
+          showDetails={canShowDmSections} showMessage={canShowMessageAction}
+          showPhotos={canShowPhotosAction} showAudios={canShowAudiosAction}
+          showSearch={canShowSearchAction} activeView={activeView}
+          onSelectView={selectView} onMessage={handleMessage}
+        />
 
-        <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
-          {panelTransition ? (
-            <>
-              <div
-                key={`from-${panelTransition.key}-${panelTransition.from}`}
-                aria-hidden
-                inert
-                className={`absolute inset-0 overflow-y-auto bg-white ${
-                  panelTransition.direction === 'forward'
-                    ? 'profile-panel-slide-out-left'
-                    : 'profile-panel-slide-out-right'
-                }`}
-              >
-                {renderPanelContent(panelTransition.from, { autoFocusSearch: false })}
-              </div>
-              <div
-                key={`to-${panelTransition.key}-${panelTransition.to}`}
-                className={`absolute inset-0 overflow-y-auto bg-white ${
-                  panelTransition.direction === 'forward'
-                    ? 'profile-panel-slide-in-right'
-                    : 'profile-panel-slide-in-left'
-                }`}
-              >
-                {renderPanelContent(panelTransition.to, { autoFocusSearch: false })}
-              </div>
-            </>
-          ) : (
-            <div
-              key={`active-${activeView}`}
-              className="absolute inset-0 overflow-y-auto bg-white"
-            >
-              {renderPanelContent(activeView, { autoFocusSearch: activeView === 'search' })}
-            </div>
-          )}
-        </div>
+        <UserProfilePanelContent activeView={activeView} transition={panelTransition} renderPanelContent={renderPanelContent} />
       </div>
-      {isBlockConfirmOpen && (
-        <ConfirmModal
-          title={translations.blockUserConfirmTitle || `Block ${displayName}?`}
-          message={
-            translations.blockUserConfirmMessage ||
-            'After blocking this user, the following consequences will apply:'
-          }
-          consequences={blockUserConsequences}
-          confirmText={translations.block || 'Block'}
-          cancelText={translations.cancel || 'Cancel'}
-          isDestructive
-          onCancel={() => setIsBlockConfirmOpen(false)}
-          onConfirm={handleBlockToggle}
-        />
-      )}
-      {isDeleteChatConfirmOpen && (
-        <ConfirmModal
-          title={translations.deleteChatConfirmTitle || 'Delete this chat?'}
-          message={
-            translations.deleteChatConfirmMessage ||
-            'After deleting this chat, the following consequences will apply:'
-          }
-          consequences={deleteChatConsequences}
-          confirmText={translations.deleteChat || 'Delete Chat'}
-          cancelText={translations.cancel || 'Cancel'}
-          isDestructive
-          onCancel={() => setIsDeleteChatConfirmOpen(false)}
-          onConfirm={() => {
-            setIsDeleteChatConfirmOpen(false);
-            onDeleteChat?.();
-          }}
-        />
-      )}
+      <UserProfileConfirmations
+        isBlockConfirmOpen={isBlockConfirmOpen} isDeleteChatConfirmOpen={isDeleteChatConfirmOpen}
+        displayName={displayName} blockConsequences={blockUserConsequences} deleteConsequences={deleteChatConsequences}
+        onCancelBlock={() => setIsBlockConfirmOpen(false)} onConfirmBlock={handleBlockToggle}
+        onCancelDeleteChat={() => setIsDeleteChatConfirmOpen(false)}
+        onConfirmDeleteChat={() => { setIsDeleteChatConfirmOpen(false); onDeleteChat?.(); }}
+      />
       {isAvatarViewerOpen && hasCustomAvatar && (
         <AvatarHistoryViewer
           username={username}
@@ -589,7 +255,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           onClose={() => setIsAvatarViewerOpen(false)}
         />
       )}
-    </ProfileShell>
+    </UserProfileShell>
   );
 };
 

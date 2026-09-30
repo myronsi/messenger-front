@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
+import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform } from '../model/audioMessageHelpers';
 
 interface AudioMessageProps {
   fileUrl: string;
@@ -11,79 +12,6 @@ interface AudioMessageProps {
   audioStates: { [key: number]: { currentTime: number; duration: number } };
   setAudioStates: React.Dispatch<React.SetStateAction<{ [key: number]: { currentTime: number; duration: number } }>>;
 }
-
-const formatTime = (time: number | undefined): string => {
-  if (!time || isNaN(time) || !isFinite(time) || time < 0) {
-    return '0:00';
-  }
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-};
-
-const WAVEFORM_BAR_COUNT = 38;
-const FALLBACK_WAVEFORM = Array.from({ length: WAVEFORM_BAR_COUNT }, (_, index) => {
-  const wave = Math.sin(index * 0.75) * 0.24 + Math.sin(index * 1.7) * 0.12;
-  return Math.min(0.9, Math.max(0.22, 0.46 + wave));
-});
-
-const createAudioContext = () => new (window.AudioContext || (window as any).webkitAudioContext)();
-
-const analyzeAudio = async (url: string): Promise<{ duration: number; waveform: number[] }> => {
-  const audioContext = createAudioContext();
-  try {
-    const response = await fetch(url, { method: 'GET', mode: 'cors' });
-    if (!response.ok) throw new Error('Failed to fetch audio');
-    const arrayBuffer = await response.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    const channelData = audioBuffer.getChannelData(0);
-    const samplesPerBar = Math.max(1, Math.floor(channelData.length / WAVEFORM_BAR_COUNT));
-    const rawBars = Array.from({ length: WAVEFORM_BAR_COUNT }, (_, barIndex) => {
-      const start = barIndex * samplesPerBar;
-      const end = barIndex === WAVEFORM_BAR_COUNT - 1
-        ? channelData.length
-        : Math.min(channelData.length, start + samplesPerBar);
-      let sum = 0;
-      let count = 0;
-      const step = Math.max(1, Math.floor((end - start) / 120));
-
-      for (let sampleIndex = start; sampleIndex < end; sampleIndex += step) {
-        const sample = channelData[sampleIndex] || 0;
-        sum += sample * sample;
-        count += 1;
-      }
-
-      return count ? Math.sqrt(sum / count) : 0;
-    });
-    const peak = Math.max(...rawBars, 0.001);
-    const waveform = rawBars.map((value) => Math.min(1, Math.max(0.16, value / peak)));
-
-    return { duration: audioBuffer.duration, waveform };
-  } finally {
-    await audioContext.close();
-  }
-};
-
-const isValidWaveform = (waveform: unknown): waveform is number[] => (
-  Array.isArray(waveform) &&
-  waveform.length > 0 &&
-  waveform.every((value) => typeof value === 'number' && isFinite(value))
-);
-
-const getAudioDuration = async (url: string): Promise<number> => {
-  const audioContext = createAudioContext();
-  try {
-    const response = await fetch(url, { method: 'GET', mode: 'cors' });
-    if (!response.ok) throw new Error('Failed to fetch audio');
-    const arrayBuffer = await response.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    return audioBuffer.duration;
-  } catch (error) {
-    return 0;
-  } finally {
-    await audioContext.close();
-  }
-};
 
 const AudioMessage: React.FC<AudioMessageProps> = ({
   fileUrl,
@@ -312,7 +240,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
           })}
         </button>
         <span className="text-[11px] leading-none opacity-75">
-          {loadError ? 'Ошибка' : isDurationUnknown ? `${formatTime(audioState.currentTime)} / Неизвестно` : `${formatTime(audioState.currentTime)} / ${formatTime(audioState.duration)}`}
+          {loadError ? 'Ошибка' : isDurationUnknown ? `${formatAudioTime(audioState.currentTime)} / Неизвестно` : `${formatTime(audioState.currentTime)} / ${formatAudioTime(audioState.duration)}`}
         </span>
       </div>
       <audio ref={audioRef} src={fileUrl} preload="auto" />

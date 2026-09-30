@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Smile, Loader2 } from 'lucide-react';
+import { Send, Paperclip, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 import {
   useGetMessageHistoryQuery,
   useSendMessageMutation,
@@ -14,6 +13,7 @@ import {
   useRemoveReactionMutation,
 } from '@/app/api/messengerApi';
 import { Message } from '@/entities/message';
+import { transformMessageHistory } from '../model/transformMessageHistory';
 
 interface MessageComponentRTKProps {
   chatId: number;
@@ -27,7 +27,6 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, curre
   const [editingContent, setEditingContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // RTK Query hooks
   const {
     data: messagesData,
     error, 
@@ -41,27 +40,7 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, curre
   const [addReaction] = useAddReactionMutation();
   const [removeReaction] = useRemoveReactionMutation();
 
-  // Transform API messages (server returns { history: [...] }) to local format
-  const messages: Message[] = React.useMemo(() => {
-    if (!messagesData || !(messagesData as any).history) return [];
-    try {
-      return (messagesData as any).history.map((msg: any) => ({
-        id: msg.id,
-        sender: msg.sender || '',
-        content: msg.type === 'file' ? (typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content) : msg.content || '',
-        timestamp: msg.timestamp,
-        avatar_url: msg.avatar_url ? `${BASE_URL}${msg.avatar_url}` : '',
-        reply_to: msg.reply_to || null,
-        is_deleted: !!msg.is_deleted,
-        type: msg.type === 'file' ? 'file' : 'message',
-        reactions: msg.reactions ? JSON.parse(msg.reactions) : [],
-        read_by: msg.read_by ? JSON.parse(msg.read_by) : [],
-      } as Message));
-    } catch (e) {
-      console.error('Failed to transform messagesData:', e, messagesData);
-      return [];
-    }
-  }, [messagesData]);
+  const messages = React.useMemo(() => transformMessageHistory(messagesData), [messagesData]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

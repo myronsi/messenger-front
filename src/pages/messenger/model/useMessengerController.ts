@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CurrentChat, directChatPath, dmPath, parseDmIdentifier, parseProfileUsername } from '@/app/routes/messengerRoutes';
+import { CurrentChat, directChatPath, dmPath, parseProfileUsername } from '@/app/routes/messengerRoutes';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { authFetch, clearAuthTokens } from '@/shared/auth/session';
+import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
+import { useMessengerRouteSync } from './useMessengerRouteSync';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -17,13 +19,24 @@ export const useMessengerController = () => {
   const [chatSearchRequestKey, setChatSearchRequestKey] = useState(0);
   const [messageJumpRequest, setMessageJumpRequest] = useState<{ messageId: number; key: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [mobileChatStage, setMobileChatStage] = useState<'closed' | 'open' | 'closing'>('closed');
   const hasFetchedUser = useRef(false);
-  const mobileChatCloseTimerRef = useRef<number | null>(null);
   const isMobile = useIsMobile();
   const { translations } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const {
+    backToChats,
+    mobileChatPanelClass,
+    prepareChatNavigation,
+    showMobileChatPanel,
+  } = useMessengerMobileNavigation({
+    currentChat,
+    isMobile,
+    navigate,
+    setCurrentChat,
+    setIsUserProfileOpen,
+    setProfileUsername,
+  });
 
   useEffect(() => {
     if (hasFetchedUser.current) return;
@@ -59,18 +72,8 @@ export const useMessengerController = () => {
     navigate('/');
   };
 
-  const clearMobileChatCloseTimer = useCallback(() => {
-    if (mobileChatCloseTimerRef.current !== null) {
-      window.clearTimeout(mobileChatCloseTimerRef.current);
-      mobileChatCloseTimerRef.current = null;
-    }
-  }, []);
-
   const openChat = (chatId: number, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: number | null, avatarUrl?: string, pendingApprovalRequest?: boolean, pendingApprovalMessage?: string) => {
-    clearMobileChatCloseTimer();
-    if (isMobile) {
-      setMobileChatStage('closed');
-    }
+    prepareChatNavigation();
     if (type === 'one-on-one' || chatId > 0) {
       try {
         navigate(type === 'one-on-one' ? directChatPath(chatId, chatName, interlocutorDeleted) : `/chat/${chatId}`, { state: { chatName, chatDisplayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId, chatId, pendingApprovalRequest, pendingApprovalMessage } });
@@ -79,9 +82,7 @@ export const useMessengerController = () => {
       }
     }
     setCurrentChat({ id: chatId, name: chatName, displayName: chatDisplayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId, pendingApprovalRequest, pendingApprovalMessage });
-    if (isMobile) {
-      requestAnimationFrame(() => setMobileChatStage('open'));
-    }
+    showMobileChatPanel();
   };
 
   const updateActiveChatFromList = useCallback((chat: {
@@ -209,231 +210,7 @@ export const useMessengerController = () => {
     });
   };
 
-  const finishBackToChats = useCallback(() => {
-    clearMobileChatCloseTimer();
-    setCurrentChat(null);
-    setMobileChatStage('closed');
-    setIsUserProfileOpen(false);
-    setProfileUsername(null);
-    try {
-      navigate('/');
-    } catch (e) {}
-  }, [clearMobileChatCloseTimer, navigate]);
-
-  const backToChats = useCallback(() => {
-    if (isMobile && currentChat) {
-      clearMobileChatCloseTimer();
-      setMobileChatStage('closing');
-      mobileChatCloseTimerRef.current = window.setTimeout(() => {
-        finishBackToChats();
-      }, 260);
-      return;
-    }
-
-    finishBackToChats();
-  }, [clearMobileChatCloseTimer, currentChat, finishBackToChats, isMobile]);
-
-  useEffect(() => {
-    if (!currentChat) {
-      setMobileChatStage('closed');
-    } else if (isMobile) {
-      requestAnimationFrame(() => setMobileChatStage('open'));
-    }
-  }, [currentChat, isMobile]);
-
-  useEffect(() => {
-    if (!isMobile) {
-      setMobileChatStage('closed');
-      clearMobileChatCloseTimer();
-    }
-  }, [clearMobileChatCloseTimer, isMobile]);
-
-  useEffect(() => () => clearMobileChatCloseTimer(), [clearMobileChatCloseTimer]);
-
-  useEffect(() => {
-    const match = location.pathname.match(/^\/chat\/(\d+)$/);
-    if (match) {
-      const id = Number(match[1]);
-      if (id <= 0) {
-        navigate('/');
-        return;
-      }
-      if (currentChat && currentChat.id === id) return;
-
-      const state: any = (location && (location as any).state) || {};
-      const name = state.chatName || String(id);
-      const displayName = state.chatDisplayName;
-      const isOnline = state.isOnline;
-      const lastSeen = state.lastSeen;
-      const avatarUrl = state.avatarUrl;
-      const interlocutorDeleted = !!state.interlocutorDeleted;
-      const type = state.type || 'one-on-one';
-      const firstUnreadMessageId = state.firstUnreadMessageId ?? null;
-      if (type === 'one-on-one' && state.chatName) {
-        navigate(directChatPath(id, state.chatName, interlocutorDeleted), {
-          replace: true,
-          state: { ...state, chatId: id },
-        });
-        return;
-      }
-      setCurrentChat({ id, name, displayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId });
-      return;
-    }
-
-    const directIdentifier = parseDmIdentifier(location.pathname);
-    if (directIdentifier !== null) {
-      if (!username) return;
-
-      let isCancelled = false;
-      const state: any = (location && (location as any).state) || {};
-      if (state.chatName || state.chatDisplayName || state.chatId) {
-        setCurrentChat({
-          id: state.chatId || 0,
-          name: state.chatName || directIdentifier.value,
-          displayName: state.chatDisplayName || state.chatName || directIdentifier.value,
-          isOnline: state.isOnline,
-          lastSeen: state.lastSeen ?? null,
-          avatarUrl: state.avatarUrl,
-          interlocutorDeleted: !!state.interlocutorDeleted,
-          type: 'one-on-one',
-          firstUnreadMessageId: state.firstUnreadMessageId ?? null,
-        });
-      } else {
-        setCurrentChat(null);
-      }
-
-      if (directIdentifier.type === 'chatId') {
-        const targetChatId = directIdentifier.value;
-        if (!targetChatId) {
-          navigate('/', { replace: true });
-          return;
-        }
-
-        authFetch(`${BASE_URL}/chats/list/${encodeURIComponent(username)}`)
-          .then(async (response) => {
-            if (!response.ok) throw new Error(await response.text());
-            return response.json();
-          })
-          .then((data) => {
-            if (isCancelled) return;
-            const chat = (data.chats || []).find((item: any) => item.id === targetChatId);
-            if (!chat) {
-              navigate('/', { replace: true });
-              return;
-            }
-            const canonicalPath = directChatPath(chat.id, chat.interlocutor_name, chat.interlocutor_deleted);
-            if (location.pathname !== canonicalPath) {
-              navigate(canonicalPath, {
-                replace: true,
-                state: {
-                  chatId: chat.id,
-                  chatName: chat.interlocutor_name,
-                  chatDisplayName: chat.interlocutor_display_name,
-                  isOnline: chat.interlocutor_is_online,
-                  lastSeen: chat.interlocutor_last_seen,
-                  avatarUrl: chat.avatar_url,
-                  interlocutorDeleted: chat.interlocutor_deleted,
-                  type: 'one-on-one',
-                  firstUnreadMessageId: chat.first_unread_message_id ?? null,
-                },
-              });
-            }
-            setCurrentChat({
-              id: chat.id,
-              name: chat.interlocutor_name,
-              displayName: chat.interlocutor_display_name,
-              isOnline: chat.interlocutor_is_online,
-              lastSeen: chat.interlocutor_last_seen ?? null,
-              avatarUrl: chat.avatar_url,
-              interlocutorDeleted: chat.interlocutor_deleted,
-              type: 'one-on-one',
-              firstUnreadMessageId: chat.first_unread_message_id ?? null,
-            });
-          })
-          .catch((error) => {
-            if (isCancelled) return;
-            console.error('Error loading direct chat by id:', error);
-            setCurrentChat(null);
-          });
-
-        return () => {
-          isCancelled = true;
-        };
-      }
-
-      const targetUsername = directIdentifier.value;
-      if (!targetUsername || targetUsername.toLowerCase() === username.toLowerCase()) {
-        navigate('/', { replace: true });
-        return;
-      }
-
-      authFetch(`${BASE_URL}/users/users/${encodeURIComponent(targetUsername)}`)
-        .then(async (response) => {
-          if (!response.ok) throw new Error(await response.text());
-          return response.json();
-        })
-        .then((user) => {
-          if (isCancelled) return;
-          const canonicalPath = directChatPath(user.direct_chat_id || state.chatId || 0, user.username || targetUsername, false);
-          if (location.pathname !== canonicalPath) {
-            navigate(canonicalPath, {
-              replace: true,
-              state: {
-                ...state,
-                chatId: user.direct_chat_id || state.chatId,
-                chatName: user.username || targetUsername,
-                chatDisplayName: user.display_name || state.chatDisplayName || targetUsername,
-                isOnline: user.is_online ?? state.isOnline,
-                lastSeen: user.last_seen ?? state.lastSeen ?? null,
-                avatarUrl: user.avatar_url ?? state.avatarUrl,
-              },
-            });
-          }
-
-          setCurrentChat({
-            id: user.direct_chat_id || state.chatId || 0,
-            name: user.username || targetUsername,
-            displayName: user.display_name || state.chatDisplayName || targetUsername,
-            isOnline: user.is_online ?? state.isOnline,
-            lastSeen: user.last_seen ?? state.lastSeen ?? null,
-            avatarUrl: user.avatar_url ?? state.avatarUrl,
-            interlocutorDeleted: false,
-            type: 'one-on-one',
-            firstUnreadMessageId: null,
-            directDraftDisabled: !user.can_message,
-            directDraftReason: user.direct_message_reason ?? null,
-            pendingApprovalRequest: !!state.pendingApprovalRequest,
-            pendingApprovalMessage: state.pendingApprovalMessage,
-          });
-        })
-        .catch((error) => {
-          if (isCancelled) return;
-          console.error('Error loading direct chat draft:', error);
-          setCurrentChat(null);
-        });
-
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    const profileRouteUsername = parseProfileUsername(location.pathname);
-    if (profileRouteUsername !== null) {
-      if (!username) return;
-      if (!profileRouteUsername) {
-        navigate('/', { replace: true });
-        return;
-      }
-      setCurrentChat(null);
-      setProfileUsername(profileRouteUsername);
-      setIsUserProfileOpen(true);
-      return;
-    } else {
-      if (currentChat) setCurrentChat(null);
-      if (isUserProfileOpen) closeUserProfile();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, username]);
+  useMessengerRouteSync({ currentChat, isUserProfileOpen, location, navigate, username, setCurrentChat, setIsUserProfileOpen, setProfileUsername, closeUserProfile });
 
   const handleChatDeleted = (chatId: number) => {
     if (currentChat && currentChat.id === chatId) {
@@ -456,9 +233,6 @@ export const useMessengerController = () => {
       console.error('Error deleting chat from user profile:', err);
     }
   };
-
-  const isMobileChatPanelOpen = currentChat && mobileChatStage === 'open';
-  const mobileChatPanelClass = isMobileChatPanelOpen ? 'translate-x-0' : 'translate-x-full';
 
   return {
     isLoggedIn,
