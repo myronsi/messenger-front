@@ -1,8 +1,9 @@
-import React, { forwardRef, useState, useEffect } from 'react';
+import React, { forwardRef, useState, useEffect, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
 import MessageContent from './MessageContent';
 import MessageItem from './MessageItem';
+import ScrollToBottomButton from './ScrollToBottomButton';
 import { Message, ReactionInfo } from '@/entities/message';
 import { getFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -92,7 +93,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
       .some((value) => String(value).toLowerCase() === ownUsername);
   };
 
+  const latchedBoundaryRef = useRef<{ key: string | number | undefined; id: number | null }>({ key: scrollToBottomKey, id: null });
+  if (latchedBoundaryRef.current.key !== scrollToBottomKey) latchedBoundaryRef.current = { key: scrollToBottomKey, id: null };
+
+  // Latched per chat so the separator doesn't jump as messages become read.
   const visibleUnreadBoundaryId = (() => {
+    if (latchedBoundaryRef.current.id !== null) return latchedBoundaryRef.current.id;
     if (!firstUnreadMessageId) return null;
     const boundaryIndex = messages.findIndex((message) => message.id === firstUnreadMessageId);
     if (boundaryIndex === -1) return firstUnreadMessageId;
@@ -100,6 +106,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
       !isOwnMessage(message) &&
       !(userId > 0 && message.read_by?.some((reader) => reader.user_id === userId))
     ));
+    if (firstUnreadMessage) latchedBoundaryRef.current.id = firstUnreadMessage.id;
     return firstUnreadMessage?.id ?? null;
   })();
 
@@ -108,16 +115,19 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     isScrolling,
     chatContainerRef,
     firstUnreadMarkerRef,
+    isPositioned,
+    unseenCount,
+    scrollToBottom,
   } = useMessageListScroll({
-    messages, messageRefs, firstUnreadMessageId, highlightedMessageId, tempHighlightedMessageId,
+    messages, messageRefs, firstUnreadMessageId: visibleUnreadBoundaryId, highlightedMessageId, tempHighlightedMessageId,
     getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages,
     isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages,
-    onScrollStart, scrollToBottomKey,
+    onScrollStart, scrollToBottomKey, isOwnMessage,
   });
 
   const observerRef = useMessageReadReceipts({
     messages, username, userId, messageRefs, chatContainerRef, isOwnMessage,
-    onMarkMessagesRead,
+    onMarkMessagesRead, enabled: isPositioned,
   });
 
   const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
@@ -165,7 +175,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   };
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
+    <div className="relative min-h-0 flex-1">
+    <div className="absolute inset-0 overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
         <div className="sticky pt-0.5 top-0 z-50 flex justify-center pointer-events-none md:w-2/3 md:mx-auto md:px-0">
           <div
@@ -231,6 +242,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         )}
       </div>
+    </div>
+    <ScrollToBottomButton count={unseenCount} label={translations.moveDown || 'Move down'} onClick={scrollToBottom} />
     </div>
   );
 });

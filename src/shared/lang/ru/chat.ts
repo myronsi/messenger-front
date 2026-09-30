@@ -22,6 +22,7 @@ export const chat = {
   messageDeleted: "[Сообщение удалено]",
   deletedUserInfo: "Информация о удалённом аккаунте недоступна.",
   newMessages: "Новые сообщения",
+  moveDown: "Вниз",
   markAsRead: "Отметить прочитанным",
   noMessagesYet: "Сообщений пока нет",
   photoMessage: "Фото",

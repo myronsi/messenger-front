@@ -9,6 +9,7 @@ interface MessageReadReceiptOptions {
   chatContainerRef: MutableRefObject<HTMLDivElement | null>;
   isOwnMessage: (message: Message) => boolean;
   onMarkMessagesRead?: (messageIds: number[]) => Promise<void>;
+  enabled?: boolean;
 }
 
 export const useMessageReadReceipts = ({
@@ -19,6 +20,7 @@ export const useMessageReadReceipts = ({
   chatContainerRef,
   isOwnMessage,
   onMarkMessagesRead,
+  enabled = true,
 }: MessageReadReceiptOptions) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentReadReceiptsRef = useRef<Set<number>>(new Set());
@@ -70,6 +72,7 @@ export const useMessageReadReceipts = ({
 
   useEffect(() => {
     observerRef.current?.disconnect();
+    if (!enabled) return;
     observerRef.current = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
@@ -88,7 +91,7 @@ export const useMessageReadReceipts = ({
     });
     requestAnimationFrame(markVisibleMessagesAsRead);
     return () => observerRef.current?.disconnect();
-  }, [messages, username, userId, messageRefs]);
+  }, [messages, username, userId, messageRefs, enabled]);
 
   useEffect(() => () => {
     if (readFlushTimeoutRef.current) clearTimeout(readFlushTimeoutRef.current);
