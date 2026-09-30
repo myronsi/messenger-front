@@ -41,7 +41,10 @@ export const usePrivacySettings = (isActive: boolean) => {
   }, [status]);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive) {
+      setOpenSelect(null);
+      return;
+    }
     setActiveExceptionKey(null);
     setCollapsedExceptionKeys({
       avatar_visibility: true,
