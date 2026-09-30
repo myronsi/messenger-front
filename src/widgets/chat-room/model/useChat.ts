@@ -89,7 +89,7 @@ export const useChat = (
 
   useChatWebSocket({
     chatId, token, username, onPresenceUpdate, connectionRetryKey, wsRef, reconnectAttempts,
-    messageQueueRef, pendingMessageIdsRef, currentUserIdRef, translationsRef,
+    messageQueueRef, pendingMessageIdsRef, currentUserIdRef, onBackRef, translationsRef,
     setMessages, setModal, applyReadReceiptBatch, markMessageFailed, markLatestPendingMessageFailed,
   });
 

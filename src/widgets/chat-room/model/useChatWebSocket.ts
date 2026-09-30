@@ -15,6 +15,7 @@ interface ChatWebSocketOptions {
   messageQueueRef: MutableRefObject<any[]>;
   pendingMessageIdsRef: MutableRefObject<number[]>;
   currentUserIdRef: MutableRefObject<number>;
+  onBackRef: MutableRefObject<() => void>;
   translationsRef: MutableRefObject<Record<string, any>>;
   setMessages: Dispatch<SetStateAction<Message[]>>;
   setModal: (modal: any) => void;
@@ -25,7 +26,7 @@ interface ChatWebSocketOptions {
 
 export const useChatWebSocket = ({
   chatId, token, username, onPresenceUpdate, connectionRetryKey, wsRef, reconnectAttempts,
-  messageQueueRef, pendingMessageIdsRef, currentUserIdRef, translationsRef,
+  messageQueueRef, pendingMessageIdsRef, currentUserIdRef, onBackRef, translationsRef,
   setMessages, setModal, applyReadReceiptBatch, markMessageFailed, markLatestPendingMessageFailed,
 }: ChatWebSocketOptions) => {
   const presenceUpdateRef = useRef(onPresenceUpdate);
@@ -285,15 +286,6 @@ export const useChatWebSocket = ({
         try { wsRef.current.close(1000, 'Component unmounted'); } catch (e) {}
         wsRef.current = null;
       }
-      isLoadingOlderMessagesRef.current = false;
-      isLoadingNewerMessagesRef.current = false;
-      setIsLoadingOlderMessages(false);
-      setIsLoadingNewerMessages(false);
-      setIsLoadingInitialMessages(false);
-      setHasMoreMessages(false);
-      setHasMoreNewerMessages(false);
-      setOldestMessageId(null);
-      setNewestMessageId(null);
     };
   }, [applyReadReceiptBatch, chatId, token, connectionRetryKey]);
 };

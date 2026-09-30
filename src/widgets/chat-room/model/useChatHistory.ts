@@ -50,6 +50,18 @@ export const useChatHistory = ({
     { skip: !token || chatId <= 0, refetchOnMountOrArgChange: true }
   );
 
+  useEffect(() => () => {
+    isLoadingOlderMessagesRef.current = false;
+    isLoadingNewerMessagesRef.current = false;
+    setIsLoadingOlderMessages(false);
+    setIsLoadingNewerMessages(false);
+    setIsLoadingInitialMessages(false);
+    setHasMoreMessages(false);
+    setHasMoreNewerMessages(false);
+    setOldestMessageId(null);
+    setNewestMessageId(null);
+  }, [chatId]);
+
   useEffect(() => {
     setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
   }, [isLoadingLatestHistory, messages.length]);
