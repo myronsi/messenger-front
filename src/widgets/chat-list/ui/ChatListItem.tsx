@@ -28,6 +28,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const ownLastMessageRead = isOwnLastMessageRead(chat.last_message);
   const ownLastMessageFailed = ownLastMessage && !!chat.last_message?.delivery_error;
   const isActive = chat.id === activeChatId;
+  const unreadCount = chat.unread_count || 0;
 
   return (
     <div
@@ -53,7 +54,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className={`flex min-w-0 items-center gap-1.5 ${chat.unread_count ? 'font-semibold' : 'font-medium'}`}>
+        <div className={`flex min-w-0 items-center gap-1.5 ${unreadCount ? 'font-semibold' : 'font-medium'}`}>
           {chat.is_pinned && (
             <Pin className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`} />
           )}
@@ -61,26 +62,28 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
             {chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
           </span>
         </div>
-        <div className={`truncate text-xs ${isActive ? 'text-primary-foreground/80' : chat.unread_count ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+        <div className={`truncate text-xs ${isActive ? 'text-primary-foreground/80' : unreadCount ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
           {getLastMessagePreview(chat.last_message)}
         </div>
       </div>
 
-      <div className="ml-2 flex min-w-[44px] flex-col items-end gap-1">
+      <div className="ml-2 flex min-w-[44px] flex-col items-end">
         {chat.last_message && (
-          <span className={`text-[11px] leading-none ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+          <span className={`motion-unread-time text-[11px] leading-none ${unreadCount ? 'has-unread' : ''} ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
             {getLastMessageTime(chat.last_message)}
           </span>
         )}
-        {ownLastMessage && !ownLastMessageFailed ? (
-          <span className={`flex h-5 items-center ${isActive ? 'text-primary-foreground/80' : ownLastMessageRead ? 'text-primary' : 'text-muted-foreground'}`} title={ownLastMessageRead ? 'Read' : 'Unread'}>
+        {ownLastMessage && !ownLastMessageFailed && !unreadCount ? (
+          <span className={`flex h-5 items-center transition-colors duration-150 ${isActive ? 'text-primary-foreground/80' : ownLastMessageRead ? 'text-primary' : 'text-muted-foreground'}`} title={ownLastMessageRead ? 'Read' : 'Unread'}>
             {ownLastMessageRead ? <CheckCheck size={16} /> : <Check size={16} />}
           </span>
-        ) : chat.unread_count ? (
-          <span className={`min-w-5 h-5 px-1.5 rounded-full text-xs font-semibold flex items-center justify-center ${isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}`}>
-            {chat.unread_count > 99 ? '99+' : chat.unread_count}
-          </span>
         ) : null}
+        <span
+          aria-hidden={unreadCount === 0}
+          className={`motion-unread-indicator flex items-center justify-center overflow-hidden rounded-full text-xs font-semibold ${unreadCount ? `is-visible ${isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}` : ''}`}
+        >
+          {unreadCount > 99 ? '99+' : unreadCount || ''}
+        </span>
         {chat.type === 'group' && (
           <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>({translations.group})</span>
         )}

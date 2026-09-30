@@ -209,10 +209,10 @@ export const useChatWebSocket = ({
                     : msg
                 )
               );
-            } else if (parsedData.type === 'is_read') {
+            } else if (parsedData.type === 'is_read' || parsedData.type === 'chat_list_read') {
               applyReadReceiptBatch(
                 parsedData.message_id ? [parsedData.message_id] : [],
-                parsedData.user_id,
+                parsedData.user_id || parsedData.reader_user_id || (parsedData.type === 'is_read' ? parsedData.id : undefined),
                 parsedData.read_at || parsedData.timestamp || new Date().toISOString(),
                 {
                   username: parsedData.username,

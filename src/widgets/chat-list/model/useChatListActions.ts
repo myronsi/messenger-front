@@ -140,7 +140,9 @@ export function useChatListActions(params: UseChatListActionsParams) {
     const chat = chatsByIdRef.current[chatId];
     const previousUnreadCount = chat?.unread_count ?? 0;
     const previousFirstUnreadId = chat?.first_unread_message_id ?? null;
-    setChatContextMenu(null);
+    setChatContextMenu((current) => current?.chatId === chatId
+      ? { ...current, unreadCount: 0 }
+      : current);
     setChatOverrides((prev) => ({
       ...prev,
       [chatId]: {
@@ -151,16 +153,9 @@ export function useChatListActions(params: UseChatListActionsParams) {
     }));
 
     try {
-      const result = await markChatRead({ chatId, markAll: true }).unwrap();
-      setChatOverrides((prev) => ({
-        ...prev,
-        [chatId]: {
-          ...(prev[chatId] || {}),
-          unread_count: result.unread_count,
-          first_unread_message_id: result.first_unread_message_id,
-        },
-      }));
-      refetch();
+      // A successful mark-all means everything known is read; don't let a stale
+      // server summary resurrect the badge.
+      await markChatRead({ chatId, markAll: true }).unwrap();
     } catch (error: any) {
       setChatOverrides((prev) => ({
         ...prev,
@@ -170,6 +165,9 @@ export function useChatListActions(params: UseChatListActionsParams) {
           first_unread_message_id: previousFirstUnreadId,
         },
       }));
+      setChatContextMenu((current) => current?.chatId === chatId
+        ? { ...current, unreadCount: previousUnreadCount }
+        : current);
       setModal({
         type: 'error',
         message: error?.data?.detail || error?.message || translations.errorLoading || 'Failed to mark chat as read',

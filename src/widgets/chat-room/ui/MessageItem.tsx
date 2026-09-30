@@ -120,8 +120,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <React.Fragment key={message.client_temp_id ?? message.id}>
-      {showNewMessagesMarker && (
-        <div ref={firstUnreadMarkerRef} className="scroll-mt-2 flex justify-center">
+      {!isMine && (
+        <div
+          ref={showNewMessagesMarker ? firstUnreadMarkerRef : null}
+          aria-hidden={!showNewMessagesMarker}
+          className={`motion-unread-separator scroll-mt-2 flex justify-center ${showNewMessagesMarker ? 'is-visible' : ''}`}
+          style={{ marginTop: 0 }}
+        >
           <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">{translations.newMessages}</div>
         </div>
       )}
@@ -182,7 +187,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     {message.edited_at && <span>{translations.edited}</span>}
                     <span>{getMessageTime(message.timestamp)}</span>
                     {isMine && !message.delivery_error && (
-                      <button type="button" className="inline-flex items-center gap-0.5" onClick={(event) => {
+                      <button type="button" className="inline-flex items-center gap-0.5 transition-colors duration-150" onClick={(event) => {
                         event.stopPropagation();
                         if (isGroup) onOpenReadStatus?.(message);
                       }}>
@@ -203,7 +208,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   {message.edited_at && <span>{translations.edited}</span>}
                   <span>{getMessageTime(message.timestamp)}</span>
                   {isMine && !message.delivery_error && (
-                    <button type="button" className="inline-flex items-center gap-0.5" onClick={(event) => {
+                    <button type="button" className="inline-flex items-center gap-0.5 transition-colors duration-150" onClick={(event) => {
                       event.stopPropagation();
                       if (isGroup) onOpenReadStatus?.(message);
                     }}>
