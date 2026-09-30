@@ -16,6 +16,8 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
+const REACTION_MENU_OFFSET = 48;
+
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({ x, y, isMine, canDelete, onEdit, onDelete, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
     const { translations } = useLanguage();
@@ -38,7 +40,8 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
           newX = Math.max(0, x - menuWidth);
         }
         if (y + menuHeight > window.innerHeight) {
-          newY = Math.max(0, y - menuHeight);
+          // Leave room for the reaction menu that sits just above the cursor
+          newY = Math.max(0, y - menuHeight - REACTION_MENU_OFFSET);
         }
 
         setAdjustedX(newX);

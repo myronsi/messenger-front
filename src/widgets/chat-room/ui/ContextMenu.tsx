@@ -189,7 +189,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         {...(!isFile && { onCopy: handleCopy })}
         onReply={handleReply}
         onForward={onForward && message ? handleForward : undefined}
-        isClosing={isClosing}
+        isClosing={isClosing || !!contextMenu.isClosing}
         onClose={onClose}
       />
     );
