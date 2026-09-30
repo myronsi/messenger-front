@@ -112,12 +112,13 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
           const existing = prev[chatId] || {};
           const baseChat = chatsByIdRef.current[chatId];
           const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
-          const nextLastMessage = lastMessage?.id === parsedData.message_id && parsedData.reader_user_id
+          const readerUserId = parsedData.reader_user_id ?? parsedData.user_id;
+          const nextLastMessage = lastMessage?.id === parsedData.message_id && readerUserId
             ? {
                 ...lastMessage,
                 read_by: [
-                  ...(lastMessage.read_by || []).filter((read) => read.user_id !== parsedData.reader_user_id),
-                  { user_id: parsedData.reader_user_id, read_at: parsedData.timestamp || new Date().toISOString() },
+                  ...(lastMessage.read_by || []).filter((read) => read.user_id !== readerUserId),
+                  { user_id: readerUserId, read_at: parsedData.timestamp || new Date().toISOString() },
                 ],
               }
             : lastMessage;
@@ -127,8 +128,12 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
             [chatId]: {
               ...existing,
               last_message: nextLastMessage,
-              unread_count: parsedData.reader_user_id === currentUserIdRef.current ? 0 : existing.unread_count ?? baseChat?.unread_count ?? 0,
-              first_unread_message_id: parsedData.reader_user_id === currentUserIdRef.current ? null : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,
+              unread_count: readerUserId === currentUserIdRef.current
+                ? parsedData.unread_count ?? 0
+                : existing.unread_count ?? baseChat?.unread_count ?? 0,
+              first_unread_message_id: readerUserId === currentUserIdRef.current
+                ? parsedData.first_unread_message_id ?? null
+                : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,
             },
           };
         });
@@ -143,7 +148,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
           const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
           const readMessageIds = parsedData.message_ids || [];
           const readAt = parsedData.read_at || parsedData.timestamp || new Date().toISOString();
-          const readerUserId = parsedData.reader_user_id;
+          const readerUserId = parsedData.reader_user_id ?? parsedData.user_id;
           const nextLastMessage = lastMessage && readerUserId && readMessageIds.includes(lastMessage.id)
             ? {
                 ...lastMessage,

@@ -85,6 +85,7 @@ export const chatApi = messengerApi.injectEndpoints({
         method: 'POST',
         body: markAll ? { mark_all: true } : { message_ids: messageIds },
       }),
+      invalidatesTags: ['Chat'],
     }),
   }),
 });

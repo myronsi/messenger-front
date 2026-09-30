@@ -66,6 +66,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
 
       <ChatContextMenu
         menu={model.chatContextMenu}
+        unreadCount={model.chats.find((chat) => chat.id === model.chatContextMenu?.chatId)?.unread_count || 0}
         translations={model.translations}
         onMarkAsRead={model.handleMarkChatRead}
         onTogglePinned={model.handleTogglePinnedChat}
