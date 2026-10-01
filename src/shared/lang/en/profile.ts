@@ -81,4 +81,9 @@ export const profile = {
   groupProfile: "Group profile",
   chatSearch: "Chat search",
   searchQueryRequired: "Type to search messages.",
+  about: "About",
+  appVersion: "App",
+  serverVersion: "Server",
+  apiVersion: "API",
+  build: "Build",
 };

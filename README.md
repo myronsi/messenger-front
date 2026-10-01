@@ -121,3 +121,8 @@ src/
 ├── entities/     # Domain models, types, and entity APIs
 └── shared/       # Reusable UI, hooks, utilities, localization, and styles
 ```
+
+## Versioning and releases
+
+This project follows Semantic Versioning and Conventional Commits. See [docs/versioning.md](docs/versioning.md) for the scheme and [docs/releasing.md](docs/releasing.md) for the release checklist.
+
