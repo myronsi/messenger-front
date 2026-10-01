@@ -2,6 +2,7 @@ import { Dispatch, MutableRefObject, SetStateAction, useEffect, useRef } from 'r
 import { Message } from '@/entities/message';
 import { ensureAccessToken } from '@/shared/auth/session';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
+import { removeMessageAnimated, useLocalMessageDeletion } from './messageDeletion';
 import { escapeCurlyBraces, MAX_WEBSOCKET_RECONNECT_ATTEMPTS, normalizeAvatarUrl, unescapeCurlyBraces } from './chatWebSocketUtils';
 
 interface ChatWebSocketOptions {
@@ -30,6 +31,7 @@ export const useChatWebSocket = ({
   setMessages, setModal, applyReadReceiptBatch, markMessageFailed, markLatestPendingMessageFailed,
 }: ChatWebSocketOptions) => {
   const presenceUpdateRef = useRef(onPresenceUpdate);
+  useLocalMessageDeletion(chatId, setMessages);
   useEffect(() => {
     presenceUpdateRef.current = onPresenceUpdate;
   }, [onPresenceUpdate]);
@@ -174,7 +176,7 @@ export const useChatWebSocket = ({
                 ))
               );
             } else if (parsedData.type === 'delete') {
-              setMessages((prev) => prev.filter((msg) => msg.id !== parsedData.message_id));
+              removeMessageAnimated(setMessages, parsedData.message_id);
             } else if (parsedData.type === 'reaction_add') {
               setMessages((prev) =>
                 prev.map((msg) => {

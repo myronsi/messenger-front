@@ -6,7 +6,6 @@ interface ContextMenuProps {
   x: number;
   y: number;
   isMine: boolean;
-  canDelete?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   onCopy?: () => void;
@@ -19,13 +18,11 @@ interface ContextMenuProps {
 const REACTION_MENU_OFFSET = 48;
 
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ x, y, isMine, canDelete, onEdit, onDelete, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
+  ({ x, y, isMine, onEdit, onDelete, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
     const [isAnimated, setIsAnimated] = useState(false);
-
-    console.log('ContextMenuComponent rendered', { isMine, canDelete, hasOnDelete: !!onDelete, hasOnEdit: !!onEdit, hasOnCopy: !!onCopy });
 
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
@@ -59,9 +56,6 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
 
     const relativeX = x - adjustedX;
     const relativeY = y - adjustedY;
-    const showDelete = canDelete ?? isMine;
-
-    console.log('About to render buttons', { showDelete, hasOnDelete: !!onDelete, isMine, canDelete });
 
     const handleTransitionEnd = (event: React.TransitionEvent) => {
       if (isClosing && event.propertyName === 'transform') {
@@ -94,11 +88,10 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
             <span className="truncate">{translations.editMessage}</span>
           </button>
         )}
-        {showDelete && onDelete && (
+        {onDelete && (
           <button
             className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-destructive hover:text-destructive"
             onClick={() => {
-              console.log('DELETE BUTTON CLICKED');
               onDelete();
             }}
           >

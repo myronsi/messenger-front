@@ -23,11 +23,6 @@ const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
 
   // Handle delete message choice modal
   if (modal.type === 'deleteMessageChoice') {
-    console.log('Rendering DeleteMessageChoiceModal', {
-      isMessageSender: modal.isMessageSender,
-      hasOnDeleteForMe: !!modal.onDeleteForMe,
-      hasOnDeleteForAll: !!modal.onDeleteForAll,
-    });
     return (
       <DeleteMessageChoiceModal
         isMessageSender={modal.isMessageSender || false}

@@ -30,7 +30,6 @@ interface ChatOverlaysProps {
   setModal: (modal: ModalState) => void;
   closeMenus: () => void;
   onForward: (message: Message | null) => void;
-  onDeleteForMe: (messageId: number) => Promise<unknown>;
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
   getMessageTime: (timestamp: string) => string;
@@ -45,7 +44,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
   token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, setModal, closeMenus, onForward,
-  onDeleteForMe, isSearchOpen, setIsSearchOpen, getMessageTime, jumpToSearchResult,
+  isSearchOpen, setIsSearchOpen, getMessageTime, jumpToSearchResult,
   forwardMessage, username, onForwarded, modal,
 }) => (
   <>
@@ -70,7 +69,6 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         setReactionMenu={setReactionMenu}
         messageInputRef={messageInputRef}
         onForward={onForward}
-        onDeleteForMe={onDeleteForMe}
       />
     )}
     {reactionMenu && userId !== null && (

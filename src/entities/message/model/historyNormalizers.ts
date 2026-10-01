@@ -89,6 +89,7 @@ export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessa
           client_temp_id: current.client_temp_id ?? message.client_temp_id,
           is_own: current.is_own || message.is_own,
           delivery_error: current.delivery_error || message.delivery_error,
+          is_deleting: current.is_deleting,
         }
       : message;
   });

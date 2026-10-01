@@ -1,5 +1,7 @@
 import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
+import { useDeleteMessageForMeMutation } from '@/app/api/messengerApi';
+import { notifyMessageDeletedLocally } from '../model/messageDeletion';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 
 interface ContextMenuProps {
@@ -21,7 +23,6 @@ interface ContextMenuProps {
   messageInputRef: React.RefObject<HTMLInputElement>;
   canDeleteMessage?: (message: Message) => boolean;
   onForward?: (message: Message) => void;
-  onDeleteForMe?: (messageId: number) => Promise<void>;
 }
 
 const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
@@ -44,8 +45,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     messageInputRef,
     canDeleteMessage,
     onForward,
-    onDeleteForMe,
   }, ref) => {
+    const [deleteMessageForMe] = useDeleteMessageForMeMutation();
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (ref && 'current' in ref && ref.current && !ref.current.contains(event.target as Node)) {
@@ -91,7 +92,6 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const message = messages.find((m) => m.id === contextMenu.messageId);
     const isFile = message?.type === 'file';
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
-    const isMessageSender = message && (message.is_own || message.sender_id === userId || contextMenu.isMine);
 
     const handleEdit = () => {
       if (message && message.type === 'message') {
@@ -108,42 +108,36 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     };
 
     const handleDelete = () => {
-      console.log('handleDelete called', { contextMenu, isMessageSender, onDeleteForMe });
+      const messageId = contextMenu.messageId;
+      const finish = () => {
+        setContextMenu(null);
+        setReactionMenu(null);
+        setModal(null);
+      };
       setModal({
         type: 'deleteMessageChoice',
-        isMessageSender,
-        messageId: contextMenu.messageId,
+        isMessageSender: canDelete,
+        messageId,
         onDeleteForMe: async () => {
-          console.log('Modal onDeleteForMe callback triggered');
-          if (onDeleteForMe) {
-            try {
-              console.log('Calling mutation with messageId:', contextMenu.messageId);
-              await onDeleteForMe(contextMenu.messageId);
-              console.log('Mutation completed successfully');
-            } catch (error) {
-              console.error('Failed to delete message for me:', error);
-            }
-          } else {
-            console.warn('onDeleteForMe prop is undefined');
+          try {
+            await deleteMessageForMe(messageId).unwrap();
+            notifyMessageDeletedLocally(chatId, messageId);
+          } catch (error) {
+            console.error('Failed to delete message for me:', error);
           }
-          setContextMenu(null);
-          setReactionMenu(null);
-          setModal(null);
+          finish();
         },
         onDeleteForAll: () => {
-          if (contextMenu && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ type: 'delete', message_id: contextMenu.messageId }));
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'delete', message_id: messageId }));
           }
-          setContextMenu(null);
-          setReactionMenu(null);
-          setModal(null);
+          finish();
         },
       });
       setContextMenu({ ...contextMenu, isClosing: true });
       setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
       setTimeout(() => onClose(), 200);
     };
-
     const handleCopy = async () => {
       if (message) {
         const text = message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content);
@@ -183,7 +177,6 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         x={contextMenu.x}
         y={contextMenu.y}
         isMine={contextMenu.isMine}
-        canDelete={canDelete}
         {...(!isFile && { onEdit: handleEdit })}
         onDelete={handleDelete}
         {...(!isFile && { onCopy: handleCopy })}

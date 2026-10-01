@@ -143,8 +143,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const renderContent = (message: Message) => (
     <MessageContent
       message={message}
-      userId={userId}
-      isGroup={isGroup}
       isMobile={isMobile}
       translations={translations}
       getFileTypeConfig={getFileTypeConfig}

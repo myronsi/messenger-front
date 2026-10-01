@@ -3,10 +3,42 @@ import { Message, ReactionInfo } from '@/entities/message';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
+import { prefersReducedMotion } from '../model/messageDeletion';
 import {
   AlertCircle, Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
   Clock7, Clock8, Clock9, Clock10, Clock11, Clock12,
 } from 'lucide-react';
+
+const PARTICLE_COUNT = 36;
+
+const DissolveParticles: React.FC = () => {
+  const particles = React.useMemo(() => Array.from({ length: PARTICLE_COUNT }, () => ({
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    dx: 20 + Math.random() * 50,
+    dy: -30 + Math.random() * 60,
+    size: 2 + Math.random() * 3,
+    delay: Math.random() * 250,
+  })), []);
+  return (
+    <div className="message-particles" aria-hidden="true">
+      {particles.map((particle, index) => (
+        <span
+          key={index}
+          style={{
+            left: `${particle.left}%`,
+            top: `${particle.top}%`,
+            width: particle.size,
+            height: particle.size,
+            animationDelay: `${particle.delay}ms`,
+            '--dx': `${particle.dx}px`,
+            '--dy': `${particle.dy}px`,
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
+};
 
 const clockIcons = [Clock1, Clock2, Clock3, Clock4, Clock5, Clock6, Clock7, Clock8, Clock9, Clock10, Clock11, Clock12];
 
@@ -72,8 +104,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   renderContent, onMessageClick, onClick, onAvatarClick, onReplyClick,
   setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
 }) => {
-  if (Array.isArray(message.deleted_for) && message.deleted_for.includes(userId) && !isGroup) return null;
   const isMine = isOwnMessage(message);
+  const reducedMotion = prefersReducedMotion();
   const isOutgoingSend = isMine && (message.id < 0 || !!message.client_temp_id);
   const isUploadingMessage = isMine && message.upload_status === 'uploading';
   const hasReactions = !!message.reactions?.length;
@@ -145,8 +177,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }}
         className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} flex ${isMine ? 'justify-end' : 'justify-start'} ${
           highlightedMessageId === message.id ? 'highlight' : ''
-        } ${contextMenuMessageId === message.id || tempHighlightedMessageId === message.id ? 'context-menu-highlight' : ''}`}
-        style={groupedWithPrevious ? { marginTop: '0.25rem' } : undefined}
+        } ${contextMenuMessageId === message.id || tempHighlightedMessageId === message.id ? 'context-menu-highlight' : ''} ${
+          message.is_deleting ? (reducedMotion ? 'message-deleting message-deleting-reduced' : 'message-deleting') : ''
+        }`}
+        style={{
+          ...(groupedWithPrevious ? { marginTop: '0.25rem' } : {}),
+          ...(message.is_deleting ? { '--msg-h': `${messageRefs.current[message.id]?.offsetHeight ?? 0}px`, pointerEvents: 'none' } as React.CSSProperties : {}),
+        }}
         onClick={(event) => {
           event.preventDefault();
           if (message.reply_to && event.type === 'click' && !interlocutorDeleted) handleReply();
@@ -173,7 +210,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 {message.sender}
               </button>
             )}
-            <div className={`motion-message-bubble relative w-fit min-w-0 max-w-full rounded-2xl [overflow-wrap:anywhere] ${
+            <div className={`motion-message-bubble relative w-fit min-w-0 max-w-full rounded-2xl [overflow-wrap:anywhere] ${message.is_deleting ? 'message-dissolve' : ''} ${
               isMine ? `bg-primary text-primary-foreground${showTail ? ' message-tail-right' : ''}` : `bg-accent text-accent-foreground${showTail ? ' message-tail-left' : ''}`
             } ${isImage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}` : `px-4 py-2 border${isMine ? ' border-primary' : ' border-accent'}`} ${
               hasReactions ? (isImage ? 'mb-4' : 'mb-3.5') : ''
@@ -181,6 +218,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               {forwardedLabel && <div className="mb-1 text-xs font-medium opacity-70">{forwardedLabel}</div>}
               {message.reply_to && <ReplyPreview replyMessage={messages.find((item) => item.id === message.reply_to)} isMine={isMine} onClick={handleReply} />}
               <div className="relative">
+                {message.is_deleting && !reducedMotion && <DissolveParticles />}
                 {renderContent(message)}
                 {isImage && isValidTimestamp(message.timestamp) && (
                   <div className={`absolute bottom-1 text-[10px] px-2 py-1 bg-gray-500/50 rounded-xl flex items-center space-x-1 ${isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'}`}>
