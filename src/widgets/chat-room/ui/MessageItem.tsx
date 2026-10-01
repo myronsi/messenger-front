@@ -104,7 +104,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   renderContent, onMessageClick, onClick, onAvatarClick, onReplyClick,
   setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
 }) => {
-  if (Array.isArray(message.deleted_for) && message.deleted_for.includes(userId)) return null;
+  if (Array.isArray(message.deleted_for) && message.deleted_for.includes(userId) && !message.is_deleting) return null;
   const isMine = isOwnMessage(message);
   const reducedMotion = prefersReducedMotion();
   const isOutgoingSend = isMine && (message.id < 0 || !!message.client_temp_id);

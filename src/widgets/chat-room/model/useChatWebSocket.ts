@@ -177,6 +177,9 @@ export const useChatWebSocket = ({
               );
             } else if (parsedData.type === 'delete') {
               removeMessageAnimated(setMessages, parsedData.message_id);
+            } else if (parsedData.type === 'message_deleted_for_me') {
+              // Sent to every socket of the user, so ignore events from other chats.
+              if (parsedData.chat_id === chatId) removeMessageAnimated(setMessages, parsedData.message_id);
             } else if (parsedData.type === 'reaction_add') {
               setMessages((prev) =>
                 prev.map((msg) => {

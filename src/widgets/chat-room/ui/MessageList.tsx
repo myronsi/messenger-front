@@ -84,6 +84,10 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const onScrollStart = props.onScrollStart;
   const onMarkMessagesRead = props.onMarkMessagesRead;
 
+  const visibleMessages = messages.filter((message) => (
+    message.is_deleting || !(userId > 0 && Array.isArray(message.deleted_for) && message.deleted_for.includes(userId))
+  ));
+
   const isOwnMessage = (message: Message) => {
     if (message.is_own) return true;
     if (userId && message.sender_id) return message.sender_id === userId;
@@ -201,12 +205,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
             {translations.noMessagesYet || 'No messages yet'}
           </div>
         )}
-        {messages.map((message, index) => (
+        {visibleMessages.map((message, index) => (
           <MessageItem
             key={message.client_temp_id ?? message.id}
             message={message}
             index={index}
-            messages={messages}
+            messages={visibleMessages}
             userId={userId}
             isGroup={isGroup}
             visibleFirstUnreadId={visibleUnreadBoundaryId}

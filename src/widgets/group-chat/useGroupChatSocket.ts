@@ -116,6 +116,9 @@ export const useGroupChatSocket = ({ token, chatId, username, onBack, translatio
           setMessageInput('');
         } else if (parsedData.type === 'delete') {
           removeMessageAnimated(setMessages, parsedData.message_id as number);
+        } else if (parsedData.type === 'message_deleted_for_me') {
+          // Sent to every socket of the user, so ignore events from other chats.
+          if (parsedData.chat_id === chatId) removeMessageAnimated(setMessages, parsedData.message_id as number);
         } else if (parsedData.type === 'reaction_add') {
           setMessages((prev) => prev.map((message) => {
             if (message.id !== parsedData.message_id) return message;
