@@ -34,6 +34,7 @@ const isTokenExpired = (token: string, skewMs = 30_000) => {
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 
 export const setAccessToken = (token: string | null) => {
+  mediaSessionPromise = null;
   if (token) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
   } else {
@@ -43,6 +44,7 @@ export const setAccessToken = (token: string | null) => {
 };
 
 export const clearAuthTokens = () => {
+  mediaSessionPromise = null;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   notifyTokenListeners(null);
@@ -84,7 +86,29 @@ export const ensureAccessToken = async () => {
   return refreshAccessToken();
 };
 
+let mediaSessionPromise: Promise<void> | null = null;
+
+// Sessions created before media auth have no media cookie yet; <img>/<audio> need it to load /static files.
+const ensureMediaSession = () => {
+  if (!mediaSessionPromise) {
+    mediaSessionPromise = (async () => {
+      const token = await ensureAccessToken();
+      if (!token) return;
+      const response = await fetch(`${BASE_URL}/auth/media-session`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok && response.status !== 401) throw new Error('Media session failed');
+    })().catch(() => {
+      mediaSessionPromise = null;
+    });
+  }
+  return mediaSessionPromise;
+};
+
 export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
+  await ensureMediaSession();
   const token = await ensureAccessToken();
   const headers = new Headers(init.headers);
   if (token) {
