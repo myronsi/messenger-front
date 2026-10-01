@@ -81,4 +81,9 @@ export const profile = {
   groupProfile: "Профиль группы",
   chatSearch: "Поиск в чате",
   searchQueryRequired: "Введите текст для поиска сообщений.",
+  about: "О приложении",
+  appVersion: "Приложение",
+  serverVersion: "Сервер",
+  apiVersion: "API",
+  build: "Сборка",
 };

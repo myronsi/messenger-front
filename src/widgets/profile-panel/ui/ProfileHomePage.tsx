@@ -6,6 +6,7 @@ import { formatDate } from '@/shared/utils/dateFormatters';
 import type { User } from '@/entities/user';
 import type { ProfileSettingsRow } from './ProfileSettingsRows';
 import ProfileSettingsRows from './ProfileSettingsRows';
+import AboutSection from './AboutSection';
 
 interface ProfileHomePageProps {
   username: string; userData: Pick<User, 'username' | 'created_at'>; avatarUrl: string; hasCustomAvatar: boolean;
@@ -169,6 +170,8 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
             </section>
 
             <ProfileSettingsRows title={translations.settings || 'Settings'} description={translations.manageAccountSettings || 'Manage privacy, sessions, and account preferences.'} rows={settingsRows} futureRows={futureSettingsRows} />
+
+            <AboutSection />
 
             <section className="rounded-lg border border-gray-200 bg-white p-4">
               <div className="mb-4">
