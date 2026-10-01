@@ -21,7 +21,7 @@ const GroupAvatarViewer: React.FC<GroupAvatarViewerProps> = ({ avatarUrl, groupN
     const filename = `${safeName}-avatar.${extension}`;
 
     try {
-      const response = await fetch(avatarUrl);
+      const response = await fetch(avatarUrl, { credentials: 'include' });
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);

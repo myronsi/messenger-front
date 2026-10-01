@@ -84,7 +84,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
     const filename = `${username}-avatar-${selectedIndex + 1}.${extension}`;
 
     try {
-      const response = await fetch(selectedUrl);
+      const response = await fetch(selectedUrl, { credentials: 'include' });
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
