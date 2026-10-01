@@ -47,3 +47,57 @@
   }
 }
 
+
+.message-deleting {
+  overflow: hidden;
+  animation: message-collapse 750ms ease-in forwards;
+}
+
+.message-dissolve {
+  animation: message-dissolve 550ms ease-in forwards;
+}
+
+.message-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.message-particles > span {
+  position: absolute;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0;
+  animation: message-particle 550ms ease-out forwards;
+}
+
+@keyframes message-dissolve {
+  0% { opacity: 1; filter: blur(0); }
+  100% { opacity: 0; filter: blur(3px); }
+}
+
+@keyframes message-particle {
+  0% { opacity: 0.9; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); }
+}
+
+@keyframes message-collapse {
+  0%, 60% { max-height: var(--msg-h, 500px); opacity: 1; }
+  100% { max-height: 0; margin-top: 0; opacity: 0; }
+}
+
+@keyframes message-fade-collapse {
+  0% { max-height: var(--msg-h, 500px); opacity: 1; }
+  100% { max-height: 0; margin-top: 0; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-deleting-reduced {
+    animation: message-fade-collapse 250ms ease-out forwards !important;
+    animation-duration: 250ms !important;
+  }
+
+  .message-deleting-reduced .message-dissolve {
+    animation: none !important;
+  }
+}

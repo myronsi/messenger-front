@@ -4,6 +4,7 @@ import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { ensureAccessToken } from '@/shared/auth/session';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
+import { removeMessageAnimated, useLocalMessageDeletion } from '@/widgets/chat-room/model/messageDeletion';
 
 interface GroupSocketData { chat_id?: number; message_id?: number; content?: Message['content']; reply_to?: Message['reply_to']; }
 interface GroupSocketEvent { type?: string; data?: GroupSocketData; sender_id?: number; sender_username?: string; username?: string; timestamp?: string; avatar_url?: string; is_deleted?: boolean; delivery_error?: string; forwarded_from?: Message['forwarded_from']; reactions?: Message['reactions']; read_by?: Message['read_by']; message_id?: number; new_content?: string; user_id?: number; reaction?: string; display_name?: string; read_at?: string; group?: RawGroupDetails; removed_username?: string; chat_id?: number; message?: string; }
@@ -18,6 +19,7 @@ interface UseGroupChatSocketArgs {
 }
 
 export const useGroupChatSocket = ({ token, chatId, username, onBack, translations, applyGroupDetails, refreshGroupDetails, wsRef, isLoadingOlderMessagesRef, currentUserIdRef, setMessages, setEditingMessage, setMessageInput, setModal }: UseGroupChatSocketArgs) => {
+  useLocalMessageDeletion(chatId, setMessages);
   useEffect(() => {
     let isMounted = true;
     let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -113,7 +115,7 @@ export const useGroupChatSocket = ({ token, chatId, username, onBack, translatio
           setEditingMessage(null);
           setMessageInput('');
         } else if (parsedData.type === 'delete') {
-          setMessages((prev) => prev.filter((message) => message.id !== parsedData.message_id));
+          removeMessageAnimated(setMessages, parsedData.message_id as number);
         } else if (parsedData.type === 'reaction_add') {
           setMessages((prev) => prev.map((message) => {
             if (message.id !== parsedData.message_id) return message;

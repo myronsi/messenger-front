@@ -64,6 +64,7 @@ export interface Message {
   reply_to?: number | null;
   is_deleted?: boolean;
   deleted_for?: number[];
+  is_deleting?: boolean;
   edited_at?: string | null;
   type: 'message' | 'file';
   delivery_error?: string;

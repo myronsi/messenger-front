@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Message } from '@/entities/message';
-import { useGetBlockedUsersQuery, useDeleteMessageForMeMutation } from '@/app/api/messengerApi';
+import { useGetBlockedUsersQuery } from '@/app/api/messengerApi';
 import ChatHeader from './ui/ChatHeader';
 import MessageList from './ui/MessageList';
 import MessageInput from './ui/MessageInput';
@@ -30,7 +30,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const isPreview = chatId <= 0;
 
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
-  const [deleteMessageForMe] = useDeleteMessageForMeMutation();
   const isBlockedByMe = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username.toLowerCase() === chatName.toLowerCase());
 
   const {
@@ -268,7 +267,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         setModal={setModal}
         closeMenus={closeMenus}
         onForward={setForwardMessage}
-        onDeleteForMe={(messageId) => deleteMessageForMe(messageId).unwrap()}
         isSearchOpen={isSearchOpen}
         setIsSearchOpen={setIsSearchOpen}
         getMessageTime={getMessageTime}

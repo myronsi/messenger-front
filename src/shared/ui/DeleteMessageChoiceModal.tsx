@@ -19,12 +19,9 @@ const DeleteMessageChoiceModal: React.FC<DeleteMessageChoiceModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDeleteForMe = async () => {
-    console.log('handleDeleteForMe called in modal');
     setIsLoading(true);
     try {
-      console.log('Calling onDeleteForMe callback');
       await onDeleteForMe();
-      console.log('onDeleteForMe callback completed');
     } catch (error) {
       console.error('Error in handleDeleteForMe:', error);
     } finally {
@@ -33,7 +30,6 @@ const DeleteMessageChoiceModal: React.FC<DeleteMessageChoiceModalProps> = ({
   };
 
   const handleDeleteForAll = () => {
-    console.log('handleDeleteForAll called in modal');
     setIsLoading(true);
     try {
       onDeleteForAll();
