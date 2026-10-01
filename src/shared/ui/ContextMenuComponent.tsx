@@ -6,7 +6,6 @@ interface ContextMenuProps {
   x: number;
   y: number;
   isMine: boolean;
-  canDelete?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   onCopy?: () => void;
@@ -19,7 +18,7 @@ interface ContextMenuProps {
 const REACTION_MENU_OFFSET = 48;
 
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ x, y, isMine, canDelete, onEdit, onDelete, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
+  ({ x, y, isMine, onEdit, onDelete, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
@@ -57,7 +56,6 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
 
     const relativeX = x - adjustedX;
     const relativeY = y - adjustedY;
-    const showDelete = canDelete ?? isMine;
 
     const handleTransitionEnd = (event: React.TransitionEvent) => {
       if (isClosing && event.propertyName === 'transform') {
@@ -90,7 +88,7 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
             <span className="truncate">{translations.editMessage}</span>
           </button>
         )}
-        {showDelete && onDelete && (
+        {onDelete && (
           <button
             className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-destructive hover:text-destructive"
             onClick={() => {

@@ -177,7 +177,6 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         x={contextMenu.x}
         y={contextMenu.y}
         isMine={contextMenu.isMine}
-        canDelete={canDelete}
         {...(!isFile && { onEdit: handleEdit })}
         onDelete={handleDelete}
         {...(!isFile && { onCopy: handleCopy })}
