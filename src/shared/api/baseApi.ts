@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery, type BaseQueryFn, type FetchArgs, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import { clearAuthTokens, getAccessToken, refreshAccessToken } from '@/shared/auth/session';
+import { clearAuthTokens, ensureMediaSession, getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -16,6 +16,7 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithRefresh: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (args, api, extraOptions) => {
+  await ensureMediaSession();
   let result = await rawBaseQuery(args, api, extraOptions);
 
   if (result.error?.status === 401) {

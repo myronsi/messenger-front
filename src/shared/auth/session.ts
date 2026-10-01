@@ -89,7 +89,7 @@ export const ensureAccessToken = async () => {
 let mediaSessionPromise: Promise<void> | null = null;
 
 // Sessions created before media auth have no media cookie yet; <img>/<audio> need it to load /static files.
-const ensureMediaSession = () => {
+export const ensureMediaSession = () => {
   if (!mediaSessionPromise) {
     mediaSessionPromise = (async () => {
       const token = await ensureAccessToken();
