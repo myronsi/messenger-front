@@ -9,8 +9,6 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface MessageContentProps {
   message: Message;
-  userId: number;
-  isGroup: boolean;
   isMobile: boolean;
   translations: Record<string, any>;
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
@@ -24,8 +22,6 @@ interface MessageContentProps {
 
 const MessageContent: React.FC<MessageContentProps> = ({
   message,
-  userId,
-  isGroup,
   isMobile,
   translations,
   getFileTypeConfig,
@@ -36,14 +32,6 @@ const MessageContent: React.FC<MessageContentProps> = ({
   audioStates,
   setAudioStates,
 }) => {
-  const isDeletedForMe = Array.isArray(message.deleted_for) && message.deleted_for.includes(userId);
-  if (isDeletedForMe) {
-    return isGroup ? (
-      <div className="italic opacity-70 text-sm">
-        [{translations.deleted || 'Deleted'} {translations.forYou || 'for you'}]
-      </div>
-    ) : null;
-  }
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
     return typeof content === 'string' ? <div>{content}</div> : content;
