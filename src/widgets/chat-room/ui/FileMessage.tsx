@@ -16,6 +16,7 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
       const downloadUrl = fileUrl.includes('?') ? `${fileUrl}&download=1` : `${fileUrl}?download=1`;
       const response = await fetch(downloadUrl, {
         method: 'GET',
+        credentials: 'include',
         headers: { Accept: '*/*' },
       });
       if (!response.ok) {
