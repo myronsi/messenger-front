@@ -3,6 +3,7 @@ import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/app/api/messengerApi';
 import { notifyMessageDeletedLocally } from '@/features/chat-core';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ContextMenuProps {
   contextMenu: ContextMenuState;
@@ -46,6 +47,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     canDeleteMessage,
     onForward,
   }, ref) => {
+    const { translations } = useLanguage();
     const [deleteMessageForMe] = useDeleteMessageForMeMutation();
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -114,6 +116,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         setReactionMenu(null);
         setModal(null);
       };
+      const showError = () => setModal({ type: 'error', message: translations.webSocketError });
       setModal({
         type: 'deleteMessageChoice',
         isMessageSender: canDelete,
@@ -124,12 +127,23 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
             notifyMessageDeletedLocally(chatId, messageId);
           } catch (error) {
             console.error('Failed to delete message for me:', error);
+            showError();
+            return;
           }
           finish();
         },
         onDeleteForAll: () => {
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ type: 'delete', message_id: messageId }));
+          const socket = wsRef.current;
+          if (!socket || socket.readyState !== WebSocket.OPEN) {
+            showError();
+            return;
+          }
+          try {
+            socket.send(JSON.stringify({ type: 'delete', message_id: messageId }));
+          } catch (error) {
+            console.error('Failed to delete message for everyone:', error);
+            showError();
+            return;
           }
           finish();
         },
