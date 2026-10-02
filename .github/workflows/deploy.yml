@@ -1,0 +1,56 @@
+name: Deploy
+
+# Runs after every release, or manually to deploy or roll back to any released tag.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Released tag to deploy, for example v0.5.0
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TAG: ${{ inputs.tag }}
+      WEB_ROOT: ${{ vars.FRONTEND_DEPLOY_PATH || '/var/www/messenger' }}
+      KEEP_RELEASES: 5
+    steps:
+      - name: Download the release build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$TAG" --repo "${{ github.repository }}" --pattern 'messenger-front-*-dist.tar.gz' --output dist.tar.gz
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host deploy\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking yes\n' "$SSH_HOST" "$SSH_USER" > ~/.ssh/config
+      - name: Upload the release
+        run: |
+          ssh deploy "mkdir -p '$WEB_ROOT/releases/$TAG'"
+          scp dist.tar.gz "deploy:$WEB_ROOT/releases/$TAG/dist.tar.gz"
+          ssh deploy "cd '$WEB_ROOT/releases/$TAG' && tar -xzf dist.tar.gz && rm dist.tar.gz"
+      - name: Switch the current release and prune old ones
+        run: |
+          ssh deploy "set -e; cd '$WEB_ROOT'; ln -sfn 'releases/$TAG' current.tmp; mv -T current.tmp current; ls -1dt releases/*/ | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf --"
