@@ -7,6 +7,7 @@ export const supplemental = {
   noKnownUsernamesFound: "No known usernames found on this device. Please contact our support.",
   pleaseContactOurSupport: "Please contact our support team for assistance.",
   enterDeviceAndCloudParts: "Enter your device part and cloud part",
+  enterRecoveryPart: "Enter your device part or the QR code part you saved at registration",
   enterYourNewPassword: "Enter your new password",
   status: "Status",
   message: "Message",

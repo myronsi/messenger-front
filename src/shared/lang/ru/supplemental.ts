@@ -7,6 +7,7 @@ export const supplemental = {
   noKnownUsernamesFound: "На этом устройстве не найдено известных имён пользователей. Пожалуйста, свяжитесь с нашей поддержкой.",
   pleaseContactOurSupport: "Пожалуйста, свяжитесь с нашей службой поддержки для получения помощи.",
   enterDeviceAndCloudParts: "Введите вашу часть устройства и часть облака",
+  enterRecoveryPart: "Введите часть устройства или часть QR-кода, сохранённую при регистрации",
   enterYourNewPassword: "Введите ваш новый пароль",
   status: "Статус",
   message: "Сообщение",
