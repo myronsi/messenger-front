@@ -35,9 +35,20 @@ jobs:
       - run: npm run build
         env:
           GITHUB_SHA: ${{ github.sha }}
+          VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
+          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
       - name: Package dist
         run: tar -czf messenger-front-${{ needs.release-please.outputs.tag_name }}-dist.tar.gz -C dist .
       - name: Attach dist to the GitHub Release
         run: gh release upload "${{ needs.release-please.outputs.tag_name }}" messenger-front-*-dist.tar.gz --clobber
         env:
           GH_TOKEN: ${{ github.token }}
+
+  deploy:
+    needs: [release-please, build-artifact]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit
