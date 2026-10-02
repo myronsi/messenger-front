@@ -163,8 +163,9 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     setIsEditingContactName(false);
   };
 
-  const profileState = <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose} />;
-  if (profileState) return profileState;
+  if (isLoading || !!error || !userData) {
+    return <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose} />;
+  }
 
   const avatarUrl = getAvatarUrl(userData.avatar_url);
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
