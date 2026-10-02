@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.3](https://github.com/myronsi/messenger-front/compare/v0.4.2...v0.4.3) (2026-10-02)
+
+
+### Bug Fixes
+
+* **chat:** make context menu delete button reliable ([4dada3e](https://github.com/myronsi/messenger-front/commit/4dada3ecb5064b4d87182e3da06c7116ba833509))
+* **chat:** make the message context menu delete button reliable ([bc9c91a](https://github.com/myronsi/messenger-front/commit/bc9c91aa124e905bca89091be27adf355f3e0939))
+* **chat:** share one message core between chat-room and group-chat ([adbcd34](https://github.com/myronsi/messenger-front/commit/adbcd34ba781a3aea2d20d600847a8105744a3cd))
+* **chat:** share one message core between chat-room and group-chat ([851bc21](https://github.com/myronsi/messenger-front/commit/851bc2125fcdf3e7c15f41d56e45ba69da04c1f2)), closes [#26](https://github.com/myronsi/messenger-front/issues/26)
+
 ## [0.4.2](https://github.com/myronsi/messenger-front/compare/v0.4.1...v0.4.2) (2026-10-02)
 
 
