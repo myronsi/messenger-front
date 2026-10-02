@@ -26,10 +26,8 @@ jobs:
         env:
           VITE_BASE_URL: https://example.invalid/api
 
-  # Report-only until the existing lint errors are fixed; then remove continue-on-error.
   lint:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
