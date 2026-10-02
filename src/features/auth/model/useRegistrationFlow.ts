@@ -40,8 +40,13 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   }, [avatarCropPreview]);
 
   const handleRegister = useCallback(async () => {
-    if (!username || username.length < 3) {
+    const normalizedUsername = username.toLowerCase();
+    if (normalizedUsername.length < 3) {
       setMessage(translations.usernameTooShort);
+      return;
+    }
+    if (!/^[a-z0-9_]{3,32}$/.test(normalizedUsername)) {
+      setMessage(translations.usernameInvalid);
       return;
     }
     const normalizedDisplayName = normalizeDisplayName(displayName);
@@ -58,14 +63,15 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, display_name: normalizedDisplayName, password }),
+        body: JSON.stringify({ username: normalizedUsername, display_name: normalizedDisplayName, password }),
       });
       const data = await response.json();
       if (response.ok) {
         if (!data.access_token) throw new Error(translations.registerFailed || 'Registration failed');
         setAccessToken(data.access_token);
         const existingDeviceParts = JSON.parse(localStorage.getItem('device_parts') || '{}');
-        existingDeviceParts[username] = data.device_part;
+        existingDeviceParts[normalizedUsername] = data.device_part;
+        setUsername(normalizedUsername);
         localStorage.setItem('device_parts', JSON.stringify(existingDeviceParts));
         localStorage.setItem('device_part', data.device_part);
         setQrPart(data.qr_part);
