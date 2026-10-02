@@ -46,6 +46,7 @@ export const auth = {
   resetPasswordFailed: "Failed to reset password",
   continue: "Continue",
   usernameTooShort: "Username must be at least 3 characters",
+  usernameInvalid: "Username must be 3-32 characters: letters, digits and underscores only",
   registerFailed: "Registration failed, please try again",
   qrDownloadError: "Failed to download QR code",
   copyQrPart: "Copy QR Part",
