@@ -2,9 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGetOneOnOneChatsQuery, useSearchUsersQuery } from '@/app/api/messengerApi';
 import type { User } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export interface GroupCreatePayload {
   groupName: string;
@@ -19,11 +18,7 @@ interface UseGroupCreateFormOptions {
   onCreate: (payload: GroupCreatePayload) => Promise<void> | void;
 }
 
-export const getAvatarSrc = (avatarUrl?: string | null, fallback = DEFAULT_AVATAR) => {
-  if (!avatarUrl) return fallback;
-  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-  return `${BASE_URL}${avatarUrl}`;
-};
+export const getAvatarSrc = (avatarUrl?: string | null, fallback = DEFAULT_AVATAR) => mediaUrl(avatarUrl, fallback);
 
 export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreateFormOptions) => {
   const { translations } = useLanguage();

@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import type { OneOnOneChatResponse } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import SearchUsers from '../SearchUsers';
-import { BASE_URL } from '../model/types';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import type { ChatsListComponentProps } from '../model/types';
 
 interface ChatSearchOverlayProps {
@@ -92,7 +92,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
                 existing.interlocutor_is_online,
                 existing.interlocutor_last_seen,
                 null,
-                existing.avatar_url ? `${BASE_URL}${existing.avatar_url}` : DEFAULT_AVATAR
+                mediaUrl(existing.avatar_url, DEFAULT_AVATAR)
               );
               onClose();
               return;

@@ -4,7 +4,6 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { ApprovalRequestInboxResponse, ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface ApprovalRequestsPageProps {
   inbox?: ApprovalRequestInboxResponse;
@@ -52,7 +51,7 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
                 : `${translations.from || 'From'} ${requester?.display_name || requester?.username || translations.deletedUser || 'Deleted User'}`;
               const avatar = isDm
                 ? getMediaUrl(requester?.avatar_url)
-                : getMediaUrl(request.group?.avatar_url, `${BASE_URL}${DEFAULT_GROUP_AVATAR}`);
+                : getMediaUrl(request.group?.avatar_url, DEFAULT_GROUP_AVATAR);
               return (
                 <div key={request.id} className="rounded-lg border border-border bg-white p-3 shadow-sm">
                   <div className="flex gap-3">

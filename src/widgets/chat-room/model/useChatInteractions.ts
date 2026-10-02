@@ -1,6 +1,7 @@
 import { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
-import { DEFAULT_AVATAR, DELETED_AVATAR } from '@/shared/base/ui';
+import { DELETED_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 
 interface ChatMenuPosition {
   x: number;
@@ -36,8 +37,6 @@ interface ChatInteractionsOptions {
   setTempHighlightedMessageId: (messageId: number | null) => void;
 }
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
 export const useChatInteractions = ({
   chatName,
   username,
@@ -66,11 +65,7 @@ export const useChatInteractions = ({
       .some((value) => String(value).toLowerCase() === ownUsername);
   };
 
-  const normalizeAvatarUrl = (avatarUrl?: string | null) => {
-    if (!avatarUrl) return DEFAULT_AVATAR;
-    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-    return `${BASE_URL}${avatarUrl}`;
-  };
+  const normalizeAvatarUrl = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
 
   const handleMessageClick = (event: React.MouseEvent, message: Message) => {
     if (window.innerWidth >= 768 && event.type !== 'contextmenu') return;

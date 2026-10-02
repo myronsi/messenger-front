@@ -1,6 +1,7 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import {
   useApproveApprovalRequestMutation,
@@ -13,8 +14,6 @@ import {
 } from '@/app/api/messengerApi';
 import type { ProfileModalState } from './useProfileAccountActions';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
     const data = error.data;
@@ -26,17 +25,9 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-export const getProfileAvatarUrl = (avatarUrl?: string | null) => {
-  if (!avatarUrl) return DEFAULT_AVATAR;
-  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-  return `${BASE_URL}${avatarUrl}`;
-};
+export const getProfileAvatarUrl = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
 
-export const getProfileMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => {
-  if (!path) return fallback;
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  return `${BASE_URL}${path}`;
-};
+export const getProfileMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => mediaUrl(path, fallback);
 
 interface ProfilePanelDataOptions {
   username: string;

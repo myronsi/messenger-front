@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Image as ImageIcon, Info, Loader2, Music, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import { useBlockUserMutation, useGetBlockedUsersQuery, useGetChatAudiosQuery, useGetChatPhotosQuery, useGetCurrentUserQuery, useGetUserByUsernameQuery, useUnblockUserMutation, useUpdateContactDisplayNameMutation } from '@/app/api/messengerApi';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import UserProfileInfoPanel from './ui/UserProfileInfoPanel';
@@ -13,8 +14,6 @@ import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanel
 import UserProfilePanelView from './ui/UserProfilePanelView';
 import { useProfilePanelTransition } from './useProfilePanelTransition';
 import { toProfileAudios, toProfilePhotos } from './ui/ProfileChatPanels';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface UserProfileComponentRTKProps {
   username: string;
@@ -111,11 +110,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     setIsEditingContactName(false);
   }, [userData?.contact_display_name, username]);
 
-  const getAvatarUrl = (avatarUrl?: string | null) => {
-    if (!avatarUrl) return DEFAULT_AVATAR;
-    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-    return `${BASE_URL}${avatarUrl}`;
-  };
+  const getAvatarUrl = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
 
   const handleBlockToggle = async () => {
     if (isCurrentUser || isBlockActionLoading) return;

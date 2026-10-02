@@ -3,7 +3,6 @@ import { Camera, Check, ChevronDown, ChevronLeft, Loader2, Search, UserPlus, X }
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { useGroupCreateForm, getAvatarSrc, type GroupCreatePayload } from '../model/useGroupCreateForm';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface GroupCreateModalProps {
   currentUsername: string;
@@ -52,7 +51,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
             <div className="motion-panel-in space-y-5">
               <div className="flex items-center gap-4">
                 <img
-                  src={avatarPreview || `${BASE_URL}${DEFAULT_GROUP_AVATAR}`}
+                  src={avatarPreview || DEFAULT_GROUP_AVATAR}
                   alt={groupName || translations.createGroup || 'Create group'}
                   className="h-20 w-20 rounded-full border border-border object-cover"
                 />

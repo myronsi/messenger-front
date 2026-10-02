@@ -1,5 +1,6 @@
 import { Chat, ChatLastMessage } from '@/entities/message';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import type { useLanguage } from '@/shared/contexts/LanguageContext';
 
 // Derived from useLanguage's return type so the widget always matches the
@@ -8,11 +9,7 @@ export type Translations = ReturnType<typeof useLanguage>['translations'];
 
 export const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-export const getMediaSrc = (path?: string | null, fallback: string = DEFAULT_AVATAR) => {
-  if (!path) return fallback;
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  return `${BASE_URL}${path}`;
-};
+export const getMediaSrc = (path?: string | null, fallback: string = DEFAULT_AVATAR) => mediaUrl(path, fallback);
 
 export interface ChatsListComponentProps {
   username: string;

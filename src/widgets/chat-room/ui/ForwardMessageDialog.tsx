@@ -4,12 +4,11 @@ import { Message } from '@/entities/message';
 import { useForwardMessageMutation, useGetBlockedUsersQuery, useGetGroupChatsQuery, useGetOneOnOneChatsQuery } from '@/app/api/messengerApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface ForwardMessageDialogProps {
   open: boolean;
@@ -26,13 +25,6 @@ interface ForwardTarget {
   avatarUrl: string;
   type: 'one-on-one' | 'group';
 }
-
-const resolveMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => {
-  if (!path) return fallback;
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (path.startsWith('/')) return `${BASE_URL}${path}`;
-  return path;
-};
 
 const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   open,
@@ -71,7 +63,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
         id: chat.id,
         name: chat.interlocutor_display_name || chat.interlocutor_name,
         subtitle: chat.interlocutor_name,
-        avatarUrl: resolveMediaUrl(chat.avatar_url, DEFAULT_AVATAR),
+        avatarUrl: mediaUrl(chat.avatar_url, DEFAULT_AVATAR),
         type: 'one-on-one' as const,
       }));
 
@@ -79,7 +71,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
       id: group.chat_id,
       name: group.name,
       subtitle: translations.group || 'Group',
-      avatarUrl: resolveMediaUrl(group.avatar_url, DEFAULT_GROUP_AVATAR),
+      avatarUrl: mediaUrl(group.avatar_url, DEFAULT_GROUP_AVATAR),
       type: 'group' as const,
     }));
 

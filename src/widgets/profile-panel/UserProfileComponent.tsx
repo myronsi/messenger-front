@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Info } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -23,11 +24,7 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
   const { translations } = useLanguage();
 
-  const getAvatarUrl = (value?: string | null) => {
-    if (!value) return DEFAULT_AVATAR;
-    if (value.startsWith('http://') || value.startsWith('https://')) return value;
-    return `${BASE_URL}${value}`;
-  };
+  const getAvatarUrl = (value?: string | null) => mediaUrl(value);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
