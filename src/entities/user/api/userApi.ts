@@ -58,15 +58,6 @@ export const userApi = messengerApi.injectEndpoints({
       query: (username) => `/users/users/${username}/avatars`,
       providesTags: (result, error, username) => [{ type: 'Avatar', id: `${username}-history` }],
     }),
-
-    uploadUserAvatar: builder.mutation<{ message: string }, FormData>({
-      query: (formData) => ({
-        url: '/users/users/me/avatar',
-        method: 'POST',
-        body: formData,
-      }),
-      invalidatesTags: ['Auth', 'Avatar'],
-    }),
   }),
 });
 
@@ -80,5 +71,4 @@ export const {
   useDeleteContactDisplayNameMutation,
   useGetUserAvatarQuery,
   useGetUserAvatarHistoryQuery,
-  useUploadUserAvatarMutation,
 } = userApi;
