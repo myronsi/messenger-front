@@ -4,7 +4,7 @@ import { Message } from '@/entities/message';
 import { useForwardMessageMutation, useGetBlockedUsersQuery, useGetGroupChatsQuery, useGetOneOnOneChatsQuery } from '@/app/api/messengerApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
@@ -63,7 +63,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
         id: chat.id,
         name: chat.interlocutor_display_name || chat.interlocutor_name,
         subtitle: chat.interlocutor_name,
-        avatarUrl: mediaUrl(chat.avatar_url, DEFAULT_AVATAR),
+        avatarUrl: resolveMediaUrl(chat.avatar_url, DEFAULT_AVATAR),
         type: 'one-on-one' as const,
       }));
 
@@ -71,7 +71,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
       id: group.chat_id,
       name: group.name,
       subtitle: translations.group || 'Group',
-      avatarUrl: mediaUrl(group.avatar_url, DEFAULT_GROUP_AVATAR),
+      avatarUrl: resolveMediaUrl(group.avatar_url, DEFAULT_GROUP_AVATAR),
       type: 'group' as const,
     }));
 

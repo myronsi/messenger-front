@@ -1,7 +1,7 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import {
   useApproveApprovalRequestMutation,
@@ -25,9 +25,9 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-export const getProfileAvatarUrl = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
+export const getProfileAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
-export const getProfileMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => mediaUrl(path, fallback);
+export const getProfileMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => resolveMediaUrl(path, fallback);
 
 interface ProfilePanelDataOptions {
   username: string;

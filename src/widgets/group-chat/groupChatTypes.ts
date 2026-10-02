@@ -65,6 +65,7 @@ export interface GroupChatViewModel {
   editingMessage: Message | null;
   handleSendMessage: () => void;
   handleFileUpload: (file: File, caption?: string) => Promise<void>;
+  handleResendMessage: (message: Message) => void;
   setReplyTo: Setter<Message | null>;
   setEditingMessage: Setter<Message | null>;
   token: string;

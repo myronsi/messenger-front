@@ -2,20 +2,9 @@ import { useEffect, useState } from 'react';
 import { FileMessageContent, Message } from '@/entities/message';
 import { useCreateChatMutation } from '@/app/api/messengerApi';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { getLocalUploadFileType } from '@/features/chat-core';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-
-const getLocalUploadFileType = (fileName: string, mimeType = '') => {
-  const extension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
-  if (mimeType.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'].includes(extension)) return 'image';
-  if (mimeType.startsWith('video/') || ['.mp4', '.mov', '.ogg'].includes(extension)) return 'video';
-  if (mimeType.startsWith('audio/') || ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'].includes(extension)) return 'audio';
-  if (['.pdf', '.doc', '.docx', '.txt'].includes(extension)) return 'document';
-  if (extension === '.pptx') return 'presention';
-  if (extension === '.zip') return 'arcive';
-  if (['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css'].includes(extension)) return 'code';
-  return 'none';
-};
 
 interface PreviewChatOptions {
   chatId: number;

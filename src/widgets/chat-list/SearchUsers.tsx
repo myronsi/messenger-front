@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useSearchUsersQuery, useCreateChatMutation } from '@/app/api/messengerApi';
 
 
@@ -68,7 +68,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, o
                       className={`flex items-center p-3 rounded-lg transition-all ${isSelf ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'}`}
                     >
                       <img
-                        src={mediaUrl(u.avatar_url, DEFAULT_AVATAR)}
+                        src={resolveMediaUrl(u.avatar_url, DEFAULT_AVATAR)}
                         alt={u.username}
                         className={`w-10 h-10 rounded-full mr-3 object-cover ${isSelf ? 'opacity-50' : ''}`}
                       />

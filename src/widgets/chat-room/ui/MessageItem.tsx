@@ -3,8 +3,8 @@ import { Message, ReactionInfo } from '@/entities/message';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
-import { prefersReducedMotion } from '../model/messageDeletion';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { prefersReducedMotion } from '@/features/chat-core';
 import {
   AlertCircle, Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
   Clock7, Clock8, Clock9, Clock10, Clock11, Clock12,
@@ -198,7 +198,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               event.stopPropagation();
               onAvatarClick(message.sender_username || message.sender);
             }}>
-              <img src={mediaUrl(message.avatar_url)} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
+              <img src={resolveMediaUrl(message.avatar_url)} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
             </button>
           )}
           {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}
