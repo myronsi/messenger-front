@@ -45,7 +45,7 @@ export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMes
   const menus = useGroupMessageMenus({ isOwnMessage, messageJumpRequest });
 
   const history = useMessageHistory({
-    chatId, token, username, messages, setMessages, currentUserIdRef, onBackRef, translationsRef, setModal,
+    chatId, token, username, firstUnreadMessageId, messages, setMessages, currentUserIdRef, onBackRef, translationsRef, setModal,
   });
 
   const { getAvatarSrc, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({ chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm, setCurrentUserId });
@@ -83,6 +83,10 @@ export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMes
     hasMoreMessages: history.hasMoreMessages,
     isLoadingOlderMessages: history.isLoadingOlderMessages,
     isLoadingInitialMessages: history.isLoadingInitialMessages,
+    loadNewerMessages: history.loadNewerMessages,
+    hasMoreNewerMessages: history.hasMoreNewerMessages,
+    isLoadingNewerMessages: history.isLoadingNewerMessages,
+    markMessagesRead: history.markMessagesRead,
     ...menus,
     ...profilePanel,
     handleOpenUserProfile,

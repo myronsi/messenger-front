@@ -53,6 +53,10 @@ export interface GroupChatViewModel {
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
   isLoadingInitialMessages: boolean;
+  loadNewerMessages: () => Promise<void>;
+  hasMoreNewerMessages: boolean;
+  isLoadingNewerMessages: boolean;
+  markMessagesRead: (messageIds: number[]) => Promise<void>;
   isOwnMessage: (message: Message) => boolean;
   setReadStatusMessage: Setter<Message | null>;
   setReactionDetails: Setter<ReactionDetailsState>;
