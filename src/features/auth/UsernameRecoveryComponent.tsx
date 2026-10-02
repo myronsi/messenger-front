@@ -14,15 +14,12 @@ import { Label } from '@/shared/ui/label';
 import { Link, useNavigate } from 'react-router-dom';
 import ForgotUsernameDialog from './ForgotUsernameDialog';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
 interface UsernameRecoveryComponentProps {
   onBackToLogin: () => void;
 }
 
 const UsernameRecoveryComponent: React.FC<UsernameRecoveryComponentProps> = ({ onBackToLogin }) => {
   const [username, setUsername] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showForgotDialog, setShowForgotDialog] = useState(false);
   const { translations } = useLanguage();
@@ -37,51 +34,17 @@ const UsernameRecoveryComponent: React.FC<UsernameRecoveryComponentProps> = ({ o
     }
   };
 
-  const handleUsernameSubmit = useCallback(async () => {
-    if (!username || username.length < 3) {
+  const handleUsernameSubmit = useCallback(() => {
+    const normalized = username.trim().toLowerCase();
+    if (!normalized || normalized.length < 3) {
       setMessage(translations.usernameTooShort);
       return;
     }
-    
-    setIsLoading(true);
+
     setMessage('');
-    
-    try {
-      const response = await fetch(`${BASE_URL}/auth/get-cloud-part?username=${encodeURIComponent(username)}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        const cloudPart = data.encrypted_cloud_part;
-        if (cloudPart) {
-          const devicePart = getDevicePartForUsername(username);
-          
-          sessionStorage.setItem('recovery_username', username);
-          sessionStorage.setItem('recovery_cloud_part', cloudPart);
-          sessionStorage.setItem('recovery_device_part', devicePart);
-          
-          navigate('/recover-parts');
-        } else {
-          setMessage(translations.invalidPartsFormat);
-        }
-      } else {
-        if (data.detail === 'User not found') {
-          setMessage(translations.userNotFound);
-        } else if (data.detail === 'Cloud part not found') {
-          setMessage(translations.cloudPartNotFound);
-        } else {
-          setMessage(translations.cloudPartFetchFailed);
-        }
-      }
-    } catch (err) {
-      setMessage(translations.networkError);
-      console.error('Fetch cloud part error:', err);
-    } finally {
-      setIsLoading(false);
-    }
+    sessionStorage.setItem('recovery_username', normalized);
+    sessionStorage.setItem('recovery_device_part', getDevicePartForUsername(normalized));
+    navigate('/recover-parts');
   }, [username, translations, navigate]);
 
   const handleForgotUsername = () => {
@@ -150,9 +113,9 @@ const UsernameRecoveryComponent: React.FC<UsernameRecoveryComponentProps> = ({ o
           <Button
             onClick={handleUsernameSubmit}
             className="w-full"
-            disabled={!username || username.length < 3 || isLoading}
+            disabled={!username || username.length < 3}
           >
-            {isLoading ? (translations.loading) : (translations.continue)}
+            {translations.continue}
           </Button>
           <Button
             variant="outline"

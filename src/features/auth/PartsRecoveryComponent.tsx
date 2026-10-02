@@ -23,31 +23,27 @@ interface PartsRecoveryComponentProps {
 const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = ({ onBackToLogin }) => {
   const [username, setUsername] = useState('');
   const [part1, setPart1] = useState('');
-  const [part2, setPart2] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showPart1, setShowPart1] = useState(false);
-  const [showPart2, setShowPart2] = useState(false);
   const { translations } = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
     const recoveryUsername = sessionStorage.getItem('recovery_username');
-    const recoveryCloudPart = sessionStorage.getItem('recovery_cloud_part');
     const recoveryDevicePart = sessionStorage.getItem('recovery_device_part');
 
-    if (!recoveryUsername || !recoveryCloudPart) {
+    if (!recoveryUsername) {
       navigate('/recover-username');
       return;
     }
 
     setUsername(recoveryUsername);
-    setPart2(recoveryCloudPart);
     setPart1(recoveryDevicePart || '');
   }, [navigate]);
 
   const handleRecoverPassword = useCallback(async () => {
-    if (!username || !part1 || !part2) {
+    if (!username || !part1) {
       setMessage(translations.missingFields);
       return;
     }
@@ -59,7 +55,7 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = ({ onBackT
       const response = await fetch(`${BASE_URL}/auth/recover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, part1: part1.trim(), part2: part2.trim() }),
+        body: JSON.stringify({ username, part1: part1.trim() }),
       });
       
       const data = await response.json();
@@ -77,11 +73,10 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = ({ onBackT
     } finally {
       setIsLoading(false);
     }
-  }, [username, part1, part2, translations, navigate]);
+  }, [username, part1, translations, navigate]);
 
   const handleBack = () => {
     sessionStorage.removeItem('recovery_username');
-    sessionStorage.removeItem('recovery_cloud_part');
     sessionStorage.removeItem('recovery_device_part');
     sessionStorage.removeItem('recovery_token');
     navigate('/recover-username');
@@ -95,17 +90,17 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = ({ onBackT
             {translations.recoverPassword}
           </CardTitle>
           <CardDescription className="text-center">
-            {translations.enterDeviceAndCloudParts}
+            {translations.enterRecoveryPart}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="part1">{translations.part1}</Label>
+            <Label htmlFor="part1">{translations.recoveryPart}</Label>
             <div className="relative">
               <Input
                 id="part1"
                 type={showPart1 ? "text" : "password"}
-                placeholder={translations.part1}
+                placeholder={translations.recoveryPart}
                 value={part1}
                 onChange={(e) => setPart1(e.target.value)}
                 className="pr-10"
@@ -131,38 +126,6 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = ({ onBackT
               </button>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="part2">{translations.part2}</Label>
-            <div className="relative">
-              <Input
-                id="part2"
-                type={showPart2 ? "text" : "password"}
-                placeholder={translations.part2}
-                value={part2}
-                readOnly
-                className="bg-muted pr-10"
-              />
-              <button
-                type="button"
-                onMouseDown={() => setShowPart2(true)}
-                onMouseUp={() => setShowPart2(false)}
-                onMouseLeave={() => setShowPart2(false)}
-                onTouchStart={() => setShowPart2(true)}
-                onTouchEnd={() => setShowPart2(false)}
-                onTouchCancel={() => setShowPart2(false)}
-                onPointerDown={() => setShowPart2(true)}
-                onPointerUp={() => setShowPart2(false)}
-                onPointerCancel={() => setShowPart2(false)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-              >
-                {showPart2 ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
-                  <EyeOff className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
           {message && (
             <p className="text-destructive text-sm text-center">{message}</p>
           )}
@@ -171,7 +134,7 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = ({ onBackT
           <Button
             onClick={handleRecoverPassword}
             className="w-full"
-            disabled={!username || !part1 || !part2 || isLoading}
+            disabled={!username || !part1 || isLoading}
           >
             {isLoading ? (translations.loading) : (translations.recoverPassword)}
           </Button>

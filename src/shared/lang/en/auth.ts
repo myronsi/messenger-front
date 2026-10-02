@@ -23,6 +23,7 @@ export const auth = {
   saveQrPart: "Please save or print the QR code part for password recovery.",
   part1: "First recovery part",
   part2: "Second recovery part",
+  recoveryPart: "Recovery part (device or QR code)",
   recoverPassword: "Recover Password",
   recoverySuccess: "Password recovery successful. You can now reset your password.",
   downloadQr: "Download QR Code",

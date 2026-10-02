@@ -62,10 +62,6 @@ export const authApi = messengerApi.injectEndpoints({
         body: data,
       }),
     }),
-
-    getCloudPart: builder.query<any, void>({
-      query: () => '/auth/get-cloud-part',
-    }),
   }),
 });
 
@@ -77,5 +73,4 @@ export const {
   useLogoutMutation,
   useForgotUsernameMutation,
   useResetPasswordMutation,
-  useGetCloudPartQuery,
 } = authApi;
