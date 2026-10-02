@@ -6,7 +6,7 @@ import { useGetMessageHistoryQuery, useMarkChatReadMutation } from '@/app/api/me
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const MESSAGE_PAGE_SIZE = 50;
 
-interface ChatHistoryOptions {
+interface MessageHistoryOptions {
   chatId: number;
   token: string;
   username: string;
@@ -19,7 +19,7 @@ interface ChatHistoryOptions {
   setModal: (modal: any) => void;
 }
 
-export const useChatHistory = ({
+export const useMessageHistory = ({
   chatId,
   token,
   username,
@@ -30,7 +30,7 @@ export const useChatHistory = ({
   onBackRef,
   translationsRef,
   setModal,
-}: ChatHistoryOptions) => {
+}: MessageHistoryOptions) => {
   const [isLoadingInitialMessages, setIsLoadingInitialMessages] = useState(false);
   const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
   const [isLoadingNewerMessages, setIsLoadingNewerMessages] = useState(false);

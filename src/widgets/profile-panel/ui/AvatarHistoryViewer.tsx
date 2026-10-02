@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, X } from 'lucide-react';
 import { useGetUserAvatarHistoryQuery } from '@/app/api/messengerApi';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
-const getAvatarUrl = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
+const getAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
 const isDefaultAvatar = (avatarUrl?: string | null) => getAvatarUrl(avatarUrl) === DEFAULT_AVATAR;
 

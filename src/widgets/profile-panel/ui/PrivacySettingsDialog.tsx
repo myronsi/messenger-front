@@ -21,7 +21,7 @@ import {
   useUpdatePrivacySettingsMutation,
 } from '@/app/api/messengerApi';
 import type { User } from '@/entities/user';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import {
   Select,
@@ -51,7 +51,7 @@ interface PrivacySettingsPanelProps {
   onBack: () => void;
 }
 
-const getAvatarSrc = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
+const getAvatarSrc = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
 const exceptionEffectForMode = (mode?: string): PrivacyExceptionEffect | null => {
   if (mode === 'everyone_except') return 'deny';

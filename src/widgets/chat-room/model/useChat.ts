@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
 
 
-import { useChatWebSocket } from './useChatWebSocket';
-import { useChatHistory } from './useChatHistory';
-import { createChatActions } from './useChatActions';
+import {
+  unescapeCurlyBraces, useChatSocket, useChatTransport, useLatest, useMessageEvents, useMessageHistory, useMessageSender,
+  type SocketEvent,
+} from '@/features/chat-core';
+import { createDeleteChatAction } from './useChatActions';
 
 export const useChat = (
   chatId: number,
@@ -24,7 +26,6 @@ export const useChat = (
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [connectionRetryKey, setConnectionRetryKey] = useState(0);
   const [modal, setModal] = useState<{
     type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
     message?: string;
@@ -37,22 +38,12 @@ export const useChat = (
   } | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const { translations, language } = useLanguage();
-  const onBackRef = useRef(onBack);
-  const translationsRef = useRef(translations);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectAttempts = useRef(0);
-  const messageQueueRef = useRef<Array<any>>([]);
-  const pendingMessageIdsRef = useRef<number[]>([]);
-  const currentUserIdRef = useRef(currentUserId);
-  const unescapeCurlyBraces = (text: string): string => {
-    return text.replace(/\\{/g, '{').replace(/\\}/g, '}');
-  };
-
-  useEffect(() => {
-    onBackRef.current = onBack;
-    translationsRef.current = translations;
-    currentUserIdRef.current = currentUserId;
-  }, [onBack, translations, currentUserId]);
+  const onBackRef = useLatest(onBack);
+  const translationsRef = useLatest(translations);
+  const currentUserIdRef = useLatest(currentUserId);
+  const presenceUpdateRef = useLatest(onPresenceUpdate);
+  const transport = useChatTransport();
+  const { wsRef } = transport;
 
   const {
     isLoadingInitialMessages,
@@ -63,8 +54,7 @@ export const useChat = (
     loadOlderMessages,
     loadNewerMessages,
     markMessagesRead,
-    applyReadReceiptBatch,
-  } = useChatHistory({
+  } = useMessageHistory({
     chatId, token, username, firstUnreadMessageId, messages, setMessages,
     currentUserIdRef, onBackRef, translationsRef, setModal,
   });
@@ -79,18 +69,31 @@ export const useChat = (
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,
-    handleDeleteChat,
-  } = createChatActions({
-    chatId, username, currentUserId, currentUserIdRef, translations, translationsRef,
-    onBack, setModal, setMessages, messageInput, setMessageInput, editingMessage,
-    setEditingMessage, replyTo, setReplyTo, wsRef, messageQueueRef,
-    pendingMessageIdsRef, setConnectionRetryKey,
+  } = useMessageSender({
+    chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport,
+    setMessages, setModal, messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
   });
 
-  useChatWebSocket({
-    chatId, token, username, onPresenceUpdate, connectionRetryKey, wsRef, reconnectAttempts,
-    messageQueueRef, pendingMessageIdsRef, currentUserIdRef, onBackRef, translationsRef,
-    setMessages, setModal, applyReadReceiptBatch, markMessageFailed, markLatestPendingMessageFailed,
+  const handleDeleteChat = createDeleteChatAction({ chatId, translations, onBack, setModal });
+
+  const handleExtraEvent = useCallback((event: SocketEvent) => {
+    if (event.type === 'presence_update' && event.username) {
+      presenceUpdateRef.current?.({
+        username: event.username,
+        is_online: !!event.is_online,
+        last_seen: event.last_seen || null,
+      });
+    }
+  }, [presenceUpdateRef]);
+
+  const handleSocketEvent = useMessageEvents({
+    chatId, username, transport, currentUserIdRef, translationsRef, onBackRef, setMessages, setModal,
+    markMessageFailed, markLatestPendingMessageFailed, chatDeletedKey: 'chatDeleted', onExtraEvent: handleExtraEvent,
+  });
+
+  useChatSocket({
+    chatId, token, transport, onEvent: handleSocketEvent,
+    onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
   });
 
   const scrollToMessage = (messageId: number) => {

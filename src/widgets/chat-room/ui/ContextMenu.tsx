@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/app/api/messengerApi';
-import { notifyMessageDeletedLocally } from '../model/messageDeletion';
+import { notifyMessageDeletedLocally } from '@/features/chat-core';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 
 interface ContextMenuProps {

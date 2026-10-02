@@ -1,7 +1,7 @@
 import { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
 import { DELETED_AVATAR } from '@/shared/base/ui';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 
 interface ChatMenuPosition {
   x: number;
@@ -65,7 +65,7 @@ export const useChatInteractions = ({
       .some((value) => String(value).toLowerCase() === ownUsername);
   };
 
-  const normalizeAvatarUrl = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
+  const normalizeAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
   const handleMessageClick = (event: React.MouseEvent, message: Message) => {
     if (window.innerWidth >= 768 && event.type !== 'contextmenu') return;

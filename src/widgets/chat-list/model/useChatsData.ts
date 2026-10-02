@@ -11,7 +11,7 @@ import {
 } from '@/app/api/messengerApi';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
-import { mediaUrl } from '@/shared/utils/mediaUrl';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 
 import type { ChatOverrideMap, PresenceMap } from './types';
 
@@ -66,7 +66,7 @@ export function useChatsData(username: string) {
       name: chat.interlocutor_name,
       interlocutor_name: chat.interlocutor_name,
       display_name: chat.interlocutor_display_name || chat.interlocutor_name,
-      avatar_url: mediaUrl(chat.avatar_url, DEFAULT_AVATAR),
+      avatar_url: resolveMediaUrl(chat.avatar_url, DEFAULT_AVATAR),
       is_online: presenceByUsername[chat.interlocutor_name]?.is_online ?? chat.interlocutor_is_online ?? false,
       last_seen: presenceByUsername[chat.interlocutor_name]?.last_seen ?? chat.interlocutor_last_seen ?? null,
       interlocutor_deleted: chat.interlocutor_deleted || false,
@@ -84,7 +84,7 @@ export function useChatsData(username: string) {
       name: group.name,
       interlocutor_name: group.name,
       display_name: group.name,
-      avatar_url: mediaUrl(group.avatar_url, DEFAULT_GROUP_AVATAR),
+      avatar_url: resolveMediaUrl(group.avatar_url, DEFAULT_GROUP_AVATAR),
       is_online: false,
       last_seen: null,
       interlocutor_deleted: false,
