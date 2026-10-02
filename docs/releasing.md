@@ -7,7 +7,7 @@ The backend always deploys first and stays compatible with the previous frontend
 1. Make sure all PRs for the release are merged to `main` with Conventional Commit titles and CI is green.
 2. Release the backend first (see its `docs/releasing.md`) and deploy it.
 3. Open the release PR created by release-please in this repository, check the changelog and version, and merge it. This creates the tag `vX.Y.Z`, the GitHub Release and attaches `messenger-front-vX.Y.Z-dist.tar.gz`.
-4. Deploy: happens automatically after the release (`deploy.yml`, environment `production`). It uploads the archive to `/var/www/messenger/releases/vX.Y.Z` and atomically switches the `current` symlink, which nginx serves. The last 5 releases are kept.
+4. Deploy: happens automatically after the release: the release workflow moves the `edge` branch to the release commit and dispatches `deploy.yml` on it (environment `production` only accepts deployments from `edge`). It uploads the archive to `/var/www/messenger/releases/vX.Y.Z` and atomically switches the `current` symlink, which nginx serves. The last 5 releases are kept.
 5. Open Profile → About and check that the app, server and API versions are what you expect.
 
 ## Starting a new release train
@@ -16,13 +16,13 @@ Add a `Release-As: X.Y.0` footer to a commit on `main` so `MAJOR.MINOR` matches 
 
 ## Rollback
 
-1. Run the **Deploy** workflow manually (Actions → Deploy → Run workflow) with the previous tag; or on the server run `ln -sfn releases/vX.Y.Z current` in the web root.
+1. Run the **Deploy** workflow manually (Actions → Deploy → Run workflow, branch `edge`) with the previous tag; or on the server run `ln -sfn releases/vX.Y.Z current` in the web root.
 2. If the problem is in the backend, roll the backend back to its previous release instead; the previous frontend stays compatible with it.
 3. Fix forward with a `fix:` commit; never move or delete a published tag.
 
 ## CI/CD setup
 
-Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-only until existing errors are fixed), `pr-title.yml`, `release-please.yml` (release, `dist` archive, then deploy) and `deploy.yml` (SSH deploy, also runnable manually for rollbacks).
+Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-only until existing errors are fixed), `pr-title.yml`, `release-please.yml` (release, `dist` archive, then promote to `edge` and deploy) and `deploy.yml` (SSH deploy, also runnable manually for rollbacks).
 
 One-time setup:
 
