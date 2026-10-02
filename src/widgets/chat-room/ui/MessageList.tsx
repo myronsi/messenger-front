@@ -5,7 +5,7 @@ import MessageContent from './MessageContent';
 import MessageItem from './MessageItem';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { Message, ReactionInfo } from '@/entities/message';
-import { getFileTypes } from '@/shared/contexts/fileTypesConfig';
+import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
@@ -74,7 +74,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     isLoadingInitialMessages = false,
   } = props;
 
-  const { getFileTypeConfig } = getFileTypes();
+  const { getFileTypeConfig } = useFileTypes();
   const { translations } = useLanguage();
   const isGroup = props.isGroup || false;
   const onOpenReadStatus = props.onOpenReadStatus;

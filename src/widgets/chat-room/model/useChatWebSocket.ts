@@ -59,7 +59,7 @@ export const useChatWebSocket = ({
 
           socket.onopen = () => {
             if (!isMounted) {
-              try { socket.close(1000, 'Component unmounted'); } catch (e) {}
+              try { socket.close(1000, 'Component unmounted'); } catch (e) { /* socket already closed */ }
               if (wsRef.current === socket) wsRef.current = null;
               return;
             }
@@ -285,7 +285,7 @@ export const useChatWebSocket = ({
     return () => {
       isMounted = false;
       if (wsRef.current) {
-        try { wsRef.current.close(1000, 'Component unmounted'); } catch (e) {}
+        try { wsRef.current.close(1000, 'Component unmounted'); } catch (e) { /* socket already closed */ }
         wsRef.current = null;
       }
     };

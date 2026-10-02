@@ -1,7 +1,7 @@
 import React from 'react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { getFileTypes } from '@/shared/contexts/fileTypesConfig';
+import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 
 interface ReplyPreviewProps {
   replyMessage: Message | undefined;
@@ -11,7 +11,7 @@ interface ReplyPreviewProps {
 
 const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onClick }) => {
   const { translations } = useLanguage();
-  const { getFileTypeConfig } = getFileTypes();
+  const { getFileTypeConfig } = useFileTypes();
 
   const getReplyContent = (message: Message | undefined) => {
     if (!message) return { text: translations.messageDeleted };

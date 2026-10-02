@@ -30,7 +30,7 @@ export interface FileTypeConfig {
   isSpecial?: boolean;
 }
 
-export const getFileTypes = () => {
+export const useFileTypes = () => {
   const { translations } = useLanguage();
   
   const fileTypes: FileTypeConfig[] = [

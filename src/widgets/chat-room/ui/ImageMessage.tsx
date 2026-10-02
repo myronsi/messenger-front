@@ -35,7 +35,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, fileName, onReply 
 
     setIsDownloading(true);
     try {
-      let downloadName = fileName;
+      const downloadName = fileName;
       const link = document.createElement('a');
       link.style.display = 'none';
       link.href = fileUrl;
