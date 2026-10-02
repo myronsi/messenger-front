@@ -3,6 +3,7 @@ import { Message, ReactionInfo } from '@/entities/message';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import {
   AlertCircle, Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
@@ -197,7 +198,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               event.stopPropagation();
               onAvatarClick(message.sender_username || message.sender);
             }}>
-              <img src={message.avatar_url?.startsWith('http') ? message.avatar_url : `${import.meta.env.VITE_BASE_URL}${message.avatar_url || '/static/avatars/default.jpg'}`} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
+              <img src={mediaUrl(message.avatar_url)} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
             </button>
           )}
           {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}

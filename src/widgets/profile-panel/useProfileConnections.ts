@@ -10,10 +10,9 @@ import {
 } from '@/app/api/messengerApi';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import type { ProfileModalState } from './useProfileAccountActions';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface UseProfileConnectionsArgs {
   username: string;
@@ -121,11 +120,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
     }
   };
 
-  const getMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => {
-    if (!path) return fallback;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    return `${BASE_URL}${path}`;
-  };
+  const getMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => mediaUrl(path, fallback);
 
   return {
     blockedUsers, requestInbox, pendingRequestCount: requestInbox?.unread_count || 0,

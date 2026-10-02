@@ -1,5 +1,5 @@
 import type { GroupRole } from './GroupProfileTypes';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 
 export const MESSAGE_PAGE_SIZE = 50;
 export const getLocalUploadFileType = (fileName: string, mimeType = '') => {
@@ -25,9 +25,4 @@ export const permissionsForRole = (role?: GroupRole | null) => ({
 });
 
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-export const getAvatarSrc = (avatarUrl?: string | null) => {
-  if (!avatarUrl) return `${BASE_URL}${DEFAULT_AVATAR}`;
-  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-  return `${BASE_URL}${avatarUrl}`;
-};
+export const getAvatarSrc = (avatarUrl?: string | null) => mediaUrl(avatarUrl);

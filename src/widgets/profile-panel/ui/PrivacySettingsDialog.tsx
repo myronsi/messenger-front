@@ -21,7 +21,7 @@ import {
   useUpdatePrivacySettingsMutation,
 } from '@/app/api/messengerApi';
 import type { User } from '@/entities/user';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { mediaUrl } from '@/shared/utils/mediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import {
   Select,
@@ -33,8 +33,6 @@ import {
 import { Checkbox } from '@/shared/ui/checkbox';
 import PrivacyExceptionEditor from './PrivacyExceptionEditor';
 import { usePrivacySettings } from './usePrivacySettings';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 type PrivacySettingKey = Exclude<keyof PrivacySettings, 'privacy_exceptions'>;
 type PrivacyCandidate = Partial<Pick<User, 'id' | 'display_name' | 'avatar_url'>> & { username: string };
@@ -53,11 +51,7 @@ interface PrivacySettingsPanelProps {
   onBack: () => void;
 }
 
-const getAvatarSrc = (avatarUrl?: string | null) => {
-  if (!avatarUrl) return DEFAULT_AVATAR;
-  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-  return `${BASE_URL}${avatarUrl}`;
-};
+const getAvatarSrc = (avatarUrl?: string | null) => mediaUrl(avatarUrl);
 
 const exceptionEffectForMode = (mode?: string): PrivacyExceptionEffect | null => {
   if (mode === 'everyone_except') return 'deny';
