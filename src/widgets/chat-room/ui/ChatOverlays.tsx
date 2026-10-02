@@ -82,6 +82,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         onClose={closeMenus}
         contextMenu={contextMenu}
         setContextMenu={setContextMenu}
+        contextMenuRef={contextMenuRef}
       />
     )}
     <MessageSearchDialog

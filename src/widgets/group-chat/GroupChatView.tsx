@@ -135,6 +135,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           onClose={closeMenus}
           contextMenu={contextMenu}
           setContextMenu={setContextMenu}
+          contextMenuRef={contextMenuRef}
         />
       )}
 

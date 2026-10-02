@@ -9,10 +9,11 @@ interface ReactionMenuProps {
   onClose: () => void;
   contextMenu: ContextMenuState | null;
   setContextMenu: (value: ContextMenuState | null) => void;
+  contextMenuRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
-  ({ reactionMenu, wsRef, userId, setReactionMenu, onClose, contextMenu, setContextMenu }, ref) => {
+  ({ reactionMenu, wsRef, userId, setReactionMenu, onClose, contextMenu, setContextMenu, contextMenuRef }, ref) => {
     const [adjustedX, setAdjustedX] = useState(reactionMenu.x);
     const [adjustedY, setAdjustedY] = useState(reactionMenu.y);
     const [isAnimated, setIsAnimated] = useState(false);
@@ -20,6 +21,8 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
 
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
+        // Pressing a context-menu button must not start the closing animation before the click lands
+        if (contextMenuRef?.current?.contains(event.target as Node)) return;
         if (ref && 'current' in ref && ref.current && !ref.current.contains(event.target as Node)) {
           setReactionMenu({ ...reactionMenu, isClosing: true });
           setContextMenu(contextMenu ? { ...contextMenu, isClosing: true } : null);
@@ -30,7 +33,7 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
-    }, [ref, reactionMenu, contextMenu, onClose, setReactionMenu, setContextMenu]);
+    }, [ref, contextMenuRef, reactionMenu, contextMenu, onClose, setReactionMenu, setContextMenu]);
 
     // Close ReactionMenu if ContextMenu is closed
     useEffect(() => {
