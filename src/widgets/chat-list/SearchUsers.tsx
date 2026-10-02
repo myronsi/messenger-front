@@ -45,6 +45,9 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, o
           <input
             type="text"
             placeholder={translations.searchUsers}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={targetUser}
             onChange={(e) => setTargetUser(e.target.value)}
             className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-ellipsis"

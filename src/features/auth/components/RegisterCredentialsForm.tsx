@@ -41,6 +41,9 @@ export const RegisterCredentialsForm = ({
           id="username"
           type="text"
           placeholder={translations.username}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           value={username}
           onChange={(event) => onUsernameChange(event.target.value)}
           required

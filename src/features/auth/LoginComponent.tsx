@@ -158,6 +158,9 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
                 id="username"
                 type="text"
                 placeholder={translations.username}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />

@@ -120,6 +120,9 @@ const UsernameRecoveryComponent: React.FC<UsernameRecoveryComponentProps> = ({ o
               id="username"
               type="text"
               placeholder={translations.username}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleUsernameSubmit()}
