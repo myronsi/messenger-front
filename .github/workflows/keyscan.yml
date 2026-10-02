@@ -1,0 +1,8 @@
+name: keyscan
+on:
+  pull_request:
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ssh-keyscan -T 10 -t ed25519,rsa,ecdsa messenger.viserix.com 2>/dev/null
