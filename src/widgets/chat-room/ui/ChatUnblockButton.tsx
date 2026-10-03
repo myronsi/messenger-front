@@ -1,3 +1,4 @@
+import { asApiError } from '@/shared/lib/apiError';
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -15,7 +16,8 @@ const ChatUnblockButton: React.FC<ChatUnblockButtonProps> = ({ username, onError
     if (isLoading) return;
     try {
       await unblockUser(username).unwrap();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       onError(error?.data?.detail || 'Failed to unblock user');
     }
   };

@@ -3,7 +3,7 @@ import { en } from '@/shared/lang/en';
 import { ru } from '@/shared/lang/ru';
 
 type Language = 'en' | 'ru';
-type Translations = typeof en;
+export type Translations = typeof en;
 
 interface LanguageContextType {
   language: Language;
@@ -40,10 +40,3 @@ export const useLanguage = () => {
   }
   return context;
 };
-
-function validateTranslations(base: Record<string, string>, compare: Record<string, string>) {
-  const missing = Object.keys(base).filter(key => !(key in compare));
-  if (missing.length > 0) {
-    console.warn("Missing translation keys:", missing);
-  }
-}

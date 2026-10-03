@@ -1,3 +1,4 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { X } from 'lucide-react';
 import type { OneOnOneChatResponse } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
@@ -10,7 +11,7 @@ interface ChatSearchOverlayProps {
   showSearch: boolean;
   circleStyle: { left: number; top: number; size: number } | null;
   circleActive: boolean;
-  translations: any;
+  translations: Translations;
   username: string;
   oneOnOneChats: OneOnOneChatResponse['chats'];
   onChatOpen: ChatsListComponentProps['onChatOpen'];

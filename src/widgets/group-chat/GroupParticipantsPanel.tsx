@@ -8,12 +8,23 @@ import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, Gro
 import { roleLabel, roleTone } from './groupProfileHelpers';
 
 interface ContactSuggestion { username: string; display_name: string; avatar_url?: string | null; }
-interface Props { model: GroupProfileDialogProps; canManage: boolean; canAssignRoles: boolean; canTransferOwnership: boolean; isDmContactsCollapsed: boolean; setIsDmContactsCollapsed: React.Dispatch<React.SetStateAction<boolean>>; dmContactSuggestions: ContactSuggestion[]; sortedParticipants: GroupParticipant[]; pendingInvites: GroupPendingInvite[]; }
+interface Props {
+  model: GroupProfileDialogProps; canManage: boolean; canAssignRoles: boolean; canTransferOwnership: boolean;
+  isDmContactsCollapsed: boolean; setIsDmContactsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  dmContactSuggestions: ContactSuggestion[]; sortedParticipants: GroupParticipant[];
+  pendingInvites: GroupPendingInvite[];
+}
 
-const GroupParticipantsPanel: React.FC<Props> = ({ model, canManage, canAssignRoles, canTransferOwnership, isDmContactsCollapsed, setIsDmContactsCollapsed, dmContactSuggestions, sortedParticipants, pendingInvites }) => {
+const GroupParticipantsPanel: React.FC<Props> = ({
+  model, canManage, canAssignRoles, canTransferOwnership, isDmContactsCollapsed, setIsDmContactsCollapsed,
+  dmContactSuggestions, sortedParticipants, pendingInvites,
+}) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
-  const { currentUsername, getAvatarSrc, onOpenUserProfile, onRoleChange, onTransferOwner, onRemoveParticipant, participantInput, setParticipantInput, onAddParticipant } = model;
+  const {
+    currentUsername, getAvatarSrc, onOpenUserProfile, onRoleChange, onTransferOwner, onRemoveParticipant,
+    participantInput, setParticipantInput, onAddParticipant,
+  } = model;
   const renderParticipant = (participant: GroupParticipant) => {
     const isOwner = participant.role === 'owner';
     const isCurrentUser = participant.username === currentUsername;

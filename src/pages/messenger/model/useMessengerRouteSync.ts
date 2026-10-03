@@ -107,8 +107,8 @@ export const useMessengerRouteSync = ({
       if (state.chatName || state.chatDisplayName || state.chatId) {
         setCurrentChat({
           id: state.chatId || 0,
-          name: state.chatName || directIdentifier.value,
-          displayName: state.chatDisplayName || state.chatName || directIdentifier.value,
+          name: state.chatName || String(directIdentifier.value),
+          displayName: state.chatDisplayName || state.chatName || String(directIdentifier.value),
           isOnline: state.isOnline,
           lastSeen: state.lastSeen ?? null,
           avatarUrl: state.avatarUrl,

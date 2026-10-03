@@ -1,5 +1,5 @@
 export const formatAudioTime = (time: number | undefined): string => {
-  if (!time || isNaN(time) || !isFinite(time) || time < 0) return '0:00';
+  if (!time || !Number.isFinite(time) || time < 0) return '0:00';
   const minutes = Math.floor(time / 60);
   const seconds = Math.floor(time % 60);
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -55,7 +55,7 @@ export const analyzeAudio = async (url: string): Promise<{ duration: number; wav
 export const isValidWaveform = (waveform: unknown): waveform is number[] => (
   Array.isArray(waveform) &&
   waveform.length > 0 &&
-  waveform.every((value) => typeof value === 'number' && isFinite(value))
+  waveform.every((value) => typeof value === 'number' && Number.isFinite(value))
 );
 
 export const getAudioDuration = async (url: string): Promise<number> => {

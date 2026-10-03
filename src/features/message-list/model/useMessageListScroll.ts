@@ -1,6 +1,10 @@
 import { MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
-import { getAppendedMessages, isValidTimestamp } from '@/entities/message';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
+import { getAppendedMessages } from '@/entities/message';
+import { useCurrentDateLabel } from './useCurrentDateLabel';
+import { useHighlightScroll } from './useHighlightScroll';
+import { getScrollBehavior, useScrollToBottom } from './useScrollToBottom';
 
 interface MessageListScrollOptions {
   messages: Message[];
@@ -16,6 +20,7 @@ interface MessageListScrollOptions {
   isLoadingNewerMessages: boolean;
   onLoadOlderMessages?: () => Promise<void>;
   onLoadNewerMessages?: () => Promise<void>;
+  onLoadLatestMessages?: () => Promise<void>;
   onScrollStart?: () => void;
   scrollToBottomKey?: string | number;
   isOwnMessage: (message: Message) => boolean;
@@ -23,29 +28,18 @@ interface MessageListScrollOptions {
 
 const BOTTOM_TOLERANCE = 4;
 
-export const useMessageListScroll = ({
-  messages,
-  messageRefs,
-  firstUnreadMessageId,
-  highlightedMessageId,
-  tempHighlightedMessageId,
-  getFormattedDateLabel,
-  hasMoreMessages,
-  hasMoreNewerMessages,
-  isLoadingInitialMessages,
-  isLoadingOlderMessages,
-  isLoadingNewerMessages,
-  onLoadOlderMessages,
-  onLoadNewerMessages,
-  onScrollStart,
-  scrollToBottomKey,
-  isOwnMessage,
-}: MessageListScrollOptions) => {
-  const [currentDate, setCurrentDate] = useState<string | null>(null);
+export const useMessageListScroll = (options: MessageListScrollOptions) => {
+  const {
+    messages, messageRefs, firstUnreadMessageId, highlightedMessageId, tempHighlightedMessageId,
+    getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages, isLoadingOlderMessages,
+    onLoadOlderMessages, onLoadLatestMessages, scrollToBottomKey, isOwnMessage,
+  } = options;
   const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<number | null>(firstUnreadMessageId ?? null);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [isPositioned, setIsPositioned] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const firstUnreadMarkerRef = useRef<HTMLDivElement | null>(null);
   const isRestoringScrollRef = useRef(false);
   const hasScrolledInitialRef = useRef(false);
@@ -54,14 +48,21 @@ export const useMessageListScroll = ({
   const shouldStickToBottomRef = useRef(true);
   const lastMessageIdRef = useRef<number | null>(null);
   const scrollAnimationFrameRef = useRef<number | null>(null);
-  const previousScrollHeightRef = useRef(0);
-  const [isPositioned, setIsPositioned] = useState(false);
-  const [unseenCount, setUnseenCount] = useState(0);
-  const positionedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const positionedFrameRef = useRef(0);
   const autoScrollUntilRef = useRef(0);
-  const isOwnMessageRef = useRef(isOwnMessage);
-  isOwnMessageRef.current = isOwnMessage;
+  const settleRef = useRef<(() => void) | null>(null);
   const previousMessagesRef = useRef<Message[]>([]);
+  const latest = useLatestRef(options);
+  const isOwnMessageRef = useLatestRef(isOwnMessage);
+  const { unseenCount, showScrollToBottom, scrollToBottom, countIncoming, clearUnseen, updateDistance } = useScrollToBottom({
+    chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
+    scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, autoScrollUntilRef,
+  });
+  const currentDate = useCurrentDateLabel({ messages, messageRefs, chatContainerRef, getFormattedDateLabel });
+  useHighlightScroll({
+    targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, hasMoreMessages,
+    isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(),
+  });
 
   useLayoutEffect(() => {
     setVisibleFirstUnreadId(firstUnreadMessageId ?? null);
@@ -77,26 +78,16 @@ export const useMessageListScroll = ({
     lastMessageIdRef.current = null;
     previousMessagesRef.current = [];
     autoScrollUntilRef.current = 0;
-    if (positionedTimeoutRef.current) clearTimeout(positionedTimeoutRef.current);
+    settleRef.current = null;
+    cancelAnimationFrame(positionedFrameRef.current);
     setIsPositioned(false);
-    setUnseenCount(0);
   }, [scrollToBottomKey]);
 
-  useEffect(() => () => {
-    if (positionedTimeoutRef.current) clearTimeout(positionedTimeoutRef.current);
-  }, []);
+  useEffect(() => () => cancelAnimationFrame(positionedFrameRef.current), []);
 
   useEffect(() => {
     if (!isLoadingInitialMessages && messages.length === 0) setIsPositioned(true);
   }, [isLoadingInitialMessages, messages.length, scrollToBottomKey]);
-
-  const scrollToBottom = useCallback(() => {
-    const container = chatContainerRef.current;
-    if (!container) return;
-    shouldStickToBottomRef.current = true;
-    autoScrollUntilRef.current = Date.now() + 800;
-    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-  }, []);
 
   const scrollFirstUnreadIntoView = useCallback(() => {
     const targetElement = firstUnreadMarkerRef.current || (visibleFirstUnreadId ? messageRefs.current[visibleFirstUnreadId] : null);
@@ -117,122 +108,110 @@ export const useMessageListScroll = ({
   }, [messageRefs, visibleFirstUnreadId]);
 
   useEffect(() => {
-    const targetId = tempHighlightedMessageId ?? highlightedMessageId;
-    if (!targetId) return;
-    const targetElement = messageRefs.current[targetId];
-    if (targetElement) {
-      targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else if (hasMoreMessages && !isLoadingOlderMessages && onLoadOlderMessages) {
-      onLoadOlderMessages();
-    }
-  }, [hasMoreMessages, highlightedMessageId, isLoadingOlderMessages, messageRefs, onLoadOlderMessages, tempHighlightedMessageId, messages]);
-
-  useEffect(() => {
     if (!visibleFirstUnreadId || isLoadingInitialMessages || hasScrolledToFirstUnreadRef.current) return;
     if (messageRefs.current[visibleFirstUnreadId]) {
       requestAnimationFrame(scrollFirstUnreadIntoView);
     } else if (hasMoreMessages && !isLoadingOlderMessages && onLoadOlderMessages && !isSeekingFirstUnreadRef.current) {
       isSeekingFirstUnreadRef.current = true;
-      onLoadOlderMessages().finally(() => { isSeekingFirstUnreadRef.current = false; });
+      void onLoadOlderMessages().finally(() => { isSeekingFirstUnreadRef.current = false; });
     }
-  }, [hasMoreMessages, isLoadingInitialMessages, isLoadingOlderMessages, messageRefs, messages, onLoadOlderMessages, scrollFirstUnreadIntoView, visibleFirstUnreadId]);
+  }, [
+    hasMoreMessages, isLoadingInitialMessages, isLoadingOlderMessages, messageRefs, messages,
+    onLoadOlderMessages, scrollFirstUnreadIntoView, visibleFirstUnreadId,
+  ]);
 
-  const updateCurrentDate = () => {
-    const container = chatContainerRef.current;
-    if (!container || messages.length === 0) {
-      setCurrentDate(null);
-      return;
-    }
-    let lastSeparatorDate: string | null = null;
-    for (let index = 0; index < messages.length; index++) {
-      const message = messages[index];
-      const messageElement = messageRefs.current[message.id];
-      if (!messageElement || !isValidTimestamp(message.timestamp)) continue;
-      const isSeparator = index === 0 ||
-        getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(messages[index - 1].timestamp);
-      if (isSeparator && messageElement.offsetTop <= container.scrollTop) {
-        lastSeparatorDate = getFormattedDateLabel(message.timestamp);
-      } else if (messageElement.offsetTop > container.scrollTop) {
-        break;
-      }
-    }
-    const firstValidMessage = messages.find((message) => isValidTimestamp(message.timestamp));
-    setCurrentDate(lastSeparatorDate || (firstValidMessage ? getFormattedDateLabel(firstValidMessage.timestamp) : null));
-  };
-
+  // One listener for the lifetime of the list; the work is throttled to a frame and reads the latest props from a ref.
   useEffect(() => {
-    const handleScroll = async () => {
-      onScrollStart?.();
-      const container = chatContainerRef.current;
-      if (container) {
-        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= BOTTOM_TOLERANCE;
-        if (isAtBottom) {
-          shouldStickToBottomRef.current = true;
-          autoScrollUntilRef.current = 0;
-          setUnseenCount(0);
-        } else if (Date.now() > autoScrollUntilRef.current) {
-          shouldStickToBottomRef.current = false;
-        }
-      }
-      if (container && container.scrollTop <= 120 && hasMoreMessages && !isLoadingOlderMessages &&
-          !isRestoringScrollRef.current && onLoadOlderMessages) {
-        const previousScrollHeight = container.scrollHeight;
-        const previousScrollTop = container.scrollTop;
-        isRestoringScrollRef.current = true;
-        await onLoadOlderMessages();
-        requestAnimationFrame(() => {
-          const nextContainer = chatContainerRef.current;
-          if (nextContainer) nextContainer.scrollTop = nextContainer.scrollHeight - previousScrollHeight + previousScrollTop;
-          isRestoringScrollRef.current = false;
-        });
-      }
-      if (container && container.scrollHeight - container.scrollTop - container.clientHeight <= 160 &&
-          hasMoreNewerMessages && !isLoadingNewerMessages && onLoadNewerMessages) {
-        await onLoadNewerMessages();
+    const container = chatContainerRef.current;
+    if (!container) return;
+    let frame = 0;
+    const run = async () => {
+      frame = 0;
+      const current = latest.current;
+      current.onScrollStart?.();
+      updateDistance();
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distanceFromBottom <= BOTTOM_TOLERANCE) {
+        shouldStickToBottomRef.current = true;
+        autoScrollUntilRef.current = 0;
+        clearUnseen();
+      } else if (Date.now() > autoScrollUntilRef.current) {
+        shouldStickToBottomRef.current = false;
       }
       setIsScrolling(true);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 500);
-      updateCurrentDate();
+      if (container.scrollTop <= 120 && current.hasMoreMessages && !current.isLoadingOlderMessages &&
+          !isRestoringScrollRef.current && current.onLoadOlderMessages) {
+        const previousScrollHeight = container.scrollHeight;
+        const previousScrollTop = container.scrollTop;
+        isRestoringScrollRef.current = true;
+        await current.onLoadOlderMessages();
+        requestAnimationFrame(() => {
+          container.scrollTop = container.scrollHeight - previousScrollHeight + previousScrollTop;
+          isRestoringScrollRef.current = false;
+        });
+      }
+      const latestProps = latest.current;
+      const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (remaining <= 160 && latestProps.hasMoreNewerMessages && !latestProps.isLoadingNewerMessages &&
+          latestProps.onLoadNewerMessages) {
+        await latestProps.onLoadNewerMessages();
+      }
     };
-    const container = chatContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      updateCurrentDate();
-    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(() => { void run(); });
+    };
+    container.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      container?.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
-  }, [messages, getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages, onScrollStart]);
+  }, [latest, updateDistance, clearUnseen]);
+
+  // Keeps the view pinned to the bottom (or on the first unread message) while content such as images
+  // finishes loading, until the user takes over by scrolling.
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    const content = contentRef.current;
+    if (!container || !content || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (isRestoringScrollRef.current || !hasScrolledInitialRef.current) return;
+      if (settleRef.current) {
+        settleRef.current();
+      } else if (shouldStickToBottomRef.current && Date.now() > autoScrollUntilRef.current) {
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+    observer.observe(content);
+    const stopSettling = () => { settleRef.current = null; };
+    const userInput = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+    userInput.forEach((name) => container.addEventListener(name, stopSettling, { passive: true }));
+    return () => {
+      observer.disconnect();
+      userInput.forEach((name) => container.removeEventListener(name, stopSettling));
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const container = chatContainerRef.current;
     const lastMessageId = messages[messages.length - 1]?.id || null;
     if (!container || !lastMessageId || isRestoringScrollRef.current) {
-      previousScrollHeightRef.current = container?.scrollHeight || 0;
       lastMessageIdRef.current = lastMessageId;
       return;
-    }
-    const previousScrollHeight = previousScrollHeightRef.current;
-    const scrollHeightDelta = container.scrollHeight - previousScrollHeight;
-    const isSameLastMessage = lastMessageIdRef.current === lastMessageId;
-    if (isSameLastMessage && scrollHeightDelta !== 0 && shouldStickToBottomRef.current) {
-      container.scrollTop = container.scrollHeight;
     }
     if (!hasScrolledInitialRef.current && visibleFirstUnreadId &&
         !messageRefs.current[visibleFirstUnreadId] && hasMoreMessages) {
       shouldStickToBottomRef.current = false;
-      previousScrollHeightRef.current = container.scrollHeight;
       lastMessageIdRef.current = lastMessageId;
       return;
     }
     if (!hasScrolledInitialRef.current) {
       const shouldPreferFirstUnread = !!visibleFirstUnreadId;
-      const forceInitialScroll = () => {
+      const positionInitially = () => {
         const nextContainer = chatContainerRef.current;
         if (!nextContainer || isRestoringScrollRef.current) return;
-        if (hasScrolledInitialRef.current && !shouldStickToBottomRef.current && !visibleFirstUnreadId) return;
         if (visibleFirstUnreadId && scrollFirstUnreadIntoView()) return;
         if (shouldPreferFirstUnread) {
           shouldStickToBottomRef.current = false;
@@ -241,25 +220,16 @@ export const useMessageListScroll = ({
         nextContainer.scrollTop = nextContainer.scrollHeight;
         shouldStickToBottomRef.current = true;
       };
-      forceInitialScroll();
-      let secondFrame = 0;
-      const firstFrame = requestAnimationFrame(() => {
-        forceInitialScroll();
-        secondFrame = requestAnimationFrame(forceInitialScroll);
-      });
-      const settleTimeout = window.setTimeout(forceInitialScroll, 120);
-      const mediaSettleTimeout = window.setTimeout(forceInitialScroll, 400);
+      positionInitially();
+      settleRef.current = shouldPreferFirstUnread ? positionInitially : null;
       hasScrolledInitialRef.current = true;
       lastMessageIdRef.current = lastMessageId;
       previousMessagesRef.current = messages;
-      if (positionedTimeoutRef.current) clearTimeout(positionedTimeoutRef.current);
-      positionedTimeoutRef.current = setTimeout(() => setIsPositioned(true), 450);
-      return () => {
-        cancelAnimationFrame(firstFrame);
-        cancelAnimationFrame(secondFrame);
-        window.clearTimeout(settleTimeout);
-        window.clearTimeout(mediaSettleTimeout);
-      };
+      cancelAnimationFrame(positionedFrameRef.current);
+      positionedFrameRef.current = requestAnimationFrame(() => {
+        positionedFrameRef.current = requestAnimationFrame(() => setIsPositioned(true));
+      });
+      return;
     }
     if (lastMessageIdRef.current !== lastMessageId) {
       const appended = getAppendedMessages(previousMessagesRef.current, messages);
@@ -271,27 +241,26 @@ export const useMessageListScroll = ({
         scrollAnimationFrameRef.current = requestAnimationFrame(() => {
           const nextContainer = chatContainerRef.current;
           if (!nextContainer || isRestoringScrollRef.current) return;
-          nextContainer.scrollTo({ top: nextContainer.scrollHeight, behavior: 'smooth' });
+          nextContainer.scrollTo({ top: nextContainer.scrollHeight, behavior: getScrollBehavior() });
           scrollAnimationFrameRef.current = null;
         });
       } else {
-        const incoming = appended.filter((item) => !isOwnMessageRef.current(item)).length;
-        if (incoming > 0) setUnseenCount((count) => count + incoming);
+        countIncoming(appended);
       }
     }
     previousMessagesRef.current = messages;
     lastMessageIdRef.current = lastMessageId;
-    previousScrollHeightRef.current = container.scrollHeight;
     return () => {
       if (scrollAnimationFrameRef.current !== null) {
         cancelAnimationFrame(scrollAnimationFrameRef.current);
         scrollAnimationFrameRef.current = null;
       }
     };
-  }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView]);
+  }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView, countIncoming, hasMoreMessages, isOwnMessageRef]);
 
   return {
-    currentDate, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, firstUnreadMarkerRef,
-    isPositioned, unseenCount, scrollToBottom,
+    currentDate, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, contentRef, firstUnreadMarkerRef,
+    isPositioned, unseenCount, showScrollToBottom, scrollToBottom,
   };
 };
+

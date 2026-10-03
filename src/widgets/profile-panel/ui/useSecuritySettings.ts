@@ -1,3 +1,4 @@
+import { asApiError } from '@/shared/lib/apiError';
 import { useEffect, useState } from 'react';
 import { useChangePasswordMutation, useConfirmTwoFactorMutation, useDisableTwoFactorMutation, useGetSecuritySettingsQuery, useGetSessionsQuery, useRevokeOtherSessionsMutation, useRevokeSessionMutation, useSetupTwoFactorMutation, useUpdateSessionDurationMutation } from '@/features/profile';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -49,7 +50,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       await changePassword({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword }).unwrap();
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       showStatus('error', error?.data?.detail || 'Failed to change password');
     }
   };
@@ -59,7 +61,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       setRecoveryCodes([]);
       setTwoFactorSetup(await setupTwoFactor().unwrap());
       setStatus(null);
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       showStatus('error', error?.data?.detail || 'Failed to start two-factor setup');
     }
   };
@@ -71,7 +74,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       setTwoFactorCode('');
       setTwoFactorSetup(null);
       showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       showStatus('error', error?.data?.detail || 'Failed to enable two-factor authentication');
     }
   };
@@ -82,7 +86,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       setDisableForm({ password: '', code: '' });
       setRecoveryCodes([]);
       showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       showStatus('error', error?.data?.detail || 'Failed to disable two-factor authentication');
     }
   };
@@ -94,7 +99,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
         clearAuthTokens();
         onLoggedOut();
       }
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       showStatus('error', error?.data?.detail || 'Failed to revoke session');
     }
   };
@@ -103,7 +109,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
     try {
       await updateSessionDuration(Number(value)).unwrap();
       showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       showStatus('error', error?.data?.detail || 'Failed to save session duration');
     }
   };
@@ -112,7 +119,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
     try {
       await revokeOtherSessions().unwrap();
       showStatus('success', translations.saved || 'Saved');
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       showStatus('error', error?.data?.detail || 'Failed to sign out other devices');
     }
   };

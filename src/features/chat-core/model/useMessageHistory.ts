@@ -1,11 +1,16 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
-import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
+import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
+import { asApiError } from '@/shared/lib/apiError';
+import type { ShowError } from './types';
 import { useGetMessageHistoryQuery } from '@/entities/message';
 import { useMarkChatReadMutation } from '@/entities/chat';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const MESSAGE_PAGE_SIZE = 50;
+// Paging far back drops the newest loaded messages beyond this; they are refetched on the way down.
+const MAX_LOADED_MESSAGES = 500;
 
 interface MessageHistoryOptions {
   chatId: number;
@@ -16,8 +21,8 @@ interface MessageHistoryOptions {
   setMessages: Dispatch<SetStateAction<Message[]>>;
   currentUserIdRef: MutableRefObject<number>;
   onBackRef: MutableRefObject<() => void>;
-  translationsRef: MutableRefObject<Record<string, any>>;
-  setModal: (modal: any) => void;
+  translationsRef: MutableRefObject<Translations>;
+  setModal: ShowError;
 }
 
 export const useMessageHistory = ({
@@ -41,6 +46,7 @@ export const useMessageHistory = ({
   const [newestMessageId, setNewestMessageId] = useState<number | null>(null);
   const isLoadingOlderMessagesRef = useRef(false);
   const isLoadingNewerMessagesRef = useRef(false);
+  const trimNewestPendingRef = useRef(false);
   const [markChatRead] = useMarkChatReadMutation();
   const {
     data: latestHistory,
@@ -61,7 +67,18 @@ export const useMessageHistory = ({
     setHasMoreNewerMessages(false);
     setOldestMessageId(null);
     setNewestMessageId(null);
+    trimNewestPendingRef.current = false;
   }, [chatId]);
+
+  useEffect(() => {
+    if (!trimNewestPendingRef.current) return;
+    trimNewestPendingRef.current = false;
+    const trimmed = trimNewestMessages(messages, MAX_LOADED_MESSAGES);
+    if (!trimmed || !trimmed.newestId) return;
+    setMessages((previous) => trimNewestMessages(previous, MAX_LOADED_MESSAGES)?.messages ?? previous);
+    setNewestMessageId(trimmed.newestId);
+    setHasMoreNewerMessages(true);
+  }, [messages, setMessages]);
 
   useEffect(() => {
     setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
@@ -80,7 +97,7 @@ export const useMessageHistory = ({
 
   useEffect(() => {
     if (!latestHistoryError) return;
-    const status = (latestHistoryError as any)?.status;
+    const status = asApiError(latestHistoryError).status;
     if (status === 401) {
       setModal({ type: 'error', message: translationsRef.current.loginRequired });
       setTimeout(() => onBackRef.current(), 2000);
@@ -105,6 +122,7 @@ export const useMessageHistory = ({
         const data: MessageHistoryResponse = await response.json();
         const olderMessages = normalizeHistoryMessages(data.history);
         setMessages((previous) => prependUniqueMessages(previous, olderMessages));
+        trimNewestPendingRef.current = true;
         setHasMoreMessages(data.has_more_before ?? data.has_more);
         if (olderMessages.length > 0) setOldestMessageId(olderMessages[0].id);
       } else if (response.status === 401) {
@@ -152,6 +170,38 @@ export const useMessageHistory = ({
     }
   }, [chatId, hasMoreNewerMessages, newestMessageId, onBackRef, setMessages, setModal, token, translationsRef]);
 
+  // Replaces the loaded window with the newest page; used when the newest messages were never loaded.
+  const loadLatestMessages = useCallback(async () => {
+    if (!token || chatId <= 0 || isLoadingNewerMessagesRef.current) return;
+    isLoadingNewerMessagesRef.current = true;
+    setIsLoadingNewerMessages(true);
+    try {
+      const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE) });
+      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
+      if (response.ok) {
+        const data: MessageHistoryResponse = await response.json();
+        const latestMessages = normalizeHistoryMessages(data.history);
+        setMessages((previous) => [...latestMessages, ...previous.filter((message) => message.id < 0)]);
+        setOldestMessageId(latestMessages[0]?.id || null);
+        setNewestMessageId(latestMessages[latestMessages.length - 1]?.id || null);
+        setHasMoreMessages(data.has_more_before ?? data.has_more);
+        setHasMoreNewerMessages(false);
+      } else if (response.status === 401) {
+        setModal({ type: 'error', message: translationsRef.current.loginRequired });
+        setTimeout(() => onBackRef.current(), 2000);
+      } else if (response.status === 403) {
+        onBackRef.current();
+      } else {
+        throw new Error(translationsRef.current.errorLoading);
+      }
+    } catch {
+      setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+    } finally {
+      isLoadingNewerMessagesRef.current = false;
+      setIsLoadingNewerMessages(false);
+    }
+  }, [chatId, onBackRef, setMessages, setModal, token, translationsRef]);
+
   const applyReadReceiptBatch = useCallback((
     messageIds: number[],
     readerUserId: number,
@@ -197,6 +247,7 @@ export const useMessageHistory = ({
     hasMoreNewerMessages,
     loadOlderMessages,
     loadNewerMessages,
+    loadLatestMessages,
     markMessagesRead,
     applyReadReceiptBatch,
   };

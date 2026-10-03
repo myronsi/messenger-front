@@ -24,9 +24,15 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
-      "@typescript-eslint/no-unused-vars": "off",
-      // Existing code uses `any` widely; surface it as a warning until it is typed.
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none", ignoreRestSiblings: true },
+      ],
+      "@typescript-eslint/no-explicit-any": "error",
+      "max-len": [
+        "error",
+        { code: 160, ignoreUrls: true, ignoreStrings: true, ignoreTemplateLiterals: true, ignoreRegExpLiterals: true, ignoreComments: true },
+      ],
       "max-lines": [
         "error",
         { max: 299, skipBlankLines: false, skipComments: false },

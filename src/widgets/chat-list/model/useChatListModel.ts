@@ -71,7 +71,7 @@ export function useChatListModel(props: ChatsListComponentProps) {
     let errorMessage = 'Failed to load chats';
 
     if ('data' in error && error.data) {
-      errorMessage = (error.data as any).detail || 'Failed to load chats';
+      errorMessage = (error.data as { detail?: string }).detail || 'Failed to load chats';
     } else if ('message' in error && error.message) {
       errorMessage = error.message;
     }

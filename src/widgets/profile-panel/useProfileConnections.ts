@@ -1,3 +1,4 @@
+import { asApiError } from '@/shared/lib/apiError';
 import { useMemo, useState } from 'react';
 import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ApprovalRequest } from '@/entities/chat';
@@ -67,7 +68,8 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
           setBlockUsername('');
           setPendingBlockUsername('');
           setModal(null);
-        } catch (error: any) {
+        } catch (caught) {
+          const error = asApiError(caught);
           setModal({ type: 'error', message: error?.data?.detail || 'Failed to block user' });
         }
       },
@@ -82,7 +84,8 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
       setBlockUsername('');
       setPendingBlockUsername('');
       setModal(null);
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setModal({ type: 'error', message: error?.data?.detail || 'Failed to block user' });
     }
   };
@@ -90,7 +93,8 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
   const handleUnblockUser = async (targetUsername: string) => {
     try {
       await unblockUser(targetUsername).unwrap();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setModal({ type: 'error', message: error?.data?.detail || 'Failed to unblock user' });
     }
   };
@@ -99,7 +103,8 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
     try {
       await approveRequest(request.id).unwrap();
       refetchRequestInbox();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setModal({ type: 'error', message: error?.data?.detail || error?.message || 'Failed to approve request' });
     }
   };
@@ -108,7 +113,8 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
     try {
       await rejectRequest(requestId).unwrap();
       refetchRequestInbox();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setModal({ type: 'error', message: error?.data?.detail || error?.message || 'Failed to reject request' });
     }
   };

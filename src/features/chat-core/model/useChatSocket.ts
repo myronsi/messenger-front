@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { trackWebSocket } from '@/shared/api/socketRegistry';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import type { ChatTransport } from './types';
-import type { SocketEvent } from './messageUpdates';
+import { parseServerEvent, type ServerEvent } from './socketEvents';
 
 export const MAX_WEBSOCKET_RECONNECT_ATTEMPTS = 5;
 
@@ -10,7 +10,7 @@ interface ChatSocketOptions {
   chatId: number;
   token: string;
   transport: ChatTransport;
-  onEvent: (event: SocketEvent, socket: WebSocket) => void;
+  onEvent: (event: ServerEvent, socket: WebSocket) => void;
   onConnectionFailed: () => void;
 }
 
@@ -80,11 +80,16 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
 
       socket.onmessage = (event) => {
         if (!isMounted) return;
-        let parsed: SocketEvent;
+        let raw: unknown;
         try {
-          parsed = JSON.parse(event.data);
+          raw = JSON.parse(event.data);
         } catch {
           console.error('Received non-JSON chat message:', event.data);
+          return;
+        }
+        const parsed = parseServerEvent(raw);
+        if (!parsed) {
+          console.error('Ignoring malformed chat event:', raw);
           return;
         }
         onEventRef.current(parsed, socket);

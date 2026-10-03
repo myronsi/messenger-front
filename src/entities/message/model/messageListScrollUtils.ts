@@ -3,7 +3,7 @@ import { parseUtcDate } from '@/shared/utils/dateFormatters';
 
 export const isValidTimestamp = (timestamp: string | undefined | null) => {
   if (!timestamp) return false;
-  return !isNaN(parseUtcDate(timestamp).getTime());
+  return !Number.isNaN(parseUtcDate(timestamp).getTime());
 };
 
 export const getAppendedMessages = (previous: Message[], next: Message[]) => {

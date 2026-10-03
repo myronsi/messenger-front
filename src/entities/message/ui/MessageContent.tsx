@@ -1,5 +1,7 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
 import { Message } from '../model/types';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
@@ -10,14 +12,12 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface MessageContentProps {
   message: Message;
   isMobile: boolean;
-  translations: Record<string, any>;
+  translations: Translations;
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
-  playingMessageId: number | null;
+  isAudioPlaying: boolean;
   setPlayingMessageId: (id: number | null) => void;
-  audioStates: { [key: number]: { currentTime: number; duration: number } };
-  setAudioStates: React.Dispatch<React.SetStateAction<{ [key: number]: { currentTime: number; duration: number } }>>;
 }
 
 const MessageContent: React.FC<MessageContentProps> = ({
@@ -27,10 +27,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
   getFileTypeConfig,
   isOwnMessage,
   renderMessageContent,
-  playingMessageId,
+  isAudioPlaying,
   setPlayingMessageId,
-  audioStates,
-  setAudioStates,
 }) => {
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
@@ -62,17 +60,22 @@ const MessageContent: React.FC<MessageContentProps> = ({
       messageId={message.id}
       duration={audioMetadata?.duration}
       waveform={audioMetadata?.waveform}
-      playingMessageId={playingMessageId}
+      isPlaying={isAudioPlaying}
       setPlayingMessageId={setPlayingMessageId}
-      audioStates={audioStates}
-      setAudioStates={setAudioStates}
     />
   );
 
   if (message.content.file_type === 'voice') return withCaption(audioPlayer);
   if (config?.isSpecial && config.replyText === translations.image) {
     return withCaption(
-      <ImageMessage fileUrl={fullFileUrl} fileName={fileName} isMine={isOwnMessage(message)} />,
+      <ImageMessage
+        fileUrl={fullFileUrl}
+        thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
+        width={message.content.image_width}
+        height={message.content.image_height}
+        fileName={fileName}
+        isMine={isOwnMessage(message)}
+      />,
       true
     );
   }

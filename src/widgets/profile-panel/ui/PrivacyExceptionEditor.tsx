@@ -26,7 +26,12 @@ const exceptionEffectForMode = (mode?: string): PrivacyExceptionEffect | null =>
   return null;
 };
 const PrivacyExceptionEditor: React.FC<Props> = (props) => {
-  const { settingKey: key, mode, currentUsername, privacySettings, exceptionDrafts, setExceptionDrafts, dmCandidates, searchData, debouncedSearch, isSearchingUsers, activeExceptionKey, setActiveExceptionKey, collapsedExceptionKeys, setCollapsedExceptionKeys, handleExceptionListChange, handleAddException, isUpdatingExceptions, isLookingUpUser, translations, getAvatarSrc } = props;
+  const {
+    settingKey: key, mode, currentUsername, privacySettings, exceptionDrafts, setExceptionDrafts,
+    dmCandidates, searchData, debouncedSearch, isSearchingUsers, activeExceptionKey, setActiveExceptionKey,
+    collapsedExceptionKeys, setCollapsedExceptionKeys, handleExceptionListChange, handleAddException,
+    isUpdatingExceptions, isLookingUpUser, translations, getAvatarSrc,
+  } = props;
   const renderCandidateButton = (
     key: PrivacyExceptionKey,
     effect: PrivacyExceptionEffect,

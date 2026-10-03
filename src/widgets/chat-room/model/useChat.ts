@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Message } from '@/entities/message';
+import { Message, ModalState } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
@@ -7,7 +7,7 @@ import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
 import {
   unescapeCurlyBraces, useChatSocket, useChatTransport, useLatest, useMessageEvents, useMessageHistory, useMessageSender,
-  type SocketEvent,
+  type ServerEvent,
 } from '@/features/chat-core';
 import { createDeleteChatAction } from './useChatActions';
 
@@ -26,16 +26,7 @@ export const useChat = (
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [modal, setModal] = useState<{
-    type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
-    message?: string;
-    consequences?: string[];
-    onConfirm?: () => void;
-    isMessageSender?: boolean;
-    messageId?: number;
-    onDeleteForMe?: () => void | Promise<void>;
-    onDeleteForAll?: () => void;
-  } | null>(null);
+  const [modal, setModal] = useState<ModalState | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const { translations, language } = useLanguage();
   const onBackRef = useLatest(onBack);
@@ -53,6 +44,7 @@ export const useChat = (
     hasMoreNewerMessages,
     loadOlderMessages,
     loadNewerMessages,
+    loadLatestMessages,
     markMessagesRead,
   } = useMessageHistory({
     chatId, token, username, firstUnreadMessageId, messages, setMessages,
@@ -76,7 +68,7 @@ export const useChat = (
 
   const handleDeleteChat = createDeleteChatAction({ chatId, translations, onBack, setModal });
 
-  const handleExtraEvent = useCallback((event: SocketEvent) => {
+  const handleExtraEvent = useCallback((event: ServerEvent) => {
     if (event.type === 'presence_update' && event.username) {
       presenceUpdateRef.current?.({
         username: event.username,
@@ -142,6 +134,7 @@ export const useChat = (
     scrollToMessage,
     loadOlderMessages,
     loadNewerMessages,
+    loadLatestMessages,
     markMessagesRead,
     handleSendMessage,
     handleResendMessage,

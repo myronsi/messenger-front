@@ -5,8 +5,19 @@ import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-interface Args { chatId: number; token: string; groupForm: { name: string; description: string }; setModal: React.Dispatch<React.SetStateAction<ModalState | null>>; translations: GroupTranslations; setIsSavingGroup: React.Dispatch<React.SetStateAction<boolean>>; applyGroupDetails: (details: RawGroupDetails) => void; participantInput: string; setParticipantInput: (value: string) => void; refreshGroupDetails: () => Promise<void>; setGroupConfirm: React.Dispatch<React.SetStateAction<GroupProfileConfirmState | null>>; groupDetails: GroupDetails | null; onBack: () => void; }
-export const useGroupManagement = ({ chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput, setParticipantInput, refreshGroupDetails, setGroupConfirm, groupDetails, onBack }: Args) => {
+interface Args {
+  chatId: number; token: string; groupForm: { name: string; description: string };
+  setModal: React.Dispatch<React.SetStateAction<ModalState | null>>; translations: GroupTranslations;
+  setIsSavingGroup: React.Dispatch<React.SetStateAction<boolean>>;
+  applyGroupDetails: (details: RawGroupDetails) => void; participantInput: string;
+  setParticipantInput: (value: string) => void; refreshGroupDetails: () => Promise<void>;
+  setGroupConfirm: React.Dispatch<React.SetStateAction<GroupProfileConfirmState | null>>;
+  groupDetails: GroupDetails | null; onBack: () => void;
+}
+export const useGroupManagement = ({
+  chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput,
+  setParticipantInput, refreshGroupDetails, setGroupConfirm, groupDetails, onBack,
+}: Args) => {
   const handleSaveGroup = async () => {
     if (!groupForm.name.trim()) {
       setModal({ type: 'error', message: translations.groupNameRequired || 'Group name is required' });
@@ -208,5 +219,8 @@ export const useGroupManagement = ({ chatId, token, groupForm, setModal, transla
     }, 0);
   };
 
-  return { handleSaveGroup, handleGroupAvatarUpload, handleAddParticipant, handleRemoveParticipant, handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup };
+  return {
+    handleSaveGroup, handleGroupAvatarUpload, handleAddParticipant, handleRemoveParticipant,
+    handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup,
+  };
 };

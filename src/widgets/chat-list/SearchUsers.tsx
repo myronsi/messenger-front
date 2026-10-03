@@ -1,23 +1,21 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { useEffect, useState } from 'react';
-import { Loader2, Plus } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useSearchUsersQuery } from '@/entities/user';
-import { useCreateChatMutation } from '@/entities/chat';
 
 
 interface SearchUsersProps {
   currentUsername: string;
   onCreated?: () => void;
   onClose?: () => void;
-  translations: any;
+  translations: Translations;
   onOpenPreview?: (username: string) => void;
 }
 
-const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, onClose, translations, onOpenPreview }) => {
+const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations, onOpenPreview }) => {
   const [targetUser, setTargetUser] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [createChat, { isLoading: isCreating }] = useCreateChatMutation();
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(targetUser.trim()), 300);
@@ -25,19 +23,6 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, o
   }, [targetUser]);
 
   const { data: searchData } = useSearchUsersQuery(debouncedSearch, { skip: !debouncedSearch || debouncedSearch.length < 2 });
-
-  const handleCreateChat = async (usernameTo?: string) => {
-    const user2 = usernameTo || targetUser.trim();
-    if (!user2) return;
-    try {
-      await createChat({ user1: currentUsername, user2 }).unwrap();
-      setTargetUser('');
-      if (onCreated) onCreated();
-      if (onClose) onClose();
-    } catch (e) {
-      console.error('Failed to create chat:', e);
-    }
-  };
 
   return (
     <div className="border-b border-border">
@@ -57,7 +42,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, onCreated, o
           {debouncedSearch && searchData?.users && searchData.users.length > 0 && (
             <div className="mt-3">
               <div className="bg-white border border-border rounded-md max-h-72 overflow-auto">
-                {searchData.users.map((u: any) => {
+                {searchData.users.map((u) => {
                   const isSelf = u.username?.toLowerCase() === currentUsername?.toLowerCase();
                   return (
                     <div

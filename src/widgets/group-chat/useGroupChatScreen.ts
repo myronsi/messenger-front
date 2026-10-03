@@ -1,3 +1,4 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useRef, useState } from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -13,7 +14,9 @@ import { useGroupMessageMenus } from './useGroupMessageMenus';
 import { useGroupProfilePanel } from './useGroupProfilePanel';
 import type { GroupChatViewModel, GroupComponentProps, GroupTranslations } from './groupChatTypes';
 
-export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMessageId, onBack, onOpenUserProfile, messageJumpRequest = null }: GroupComponentProps): GroupChatViewModel => {
+export const useGroupChatScreen = ({
+  chatId, groupName, username, firstUnreadMessageId, onBack, onOpenUserProfile, messageJumpRequest = null,
+}: GroupComponentProps): GroupChatViewModel => {
   const token = useAccessToken() || '';
   const dispatch = useAppDispatch();
   const { translations: rawTranslations, language } = useLanguage();
@@ -36,7 +39,7 @@ export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMes
   const messageInputRef = useRef<HTMLInputElement>(null);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const onBackRef = useLatest(onBack);
-  const translationsRef = useLatest(rawTranslations as Record<string, any>);
+  const translationsRef = useLatest(rawTranslations as Translations);
   const currentUserIdRef = useLatest(currentUserId);
   const transport = useChatTransport();
 
@@ -48,10 +51,13 @@ export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMes
     chatId, token, username, firstUnreadMessageId, messages, setMessages, currentUserIdRef, onBackRef, translationsRef, setModal,
   });
 
-  const { getAvatarSrc, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({ chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm, setCurrentUserId });
+  const { getAvatarSrc, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({
+    chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
+    setCurrentUserId,
+  });
 
   const sender = useMessageSender({
-    chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport,
+    chatId, username, currentUserId, currentUserIdRef, translations: rawTranslations, translationsRef, transport,
     setMessages, setModal, messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
   });
 
@@ -61,7 +67,14 @@ export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMes
     markMessageFailed: sender.markMessageFailed, markLatestPendingMessageFailed: sender.markLatestPendingMessageFailed,
   });
 
-  const { handleSaveGroup, handleGroupAvatarUpload, handleAddParticipant, handleRemoveParticipant, handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup } = useGroupManagement({ chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput, setParticipantInput, refreshGroupDetails, setGroupConfirm: profilePanel.setGroupConfirm, groupDetails, onBack });
+  const {
+    handleSaveGroup, handleGroupAvatarUpload, handleAddParticipant, handleRemoveParticipant,
+    handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup,
+  } = useGroupManagement({
+    chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput,
+    setParticipantInput, refreshGroupDetails, setGroupConfirm: profilePanel.setGroupConfirm, groupDetails,
+    onBack,
+  });
 
   const handleOpenUserProfile = (profileUsername: string) => {
     profilePanel.requestCloseGroupProfile();
@@ -84,6 +97,7 @@ export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMes
     isLoadingOlderMessages: history.isLoadingOlderMessages,
     isLoadingInitialMessages: history.isLoadingInitialMessages,
     loadNewerMessages: history.loadNewerMessages,
+    loadLatestMessages: history.loadLatestMessages,
     hasMoreNewerMessages: history.hasMoreNewerMessages,
     isLoadingNewerMessages: history.isLoadingNewerMessages,
     markMessagesRead: history.markMessagesRead,

@@ -1,5 +1,5 @@
+import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Image as ImageIcon, Info, Loader2, Music, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
@@ -124,7 +124,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
         await blockUser(username).unwrap();
       }
       setIsBlockConfirmOpen(false);
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setActionError(error?.data?.detail || (isBlocked ? 'Failed to unblock user' : 'Failed to block user'));
     }
   };
@@ -150,7 +151,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
       const updatedUser = await updateContactDisplayName({ username, displayName: nextName || null }).unwrap();
       setCustomNameInput(updatedUser.contact_display_name || '');
       setIsEditingContactName(false);
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setActionError(error?.data?.detail || 'Failed to save custom name');
     }
   };
@@ -175,7 +177,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const canShowPhotosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmPhotos.length > 0;
   const canShowAudiosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmAudios.length > 0;
   const canShowDmSections = !!directChatId && directChatId > 0 && !isCurrentUser;
-  const actionCount = (canShowMessageAction ? 1 : 0) + (canShowDmSections ? 1 : 0) + (canShowSearchAction ? 1 : 0) + (canShowPhotosAction ? 1 : 0) + (canShowAudiosAction ? 1 : 0);
+  const actionCount = [canShowMessageAction, canShowDmSections, canShowSearchAction, canShowPhotosAction, canShowAudiosAction]
+    .filter(Boolean).length;
   const actionColumns = Math.min(Math.max(actionCount, 1), 4);
   const visiblePanelOrder: ProfilePanelView[] = [
     'details',
@@ -195,8 +198,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
       isBlocked={isBlocked}
       isBlockActionLoading={isBlockActionLoading}
       canShowCreatedAt={canShowCreatedAt}
-      createdAt={userData.created_at}
-      isOnline={userData.is_online}
+      createdAt={userData.created_at ?? undefined}
+      isOnline={!!userData.is_online}
       lastSeen={userData.last_seen}
       canDeleteChat={!!onDeleteChat}
       onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
@@ -225,7 +228,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           onCancelContactNameEdit={handleCancelContactNameEdit}
           onEditContactName={() => { setCustomNameInput(contactDisplayName || ''); setIsEditingContactName(true); }}
           isSavingContactName={isSavingContactName} accountDisplayName={accountDisplayName}
-          isOnline={userData.is_online} lastSeen={userData.last_seen} onAvatarHistory={() => setIsAvatarViewerOpen(true)}
+          isOnline={!!userData.is_online} lastSeen={userData.last_seen} onAvatarHistory={() => setIsAvatarViewerOpen(true)}
         />
 
         <UserProfileActions

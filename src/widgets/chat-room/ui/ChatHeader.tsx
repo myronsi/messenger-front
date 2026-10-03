@@ -15,7 +15,10 @@ interface ChatHeaderProps {
   interlocutorAvatar: string;
 }
 
-const ChatHeader: React.FC<ChatHeaderProps> = ({ chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onDeleteChat, onOpenProfile, interlocutorAvatar }) => {
+const ChatHeader: React.FC<ChatHeaderProps> = ({
+  chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onOpenProfile,
+  interlocutorAvatar,
+}) => {
   const { translations } = useLanguage();
   const displayName = chatDisplayName || chatName;
 

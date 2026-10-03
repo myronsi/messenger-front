@@ -3,8 +3,9 @@ import type { MutableRefObject } from 'react';
 import { useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
 import {
   addReaction, addReadReceipts, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
-  type SocketEvent,
 } from './messageUpdates';
+import type { Translations } from '@/shared/contexts/LanguageContext';
+import type { ReadBatchEvent, ReadEvent, ServerEvent } from './socketEvents';
 import type { ChatTransport, SetMessages, ShowError } from './types';
 
 interface MessageEventsOptions {
@@ -12,19 +13,19 @@ interface MessageEventsOptions {
   username: string;
   transport: ChatTransport;
   currentUserIdRef: MutableRefObject<number>;
-  translationsRef: MutableRefObject<Record<string, any>>;
+  translationsRef: MutableRefObject<Translations>;
   onBackRef: MutableRefObject<() => void>;
   setMessages: SetMessages;
   setModal: ShowError;
   markMessageFailed: (messageId: number, message?: string) => boolean;
   markLatestPendingMessageFailed: (message?: string) => boolean;
   // Translation key shown when the whole chat is deleted (differs for one-to-one and group chats).
-  chatDeletedKey: string;
+  chatDeletedKey: 'chatDeleted' | 'groupDeleted';
   // Events that only one chat kind cares about (presence, group updates, ...).
-  onExtraEvent?: (event: SocketEvent, socket: WebSocket) => void;
+  onExtraEvent?: (event: ServerEvent, socket: WebSocket) => void;
 }
 
-const readerFrom = (event: SocketEvent) => ({
+const readerFrom = (event: ReadEvent | ReadBatchEvent) => ({
   username: event.username,
   display_name: event.display_name,
   avatar_url: event.avatar_url,
@@ -38,7 +39,7 @@ export const useMessageEvents = ({
   useLocalMessageDeletion(chatId, setMessages);
   const { pendingMessageIdsRef } = transport;
 
-  return useCallback((event: SocketEvent, socket: WebSocket) => {
+  return useCallback((event: ServerEvent, socket: WebSocket) => {
     switch (event.type) {
       case 'message':
       case 'file': {
@@ -72,7 +73,7 @@ export const useMessageEvents = ({
         setMessages((previous) => addReadReceipts(
           previous,
           event.message_id ? [event.message_id] : [],
-          event.user_id || event.reader_user_id || (event.type === 'is_read' ? event.id : undefined),
+          event.user_id || event.reader_user_id || (event.type === 'is_read' ? event.id : undefined) || 0,
           event.read_at || event.timestamp || new Date().toISOString(),
           readerFrom(event)
         ));
@@ -81,14 +82,14 @@ export const useMessageEvents = ({
         setMessages((previous) => addReadReceipts(
           previous,
           event.message_ids || [],
-          event.reader_user_id || event.user_id,
+          event.reader_user_id || event.user_id || 0,
           event.read_at || event.timestamp || new Date().toISOString(),
           readerFrom(event)
         ));
         return;
       case 'error':
         if (event.message_id) markMessageFailed(event.message_id, event.message);
-        else if (!markLatestPendingMessageFailed(event.message)) setModal({ type: 'error', message: event.message });
+        else if (!markLatestPendingMessageFailed(event.message)) setModal({ type: 'error', message: event.message ?? '' });
         return;
       case 'chat_deleted':
         if (event.chat_id != null && event.chat_id !== chatId) return;
@@ -99,5 +100,8 @@ export const useMessageEvents = ({
       default:
         onExtraEvent?.(event, socket);
     }
-  }, [chatDeletedKey, chatId, currentUserIdRef, markLatestPendingMessageFailed, markMessageFailed, onBackRef, onExtraEvent, pendingMessageIdsRef, setMessages, setModal, translationsRef, username]);
+  }, [
+    chatDeletedKey, chatId, currentUserIdRef, markLatestPendingMessageFailed, markMessageFailed, onBackRef,
+    onExtraEvent, pendingMessageIdsRef, setMessages, setModal, translationsRef, username,
+  ]);
 };

@@ -80,6 +80,10 @@ The WebSocket endpoint defaults to the same origin as `VITE_BASE_URL`, using `ws
 VITE_WS_URL=ws://localhost:8000
 ```
 
+### Install as a mobile app
+
+The frontend is an installable PWA (add to home screen) and can be packaged as a native Android/iOS app with Capacitor. See [docs/mobile.md](docs/mobile.md).
+
 ## Usage
 
 ### Change your app.js file
@@ -122,8 +126,7 @@ src/
 └── shared/       # Reusable UI, hooks, utilities, localization, and styles
 ```
 
-Layers may only import from layers below them (pp > pages > widgets > eatures > ntities > shared). Slices of the same layer in pages, widgets and eatures must not import each other, and other slices are only reachable through their public API (index file). These rules are enforced by slint-plugin-boundaries (see slint.config.js) and checked by 
-pm run lint.
+Layers may only import from layers below them (`app` > `pages` > `widgets` > `features` > `entities` > `shared`). Slices of the same layer in `pages`, `widgets` and `features` must not import each other, and other slices are only reachable through their public API (`index` file). These rules are enforced by `eslint-plugin-boundaries` (see `eslint.config.js`) and checked by `npm run lint`.
 
 ## Versioning and releases
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle2, ChevronDown, Loader2, Plus, Shield, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Shield } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,12 +8,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/shared/ui/breadcrumb';
-import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings, useGetCurrentUserQuery, useGetPrivacySettingsQuery, useUpdatePrivacyExceptionsMutation, useUpdatePrivacySettingsMutation } from '@/features/profile';
-import { useGetOneOnOneChatsQuery } from '@/entities/chat';
-import { useLazyGetUserByUsernameQuery, useSearchUsersQuery } from '@/entities/user';
-import type { User } from '@/entities/user';
+import { PrivacyExceptionKey, PrivacySettings } from '@/features/profile';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
-import { useLanguage } from '@/shared/contexts/LanguageContext';
 import {
   Select,
   SelectContent,
@@ -26,7 +22,6 @@ import PrivacyExceptionEditor from './PrivacyExceptionEditor';
 import { usePrivacySettings } from './usePrivacySettings';
 
 type PrivacySettingKey = Exclude<keyof PrivacySettings, 'privacy_exceptions'>;
-type PrivacyCandidate = Partial<Pick<User, 'id' | 'display_name' | 'avatar_url'>> & { username: string };
 
 const exceptionKeys = ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'group_invites'] as const;
 const exceptionKeySet = new Set<PrivacyExceptionKey>(exceptionKeys);
@@ -35,7 +30,6 @@ const presenceVisibilityOptions = ['everyone', 'shared_chats', 'nobody', 'everyo
 const directMessageVisibilityOptions = ['everyone', 'shared_chats', 'wait_approval'] as const;
 const groupInviteVisibilityOptions = ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except', 'wait_approval'] as const;
 const searchOptions = ['everyone', 'nobody'] as const;
-type StatusMessage = { type: 'success' | 'error'; text: string };
 
 interface PrivacySettingsPanelProps {
   isActive: boolean;
@@ -44,16 +38,10 @@ interface PrivacySettingsPanelProps {
 
 const getAvatarSrc = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
-const exceptionEffectForMode = (mode?: string): PrivacyExceptionEffect | null => {
-  if (mode === 'everyone_except') return 'deny';
-  if (mode === 'nobody_except') return 'allow';
-  return null;
-};
-
 const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, onBack }) => {
   const {
     translations, currentUsername, privacySettings, isLoadingPrivacy, isUpdatingPrivacy, isUpdatingExceptions,
-    isLookingUpUser, status, setStatus, openSelect, setOpenSelect, activeExceptionKey, setActiveExceptionKey,
+    isLookingUpUser, status, openSelect, setOpenSelect, activeExceptionKey, setActiveExceptionKey,
     collapsedExceptionKeys, setCollapsedExceptionKeys, exceptionDrafts, setExceptionDrafts, debouncedSearch,
     searchData, isSearchingUsers, dmCandidates, visibilityLabel, handlePrivacyChange, handleExceptionListChange, handleAddException,
   } = usePrivacySettings(isActive);
@@ -97,7 +85,6 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, o
             <SelectContent
               className="z-[1300]"
               onEscapeKeyDown={() => setOpenSelect(null)}
-              onFocusOutside={() => setOpenSelect(null)}
               onPointerDownOutside={() => setOpenSelect(null)}
             >
               {options.map((option) => (
