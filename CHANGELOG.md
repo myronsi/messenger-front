@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.7](https://github.com/myronsi/messenger-front/compare/v0.4.6...v0.4.7) (2026-10-03)
+
+
+### Features
+
+* add PWA support and Capacitor mobile wrapper ([#86](https://github.com/myronsi/messenger-front/issues/86)) ([a6878e3](https://github.com/myronsi/messenger-front/commit/a6878e30701bd89f24294c2ee35ec259693802cd))
+
 ## [0.4.6](https://github.com/myronsi/messenger-front/compare/v0.4.5...v0.4.6) (2026-10-03)
 
 
