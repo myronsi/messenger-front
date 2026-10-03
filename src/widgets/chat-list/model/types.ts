@@ -69,7 +69,12 @@ export interface WebSocketMessage {
   timestamp?: string;
 }
 
-export type ChatOverride = Partial<Pick<Chat, 'last_message' | 'unread_count' | 'first_unread_message_id' | 'is_pinned'>>;
+export type ChatOverride = Partial<Pick<Chat, 'last_message' | 'unread_count' | 'first_unread_message_id' | 'is_pinned'>> & {
+  // Highest message ID already folded into unread_count; used to ignore duplicate or replayed events.
+  last_counted_message_id?: number;
+  // When the override was written; overrides older than a server fetch are dropped.
+  updated_at?: number;
+};
 export type ChatOverrideMap = Record<number, ChatOverride>;
 
 export interface PresenceInfo {

@@ -86,6 +86,12 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
           const chatId = parsedData.chat_id as number;
           const existing = prev[chatId] || {};
           const baseChat = chatsByIdRef.current[chatId];
+          const messageId = parsedData.last_message?.id;
+          const knownMessageId = Math.max(
+            existing.last_counted_message_id ?? 0,
+            existing.last_message?.id ?? baseChat?.last_message?.id ?? 0,
+          );
+          if (typeof messageId === 'number' && messageId <= knownMessageId) return prev;
           const existingUnreadCount = existing.unread_count ?? baseChat?.unread_count ?? 0;
           const existingFirstUnreadId = existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null;
           const isOwnMessage = parsedData.sender_id === currentUserIdRef.current;
@@ -96,6 +102,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
             [chatId]: {
               ...existing,
               last_message: parsedData.last_message || null,
+              last_counted_message_id: typeof messageId === 'number' ? messageId : existing.last_counted_message_id,
               unread_count: isOwnMessage || parsedData.chat_id === activeChatIdRef.current ? existingUnreadCount : nextUnreadCount,
               first_unread_message_id: shouldCountUnread
                 ? existingFirstUnreadId || parsedData.last_message?.id || null
