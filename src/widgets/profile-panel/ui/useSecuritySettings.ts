@@ -1,15 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  useChangePasswordMutation,
-  useConfirmTwoFactorMutation,
-  useDisableTwoFactorMutation,
-  useGetSecuritySettingsQuery,
-  useGetSessionsQuery,
-  useRevokeOtherSessionsMutation,
-  useRevokeSessionMutation,
-  useSetupTwoFactorMutation,
-  useUpdateSessionDurationMutation,
-} from '@/app/api/messengerApi';
+import { useChangePasswordMutation, useConfirmTwoFactorMutation, useDisableTwoFactorMutation, useGetSecuritySettingsQuery, useGetSessionsQuery, useRevokeOtherSessionsMutation, useRevokeSessionMutation, useSetupTwoFactorMutation, useUpdateSessionDurationMutation } from '@/features/profile';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { clearAuthTokens } from '@/shared/auth/session';
 

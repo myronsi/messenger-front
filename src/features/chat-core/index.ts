@@ -6,6 +6,5 @@ export { useMessageHistory } from './model/useMessageHistory';
 export { useLatest } from './model/useLatest';
 export { escapeCurlyBraces, unescapeCurlyBraces } from './model/messageText';
 export { getLocalUploadFileType } from './model/uploadFileType';
-export { removeMessageAnimated, notifyMessageDeletedLocally, prefersReducedMotion, useLocalMessageDeletion } from './model/messageDeletion';
 export type { SocketEvent } from './model/messageUpdates';
 export type { ChatTransport, ErrorModal } from './model/types';

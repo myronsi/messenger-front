@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect } from 'react';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { authFetch } from '@/shared/auth/session';
-import { messengerApi, useGetGroupDetailsQuery } from '@/app/api/messengerApi';
+import { messengerApi } from '@/shared/api/baseApi';
+import { useGetGroupDetailsQuery } from '@/entities/chat';
 import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import type { RawGroupDetails } from './groupChatTypes';
 import { useAppDispatch } from '@/shared/hooks/redux';

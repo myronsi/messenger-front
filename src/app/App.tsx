@@ -1,11 +1,12 @@
 import { BrowserRouter } from 'react-router-dom';
-import MessengerApp from '@/pages/messenger/MessengerApp';
+import { AuthFlowPage } from '@/pages/auth';
+import { MessengerApp } from '@/pages/messenger';
 import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 
 const App = () => (
   <LanguageProvider>
     <BrowserRouter>
-      <MessengerApp />
+      <MessengerApp renderAuthPage={(props) => <AuthFlowPage {...props} />} />
     </BrowserRouter>
   </LanguageProvider>
 );

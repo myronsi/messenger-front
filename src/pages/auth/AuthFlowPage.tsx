@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import RegisterComponent from '@/features/auth/RegisterComponent';
-import LoginComponent from '@/features/auth/LoginComponent';
-import UsernameRecoveryComponent from '@/features/auth/UsernameRecoveryComponent';
-import PartsRecoveryComponent from '@/features/auth/PartsRecoveryComponent';
-import PasswordResetComponent from '@/features/auth/PasswordResetComponent';
+import {
+  LoginComponent,
+  PartsRecoveryComponent,
+  PasswordResetComponent,
+  RegisterComponent,
+  UsernameRecoveryComponent,
+} from '@/features/auth';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Globe } from 'lucide-react';

@@ -8,7 +8,7 @@ import ProfileHomePage from './ui/ProfileHomePage';
 import ProfilePanelDialogs from './ui/ProfilePanelDialogs';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { useGetCurrentUserQuery } from '@/app/api/messengerApi';
+import { useGetCurrentUserQuery } from '@/features/profile';
 import { useProfileAccountActions } from './useProfileAccountActions';
 import { useProfilePanelData } from './useProfilePanelData';
 import { useCreateGroupFromProfile } from './useCreateGroupFromProfile';

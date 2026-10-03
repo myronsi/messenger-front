@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useGetChatAudiosQuery, useGetChatPhotosQuery, useGetOneOnOneChatsQuery } from '@/app/api/messengerApi';
+import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
+import { useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, toProfileAudios, toProfilePhotos } from '@/widgets/profile-panel/ui/ProfileChatPanels';
+import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, toProfileAudios, toProfilePhotos } from '@/entities/message';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupProfileView, GroupProfileTransition } from './GroupProfileTypes';
 import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';

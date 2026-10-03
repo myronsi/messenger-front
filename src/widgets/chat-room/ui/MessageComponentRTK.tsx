@@ -4,14 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
-import {
-  useGetMessageHistoryQuery,
-  useSendMessageMutation,
-  useUpdateMessageMutation,
-  useDeleteMessageMutation,
-  useAddReactionMutation,
-  useRemoveReactionMutation,
-} from '@/app/api/messengerApi';
+import { useGetMessageHistoryQuery, useSendMessageMutation, useUpdateMessageMutation, useDeleteMessageMutation, useAddReactionMutation, useRemoveReactionMutation } from '@/entities/message';
 import { Message } from '@/entities/message';
 import { transformMessageHistory } from '../model/transformMessageHistory';
 

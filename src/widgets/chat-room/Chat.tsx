@@ -1,9 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Message } from '@/entities/message';
-import { useGetBlockedUsersQuery } from '@/app/api/messengerApi';
 import ChatHeader from './ui/ChatHeader';
-import MessageList from './ui/MessageList';
-import MessageInput from './ui/MessageInput';
+import { MessageList } from '@/features/message-list';
+import { MessageInput } from '@/features/message-composer';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { authFetch, useAccessToken } from '@/shared/auth/session';
 import { usePreviewChat } from './model/usePreviewChat';
@@ -12,6 +11,7 @@ import { useChatInteractions } from './model/useChatInteractions';
 import { ChatProps } from './model/types';
 import ChatOverlays from './ui/ChatOverlays';
 import ChatUnblockButton from './ui/ChatUnblockButton';
+import { useGetBlockedUsersQuery } from '@/entities/user';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 

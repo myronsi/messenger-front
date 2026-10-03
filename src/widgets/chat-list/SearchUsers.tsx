@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
-import { useSearchUsersQuery, useCreateChatMutation } from '@/app/api/messengerApi';
+import { useSearchUsersQuery } from '@/entities/user';
+import { useCreateChatMutation } from '@/entities/chat';
 
 
 interface SearchUsersProps {

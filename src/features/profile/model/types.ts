@@ -1,16 +1,5 @@
 import type { User } from '@/entities/user';
 
-export interface UserAvatarHistoryItem {
-  id: number;
-  avatar_url: string;
-  created_at: string;
-  is_current: boolean;
-}
-
-export interface UserAvatarHistoryResponse {
-  avatars: UserAvatarHistoryItem[];
-}
-
 export type BasicPrivacyVisibility = 'everyone' | 'shared_chats';
 export type ExceptionPrivacyVisibility = BasicPrivacyVisibility | 'everyone_except' | 'nobody_except';
 export type PresencePrivacyVisibility = ExceptionPrivacyVisibility | 'nobody';
@@ -31,10 +20,6 @@ export interface PrivacySettings {
   group_invites: GroupInvitePrivacyVisibility;
   search_visibility: SearchVisibility;
   privacy_exceptions: PrivacyExceptionLists;
-}
-
-export interface BlockedUsersResponse {
-  users: User[];
 }
 
 export interface SecuritySettings {

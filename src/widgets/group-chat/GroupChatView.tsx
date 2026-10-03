@@ -3,12 +3,9 @@ import { ArrowLeft } from 'lucide-react';
 import type { Message } from '@/entities/message';
 import { unescapeCurlyBraces } from '@/features/chat-core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
-import MessageList from '@/widgets/chat-room/ui/MessageList';
-import MessageInput from '@/widgets/chat-room/ui/MessageInput';
-import ContextMenu from '@/widgets/chat-room/ui/ContextMenu';
-import ReactionMenu from '@/widgets/chat-room/ui/ReactionMenu';
-import Modal from '@/widgets/chat-room/ui/Modal';
-import ForwardMessageDialog from '@/widgets/chat-room/ui/ForwardMessageDialog';
+import { MessageList } from '@/features/message-list';
+import { MessageInput } from '@/features/message-composer';
+import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog } from '@/features/message-actions';
 import GroupProfileDialog from './GroupProfileDialog';
 
 import type { GroupChatViewModel } from './groupChatTypes';

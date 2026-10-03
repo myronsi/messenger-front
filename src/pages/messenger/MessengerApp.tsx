@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
-import AuthFlowPage from '@/pages/auth/AuthFlowPage';
 import ChatsListComponentRTK from '@/widgets/chat-list';
 import Chat from '@/widgets/chat-room';
 import GroupComponent from '@/widgets/group-chat';
 import ProfileComponentRTK from '@/widgets/profile-panel';
-import UserProfileComponentRTK from '@/widgets/profile-panel/UserProfileComponentRTK';
+import { UserProfileComponentRTK } from '@/widgets/profile-panel';
 import { useMessengerController } from './model/useMessengerController';
 import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
 
-const MessengerApp = () => {
+interface MessengerAppProps {
+  renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
+}
+
+const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   const {
     isLoggedIn,
     setIsLoggedIn,
@@ -141,7 +144,7 @@ const MessengerApp = () => {
       <Toaster />
 
       {!isLoggedIn ? (
-        <AuthFlowPage onLoginSuccess={handleLoginSuccess} />
+        renderAuthPage({ onLoginSuccess: handleLoginSuccess })
       ) : (
         <div className="mx-0 min-h-screen min-w-screen px-0">
           {isMobile ? (

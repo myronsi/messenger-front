@@ -1,7 +1,8 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
-import { useGetMessageHistoryQuery, useMarkChatReadMutation } from '@/app/api/messengerApi';
+import { useGetMessageHistoryQuery } from '@/entities/message';
+import { useMarkChatReadMutation } from '@/entities/chat';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const MESSAGE_PAGE_SIZE = 50;

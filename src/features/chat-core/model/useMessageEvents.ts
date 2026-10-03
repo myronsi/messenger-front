@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { useLocalMessageDeletion, removeMessageAnimated } from './messageDeletion';
+import { useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
 import {
   addReaction, addReadReceipts, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
   type SocketEvent,

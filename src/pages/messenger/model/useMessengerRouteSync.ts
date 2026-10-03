@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, type NavigateFunction } from 'react-router-dom';
-import { CurrentChat, directChatPath, parseDmIdentifier, parseProfileUsername } from '@/app/routes/messengerRoutes';
+import { CurrentChat, directChatPath, parseDmIdentifier, parseProfileUsername } from './messengerRoutes';
 import { authFetch } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;

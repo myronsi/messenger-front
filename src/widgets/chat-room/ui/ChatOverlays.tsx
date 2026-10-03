@@ -1,10 +1,7 @@
 import React, { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
-import ContextMenu from './ContextMenu';
-import ReactionMenu from './ReactionMenu';
+import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal } from '@/features/message-actions';
 import MessageSearchDialog from './MessageSearchDialog';
-import ForwardMessageDialog from './ForwardMessageDialog';
-import Modal from './Modal';
 
 type ContextMenuState = NonNullable<React.ComponentProps<typeof ContextMenu>['contextMenu']>;
 type ReactionMenuState = NonNullable<React.ComponentProps<typeof ReactionMenu>['reactionMenu']>;

@@ -122,6 +122,9 @@ src/
 └── shared/       # Reusable UI, hooks, utilities, localization, and styles
 ```
 
+Layers may only import from layers below them (pp > pages > widgets > eatures > ntities > shared). Slices of the same layer in pages, widgets and eatures must not import each other, and other slices are only reachable through their public API (index file). These rules are enforced by slint-plugin-boundaries (see slint.config.js) and checked by 
+pm run lint.
+
 ## Versioning and releases
 
 This project follows Semantic Versioning and Conventional Commits. See [docs/versioning.md](docs/versioning.md) for the scheme and [docs/releasing.md](docs/releasing.md) for the release checklist.

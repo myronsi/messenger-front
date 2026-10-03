@@ -1,8 +1,7 @@
-import AvatarCropModal from './AvatarCropModal';
+import AvatarCropModal from '@/shared/ui/AvatarCropModal';
 import AvatarHistoryViewer from './AvatarHistoryViewer';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
-import GroupCreateModal from '@/features/groups/ui/GroupCreateModal';
-import type { GroupCreatePayload } from '@/features/groups/model/useGroupCreateForm';
+import { GroupCreateModal, type GroupCreatePayload } from '@/features/groups';
 import type { en } from '@/shared/lang/en';
 import type { User } from '@/entities/user';
 import type { ProfileModalState } from '../useProfileAccountActions';

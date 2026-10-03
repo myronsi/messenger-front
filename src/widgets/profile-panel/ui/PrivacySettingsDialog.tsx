@@ -8,18 +8,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/shared/ui/breadcrumb';
-import {
-  PrivacyExceptionEffect,
-  PrivacyExceptionKey,
-  PrivacySettings,
-  useGetCurrentUserQuery,
-  useGetOneOnOneChatsQuery,
-  useGetPrivacySettingsQuery,
-  useLazyGetUserByUsernameQuery,
-  useSearchUsersQuery,
-  useUpdatePrivacyExceptionsMutation,
-  useUpdatePrivacySettingsMutation,
-} from '@/app/api/messengerApi';
+import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings, useGetCurrentUserQuery, useGetPrivacySettingsQuery, useUpdatePrivacyExceptionsMutation, useUpdatePrivacySettingsMutation } from '@/features/profile';
+import { useGetOneOnOneChatsQuery } from '@/entities/chat';
+import { useLazyGetUserByUsernameQuery, useSearchUsersQuery } from '@/entities/user';
 import type { User } from '@/entities/user';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useDeleteAccountMutation, useLogoutMutation } from '@/app/api/messengerApi';
+import { useDeleteAccountMutation } from '@/features/profile';
+import { useLogoutMutation } from '@/features/auth';
 import { authFetch, endSession } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { User } from '@/entities/user';

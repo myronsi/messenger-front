@@ -3,16 +3,9 @@ import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import {
-  useApproveApprovalRequestMutation,
-  useBlockUserMutation,
-  useGetApprovalRequestInboxQuery,
-  useGetBlockedUsersQuery,
-  useGetOneOnOneChatsQuery,
-  useRejectApprovalRequestMutation,
-  useUnblockUserMutation,
-} from '@/app/api/messengerApi';
+import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ProfileModalState } from './useProfileAccountActions';
+import { useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {

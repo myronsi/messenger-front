@@ -1,7 +1,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { useUnblockUserMutation } from '@/app/api/messengerApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useUnblockUserMutation } from '@/entities/user';
 
 interface ChatUnblockButtonProps {
   username: string;
