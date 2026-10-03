@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 
 interface FileMessageProps {
@@ -9,6 +10,7 @@ interface FileMessageProps {
 }
 
 const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, isMobile }) => {
+  const { translations } = useLanguage();
   const [isHovered, setIsHovered] = useState(false);
 
   const handleDownload = async () => {
@@ -52,7 +54,7 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <button onClick={handleDownload} className="focus:outline-none">
+      <button onClick={handleDownload} aria-label={`${translations.download || 'Download'}: ${fileName}`} className="focus:outline-none">
         <IconComponent size={20} className="cursor-pointer" />
       </button>
       <span className="truncate max-w-[calc(100%-28px)]" title={fileName}>

@@ -133,7 +133,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
                 return null;
               })()}
             </div>
-            <button onClick={onCancelReplyOrEdit} className="motion-press rounded-full p-1 transition-colors hover:bg-accent">
+            <button onClick={onCancelReplyOrEdit} aria-label={translations.cancel || 'Cancel'} className="motion-press rounded-full p-1 transition-colors hover:bg-accent">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -160,7 +160,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
                 <div className="truncate text-sm font-medium">{selectedFile.name}</div>
                 <div className="text-xs text-muted-foreground">{Math.ceil(selectedFile.size / 1024)} KB</div>
               </div>
-              <button type="button" onClick={clearSelectedFile} className="motion-press shrink-0 rounded-full p-1 transition-colors hover:bg-accent">
+              <button type="button" onClick={clearSelectedFile} aria-label={translations.removeFile || 'Remove file'} className="motion-press shrink-0 rounded-full p-1 transition-colors hover:bg-accent">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -171,6 +171,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
+              aria-label={translations.attachFile || 'Attach file'}
               disabled={isDisabled || isRecording || isStarting}
               className="motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50"
             >

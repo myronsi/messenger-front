@@ -25,7 +25,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   return (
     <div className="motion-panel-in px-4 py-3 sm:px-6 sm:py-4 border-b border-border flex justify-between items-center">
       <div className="flex items-center space-x-4">
-        <button onClick={onBack} className="motion-press p-2 hover:bg-accent rounded-full transition-colors">
+        <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press p-2 hover:bg-accent rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <button onClick={!interlocutorDeleted ? onOpenProfile : undefined} className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1">

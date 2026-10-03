@@ -67,7 +67,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold">{translations.search}</h3>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="p-1 rounded-full hover:bg-accent">
+            <button onClick={onClose} aria-label={translations.close || 'Close'} className="p-1 rounded-full hover:bg-accent">
               <X className="w-5 h-5" />
             </button>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Download, ZoomIn, ZoomOut, MessageSquare, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
 
 const MAX_HEIGHT = 300;
@@ -17,6 +18,7 @@ interface ImageMessageProps {
 }
 
 const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, width, height, fileName, onReply }) => {
+  const { translations } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
   const [scale, setScale] = useState(1);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -148,9 +150,10 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
                 e.stopPropagation();
                 onReply();
               }}
+              aria-label={translations.replyToMessage || 'Reply'}
               className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors backdrop-blur-sm"
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         )}
@@ -170,12 +173,14 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
           <div className="fixed top-4 right-4 flex gap-2 z-[10000]">
             <button
               onClick={() => handleZoom(1.2)}
+              aria-label={translations.zoomIn || 'Zoom in'}
               className="p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm"
             >
               <ZoomIn className="w-5 h-5" />
             </button>
             <button
               onClick={() => handleZoom(0.8)}
+              aria-label={translations.zoomOut || 'Zoom out'}
               className="p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm"
             >
               <ZoomOut className="w-5 h-5" />
@@ -183,6 +188,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
             <button
               onClick={handleDownload}
               disabled={isDownloading}
+              aria-label={translations.download || 'Download'}
               className="p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm disabled:opacity-50"
             >
               <Download className={`w-5 h-5 ${isDownloading ? 'animate-pulse' : ''}`} />
@@ -192,6 +198,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
                 e.stopPropagation();
                 resetView();
               }}
+              aria-label={translations.close || 'Close'}
               className="p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm"
             >
               <X className="w-5 h-5" />

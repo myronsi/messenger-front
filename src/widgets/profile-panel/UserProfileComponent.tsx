@@ -69,6 +69,7 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
       <div className="w-full h-full relative p-4">
         <button
           onClick={onClose}
+        aria-label={translations.close || 'Close'}
           className="absolute right-4 top-4 p-2 hover:bg-accent rounded-full transition-colors"
         >
           <X className="w-5 h-5" />
@@ -86,6 +87,7 @@ const UserProfileComponent: React.FC<UserProfileComponentProps> = ({ username, o
     <div className="w-full h-full relative p-4 flex flex-col">
       <button
         onClick={onClose}
+          aria-label={translations.close || 'Close'}
         className="absolute right-4 top-4 p-2 hover:bg-accent rounded-full transition-colors"
       >
         <X className="w-5 h-5" />

@@ -47,6 +47,7 @@ const DeleteMessageChoiceModal: React.FC<DeleteMessageChoiceModalProps> = ({
           </h2>
           <button
             onClick={onCancel}
+            aria-label={translations.close || 'Close'}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-5 h-5" />
