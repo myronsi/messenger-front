@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { ensureAccessToken } from '@/shared/auth/session';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import type { ChatTransport } from './types';
 import type { SocketEvent } from './messageUpdates';
@@ -55,15 +54,15 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
       if (!isMounted) return;
       const current = wsRef.current;
       if (current && (current.readyState === WebSocket.OPEN || current.readyState === WebSocket.CONNECTING)) return;
-      const wsToken = await ensureAccessToken();
-      if (!isMounted || !wsToken) return;
 
       let socket: WebSocket;
       try {
-        socket = new WebSocket(getChatWebSocketUrl(chatId, wsToken));
+        const url = await getChatWebSocketUrl(chatId);
+        if (!isMounted) return;
+        socket = new WebSocket(url);
       } catch (error) {
         console.error('Error creating WebSocket:', error);
-        scheduleReconnect();
+        if (isMounted) scheduleReconnect();
         return;
       }
       wsRef.current = socket;
