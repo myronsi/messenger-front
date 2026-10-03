@@ -8,7 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/shared/ui/breadcrumb';
-import { PrivacyExceptionKey, PrivacySettings } from '@/app/api/messengerApi';
+import { PrivacyExceptionKey, PrivacySettings } from '@/features/profile';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import {
   Select,

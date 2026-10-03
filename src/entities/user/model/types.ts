@@ -14,3 +14,18 @@ export interface User {
   direct_chat_id?: number | null;
   direct_message_reason?: 'self' | 'blocked' | 'privacy' | null;
 }
+
+export interface UserAvatarHistoryItem {
+  id: number;
+  avatar_url: string;
+  created_at: string;
+  is_current: boolean;
+}
+
+export interface UserAvatarHistoryResponse {
+  avatars: UserAvatarHistoryItem[];
+}
+
+export interface BlockedUsersResponse {
+  users: User[];
+}

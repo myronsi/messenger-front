@@ -4,7 +4,8 @@ import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistor
 import { authFetch } from '@/shared/auth/session';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
-import { useGetMessageHistoryQuery, useMarkChatReadMutation } from '@/app/api/messengerApi';
+import { useGetMessageHistoryQuery } from '@/entities/message';
+import { useMarkChatReadMutation } from '@/entities/chat';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const MESSAGE_PAGE_SIZE = 50;

@@ -15,7 +15,6 @@ export function useChatListModel(props: ChatsListComponentProps) {
 
   const [modal, setModal] = useState<ChatListModal | null>(null);
   const [chatContextMenu, setChatContextMenu] = useState<ChatContextMenuState | null>(null);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const token = useAccessToken();
 
   const {
@@ -113,8 +112,6 @@ export function useChatListModel(props: ChatsListComponentProps) {
     modal,
     setModal,
     chatContextMenu,
-    selectedUser,
-    setSelectedUser,
     isLoading,
     chats,
     requestInbox,

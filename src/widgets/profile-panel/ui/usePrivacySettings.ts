@@ -1,6 +1,8 @@
 import { asApiError } from '@/shared/lib/apiError';
 import { useEffect, useMemo, useState } from 'react';
-import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings, useGetCurrentUserQuery, useGetOneOnOneChatsQuery, useGetPrivacySettingsQuery, useLazyGetUserByUsernameQuery, useSearchUsersQuery, useUpdatePrivacyExceptionsMutation, useUpdatePrivacySettingsMutation } from '@/app/api/messengerApi';
+import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings, useGetCurrentUserQuery, useGetPrivacySettingsQuery, useUpdatePrivacyExceptionsMutation, useUpdatePrivacySettingsMutation } from '@/features/profile';
+import { useGetOneOnOneChatsQuery } from '@/entities/chat';
+import { useLazyGetUserByUsernameQuery, useSearchUsersQuery } from '@/entities/user';
 import type { User } from '@/entities/user';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 

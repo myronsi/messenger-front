@@ -1,7 +1,7 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { FileMessageContent, Message, ModalState } from '@/entities/message';
-import { useCreateChatMutation } from '@/app/api/messengerApi';
+import { useCreateChatMutation } from '@/entities/chat';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { getLocalUploadFileType } from '@/features/chat-core';
 

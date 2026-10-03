@@ -1,4 +1,4 @@
-import { Message } from '@/entities/message';
+import type { Message } from './types';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 export type { MessageHistoryResponse } from './history';
 

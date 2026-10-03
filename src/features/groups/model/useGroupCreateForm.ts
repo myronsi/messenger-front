@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useGetOneOnOneChatsQuery, useSearchUsersQuery } from '@/app/api/messengerApi';
+import { useGetOneOnOneChatsQuery } from '@/entities/chat';
+import { useSearchUsersQuery } from '@/entities/user';
 import type { User } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';

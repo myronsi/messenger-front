@@ -1,15 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
-import {
-  useGetApprovalRequestInboxQuery,
-  useGetOneOnOneChatsQuery,
-  useGetGroupChatsQuery,
-  useCreateChatMutation,
-  useGetCurrentUserQuery,
-  useSetChatPinnedMutation,
-  useMarkChatReadMutation,
-} from '@/app/api/messengerApi';
+import { useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useGetGroupChatsQuery, useCreateChatMutation, useSetChatPinnedMutation, useMarkChatReadMutation } from '@/entities/chat';
+import { useGetCurrentUserQuery } from '@/features/profile';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';

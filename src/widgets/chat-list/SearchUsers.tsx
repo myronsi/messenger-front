@@ -2,7 +2,7 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { useEffect, useState } from 'react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
-import { useSearchUsersQuery } from '@/app/api/messengerApi';
+import { useSearchUsersQuery } from '@/entities/user';
 
 
 interface SearchUsersProps {

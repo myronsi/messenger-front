@@ -1,6 +1,5 @@
 import React from 'react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
-import UserProfileComponentRTK from '@/widgets/profile-panel/UserProfileComponentRTK';
 import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
 import ChatsListHeader from './ChatsListHeader';
 import ChatListBody from './ui/ChatListBody';
@@ -84,12 +83,6 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         />
       )}
 
-      {model.selectedUser && (
-        <UserProfileComponentRTK
-          username={model.selectedUser}
-          onClose={() => model.setSelectedUser(null)}
-        />
-      )}
     </div>
   );
 };

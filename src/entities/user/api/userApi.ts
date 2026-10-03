@@ -1,6 +1,5 @@
 import { messengerApi } from '@/shared/api/baseApi';
-import type { User } from '@/entities/user';
-import type { UserAvatarHistoryResponse } from '@/features/profile';
+import type { BlockedUsersResponse, User, UserAvatarHistoryResponse } from '../model/types';
 
 export const userApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -58,6 +57,27 @@ export const userApi = messengerApi.injectEndpoints({
       query: (username) => `/users/users/${username}/avatars`,
       providesTags: (result, error, username) => [{ type: 'Avatar', id: `${username}-history` }],
     }),
+
+    getBlockedUsers: builder.query<BlockedUsersResponse, void>({
+      query: () => '/auth/me/blocked-users',
+      providesTags: ['Privacy'],
+    }),
+
+    blockUser: builder.mutation<{ message: string }, string>({
+      query: (username) => ({
+        url: `/auth/me/blocked-users/${encodeURIComponent(username)}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Privacy', 'User', 'Chat'],
+    }),
+
+    unblockUser: builder.mutation<{ message: string }, string>({
+      query: (username) => ({
+        url: `/auth/me/blocked-users/${encodeURIComponent(username)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Privacy', 'User', 'Chat'],
+    }),
   }),
 });
 
@@ -71,4 +91,7 @@ export const {
   useDeleteContactDisplayNameMutation,
   useGetUserAvatarQuery,
   useGetUserAvatarHistoryQuery,
+  useGetBlockedUsersQuery,
+  useBlockUserMutation,
+  useUnblockUserMutation,
 } = userApi;

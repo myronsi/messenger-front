@@ -2,3 +2,8 @@ export * from './model/types';
 export * from './model/history';
 export * from './model/historyNormalizers';
 export * from './model/reactions';
+export * from './api/messageApi';
+export * from './model/messageDeletion';
+export * from './model/messageListScrollUtils';
+export { default as MessageItem } from './ui/MessageItem';
+export * from './ui/ProfileChatPanels';

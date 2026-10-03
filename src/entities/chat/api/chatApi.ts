@@ -1,5 +1,5 @@
 import { messengerApi } from '@/shared/api/baseApi';
-import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '@/entities/chat';
+import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
 
 export const chatApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({

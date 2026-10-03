@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CurrentChat, directChatPath, dmPath, parseProfileUsername } from '@/app/routes/messengerRoutes';
+import { CurrentChat, directChatPath, dmPath, parseProfileUsername } from './messengerRoutes';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { authFetch, clearAuthTokens } from '@/shared/auth/session';

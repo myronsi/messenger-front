@@ -2,7 +2,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { closeAllWebSockets } from '@/shared/api/socketRegistry';
 import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
-import { messengerApi } from './api/messengerApi';
+import { messengerApi } from '@/shared/api/baseApi';
+import type { RootState as SharedRootState } from '@/shared/hooks/redux';
 
 export const store = configureStore({
   reducer: {
@@ -34,3 +35,6 @@ subscribeToAccessToken((token) => {
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+// Compile-time guard: the state typed in shared/hooks/redux must match the real store.
+export const assertSharedStateMatchesStore = (state: SharedRootState): RootState => state;

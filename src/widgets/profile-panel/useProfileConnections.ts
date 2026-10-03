@@ -1,19 +1,12 @@
 import { asApiError } from '@/shared/lib/apiError';
 import { useMemo, useState } from 'react';
-import {
-  useApproveApprovalRequestMutation,
-  useBlockUserMutation,
-  useGetApprovalRequestInboxQuery,
-  useGetBlockedUsersQuery,
-  useGetOneOnOneChatsQuery,
-  useRejectApprovalRequestMutation,
-  useUnblockUserMutation,
-} from '@/app/api/messengerApi';
+import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { ProfileModalState } from './useProfileAccountActions';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
 
 interface UseProfileConnectionsArgs {
   username: string;

@@ -2,7 +2,7 @@ import type { ChangeEvent } from 'react';
 import { Camera, Loader2, X } from 'lucide-react';
 import type { en } from '@/shared/lang/en';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import AvatarCropModal from '@/widgets/profile-panel/ui/AvatarCropModal';
+import AvatarCropModal from '@/shared/ui/AvatarCropModal';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';

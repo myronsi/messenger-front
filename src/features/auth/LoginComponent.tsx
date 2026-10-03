@@ -13,7 +13,7 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
-import { useLoginMutation, useLoginTwoFactorMutation } from '@/app/api/messengerApi';
+import { useLoginMutation, useLoginTwoFactorMutation } from './api/authApi';
 import { setAccessToken } from '@/shared/auth/session';
 
 interface LoginComponentProps {

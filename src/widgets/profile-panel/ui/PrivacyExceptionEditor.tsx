@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, ChevronDown, Loader2, Plus, X } from 'lucide-react';
-import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings } from '@/app/api/messengerApi';
+import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings } from '@/features/profile';
 import type { User } from '@/entities/user';
 import type { useLanguage } from '@/shared/contexts/LanguageContext';
 

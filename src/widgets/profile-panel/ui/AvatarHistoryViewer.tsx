@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, X } from 'lucide-react';
-import { useGetUserAvatarHistoryQuery } from '@/app/api/messengerApi';
+import { useGetUserAvatarHistoryQuery } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';

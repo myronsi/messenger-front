@@ -1,5 +1,5 @@
 import { messengerApi } from '@/shared/api/baseApi';
-import type { AuthResponse, LoginRequest, RegisterRequest, TwoFactorLoginRequest } from '@/features/auth';
+import type { AuthResponse, LoginRequest, RegisterRequest, TwoFactorLoginRequest } from '../model/types';
 
 export const authApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({

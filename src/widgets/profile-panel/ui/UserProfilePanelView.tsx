@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, ProfileAudioItem, ProfilePhotoItem } from './ProfileChatPanels';
+import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, ProfileAudioItem, ProfilePhotoItem } from '@/entities/message';
 import type { ProfilePanelView } from './UserProfilePanelContent';
 
 interface UserProfilePanelViewProps {

@@ -11,7 +11,7 @@ import {
   useDeleteMessageMutation,
   useAddReactionMutation,
   useRemoveReactionMutation,
-} from '@/app/api/messengerApi';
+} from '@/entities/message';
 import { transformMessageHistory } from '../model/transformMessageHistory';
 
 interface MessageComponentRTKProps {

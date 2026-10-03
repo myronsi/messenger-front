@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import type { CurrentChat } from '@/app/routes/messengerRoutes';
+import type { CurrentChat } from './messengerRoutes';
 
 interface MessengerMobileNavigationOptions {
   currentChat: CurrentChat | null;

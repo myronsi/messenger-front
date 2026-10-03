@@ -3,6 +3,7 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import boundaries from "eslint-plugin-boundaries";
 
 export default tseslint.config(
   { ignores: ["dist"] },
@@ -35,6 +36,82 @@ export default tseslint.config(
       "max-lines": [
         "error",
         { max: 299, skipBlankLines: false, skipComments: false },
+      ],
+    },
+  },
+  // Feature-Sliced Design: enforce the layer hierarchy and slice public APIs.
+  // app > pages > widgets > features > entities > shared (a layer may only import from layers below it).
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    plugins: { boundaries },
+    settings: {
+      "import/resolver": {
+        typescript: { project: "./tsconfig.app.json" },
+      },
+      "boundaries/elements": [
+        { type: "app", pattern: "src/app", partialMatch: false },
+        { type: "pages", pattern: "src/pages/*", capture: ["slice"], partialMatch: false },
+        { type: "widgets", pattern: "src/widgets/*", capture: ["slice"], partialMatch: false },
+        { type: "features", pattern: "src/features/*", capture: ["slice"], partialMatch: false },
+        { type: "entities", pattern: "src/entities/*", capture: ["slice"], partialMatch: false },
+        { type: "shared", pattern: "src/shared", partialMatch: false },
+      ],
+    },
+    rules: {
+      "boundaries/dependencies": [
+        "error",
+        {
+          default: "allow",
+          policies: [
+            {
+              from: { element: { type: "shared" } },
+              disallow: { to: { element: { type: ["app", "pages", "widgets", "features", "entities"] } } },
+              message: "shared must not depend on higher layers ({{to.element.types.[0]}}).",
+            },
+            {
+              from: { element: { type: "entities" } },
+              disallow: { to: { element: { type: ["app", "pages", "widgets", "features"] } } },
+              message: "entities may only depend on entities and shared, not on {{to.element.types.[0]}}.",
+            },
+            {
+              from: { element: { type: "features" } },
+              disallow: { to: { element: { type: ["app", "pages", "widgets"] } } },
+              message: "features may only depend on entities and shared, not on {{to.element.types.[0]}}.",
+            },
+            {
+              from: { element: { type: "widgets" } },
+              disallow: { to: { element: { type: ["app", "pages"] } } },
+              message: "widgets may only depend on features, entities and shared, not on {{to.element.types.[0]}}.",
+            },
+            {
+              from: { element: { type: "pages" } },
+              disallow: { to: { element: { type: "app" } } },
+              message: "pages must not depend on the app layer.",
+            },
+            // Slices of the same layer are isolated from each other (entities may reference one another through public APIs).
+            ...["pages", "widgets", "features"].map((layer) => ({
+              from: { element: { type: layer } },
+              disallow: {
+                to: { element: { type: layer, captured: { slice: "!{{from.element.captured.slice}}" } } },
+              },
+              message: `${layer}/{{from.element.captured.slice}} must not import from the sibling slice {{to.element.captured.slice}}. Move shared code down a layer or compose the slices in a higher layer.`,
+            })),
+            // Other slices are only reachable through their public API (index file).
+            {
+              from: { element: { type: ["app", "pages", "widgets", "features", "entities", "shared"] } },
+              disallow: {
+                to: {
+                  element: {
+                    type: ["pages", "widgets", "features", "entities"],
+                    fileInternalPath: "!index.{ts,tsx}",
+                  },
+                },
+              },
+              message: "Import {{to.element.types.[0]}}/{{to.element.captured.slice}} through its public API (index), not {{to.element.fileInternalPath}}.",
+            },
+            { allow: { dependency: { relationship: { to: "internal" } } } },
+          ],
+        },
       ],
     },
   },

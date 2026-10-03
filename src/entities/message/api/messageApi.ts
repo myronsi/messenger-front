@@ -1,5 +1,6 @@
 import { messengerApi } from '@/shared/api/baseApi';
-import type { ChatAudiosResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message, MessageHistoryResponse } from '@/entities/message';
+import type { ChatAudiosResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message } from '../model/types';
+import type { MessageHistoryResponse } from '../model/history';
 
 export const messageApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({

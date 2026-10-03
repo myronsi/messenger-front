@@ -3,7 +3,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
-import { useBlockUserMutation, useGetBlockedUsersQuery, useGetChatAudiosQuery, useGetChatPhotosQuery, useGetCurrentUserQuery, useGetUserByUsernameQuery, useUnblockUserMutation, useUpdateContactDisplayNameMutation } from '@/app/api/messengerApi';
+import { useGetCurrentUserQuery } from '@/features/profile';
+import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
+import { useGetUserByUsernameQuery, useUpdateContactDisplayNameMutation, useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import UserProfileInfoPanel from './ui/UserProfileInfoPanel';
 import UserProfileHeader from './ui/UserProfileHeader';
@@ -13,7 +15,7 @@ import UserProfileConfirmations from './ui/UserProfileConfirmations';
 import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanelContent';
 import UserProfilePanelView from './ui/UserProfilePanelView';
 import { useProfilePanelTransition } from './useProfilePanelTransition';
-import { toProfileAudios, toProfilePhotos } from './ui/ProfileChatPanels';
+import { toProfileAudios, toProfilePhotos } from '@/entities/message';
 
 interface UserProfileComponentRTKProps {
   username: string;
