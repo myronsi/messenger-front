@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
-import { ensureAccessToken } from '@/shared/auth/session';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import { handleChatListWebSocketMessage } from './chatListWebSocketHandlers';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap, WebSocketMessage } from './types';
@@ -65,11 +64,14 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
 
       console.log('Connecting WebSocket for chat list');
       try {
-        const wsToken = await ensureAccessToken();
-        if (!isMounted || !wsToken) return;
-        wsRef.current = new WebSocket(getChatWebSocketUrl(0, wsToken));
+        const url = await getChatWebSocketUrl(0);
+        if (!isMounted) return;
+        wsRef.current = new WebSocket(url);
       } catch (e) {
         console.error('Failed to create WebSocket for chat list', e);
+        if (isMounted && token) {
+          reconnectTimeoutId = setTimeout(() => { if (isMounted) void connectWebSocket(); }, 5000);
+        }
         return;
       }
 
