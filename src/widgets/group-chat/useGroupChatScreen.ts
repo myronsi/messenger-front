@@ -84,6 +84,7 @@ export const useGroupChatScreen = ({ chatId, groupName, username, firstUnreadMes
     isLoadingOlderMessages: history.isLoadingOlderMessages,
     isLoadingInitialMessages: history.isLoadingInitialMessages,
     loadNewerMessages: history.loadNewerMessages,
+    loadLatestMessages: history.loadLatestMessages,
     hasMoreNewerMessages: history.hasMoreNewerMessages,
     isLoadingNewerMessages: history.isLoadingNewerMessages,
     markMessagesRead: history.markMessagesRead,

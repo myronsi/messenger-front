@@ -29,6 +29,7 @@ interface MessageListProps {
   setTempHighlightedMessageId: (id: number | null) => void;
   onLoadOlderMessages?: () => Promise<void>;
   onLoadNewerMessages?: () => Promise<void>;
+  onLoadLatestMessages?: () => Promise<void>;
   hasMoreMessages?: boolean;
   hasMoreNewerMessages?: boolean;
   isLoadingOlderMessages?: boolean;
@@ -42,6 +43,8 @@ interface MessageListProps {
   scrollToBottomKey?: string | number;
   onScrollStart?: () => void;
 }
+
+const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
 
 const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) => {
   const {
@@ -65,6 +68,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     setTempHighlightedMessageId,
     onLoadOlderMessages,
     onLoadNewerMessages,
+    onLoadLatestMessages,
     hasMoreMessages = false,
     hasMoreNewerMessages = false,
     isLoadingOlderMessages = false,
@@ -115,11 +119,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     firstUnreadMarkerRef,
     isPositioned,
     unseenCount,
+    showScrollToBottom,
     scrollToBottom,
   } = useMessageListScroll({
     messages, messageRefs, firstUnreadMessageId: visibleUnreadBoundaryId, highlightedMessageId, tempHighlightedMessageId,
     getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages,
-    isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages,
+    isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages, onLoadLatestMessages,
     onScrollStart, scrollToBottomKey, isOwnMessage,
   });
 
@@ -186,7 +191,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         </div>
       )}
-      <div ref={ref} className="px-[10px] pt-6 pb-32 md:w-2/3 md:mx-auto md:px-0 md:pb-36 space-y-4">
+      <div ref={ref} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-4 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
         {isLoadingOlderMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
@@ -253,7 +258,17 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         )}
       </div>
     </div>
-    <ScrollToBottomButton count={unseenCount} label={translations.moveDown || 'Move down'} onClick={scrollToBottom} />
+    <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-40 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
+      <div className="flex justify-end px-4 md:mx-auto md:w-2/3 md:px-0">
+        <ScrollToBottomButton
+          visible={showScrollToBottom}
+          count={unseenCount}
+          label={translations.moveDown || 'Move down'}
+          countLabel={(translations.moveDownNewMessages || 'Move down, {count} new messages').replace('{count}', String(unseenCount))}
+          onClick={scrollToBottom}
+        />
+      </div>
+    </div>
     </div>
   );
 });

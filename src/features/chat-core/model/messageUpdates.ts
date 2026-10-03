@@ -23,6 +23,7 @@ export const buildMessageFromSocketEvent = (
   is_own: context.currentUserId
     ? event.sender_id === context.currentUserId
     : String(event.sender_username || event.username || '').toLowerCase() === context.username.toLowerCase(),
+  is_live: true,
   sender: event.username,
   sender_username: event.sender_username || event.username,
   content: event.type === 'file' ? event.data : event.data.content,

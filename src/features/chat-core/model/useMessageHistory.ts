@@ -151,6 +151,38 @@ export const useMessageHistory = ({
     }
   }, [chatId, hasMoreNewerMessages, newestMessageId, onBackRef, setMessages, setModal, token, translationsRef]);
 
+  // Replaces the loaded window with the newest page; used when the newest messages were never loaded.
+  const loadLatestMessages = useCallback(async () => {
+    if (!token || chatId <= 0 || isLoadingNewerMessagesRef.current) return;
+    isLoadingNewerMessagesRef.current = true;
+    setIsLoadingNewerMessages(true);
+    try {
+      const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE) });
+      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
+      if (response.ok) {
+        const data: MessageHistoryResponse = await response.json();
+        const latestMessages = normalizeHistoryMessages(data.history);
+        setMessages((previous) => [...latestMessages, ...previous.filter((message) => message.id < 0)]);
+        setOldestMessageId(latestMessages[0]?.id || null);
+        setNewestMessageId(latestMessages[latestMessages.length - 1]?.id || null);
+        setHasMoreMessages(data.has_more_before ?? data.has_more);
+        setHasMoreNewerMessages(false);
+      } else if (response.status === 401) {
+        setModal({ type: 'error', message: translationsRef.current.loginRequired });
+        setTimeout(() => onBackRef.current(), 2000);
+      } else if (response.status === 403) {
+        onBackRef.current();
+      } else {
+        throw new Error(translationsRef.current.errorLoading);
+      }
+    } catch {
+      setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+    } finally {
+      isLoadingNewerMessagesRef.current = false;
+      setIsLoadingNewerMessages(false);
+    }
+  }, [chatId, onBackRef, setMessages, setModal, token, translationsRef]);
+
   const applyReadReceiptBatch = useCallback((
     messageIds: number[],
     readerUserId: number,
@@ -196,6 +228,7 @@ export const useMessageHistory = ({
     hasMoreNewerMessages,
     loadOlderMessages,
     loadNewerMessages,
+    loadLatestMessages,
     markMessagesRead,
     applyReadReceiptBatch,
   };
