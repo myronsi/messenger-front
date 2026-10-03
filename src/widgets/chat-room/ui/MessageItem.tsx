@@ -188,6 +188,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }}
         onContextMenu={(event) => onMessageClick(event, message)}
       >
+        <div className={`${message.is_deleting ? 'flex w-full' : 'message-cv flex'} ${isMine ? 'justify-end' : 'justify-start'}`}>
         <div className={`flex min-w-0 items-end space-x-2 max-w-[85%] md:max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
           {showAvatar && (
             <button type="button" className="mb-1 shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring" onClick={(event) => {
@@ -275,6 +276,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               )}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </React.Fragment>
