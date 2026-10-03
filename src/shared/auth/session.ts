@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const DEVICE_PART_KEYS = ['device_part', 'device_parts'];
+const RECOVERY_SESSION_KEYS = ['recovery_username', 'recovery_cloud_part', 'recovery_device_part', 'recovery_token'];
 
 type TokenListener = (token: string | null) => void;
 
@@ -47,6 +49,26 @@ export const clearAuthTokens = () => {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   notifyTokenListeners(null);
 };
+
+// The device recovery share must not outlive an explicit logout or account deletion.
+export const clearStoredRecoveryParts = () => {
+  DEVICE_PART_KEYS.forEach((key) => localStorage.removeItem(key));
+  RECOVERY_SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
+};
+
+export const endSession = () => {
+  clearStoredRecoveryParts();
+  clearAuthTokens();
+};
+
+// Another tab logging out or in changes the token; follow it so this tab does not keep the old user's data.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === ACCESS_TOKEN_KEY || event.key === null) {
+      notifyTokenListeners(event.key === null ? null : event.newValue);
+    }
+  });
+}
 
 export const subscribeToAccessToken = (listener: TokenListener) => {
   listeners.add(listener);
