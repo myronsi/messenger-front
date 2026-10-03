@@ -80,6 +80,10 @@ The WebSocket endpoint defaults to the same origin as `VITE_BASE_URL`, using `ws
 VITE_WS_URL=ws://localhost:8000
 ```
 
+### Install as a mobile app
+
+The frontend is an installable PWA (add to home screen) and can be packaged as a native Android/iOS app with Capacitor. See [docs/mobile.md](docs/mobile.md).
+
 ## Usage
 
 ### Change your app.js file
