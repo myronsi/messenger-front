@@ -77,4 +77,8 @@ export const supplemental = {
   pin: "Pin",
   unpin: "Unpin",
   zoom: "Zoom",
+  zoomIn: "Zoom in",
+  zoomOut: "Zoom out",
+  attachFile: "Attach file",
+  removeFile: "Remove file",
 };

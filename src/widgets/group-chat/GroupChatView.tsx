@@ -36,7 +36,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
     <div className="relative flex h-full flex-col overflow-hidden">
       <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex min-w-0 items-center space-x-4">
-          <button onClick={onBack} className="motion-press rounded-full p-2 transition-colors hover:bg-accent">
+          <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press rounded-full p-2 transition-colors hover:bg-accent">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <button

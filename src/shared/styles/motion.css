@@ -223,3 +223,28 @@
     background: hsl(var(--muted-foreground));
   }
 }
+
+/* Respect the user's reduced-motion preference: no animations, no movement on hover/press. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  .motion-list-item:hover,
+  .motion-message-bubble:hover,
+  .motion-avatar:hover,
+  .motion-press:active {
+    transform: none;
+  }
+
+  .motion-presence {
+    animation: none;
+  }
+}

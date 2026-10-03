@@ -267,6 +267,7 @@ const MessageComponentRTK: React.FC<MessageComponentRTKProps> = ({ chatId, curre
             variant="outline"
             size="sm"
             onClick={() => document.getElementById('file-upload')?.click()}
+            aria-label={translations.attachFile || 'Attach file'}
           >
             <Paperclip className="h-4 w-4" />
           </Button>
