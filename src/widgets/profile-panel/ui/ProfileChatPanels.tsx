@@ -15,6 +15,7 @@ export const normalizeProfileMediaUrl = (mediaUrl: string) => {
 export interface ProfilePhotoItem {
   id: number;
   url: string;
+  thumbnailUrl: string;
   name: string;
   timestamp: string;
 }
@@ -34,6 +35,7 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
       return {
         id: photo.id,
         url: url ? normalizeProfileMediaUrl(url) : '',
+        thumbnailUrl: photo.thumbnail_url ? normalizeProfileMediaUrl(photo.thumbnail_url) : (url ? normalizeProfileMediaUrl(url) : ''),
         name: photo.file_name || photo.name || fallbackName,
         timestamp: photo.timestamp,
       };
@@ -183,7 +185,7 @@ export const ProfilePhotosPanel: React.FC<{
                 }`}
                 title={photo.name}
               >
-                <img src={photo.url} alt={photo.name} loading="lazy" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
+                <img src={photo.thumbnailUrl} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
               </button>
             ))}
           </div>

@@ -1,8 +1,9 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
 import { MessageSquare, Menu, Search } from 'lucide-react';
 
 interface ChatsListHeaderProps {
-  translations: any;
+  translations: Translations;
   onOpenProfile: () => void;
   // parent wants the button bounding rect so it can animate from that point
   onOpenSearch: (rect: DOMRect) => void;

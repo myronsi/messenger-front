@@ -2,18 +2,10 @@ import React from 'react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import DeleteMessageChoiceModal from '@/shared/ui/DeleteMessageChoiceModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import type { ModalState } from '@/entities/message';
 
 interface ModalProps {
-  modal: {
-    type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
-    message?: string;
-    consequences?: string[];
-    onConfirm?: () => void;
-    isMessageSender?: boolean;
-    messageId?: number;
-    onDeleteForMe?: () => void | Promise<void>;
-    onDeleteForAll?: () => void;
-  } | null;
+  modal: ModalState | null;
   onClose: () => void;
 }
 

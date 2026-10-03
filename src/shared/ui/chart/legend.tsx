@@ -8,7 +8,8 @@ export const ChartLegend = RechartsPrimitive.Legend
 export const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    Pick<RechartsPrimitive.LegendProps, "verticalAlign"> & {
+      payload?: ReadonlyArray<RechartsPrimitive.LegendPayload>
       hideIcon?: boolean
       nameKey?: string
     }

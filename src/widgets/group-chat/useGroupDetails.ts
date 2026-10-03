@@ -7,8 +7,18 @@ import type { RawGroupDetails } from './groupChatTypes';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-interface Args { chatId: number; username: string; groupName: string; token: string; dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null; groupForm: { name: string; description: string }; setGroupDetails: React.Dispatch<React.SetStateAction<GroupDetails | null>>; setGroupForm: React.Dispatch<React.SetStateAction<{ name: string; description: string }>>; setCurrentUserId: React.Dispatch<React.SetStateAction<number>>; }
-export const useGroupDetails = ({ chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm, setCurrentUserId }: Args) => {
+interface Args {
+  chatId: number; username: string; groupName: string; token: string;
+  dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null;
+  groupForm: { name: string; description: string };
+  setGroupDetails: React.Dispatch<React.SetStateAction<GroupDetails | null>>;
+  setGroupForm: React.Dispatch<React.SetStateAction<{ name: string; description: string }>>;
+  setCurrentUserId: React.Dispatch<React.SetStateAction<number>>;
+}
+export const useGroupDetails = ({
+  chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
+  setCurrentUserId,
+}: Args) => {
   const normalizeGroupDetails = useCallback((raw: RawGroupDetails): GroupDetails => {
     const participants: GroupParticipant[] = (raw?.participants || []).map((participant) => {
       const role = (participant.role || (participant.is_owner ? 'owner' : participant.is_admin ? 'admin' : 'member')) as GroupRole;
@@ -38,8 +48,8 @@ export const useGroupDetails = ({ chatId, username, groupName, token, dispatch, 
       name: raw.name || groupName,
       description: raw.description || '',
       avatar_url: raw.avatar_url || DEFAULT_GROUP_AVATAR,
-      owner_id: raw.owner_id ?? raw.admin_id,
-      owner_username: raw.owner_username || raw.admin_username,
+      owner_id: raw.owner_id ?? raw.admin_id ?? 0,
+      owner_username: raw.owner_username || raw.admin_username || '',
       admin_id: raw.admin_id ?? raw.owner_id,
       admin_username: raw.admin_username || raw.owner_username,
       current_user_role: currentRole,

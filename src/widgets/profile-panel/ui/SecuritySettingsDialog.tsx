@@ -57,7 +57,14 @@ const sessionDurationOptions = [
 ];
 
 const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, onBack, onLoggedOut }) => {
-  const { translations, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions, isRevokingOthers, isChangingPassword, isSettingUp2fa, isConfirming2fa, isDisabling2fa, status, passwordForm, setPasswordForm, twoFactorSetup, twoFactorCode, setTwoFactorCode, recoveryCodes, disableForm, setDisableForm, isSessionDurationOpen, setIsSessionDurationOpen, handleChangePassword, handleStartTwoFactor, handleConfirmTwoFactor, handleDisableTwoFactor, handleRevokeSession, handleUpdateSessionDuration, handleRevokeOtherSessions } = useSecuritySettings(isActive, onLoggedOut);
+  const {
+    translations, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions, isRevokingOthers,
+    isChangingPassword, isSettingUp2fa, isConfirming2fa, isDisabling2fa, status, passwordForm,
+    setPasswordForm, twoFactorSetup, twoFactorCode, setTwoFactorCode, recoveryCodes, disableForm,
+    setDisableForm, isSessionDurationOpen, setIsSessionDurationOpen, handleChangePassword,
+    handleStartTwoFactor, handleConfirmTwoFactor, handleDisableTwoFactor, handleRevokeSession,
+    handleUpdateSessionDuration, handleRevokeOtherSessions,
+  } = useSecuritySettings(isActive, onLoggedOut);
 
   return (
     <div className="relative flex h-full flex-col bg-white">
@@ -136,7 +143,6 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
                 <SelectContent
                   className="z-[1300]"
                   onEscapeKeyDown={() => setIsSessionDurationOpen(false)}
-                  onFocusOutside={() => setIsSessionDurationOpen(false)}
                   onPointerDownOutside={() => setIsSessionDurationOpen(false)}
                 >
                   {sessionDurationOptions.map((option) => (

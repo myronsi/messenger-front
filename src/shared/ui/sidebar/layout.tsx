@@ -5,7 +5,7 @@ import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Separator } from "@/shared/ui/separator"
 import { Sheet, SheetContent } from "@/shared/ui/sheet"
-import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON, SIDEBAR_WIDTH_MOBILE } from "./constants"
+import { SIDEBAR_WIDTH_MOBILE } from "./constants"
 import { useSidebar } from "./context"
 export const Sidebar = React.forwardRef<
   HTMLDivElement,

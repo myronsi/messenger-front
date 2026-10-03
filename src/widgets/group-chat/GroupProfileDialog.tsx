@@ -12,7 +12,10 @@ const emptyParticipants: GroupParticipant[] = [];
 const emptyPendingInvites: GroupPendingInvite[] = [];
 
 const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
-  const { open, isClosing, onOpenChange, chatId, groupDetails, currentGroupName, currentGroupAvatar, groupForm, participantInput, currentUsername, onJumpToMessage, groupConfirm, onCloseGroupConfirm } = model;
+  const {
+    open, isClosing, onOpenChange, chatId, groupDetails, currentGroupName, currentGroupAvatar, groupForm,
+    participantInput, currentUsername, onJumpToMessage, groupConfirm, onCloseGroupConfirm,
+  } = model;
   const { translations } = useLanguage();
   const [activeView, setActiveView] = useState<GroupProfileView>('details');
   const [panelTransition, setPanelTransition] = useState<GroupProfileTransition | null>(null);
@@ -161,9 +164,20 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
       return <ProfileAudiosPanel audios={audios} isLoading={isLoadingAudios} error={audiosError} />;
     }
     if (view === 'participants') {
-      return <GroupParticipantsPanel model={model} canManage={canManage} canAssignRoles={canAssignRoles} canTransferOwnership={canTransferOwnership} isDmContactsCollapsed={isDmContactsCollapsed} setIsDmContactsCollapsed={setIsDmContactsCollapsed} dmContactSuggestions={dmContactSuggestions} sortedParticipants={sortedParticipants} pendingInvites={pendingInvites} />;
+      return (
+        <GroupParticipantsPanel
+          model={model} canManage={canManage} canAssignRoles={canAssignRoles} canTransferOwnership={canTransferOwnership}
+          isDmContactsCollapsed={isDmContactsCollapsed} setIsDmContactsCollapsed={setIsDmContactsCollapsed}
+          dmContactSuggestions={dmContactSuggestions} sortedParticipants={sortedParticipants} pendingInvites={pendingInvites}
+        />
+      );
     }
-    return <GroupProfileDetailsPanel model={model} canEdit={canEdit} canDeleteGroup={canDeleteGroup} hasGroupChanges={hasGroupChanges} currentRole={currentRole} participants={participants} pendingInvites={pendingInvites} />;
+    return (
+      <GroupProfileDetailsPanel
+        model={model} canEdit={canEdit} canDeleteGroup={canDeleteGroup} hasGroupChanges={hasGroupChanges}
+        currentRole={currentRole} participants={participants} pendingInvites={pendingInvites}
+      />
+    );
   };
 
   return <GroupProfileDialogShell

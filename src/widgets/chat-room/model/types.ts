@@ -1,18 +1,9 @@
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { Message } from '@/entities/message';
+import { ModalState } from '@/entities/message';
 
 export type ChatTranslations = ReturnType<typeof useLanguage>['translations'];
 
-export interface ChatModal {
-  type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
-  message?: string;
-  consequences?: string[];
-  onConfirm?: () => void;
-  isMessageSender?: boolean;
-  messageId?: number;
-  onDeleteForMe?: () => void | Promise<void>;
-  onDeleteForAll?: () => void;
-}
+export type ChatModal = ModalState;
 
 export interface ChatContextMenu {
   x: number;

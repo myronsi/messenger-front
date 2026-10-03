@@ -156,7 +156,7 @@ const PasswordResetComponent: React.FC<PasswordResetComponentProps> = ({ onBackT
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleResetPassword()}
                 className={`pr-10 ${passwordsMatch ? 'ring-2 ring-green-500' : passwordsMismatch ? 'ring-2 ring-destructive' : ''}`}
-                aria-invalid={passwordsMismatch}
+                aria-invalid={!!passwordsMismatch}
               />
               <button
                 type="button"

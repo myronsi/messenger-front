@@ -33,7 +33,10 @@ export const messageApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Message', 'Chat'],
     }),
 
-    getMessageHistory: builder.query<MessageHistoryResponse, { chatId: number; limit?: number; beforeId?: number | null; afterId?: number | null; aroundId?: number | null }>({
+    getMessageHistory: builder.query<MessageHistoryResponse, {
+      chatId: number; limit?: number; beforeId?: number | null; afterId?: number | null;
+      aroundId?: number | null;
+    }>({
       query: ({ chatId, limit = 50, beforeId, afterId, aroundId }) => {
         const params = new URLSearchParams({ limit: String(limit) });
         if (beforeId) params.set('before_id', String(beforeId));

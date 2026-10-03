@@ -11,6 +11,9 @@ export interface FileMessageContent {
   file_size: number;
   caption?: string;
   audio_metadata?: AudioMetadata;
+  image_width?: number;
+  image_height?: number;
+  thumbnail_url?: string;
 }
 
 export interface ForwardedFrom {
@@ -56,6 +59,7 @@ export interface Message {
   upload_progress?: number;
   sender_id?: number;
   is_own?: boolean;
+  is_live?: boolean;
   sender: string;
   sender_username?: string | null;
   content: string | FileMessageContent;
@@ -80,6 +84,9 @@ export interface ChatPhoto {
   name?: string;
   file_type?: string;
   file_size?: number;
+  image_width?: number;
+  image_height?: number;
+  thumbnail_url?: string;
   timestamp: string;
 }
 
@@ -152,7 +159,12 @@ export interface ContextMenuState {
 }
 
 export interface ModalState {
-  type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser';
-  message: string;
+  type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
+  message?: string;
+  consequences?: string[];
   onConfirm?: () => void;
+  isMessageSender?: boolean;
+  messageId?: number;
+  onDeleteForMe?: () => void | Promise<void>;
+  onDeleteForAll?: () => void;
 }

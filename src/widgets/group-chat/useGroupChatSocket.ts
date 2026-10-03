@@ -1,6 +1,7 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { useChatSocket, useMessageEvents, type ChatTransport, type SocketEvent } from '@/features/chat-core';
+import { useChatSocket, useMessageEvents, type ChatTransport, type ServerEvent } from '@/features/chat-core';
 import type { Message, ModalState } from '@/entities/message';
 import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
 
@@ -11,7 +12,7 @@ interface UseGroupChatSocketArgs {
   translations: GroupTranslations;
   transport: ChatTransport;
   currentUserIdRef: MutableRefObject<number>;
-  translationsRef: MutableRefObject<Record<string, any>>;
+  translationsRef: MutableRefObject<Translations>;
   onBackRef: MutableRefObject<() => void>;
   applyGroupDetails: (raw: RawGroupDetails, syncCache?: boolean) => void;
   refreshGroupDetails: () => Promise<void>;
@@ -26,7 +27,7 @@ export const useGroupChatSocket = ({
   token, chatId, username, translations, transport, currentUserIdRef, translationsRef, onBackRef,
   applyGroupDetails, refreshGroupDetails, setMessages, setModal, markMessageFailed, markLatestPendingMessageFailed,
 }: UseGroupChatSocketArgs) => {
-  const handleGroupEvent = useCallback((event: SocketEvent, socket: WebSocket) => {
+  const handleGroupEvent = useCallback((event: ServerEvent, socket: WebSocket) => {
     if (event.type === 'group_updated' && event.group?.chat_id === chatId) {
       if (event.group.participants) applyGroupDetails(event.group as RawGroupDetails);
       else void refreshGroupDetails();

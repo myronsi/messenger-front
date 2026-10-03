@@ -1,3 +1,4 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { MutableRefObject } from 'react';
 import type { FileMessageContent, Message } from '@/entities/message';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
@@ -15,8 +16,8 @@ interface MessageSenderOptions {
   username: string;
   currentUserId: number;
   currentUserIdRef: MutableRefObject<number>;
-  translations: Record<string, any>;
-  translationsRef: MutableRefObject<Record<string, any>>;
+  translations: Translations;
+  translationsRef: MutableRefObject<Translations>;
   transport: ChatTransport;
   setMessages: SetMessages;
   setModal: ShowError;

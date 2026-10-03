@@ -1,6 +1,7 @@
 import type * as React from 'react';
 
-export type GroupRole = 'owner' | 'admin' | 'moderator' | 'member';
+import type { GroupRole } from '@/entities/chat';
+export type { GroupRole };
 
 export interface GroupParticipant {
   id: number;
@@ -70,7 +71,7 @@ export interface GroupProfileDialogProps {
   setParticipantInput: (value: string) => void;
   isSavingGroup: boolean;
   currentUsername: string;
-  groupAvatarInputRef: React.RefObject<HTMLInputElement>;
+  groupAvatarInputRef: React.RefObject<HTMLInputElement | null>;
   getAvatarSrc: (avatarUrl?: string | null) => string;
   onAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSaveGroup: () => void;

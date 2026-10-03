@@ -1,7 +1,6 @@
 import React from 'react';
-import { AtSign, CalendarDays, Camera, ChevronDown, Globe, Image, Loader2, LogOut, Shield, Smartphone, Trash, Users } from 'lucide-react';
+import { AtSign, CalendarDays, Camera, ChevronDown, Globe, Image, Loader2, LogOut, Shield, Trash, Users } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { formatDate } from '@/shared/utils/dateFormatters';
 import type { User } from '@/entities/user';
 import type { ProfileSettingsRow } from './ProfileSettingsRows';
@@ -25,7 +24,13 @@ interface ProfileHomePageProps {
 
 const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
   const { translations } = useLanguage();
-  const { username, userData, avatarUrl, hasCustomAvatar, displayName, bio, language, setLanguage, setIsAvatarViewerOpen, setIsGroupModalOpen, setAvatarFile, setAvatarCropUrl, settingsRows, futureSettingsRows, blockUsername, setBlockUsername, handleBlockUser, isBlockingUser, isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed, blockDmContactSuggestions, getAvatarUrl, blockedUsers, handleUnblockUser, isUnblockingUser, handleLogout, isLoggingOut, handleDeleteAccount, isDeletingAccount } = props;
+  const {
+    userData, avatarUrl, hasCustomAvatar, displayName, bio, language, setLanguage, setIsAvatarViewerOpen,
+    setIsGroupModalOpen, setAvatarFile, setAvatarCropUrl, settingsRows, futureSettingsRows, blockUsername,
+    setBlockUsername, handleBlockUser, isBlockingUser, isBlockDmContactsCollapsed,
+    setIsBlockDmContactsCollapsed, blockDmContactSuggestions, getAvatarUrl, blockedUsers, handleUnblockUser,
+    isUnblockingUser, handleLogout, isLoggingOut, handleDeleteAccount, isDeletingAccount,
+  } = props;
   return (
     <>
           <div className="px-6 pb-5 pt-7 text-center">

@@ -29,6 +29,7 @@ interface MessageListProps {
   setTempHighlightedMessageId: (id: number | null) => void;
   onLoadOlderMessages?: () => Promise<void>;
   onLoadNewerMessages?: () => Promise<void>;
+  onLoadLatestMessages?: () => Promise<void>;
   hasMoreMessages?: boolean;
   hasMoreNewerMessages?: boolean;
   isLoadingOlderMessages?: boolean;
@@ -42,6 +43,8 @@ interface MessageListProps {
   scrollToBottomKey?: string | number;
   onScrollStart?: () => void;
 }
+
+const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
 
 const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) => {
   const {
@@ -60,11 +63,11 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     messageRefs,
     onReplyClick,
     wsRef,
-    onOpenReactionMenu,
     tempHighlightedMessageId,
     setTempHighlightedMessageId,
     onLoadOlderMessages,
     onLoadNewerMessages,
+    onLoadLatestMessages,
     hasMoreMessages = false,
     hasMoreNewerMessages = false,
     isLoadingOlderMessages = false,
@@ -112,16 +115,24 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     currentDate,
     isScrolling,
     chatContainerRef,
+    contentRef,
     firstUnreadMarkerRef,
     isPositioned,
     unseenCount,
+    showScrollToBottom,
     scrollToBottom,
   } = useMessageListScroll({
     messages, messageRefs, firstUnreadMessageId: visibleUnreadBoundaryId, highlightedMessageId, tempHighlightedMessageId,
     getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages,
-    isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages,
+    isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages, onLoadLatestMessages,
     onScrollStart, scrollToBottomKey, isOwnMessage,
   });
+
+  const setContentRef = useCallback((node: HTMLDivElement | null) => {
+    contentRef.current = node;
+    if (typeof ref === 'function') ref(node);
+    else if (ref) ref.current = node;
+  }, [ref, contentRef]);
 
   const observerRef = useMessageReadReceipts({
     messages, username, userId, messageRefs, chatContainerRef, isOwnMessage,
@@ -129,7 +140,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   });
 
   const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
-  const [audioStates, setAudioStates] = useState<{ [key: number]: { currentTime: number; duration: number } }>({});
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -187,7 +197,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         </div>
       )}
-      <div ref={ref} className="px-[10px] pt-6 pb-32 md:w-2/3 md:mx-auto md:px-0 md:pb-36 space-y-4">
+      <div ref={setContentRef} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-4 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
         {isLoadingOlderMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
@@ -231,10 +241,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               isOwnMessage={isOwnMessage}
               getFileTypeConfig={stableGetFileTypeConfig}
               renderMessageContent={stableRenderMessageContent}
-              playingMessageId={playingMessageId}
+              isAudioPlaying={playingMessageId === message.id}
               setPlayingMessageId={setPlayingMessageId}
-              audioState={audioStates[message.id]}
-              setAudioStates={setAudioStates}
               onMessageClick={stableOnMessageClick}
               onClick={handleMessageClick}
               onAvatarClick={stableOnAvatarClick}
@@ -256,7 +264,17 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         )}
       </div>
     </div>
-    <ScrollToBottomButton count={unseenCount} label={translations.moveDown || 'Move down'} onClick={scrollToBottom} />
+    <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-40 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
+      <div className="flex justify-end px-4 md:mx-auto md:w-2/3 md:px-0">
+        <ScrollToBottomButton
+          visible={showScrollToBottom}
+          count={unseenCount}
+          label={translations.moveDown || 'Move down'}
+          countLabel={(translations.moveDownNewMessages || 'Move down, {count} new messages').replace('{count}', String(unseenCount))}
+          onClick={scrollToBottom}
+        />
+      </div>
+    </div>
     </div>
   );
 });

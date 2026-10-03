@@ -2,15 +2,21 @@ import React from 'react';
 import { Camera, Check, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
-import type { GroupProfileDialogProps, GroupDetails, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
+import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel } from './groupProfileHelpers';
 
-interface Props { model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean; currentRole: GroupRole; participants: GroupParticipant[]; pendingInvites: GroupPendingInvite[]; }
+interface Props {
+  model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
+  currentRole: GroupRole; participants: GroupParticipant[]; pendingInvites: GroupPendingInvite[];
+}
 
 const GroupProfileDetailsPanel: React.FC<Props> = ({ model, canEdit, canDeleteGroup, hasGroupChanges, currentRole, participants, pendingInvites }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
-  const { currentGroupAvatar, currentGroupName, groupAvatarInputRef, onAvatarUpload, groupForm, setGroupForm, isSavingGroup, onSaveGroup, groupDetails, onLeaveGroup, onDeleteGroup } = model;
+  const {
+    currentGroupAvatar, currentGroupName, groupAvatarInputRef, onAvatarUpload, groupForm, setGroupForm,
+    isSavingGroup, onSaveGroup, groupDetails, onLeaveGroup, onDeleteGroup,
+  } = model;
   return (
     <div className="min-h-full space-y-3 px-5 py-4 md:py-3">
       <section className="rounded-lg border border-gray-200 bg-white p-3">

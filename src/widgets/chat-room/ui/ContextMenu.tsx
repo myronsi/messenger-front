@@ -21,7 +21,7 @@ interface ContextMenuProps {
   onClose: () => void;
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean } | null;
   setReactionMenu: (value: { message: Message; x: number; y: number; isClosing?: boolean } | null) => void;
-  messageInputRef: React.RefObject<HTMLInputElement>;
+  messageInputRef: React.RefObject<HTMLInputElement | null>;
   canDeleteMessage?: (message: Message) => boolean;
   onForward?: (message: Message) => void;
 }
@@ -30,9 +30,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({
     contextMenu,
     messages,
-    token,
     chatId,
-    userId,
     setContextMenu,
     setEditingMessage,
     setMessageInput,

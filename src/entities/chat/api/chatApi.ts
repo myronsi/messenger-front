@@ -1,5 +1,5 @@
 import { messengerApi } from '@/shared/api/baseApi';
-import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse } from '@/entities/chat';
+import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '@/entities/chat';
 
 export const chatApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -13,7 +13,7 @@ export const chatApi = messengerApi.injectEndpoints({
       providesTags: ['Chat'],
     }),
 
-    getGroupDetails: builder.query<any, number>({
+    getGroupDetails: builder.query<RawGroupDetails, number>({
       query: (chatId) => `/groups/${chatId}`,
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-details-${chatId}` }],
