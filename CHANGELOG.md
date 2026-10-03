@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/myronsi/messenger-front/compare/v0.4.7...v0.5.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* accessibility - native context menu, reduced motion, aria-labels ([#90](https://github.com/myronsi/messenger-front/issues/90)) ([7f4c775](https://github.com/myronsi/messenger-front/commit/7f4c775c881b85ccbca2a7c95c605df9f2265ac0))
+* remove console logging of message payloads ([#89](https://github.com/myronsi/messenger-front/issues/89)) ([4ab2da5](https://github.com/myronsi/messenger-front/commit/4ab2da56095eaf13802cb030486f2e152d987f34))
+* restore original favicon and app icons ([#98](https://github.com/myronsi/messenger-front/issues/98)) ([5091c97](https://github.com/myronsi/messenger-front/commit/5091c976269a135e5ae47faa0b5b31e4b81127d5))
+
+
+### Miscellaneous Chores
+
+* release 0.5.0 ([#99](https://github.com/myronsi/messenger-front/issues/99)) ([5986626](https://github.com/myronsi/messenger-front/commit/5986626face84e2952216d7a778de229fc3919f0))
+
 ## [0.4.7](https://github.com/myronsi/messenger-front/compare/v0.4.6...v0.4.7) (2026-10-03)
 
 
