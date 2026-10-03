@@ -1,3 +1,4 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { MutableRefObject, memo } from 'react';
 import { Message, ReactionInfo } from '@/entities/message';
 import { isValidTimestamp } from '../model/messageListScrollUtils';
@@ -73,7 +74,7 @@ interface MessageItemProps {
   isMobile: boolean;
   showNewMessagesMarker: boolean;
   nextShowsNewMessagesMarker: boolean;
-  translations: Record<string, any>;
+  translations: Translations;
   interlocutorDeleted: boolean;
   isHighlighted: boolean;
   isContextHighlighted: boolean;
@@ -237,7 +238,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         if (isGroup) onOpenReadStatus?.(message);
                       }}>
                         {isUploadingMessage ? <UploadClockStatus progress={message.upload_progress} /> : (
-                          <>{message.read_by?.some((reader) => reader.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}{isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}</>
+                          <>
+{message.read_by?.some((reader) => reader.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
+{isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+</>
                         )}
                       </button>
                     )}
@@ -258,7 +262,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
                       if (isGroup) onOpenReadStatus?.(message);
                     }}>
                       {isUploadingMessage ? <UploadClockStatus progress={message.upload_progress} /> : (
-                        <>{message.read_by?.some((reader) => reader.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}{isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}</>
+                        <>
+{message.read_by?.some((reader) => reader.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
+{isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
+</>
                       )}
                     </button>
                   )}

@@ -115,7 +115,10 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       isSeekingFirstUnreadRef.current = true;
       onLoadOlderMessages().finally(() => { isSeekingFirstUnreadRef.current = false; });
     }
-  }, [hasMoreMessages, isLoadingInitialMessages, isLoadingOlderMessages, messageRefs, messages, onLoadOlderMessages, scrollFirstUnreadIntoView, visibleFirstUnreadId]);
+  }, [
+    hasMoreMessages, isLoadingInitialMessages, isLoadingOlderMessages, messageRefs, messages,
+    onLoadOlderMessages, scrollFirstUnreadIntoView, visibleFirstUnreadId,
+  ]);
 
   // One listener for the lifetime of the list; the work is throttled to a frame and reads the latest props from a ref.
   useEffect(() => {

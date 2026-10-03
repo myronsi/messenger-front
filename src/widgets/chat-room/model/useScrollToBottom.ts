@@ -3,7 +3,7 @@ import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 
 interface ScrollToBottomOptions {
-  chatContainerRef: RefObject<HTMLDivElement>;
+  chatContainerRef: RefObject<HTMLDivElement | null>;
   messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
   messages: Message[];
   isPositioned: boolean;

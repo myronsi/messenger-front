@@ -81,7 +81,10 @@ export const useMessengerController = () => {
         // navigate may throw in some test environments; ignore
       }
     }
-    setCurrentChat({ id: chatId, name: chatName, displayName: chatDisplayName, isOnline, lastSeen, avatarUrl, interlocutorDeleted, type, firstUnreadMessageId, pendingApprovalRequest, pendingApprovalMessage });
+    setCurrentChat({
+      id: chatId, name: chatName, displayName: chatDisplayName, isOnline, lastSeen, avatarUrl,
+      interlocutorDeleted, type, firstUnreadMessageId, pendingApprovalRequest, pendingApprovalMessage,
+    });
     showMobileChatPanel();
   };
 
@@ -210,7 +213,10 @@ export const useMessengerController = () => {
     });
   };
 
-  useMessengerRouteSync({ currentChat, isUserProfileOpen, location, navigate, username, setCurrentChat, setIsUserProfileOpen, setProfileUsername, closeUserProfile });
+  useMessengerRouteSync({
+    currentChat, isUserProfileOpen, location, navigate, username, setCurrentChat, setIsUserProfileOpen,
+    setProfileUsername, closeUserProfile,
+  });
 
   const handleChatDeleted = (chatId: number) => {
     if (currentChat && currentChat.id === chatId) {

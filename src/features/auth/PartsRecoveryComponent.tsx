@@ -20,7 +20,7 @@ interface PartsRecoveryComponentProps {
   onBackToLogin: () => void;
 }
 
-const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = ({ onBackToLogin }) => {
+const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = () => {
   const [username, setUsername] = useState('');
   const [part1, setPart1] = useState('');
   const [isLoading, setIsLoading] = useState(false);

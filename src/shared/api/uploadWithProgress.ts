@@ -1,3 +1,4 @@
+import { asApiError } from '@/shared/lib/apiError';
 import { ensureAccessToken, refreshAccessToken } from '@/shared/auth/session';
 
 interface UploadWithProgressOptions {
@@ -52,8 +53,9 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
 
   try {
     return await sendUploadRequest<T>(options, token);
-  } catch (error: any) {
-    if (error?.status !== 401) throw error;
+  } catch (caught) {
+    const error = asApiError(caught);
+    if (error?.status !== 401) throw caught;
   }
 
   const refreshedToken = await refreshAccessToken();

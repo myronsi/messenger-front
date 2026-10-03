@@ -1,9 +1,7 @@
-import type { Message, ReactionInfo } from '@/entities/message';
+import type { FileMessageContent, Message, ReactionInfo } from '@/entities/message';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { unescapeCurlyBraces } from './messageText';
-
-// Raw WebSocket payloads are loosely typed on purpose: the backend sends several event shapes.
-export type SocketEvent = Record<string, any>;
+import type { NewMessageEvent } from './socketEvents';
 
 export interface ReaderInfo {
   username?: string;
@@ -14,7 +12,7 @@ export interface ReaderInfo {
 const isSameSender = (a: Message, b: Message) => (!!a.sender_id && a.sender_id === b.sender_id) || a.sender === b.sender;
 
 export const buildMessageFromSocketEvent = (
-  event: SocketEvent,
+  event: NewMessageEvent,
   context: { currentUserId: number; username: string }
 ): Message => ({
   id: event.data.message_id,
@@ -26,7 +24,7 @@ export const buildMessageFromSocketEvent = (
   is_live: true,
   sender: event.username,
   sender_username: event.sender_username || event.username,
-  content: event.type === 'file' ? event.data : event.data.content,
+  content: event.type === 'file' ? event.data as FileMessageContent : (event.data.content ?? ''),
   timestamp: event.timestamp,
   avatar_url: resolveMediaUrl(event.avatar_url),
   reply_to: event.data.reply_to || null,

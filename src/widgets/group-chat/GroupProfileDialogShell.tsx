@@ -8,9 +8,31 @@ import type { GroupProfileConfirmState, GroupParticipant } from './GroupProfileT
 
 type GroupProfileView = 'details' | 'participants' | 'search' | 'photos' | 'audios';
 type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };
-interface Props { open: boolean; isClosing: boolean; onOpenChange: (open: boolean) => void; currentGroupName: string; currentGroupAvatar: string; participants: GroupParticipant[]; actionColumns: number; canShowPhotosAction: boolean; canShowAudiosAction: boolean; activeView: GroupProfileView; panelTransition: GroupProfileTransition | null; onSelectView: (view: GroupProfileView) => void; renderPanelContent: (view: GroupProfileView, options?: { autoFocusSearch?: boolean }) => React.ReactNode; groupConfirm: GroupProfileConfirmState | null; onCloseGroupConfirm: () => void; isAvatarViewerOpen: boolean; setIsAvatarViewerOpen: React.Dispatch<React.SetStateAction<boolean>>; }
+interface Props {
+  open: boolean;
+  isClosing: boolean;
+  onOpenChange: (open: boolean) => void;
+  currentGroupName: string;
+  currentGroupAvatar: string;
+  participants: GroupParticipant[];
+  actionColumns: number;
+  canShowPhotosAction: boolean;
+  canShowAudiosAction: boolean;
+  activeView: GroupProfileView;
+  panelTransition: GroupProfileTransition | null;
+  onSelectView: (view: GroupProfileView) => void;
+  renderPanelContent: (view: GroupProfileView, options?: { autoFocusSearch?: boolean }) => React.ReactNode;
+  groupConfirm: GroupProfileConfirmState | null;
+  onCloseGroupConfirm: () => void;
+  isAvatarViewerOpen: boolean;
+  setIsAvatarViewerOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
 
-const GroupProfileDialogShell: React.FC<Props> = ({ open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, actionColumns, canShowPhotosAction, canShowAudiosAction, activeView, panelTransition, onSelectView, renderPanelContent, groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen }) => {
+const GroupProfileDialogShell: React.FC<Props> = ({
+  open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, actionColumns,
+  canShowPhotosAction, canShowAudiosAction, activeView, panelTransition, onSelectView, renderPanelContent,
+  groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen,
+}) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const requestClose = () => onOpenChange(false);

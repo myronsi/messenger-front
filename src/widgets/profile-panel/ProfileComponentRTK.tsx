@@ -3,7 +3,7 @@ import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
 import PersonalInfoPage from './ui/PersonalInfoPage';
-import { Bell, Inbox, Loader2, Shield, Smartphone, UserRound, Users, X } from 'lucide-react';
+import { Bell, Inbox, Loader2, Shield, Smartphone, UserRound, X } from 'lucide-react';
 import ProfileHomePage from './ui/ProfileHomePage';
 import ProfilePanelDialogs from './ui/ProfilePanelDialogs';
 import { useLanguage } from '@/shared/contexts/LanguageContext';

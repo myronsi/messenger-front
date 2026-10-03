@@ -1,3 +1,4 @@
+import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Send } from 'lucide-react';
 import { Message } from '@/entities/message';
@@ -111,7 +112,8 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
       setStatusMessage(translations.messageForwarded || 'Message forwarded');
       onForwarded?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setStatusMessage(error?.data?.detail || translations.failedToForwardMessage || 'Failed to forward message');
     }
   };

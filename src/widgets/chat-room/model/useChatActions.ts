@@ -1,12 +1,14 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
+import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface DeleteChatActionOptions {
   chatId: number;
-  translations: Record<string, any>;
+  translations: Translations;
   onBack: () => void;
-  setModal: (modal: any) => void;
+  setModal: (modal: ModalState | null) => void;
 }
 
 // One-to-one specific: group chats are deleted through the group management hook instead.

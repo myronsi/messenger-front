@@ -63,7 +63,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     messageRefs,
     onReplyClick,
     wsRef,
-    onOpenReactionMenu,
     tempHighlightedMessageId,
     setTempHighlightedMessageId,
     onLoadOlderMessages,

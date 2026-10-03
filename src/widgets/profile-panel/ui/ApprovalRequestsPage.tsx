@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Inbox, MessageSquare, UserRound, X } from 'lucide-react';
+import { Check, Inbox, MessageSquare, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { ApprovalRequestInboxResponse, ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';

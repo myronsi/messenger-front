@@ -1,3 +1,5 @@
+import { asApiError } from '@/shared/lib/apiError';
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
@@ -17,7 +19,7 @@ interface UseChatListActionsParams {
   setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>>;
   setChatContextMenu: Dispatch<SetStateAction<ChatContextMenuState | null>>;
   setModal: (modal: ChatListModal | null) => void;
-  translations: any;
+  translations: Translations;
 }
 
 // Chat list user actions: creating chats, opening a chat, the row context
@@ -53,7 +55,8 @@ export function useChatListActions(params: UseChatListActionsParams) {
 
       // The refetch will be triggered by WebSocket, but you can also manually refetch
       refetch();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setModal({
         type: 'error',
         message: error?.data?.detail || error?.message || 'Failed to create chat',
@@ -68,7 +71,8 @@ export function useChatListActions(params: UseChatListActionsParams) {
       setTargetUser('');
       setModal({ type: 'success', message: translations.chatCreated || 'Chat created successfully' });
       refetch();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setModal({ type: 'error', message: error?.data?.detail || error?.message || 'Failed to create chat' });
     }
   };
@@ -121,7 +125,8 @@ export function useChatListActions(params: UseChatListActionsParams) {
     try {
       await setChatPinned({ chatId, pinned: nextPinned }).unwrap();
       refetch();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setChatOverrides((prev) => ({
         ...prev,
         [chatId]: {
@@ -156,7 +161,8 @@ export function useChatListActions(params: UseChatListActionsParams) {
       // A successful mark-all means everything known is read; don't let a stale
       // server summary resurrect the badge.
       await markChatRead({ chatId, markAll: true }).unwrap();
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setChatOverrides((prev) => ({
         ...prev,
         [chatId]: {

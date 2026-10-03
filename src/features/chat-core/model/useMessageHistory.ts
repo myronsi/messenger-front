@@ -1,6 +1,9 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
+import { asApiError } from '@/shared/lib/apiError';
+import type { ShowError } from './types';
 import { useGetMessageHistoryQuery, useMarkChatReadMutation } from '@/app/api/messengerApi';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -17,8 +20,8 @@ interface MessageHistoryOptions {
   setMessages: Dispatch<SetStateAction<Message[]>>;
   currentUserIdRef: MutableRefObject<number>;
   onBackRef: MutableRefObject<() => void>;
-  translationsRef: MutableRefObject<Record<string, any>>;
-  setModal: (modal: any) => void;
+  translationsRef: MutableRefObject<Translations>;
+  setModal: ShowError;
 }
 
 export const useMessageHistory = ({
@@ -93,7 +96,7 @@ export const useMessageHistory = ({
 
   useEffect(() => {
     if (!latestHistoryError) return;
-    const status = (latestHistoryError as any)?.status;
+    const status = asApiError(latestHistoryError).status;
     if (status === 401) {
       setModal({ type: 'error', message: translationsRef.current.loginRequired });
       setTimeout(() => onBackRef.current(), 2000);

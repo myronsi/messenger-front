@@ -7,8 +7,9 @@ export const ChartTooltip = RechartsPrimitive.Tooltip
 
 export const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
+  Partial<RechartsPrimitive.TooltipContentProps<number | string, number | string>> &
+    Omit<React.ComponentProps<"div">, "color"> & {
+      color?: string
       hideLabel?: boolean
       hideIndicator?: boolean
       indicator?: "line" | "dot" | "dashed"

@@ -1,6 +1,9 @@
 import type * as React from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
-import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupProfileConfirmState, GroupRole } from './GroupProfileTypes';
+import type { GroupRole } from '@/entities/chat';
+import type { GroupDetails, GroupParticipant, GroupProfileConfirmState } from './GroupProfileTypes';
+
+export type { RawGroupDetails, RawGroupParticipant, RawGroupPendingInvite } from '@/entities/chat';
 
 export interface GroupComponentProps {
   chatId: number;
@@ -13,9 +16,6 @@ export interface GroupComponentProps {
 }
 
 export type GroupTranslations = Record<string, string> & { leaveGroupConsequences?: string[]; deleteGroupConsequences?: string[] };
-export interface RawGroupParticipant { id: number; username: string; display_name?: string; avatar_url?: string; role?: GroupRole; is_owner?: boolean; is_admin?: boolean; }
-export interface RawGroupPendingInvite { request_id: number; id: number; username: string; display_name?: string; avatar_url?: string; }
-export interface RawGroupDetails { chat_id: number; name?: string; description?: string; avatar_url?: string; owner_id?: number; owner_username?: string; admin_id?: number; admin_username?: string; current_user_role?: GroupRole; participants?: RawGroupParticipant[]; pending_invites?: RawGroupPendingInvite[]; }
 
 type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
 type ContextMenuState = { x: number; y: number; messageId: number; isMine: boolean; isClosing?: boolean } | null;
