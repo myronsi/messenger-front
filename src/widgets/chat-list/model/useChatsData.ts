@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import {
   useGetApprovalRequestInboxQuery,
@@ -21,6 +22,8 @@ import type { ChatOverrideMap, PresenceMap } from './types';
 export function useChatsData(username: string) {
   const {
     data: oneOnOneChatsData,
+    startedTimeStamp: oneOnOneStartedAt,
+    fulfilledTimeStamp: oneOnOneFulfilledAt,
     error: oneOnOneError,
     isLoading: isLoadingOneOnOne,
     refetch: refetchOneOnOne,
@@ -28,6 +31,8 @@ export function useChatsData(username: string) {
 
   const {
     data: groupChatsData,
+    startedTimeStamp: groupStartedAt,
+    fulfilledTimeStamp: groupFulfilledAt,
     error: groupError,
     isLoading: isLoadingGroups,
     refetch: refetchGroups,
@@ -51,14 +56,59 @@ export function useChatsData(username: string) {
   }, [refetchOneOnOne, refetchGroups]);
 
   const [presenceByUsername, setPresenceByUsername] = useState<PresenceMap>({});
-  const [chatOverrides, setChatOverrides] = useState<ChatOverrideMap>({});
+  const [chatOverrides, setRawChatOverrides] = useState<ChatOverrideMap>({});
+
+  // Stamps every override that changed so stale ones can be told apart from live ones.
+  const setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>> = useCallback((action) => {
+    setRawChatOverrides((prev) => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      if (next === prev) return prev;
+      const now = Date.now();
+      const stamped: ChatOverrideMap = {};
+      Object.keys(next).forEach((key) => {
+        const id = Number(key);
+        stamped[id] = next[id] === prev[id] ? next[id] : { ...next[id], updated_at: now };
+      });
+      return stamped;
+    });
+  }, []);
+
+  // Server data is authoritative: once a fetch lands, drop overrides written before that
+  // request started (it already reflects them). Newer ones are live events and are kept.
+  const dropOverridesOlderThan = useCallback((chatIds: number[], startedAt: number | undefined) => {
+    if (!startedAt || chatIds.length === 0) return;
+    const ids = new Set(chatIds);
+    setRawChatOverrides((prev) => {
+      let changed = false;
+      const next: ChatOverrideMap = {};
+      Object.keys(prev).forEach((key) => {
+        const id = Number(key);
+        if (ids.has(id) && (prev[id].updated_at ?? 0) < startedAt) {
+          changed = true;
+        } else {
+          next[id] = prev[id];
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    dropOverridesOlderThan((oneOnOneChatsData?.chats || []).map((chat) => chat.id), oneOnOneStartedAt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oneOnOneFulfilledAt, dropOverridesOlderThan]);
+
+  useEffect(() => {
+    dropOverridesOlderThan((groupChatsData?.groups || []).map((group) => group.chat_id), groupStartedAt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupFulfilledAt, dropOverridesOlderThan]);
 
   // Transform the API data to match the Chat interface with proper avatar URLs
   const chats: Chat[] = React.useMemo(() => {
-    const withOverrides = (chat: Chat): Chat => ({
-      ...chat,
-      ...(chatOverrides[chat.id] || {}),
-    });
+    const withOverrides = (chat: Chat): Chat => {
+      const { last_counted_message_id, updated_at, ...override } = chatOverrides[chat.id] || {};
+      return { ...chat, ...override };
+    };
 
     const oneOnOneChats: Chat[] = (oneOnOneChatsData?.chats || []).map((chat) => withOverrides({
       ...(presenceByUsername[chat.interlocutor_name] || {}),
