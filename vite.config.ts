@@ -47,7 +47,7 @@ export default defineConfig(({ command, mode }) => {
         disable: isMobile || Boolean(process.env.VITEST),
         registerType: "autoUpdate",
         injectRegister: "auto",
-        includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png", "logo.svg"],
+        includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png"],
         manifest: {
           id: "/",
           name: "Messenger",
