@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.5](https://github.com/myronsi/messenger-front/compare/v0.4.4...v0.4.5) (2026-10-03)
+
+
+### Bug Fixes
+
+* **security:** open WebSockets with a one-time ticket instead of the access token ([304785d](https://github.com/myronsi/messenger-front/commit/304785d0f6491c73c25fce1929fefed0cb472428))
+* **security:** open WebSockets with a one-time ticket instead of the access token ([eaa9d6e](https://github.com/myronsi/messenger-front/commit/eaa9d6edcd101badd5c7b16bb90d56d183b5d84d))
+
 ## [0.4.4](https://github.com/myronsi/messenger-front/compare/v0.4.3...v0.4.4) (2026-10-02)
 
 
