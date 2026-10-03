@@ -1,5 +1,6 @@
 import React from 'react';
 import { Message } from '@/entities/message';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
@@ -66,7 +67,14 @@ const MessageContent: React.FC<MessageContentProps> = ({
   if (message.content.file_type === 'voice') return withCaption(audioPlayer);
   if (config?.isSpecial && config.replyText === translations.image) {
     return withCaption(
-      <ImageMessage fileUrl={fullFileUrl} fileName={fileName} isMine={isOwnMessage(message)} />,
+      <ImageMessage
+        fileUrl={fullFileUrl}
+        thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
+        width={message.content.image_width}
+        height={message.content.image_height}
+        fileName={fileName}
+        isMine={isOwnMessage(message)}
+      />,
       true
     );
   }
