@@ -1,9 +1,14 @@
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 // Mirrors the extensions the backend accepts for the file picker (messenger-back /messages/upload).
-const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'pdf', 'doc', 'docx', 'txt'] as const;
+const ALLOWED_EXTENSIONS = [
+  'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif',
+  'mp4', 'mov', 'ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac',
+  'pdf', 'doc', 'docx', 'txt', 'pptx', 'zip',
+  'js', 'ts', 'py', 'java', 'cpp', 'html', 'css',
+] as const;
 
-export const UPLOAD_ACCEPT = 'image/jpeg,image/png,image/gif,video/mp4,video/quicktime,.mov,.pdf,.doc,.docx,.txt';
+export const UPLOAD_ACCEPT = ALLOWED_EXTENSIONS.map((extension) => `.${extension}`).join(',');
 
 export type UploadValidationError = 'tooLarge' | 'unsupportedType';
 
