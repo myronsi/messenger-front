@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.4](https://github.com/myronsi/messenger-front/compare/v0.4.3...v0.4.4) (2026-10-02)
+
+
+### Bug Fixes
+
+* **auth:** disable auto-capitalisation of usernames on mobile ([c4e0733](https://github.com/myronsi/messenger-front/commit/c4e07338d3bfaf81fa07a7abd2330816c003afe2))
+* **auth:** disable auto-capitalisation of usernames on mobile ([43f98cc](https://github.com/myronsi/messenger-front/commit/43f98ccc276f8c4d1b79b665d816f6bacda3ec20))
+* **auth:** recover password with one user-held part ([6d4f011](https://github.com/myronsi/messenger-front/commit/6d4f0113ab3d21efc388db091b27642619d7fded))
+* **auth:** recover password with one user-held part ([0a5574a](https://github.com/myronsi/messenger-front/commit/0a5574a086841baf19a69de62968191b6a5d7dec))
+* **auth:** validate and lowercase usernames on registration ([1315b4d](https://github.com/myronsi/messenger-front/commit/1315b4d3dd9b76889d42aa20dfe466c8c53e8fa7))
+* **auth:** validate and lowercase usernames on registration ([c33b3c1](https://github.com/myronsi/messenger-front/commit/c33b3c1e9df88d333c302e8ccb9b57a233294209))
+* **group-chat:** mark group messages as read when they are viewed ([ac4a64e](https://github.com/myronsi/messenger-front/commit/ac4a64e1d2973c16e1c35ff3922121a761f00f0d))
+* **group-chat:** mark group messages as read when they are viewed ([78390fb](https://github.com/myronsi/messenger-front/commit/78390fbb4625c01bb0e606d03a8414a65014d829))
+
 ## [0.4.3](https://github.com/myronsi/messenger-front/compare/v0.4.2...v0.4.3) (2026-10-02)
 
 
