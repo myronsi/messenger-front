@@ -59,11 +59,9 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
 
       // Check if WebSocket is already connected or connecting
       if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
-        console.log('WebSocket already connected or connecting for chat list');
         return;
       }
 
-      console.log('Connecting WebSocket for chat list');
       try {
         const url = await getChatWebSocketUrl(0);
         if (!isMounted) return;
@@ -78,7 +76,6 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
 
       wsRef.current.onopen = () => {
         if (!isMounted) return;
-        console.log('WebSocket successfully connected for chat list');
         refetchRequestInboxRef.current();
       };
 
@@ -88,11 +85,9 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
         try {
           parsedData = JSON.parse(event.data);
         } catch (error) {
-          console.error('Received non-JSON message:', event.data);
+          console.error('Received non-JSON chat list message');
           return;
         }
-
-        console.log('WebSocket message received:', parsedData);
 
         handleChatListWebSocketMessage(parsedData, {
           usernameRef,
@@ -112,7 +107,6 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
 
       wsRef.current.onclose = (event) => {
         if (!isMounted) return;
-        console.log('WebSocket disconnected for chat list');
         // Only reconnect if it wasn't a clean close and component is still mounted
         if (event.code !== 1000 && event.code !== 1001 && token) {
           reconnectTimeoutId = setTimeout(() => {
