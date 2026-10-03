@@ -1,14 +1,12 @@
-import React, { forwardRef, useState, useEffect, useRef } from 'react';
+import React, { forwardRef, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
-import MessageContent from './MessageContent';
 import MessageItem from './MessageItem';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { Message, ReactionInfo } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import ReplyPreview from './ReplyPreview';
-import ReactionList from './ReactionList';
+import { useStableCallback } from '@/shared/lib/useStableCallback';
 
 interface MessageListProps {
   messages: Message[];
@@ -84,14 +82,14 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const onScrollStart = props.onScrollStart;
   const onMarkMessagesRead = props.onMarkMessagesRead;
 
-  const isOwnMessage = (message: Message) => {
+  const isOwnMessage = useCallback((message: Message) => {
     if (message.is_own) return true;
     if (userId && message.sender_id) return message.sender_id === userId;
     const ownUsername = username.toLowerCase();
     return [message.sender_username, message.sender]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase() === ownUsername);
-  };
+  }, [userId, username]);
 
   const latchedBoundaryRef = useRef<{ key: string | number | undefined; id: number | null }>({ key: scrollToBottomKey, id: null });
   if (latchedBoundaryRef.current.key !== scrollToBottomKey) latchedBoundaryRef.current = { key: scrollToBottomKey, id: null };
@@ -140,22 +138,25 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const renderContent = (message: Message) => (
-    <MessageContent
-      message={message}
-      isMobile={isMobile}
-      translations={translations}
-      getFileTypeConfig={getFileTypeConfig}
-      isOwnMessage={isOwnMessage}
-      renderMessageContent={renderMessageContent}
-      playingMessageId={playingMessageId}
-      setPlayingMessageId={setPlayingMessageId}
-      audioStates={audioStates}
-      setAudioStates={setAudioStates}
-    />
+  // Parents recreate these callbacks on every render; stable proxies keep memoized items from re-rendering.
+  const stableGetFormattedDateLabel = useStableCallback(getFormattedDateLabel);
+  const stableGetMessageTime = useStableCallback(getMessageTime);
+  const stableRenderMessageContent = useStableCallback(renderMessageContent);
+  const stableGetFileTypeConfig = useStableCallback(getFileTypeConfig);
+  const stableOnMessageClick = useStableCallback(onMessageClick);
+  const stableOnAvatarClick = useStableCallback(onAvatarClick);
+  const stableOnReplyClick = useStableCallback(onReplyClick);
+  const stableSetTempHighlightedMessageId = useStableCallback(setTempHighlightedMessageId);
+  const stableOnOpenReadStatus = useStableCallback((message: Message) => onOpenReadStatus?.(message));
+  const stableOnOpenReactionDetails = useStableCallback(
+    (message: Message, reaction: string, reactions: ReactionInfo[]) => onOpenReactionDetails?.(message, reaction, reactions)
   );
+  const stableOnResendMessage = useStableCallback((message: Message) => onResendMessage?.(message));
+  const hasResendHandler = !!onResendMessage;
 
-  const handleMessageClick = (e: React.MouseEvent, message: Message) => {
+  const messagesById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
+
+  const handleMessageClick = useStableCallback((e: React.MouseEvent, message: Message) => {
     e.preventDefault();
     if (message.reply_to && e.type === 'click' && !interlocutorDeleted) {
       onReplyClick(message.reply_to);
@@ -170,7 +171,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     } else {
       onMessageClick(e, message);
     }
-  };
+  });
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -199,39 +200,53 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
             {translations.noMessagesYet || 'No messages yet'}
           </div>
         )}
-        {messages.map((message, index) => (
-          <MessageItem
-            key={message.client_temp_id ?? message.id}
-            message={message}
-            index={index}
-            messages={messages}
-            userId={userId}
-            isGroup={isGroup}
-            visibleFirstUnreadId={visibleUnreadBoundaryId}
-            translations={translations}
-            interlocutorDeleted={interlocutorDeleted}
-            highlightedMessageId={highlightedMessageId}
-            contextMenuMessageId={contextMenuMessageId}
-            tempHighlightedMessageId={tempHighlightedMessageId}
-            messageRefs={messageRefs}
-            observerRef={observerRef}
-            firstUnreadMarkerRef={firstUnreadMarkerRef}
-            getFormattedDateLabel={getFormattedDateLabel}
-            getMessageTime={getMessageTime}
-            isOwnMessage={isOwnMessage}
-            isImageMessage={(item) => item.type === 'file' && typeof item.content !== 'string' && getFileTypeConfig(item.content.file_name)?.replyText === translations.image}
-            renderContent={renderContent}
-            onMessageClick={onMessageClick}
-            onClick={handleMessageClick}
-            onAvatarClick={onAvatarClick}
-            onReplyClick={onReplyClick}
-            setTempHighlightedMessageId={setTempHighlightedMessageId}
-            wsRef={wsRef}
-            onOpenReadStatus={onOpenReadStatus}
-            onOpenReactionDetails={onOpenReactionDetails}
-            onResendMessage={onResendMessage}
-          />
-        ))}
+        {messages.map((message, index) => {
+          const prevMessage = index > 0 ? messages[index - 1] : null;
+          const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+          const fileConfig = message.type === 'file' && typeof message.content !== 'string'
+            ? getFileTypeConfig(message.content.file_name)
+            : undefined;
+          return (
+            <MessageItem
+              key={message.client_temp_id ?? message.id}
+              message={message}
+              prevMessage={prevMessage}
+              nextMessage={nextMessage}
+              replyMessage={message.reply_to ? messagesById.get(message.reply_to) : undefined}
+              userId={userId}
+              isGroup={isGroup}
+              isImage={fileConfig?.replyText === translations.image}
+              isMobile={isMobile}
+              showNewMessagesMarker={visibleUnreadBoundaryId === message.id && !isOwnMessage(message)}
+              nextShowsNewMessagesMarker={!!nextMessage && visibleUnreadBoundaryId === nextMessage.id && !isOwnMessage(nextMessage)}
+              translations={translations}
+              interlocutorDeleted={interlocutorDeleted}
+              isHighlighted={highlightedMessageId === message.id}
+              isContextHighlighted={contextMenuMessageId === message.id || tempHighlightedMessageId === message.id}
+              messageRefs={messageRefs}
+              observerRef={observerRef}
+              firstUnreadMarkerRef={firstUnreadMarkerRef}
+              getFormattedDateLabel={stableGetFormattedDateLabel}
+              getMessageTime={stableGetMessageTime}
+              isOwnMessage={isOwnMessage}
+              getFileTypeConfig={stableGetFileTypeConfig}
+              renderMessageContent={stableRenderMessageContent}
+              playingMessageId={playingMessageId}
+              setPlayingMessageId={setPlayingMessageId}
+              audioState={audioStates[message.id]}
+              setAudioStates={setAudioStates}
+              onMessageClick={stableOnMessageClick}
+              onClick={handleMessageClick}
+              onAvatarClick={stableOnAvatarClick}
+              onReplyClick={stableOnReplyClick}
+              setTempHighlightedMessageId={stableSetTempHighlightedMessageId}
+              wsRef={wsRef}
+              onOpenReadStatus={stableOnOpenReadStatus}
+              onOpenReactionDetails={stableOnOpenReactionDetails}
+              onResendMessage={hasResendHandler ? stableOnResendMessage : undefined}
+            />
+          );
+        })}
         {isLoadingNewerMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
