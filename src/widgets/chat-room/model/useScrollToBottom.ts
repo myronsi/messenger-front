@@ -1,5 +1,6 @@
 import { MutableRefObject, RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
 
 interface ScrollToBottomOptions {
   chatContainerRef: RefObject<HTMLDivElement>;
@@ -30,12 +31,9 @@ export const useScrollToBottom = ({
   const [unseenIds, setUnseenIds] = useState<number[]>([]);
   const [isFarFromBottom, setIsFarFromBottom] = useState(false);
   const countedIdsRef = useRef<Set<number>>(new Set());
-  const hasMoreNewerMessagesRef = useRef(hasMoreNewerMessages);
-  hasMoreNewerMessagesRef.current = hasMoreNewerMessages;
-  const onLoadLatestMessagesRef = useRef(onLoadLatestMessages);
-  onLoadLatestMessagesRef.current = onLoadLatestMessages;
-  const isOwnMessageRef = useRef(isOwnMessage);
-  isOwnMessageRef.current = isOwnMessage;
+  const hasMoreNewerMessagesRef = useLatestRef(hasMoreNewerMessages);
+  const onLoadLatestMessagesRef = useLatestRef(onLoadLatestMessages);
+  const isOwnMessageRef = useLatestRef(isOwnMessage);
 
   useEffect(() => {
     setUnseenIds([]);
@@ -60,7 +58,7 @@ export const useScrollToBottom = ({
     if (incoming.length === 0) return;
     incoming.forEach((item) => countedIdsRef.current.add(item.id));
     setUnseenIds((ids) => [...ids, ...incoming.map((item) => item.id)]);
-  }, []);
+  }, [isOwnMessageRef]);
 
   // Messages count as seen once they are visible, not when the scroll position hits an exact pixel.
   useEffect(() => {
@@ -101,11 +99,10 @@ export const useScrollToBottom = ({
         jump();
         requestAnimationFrame(jump);
       });
-      window.setTimeout(jump, 120);
       return;
     }
     container.scrollTo({ top: container.scrollHeight, behavior: getScrollBehavior() });
-  }, [chatContainerRef, shouldStickToBottomRef, autoScrollUntilRef]);
+  }, [chatContainerRef, shouldStickToBottomRef, autoScrollUntilRef, hasMoreNewerMessagesRef, onLoadLatestMessagesRef]);
 
   return {
     unseenCount: unseenIds.length,
@@ -116,3 +113,4 @@ export const useScrollToBottom = ({
     updateDistance,
   };
 };
+
