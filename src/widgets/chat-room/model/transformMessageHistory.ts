@@ -34,7 +34,7 @@ export const transformMessageHistory = (data: unknown): Message[] => {
       read_by: message.read_by ? JSON.parse(message.read_by as string) : [],
     } as Message));
   } catch (error) {
-    console.error('Failed to transform messagesData:', error, data);
+    console.error('Failed to transform message history');
     return [];
   }
 };

@@ -84,12 +84,12 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
         try {
           raw = JSON.parse(event.data);
         } catch {
-          console.error('Received non-JSON chat message:', event.data);
+          console.error('Received non-JSON chat message');
           return;
         }
         const parsed = parseServerEvent(raw);
         if (!parsed) {
-          console.error('Ignoring malformed chat event:', raw);
+          console.error('Ignoring malformed chat event');
           return;
         }
         onEventRef.current(parsed, socket);
