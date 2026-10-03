@@ -60,7 +60,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     messages, messageInput, setMessageInput, contextMenu, setContextMenu, replyTo, setReplyTo,
     editingMessage, setEditingMessage, selectedUser, setSelectedUser, modal, setModal,
     highlightedMessageId, isLoadingInitialMessages, isLoadingOlderMessages, isLoadingNewerMessages,
-    hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages,
+    hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages,
     markMessagesRead, handleSendMessage, handleResendMessage, handleFileUpload,
     createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
     settleOptimisticUpload, handleDeleteChat, getFormattedDateLabel, getMessageTime,
@@ -196,6 +196,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           setTempHighlightedMessageId={setTempHighlightedMessageId}
           onLoadOlderMessages={loadOlderMessages}
           onLoadNewerMessages={loadNewerMessages}
+          onLoadLatestMessages={loadLatestMessages}
           hasMoreMessages={hasMoreMessages}
           hasMoreNewerMessages={hasMoreNewerMessages}
           isLoadingInitialMessages={isLoadingInitialMessages}

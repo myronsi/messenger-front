@@ -62,6 +62,7 @@ export const useChatRoomState = ({
     scrollToMessage: (_messageId: number) => {},
     loadOlderMessages: async () => {},
     loadNewerMessages: async () => {},
+    loadLatestMessages: async () => {},
     markMessagesRead: async (_messageIds: number[]) => {},
     handleSendMessage: () => {},
     handleResendMessage: (_message: Message) => {},

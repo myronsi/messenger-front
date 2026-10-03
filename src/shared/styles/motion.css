@@ -128,6 +128,14 @@
     transform: translateY(0) scale(1);
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .motion-move-down,
+    .motion-move-down.is-visible {
+      transform: none;
+      transition: opacity 1ms linear;
+    }
+  }
+
   .motion-unread-indicator {
     max-height: 0;
     min-width: 0;

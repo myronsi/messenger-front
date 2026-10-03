@@ -56,6 +56,7 @@ export interface Message {
   upload_progress?: number;
   sender_id?: number;
   is_own?: boolean;
+  is_live?: boolean;
   sender: string;
   sender_username?: string | null;
   content: string | FileMessageContent;

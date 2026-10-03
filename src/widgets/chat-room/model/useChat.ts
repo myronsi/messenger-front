@@ -53,6 +53,7 @@ export const useChat = (
     hasMoreNewerMessages,
     loadOlderMessages,
     loadNewerMessages,
+    loadLatestMessages,
     markMessagesRead,
   } = useMessageHistory({
     chatId, token, username, firstUnreadMessageId, messages, setMessages,
@@ -142,6 +143,7 @@ export const useChat = (
     scrollToMessage,
     loadOlderMessages,
     loadNewerMessages,
+    loadLatestMessages,
     markMessagesRead,
     handleSendMessage,
     handleResendMessage,
