@@ -13,11 +13,11 @@ The same React build can be used in two ways on a phone.
   `/static/` media always go to the network. Requests under `/api` are never answered with `index.html`.
 - New versions are activated automatically on the next load (`registerType: "autoUpdate"`).
 
-Icons live in `public/` (`pwa-*.png`, `maskable-icon-512x512.png`, `apple-touch-icon-180x180.png`) and were generated from
-`public/logo.svg`. To regenerate them after changing the logo:
+Icons live in `public/` (`pwa-*.png`, `maskable-icon-512x512.png`, `apple-touch-icon-180x180.png`) and were generated from the
+original app icon, `public/favicon.ico`. To change the icon, replace those files with a new source image, for example:
 
 ```sh
-npx @vite-pwa/assets-generator --preset minimal-2023 public/logo.svg
+npx @vite-pwa/assets-generator --preset minimal-2023 path/to/new-icon.svg
 git checkout public/favicon.ico   # the generator overwrites the existing favicon
 ```
 
@@ -68,7 +68,7 @@ Then add the microphone permission (needed for voice messages):
 - iOS `ios/App/App/Info.plist`: `NSMicrophoneUsageDescription` with a short reason, for example "Record voice messages".
 
 App icons and splash screens for the native projects can be generated with
-[`@capacitor/assets`](https://github.com/ionic-team/capacitor-assets) from `public/logo.svg`.
+[`@capacitor/assets`](https://github.com/ionic-team/capacitor-assets) from `public/pwa-512x512.png`.
 
 ### Daily workflow
 
