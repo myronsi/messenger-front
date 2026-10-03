@@ -66,6 +66,8 @@ This project is a simple web-based messenger application designed for sending an
 or<br>
 `npm i --legacy-peer-deps`<br>
 
+This project uses npm only: `package-lock.json` is the single lock file (CI runs `npm ci --legacy-peer-deps`), so do not commit `bun.lockb`, `yarn.lock` or `pnpm-lock.yaml`.
+
 ### Configure the frontend
 
 Create a `.env.local` file with the API server URL:
@@ -104,7 +106,7 @@ at first line change `const BASE_URL = "http://ip:8000";` to yours ip addres
 `http://your_ip:8000/docs#/`
 
 ### View messenger
-run `npm start` (in client directory)
+run `npm run dev` (in client directory)
 
 
 ## Project Structure

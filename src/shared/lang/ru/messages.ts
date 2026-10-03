@@ -16,4 +16,6 @@ export const messages = {
   replyTo: "Ответ на",
   editing: "Редактирование",
   edited: "изменено",
+  uploadUnsupportedType: "Этот тип файла не поддерживается.",
+  uploadFileTooLarge: "Файл слишком большой. Максимальный размер — 10 МБ.",
 };

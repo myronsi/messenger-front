@@ -2,6 +2,7 @@ import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import { File as FileIcon, Paperclip, Send, X, Mic, Square } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { UPLOAD_ACCEPT, validateUploadFile } from '@/shared/lib/uploadValidation';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
 
 interface MessageInputProps {
@@ -86,7 +87,18 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
   };
 
   const handleSelectedFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedFile(event.target.files?.[0] || null);
+    const file = event.target.files?.[0] || null;
+    const validationError = file ? validateUploadFile(file) : null;
+    if (file && validationError) {
+      setErrorMessage(validationError === 'tooLarge'
+        ? translations.uploadFileTooLarge || 'File is too large. The maximum size is 10 MB.'
+        : translations.uploadUnsupportedType || 'This file type is not supported.');
+      setSelectedFile(null);
+      event.target.value = '';
+      return;
+    }
+    setErrorMessage(null);
+    setSelectedFile(file);
   };
 
   const clearSelectedFile = () => {
@@ -177,7 +189,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
             >
               <Paperclip className="w-5 h-5" />
             </button>
-            <input type="file" ref={fileInputRef} onChange={handleSelectedFileChange} accept="image/*,video/mp4,video/mov,.pdf,.doc,.docx,.txt" className="hidden" />
+            <input type="file" ref={fileInputRef} onChange={handleSelectedFileChange} accept={UPLOAD_ACCEPT} className="hidden" />
             {isRecording ? (
               <div className="motion-reply-in flex min-h-10 flex-1 items-center justify-center rounded-full bg-red-50 px-3 text-sm text-red-600">
                 <span className="mr-2 h-2 w-2 rounded-full bg-red-500 motion-presence" />
