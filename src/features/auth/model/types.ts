@@ -3,7 +3,6 @@ import type { User } from '@/entities/user';
 export interface AuthResponse {
   access_token?: string | null;
   token_type?: string;
-  refresh_token?: string;
   user?: User;
   device_part?: string;
   qr_part?: string;

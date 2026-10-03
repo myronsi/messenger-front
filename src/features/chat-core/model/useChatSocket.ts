@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { trackWebSocket } from '@/shared/api/socketRegistry';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import type { ChatTransport } from './types';
 import type { SocketEvent } from './messageUpdates';
@@ -59,7 +60,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
       try {
         const url = await getChatWebSocketUrl(chatId);
         if (!isMounted) return;
-        socket = new WebSocket(url);
+        socket = trackWebSocket(new WebSocket(url));
       } catch (error) {
         console.error('Error creating WebSocket:', error);
         if (isMounted) scheduleReconnect();

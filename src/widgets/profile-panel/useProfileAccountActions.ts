@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDeleteAccountMutation, useLogoutMutation } from '@/app/api/messengerApi';
-import { authFetch, clearAuthTokens } from '@/shared/auth/session';
+import { authFetch, endSession } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { User } from '@/entities/user';
 
@@ -138,7 +138,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
       } catch {
         // Local logout remains available if the server request fails.
       }
-      clearAuthTokens();
+      endSession();
       onLogout();
     },
   });
@@ -149,7 +149,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     onConfirm: async () => {
       try {
         await deleteAccount().unwrap();
-        clearAuthTokens();
+        endSession();
         onLogout();
       } catch (error) {
         setModal({ type: 'error', message: errorMessage(error, 'Failed to delete account') });

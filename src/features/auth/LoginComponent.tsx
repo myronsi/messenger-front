@@ -55,9 +55,6 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
         return;
       }
       setAccessToken(result.access_token);
-      if (result.refresh_token) {
-        localStorage.setItem('refresh_token', result.refresh_token);
-      }
       onLoginSuccess(username);
       setMessage('');
     } catch (error: any) {
