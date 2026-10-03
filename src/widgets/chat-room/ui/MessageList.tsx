@@ -116,6 +116,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     currentDate,
     isScrolling,
     chatContainerRef,
+    contentRef,
     firstUnreadMarkerRef,
     isPositioned,
     unseenCount,
@@ -127,6 +128,12 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages, onLoadLatestMessages,
     onScrollStart, scrollToBottomKey, isOwnMessage,
   });
+
+  const setContentRef = useCallback((node: HTMLDivElement | null) => {
+    contentRef.current = node;
+    if (typeof ref === 'function') ref(node);
+    else if (ref) ref.current = node;
+  }, [ref, contentRef]);
 
   const observerRef = useMessageReadReceipts({
     messages, username, userId, messageRefs, chatContainerRef, isOwnMessage,
@@ -191,7 +198,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         </div>
       )}
-      <div ref={ref} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-4 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
+      <div ref={setContentRef} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-4 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
         {isLoadingOlderMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
