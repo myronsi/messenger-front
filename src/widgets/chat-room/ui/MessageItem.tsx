@@ -1,4 +1,4 @@
-import React, { MutableRefObject, memo, useMemo } from 'react';
+import React, { MutableRefObject, memo } from 'react';
 import { Message, ReactionInfo } from '@/entities/message';
 import { isValidTimestamp } from '../model/messageListScrollUtils';
 import ReplyPreview from './ReplyPreview';
@@ -60,8 +60,6 @@ const UploadClockStatus: React.FC<{ progress?: number }> = ({ progress }) => {
   );
 };
 
-type AudioState = { currentTime: number; duration: number };
-
 // Only primitives, the message itself and stable callbacks are passed so React.memo can skip
 // every item that did not change when a new message, reaction or typing event arrives.
 interface MessageItemProps {
@@ -87,10 +85,8 @@ interface MessageItemProps {
   isOwnMessage: (message: Message) => boolean;
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   renderMessageContent: (message: Message) => React.ReactNode;
-  playingMessageId: number | null;
+  isAudioPlaying: boolean;
   setPlayingMessageId: (id: number | null) => void;
-  audioState?: AudioState;
-  setAudioStates: React.Dispatch<React.SetStateAction<{ [key: number]: AudioState }>>;
   onMessageClick: (event: React.MouseEvent, message: Message) => void;
   onClick: (event: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
@@ -106,11 +102,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
   message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage, isMobile, showNewMessagesMarker,
   nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
   observerRef, firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
-  renderMessageContent, playingMessageId, setPlayingMessageId, audioState, setAudioStates,
+  renderMessageContent, isAudioPlaying, setPlayingMessageId,
   onMessageClick, onClick, onAvatarClick, onReplyClick,
   setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
 }) => {
-  const audioStates = useMemo(() => (audioState ? { [message.id]: audioState } : {}), [audioState, message.id]);
   const isMine = isOwnMessage(message);
   const reducedMotion = prefersReducedMotion();
   const isOutgoingSend = isMine && (message.id < 0 || !!message.client_temp_id);
@@ -228,10 +223,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   getFileTypeConfig={getFileTypeConfig}
                   isOwnMessage={isOwnMessage}
                   renderMessageContent={renderMessageContent}
-                  playingMessageId={playingMessageId}
+                  isAudioPlaying={isAudioPlaying}
                   setPlayingMessageId={setPlayingMessageId}
-                  audioStates={audioStates}
-                  setAudioStates={setAudioStates}
                 />
                 {isImage && isValidTimestamp(message.timestamp) && (
                   <div className={`absolute bottom-1 text-[10px] px-2 py-1 bg-gray-500/50 rounded-xl flex items-center space-x-1 ${isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'}`}>

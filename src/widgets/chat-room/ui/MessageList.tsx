@@ -129,7 +129,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   });
 
   const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
-  const [audioStates, setAudioStates] = useState<{ [key: number]: { currentTime: number; duration: number } }>({});
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -231,10 +230,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               isOwnMessage={isOwnMessage}
               getFileTypeConfig={stableGetFileTypeConfig}
               renderMessageContent={stableRenderMessageContent}
-              playingMessageId={playingMessageId}
+              isAudioPlaying={playingMessageId === message.id}
               setPlayingMessageId={setPlayingMessageId}
-              audioState={audioStates[message.id]}
-              setAudioStates={setAudioStates}
               onMessageClick={stableOnMessageClick}
               onClick={handleMessageClick}
               onAvatarClick={stableOnAvatarClick}

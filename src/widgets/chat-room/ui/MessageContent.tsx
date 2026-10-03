@@ -14,10 +14,8 @@ interface MessageContentProps {
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
-  playingMessageId: number | null;
+  isAudioPlaying: boolean;
   setPlayingMessageId: (id: number | null) => void;
-  audioStates: { [key: number]: { currentTime: number; duration: number } };
-  setAudioStates: React.Dispatch<React.SetStateAction<{ [key: number]: { currentTime: number; duration: number } }>>;
 }
 
 const MessageContent: React.FC<MessageContentProps> = ({
@@ -27,10 +25,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
   getFileTypeConfig,
   isOwnMessage,
   renderMessageContent,
-  playingMessageId,
+  isAudioPlaying,
   setPlayingMessageId,
-  audioStates,
-  setAudioStates,
 }) => {
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
@@ -62,10 +58,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
       messageId={message.id}
       duration={audioMetadata?.duration}
       waveform={audioMetadata?.waveform}
-      playingMessageId={playingMessageId}
+      isPlaying={isAudioPlaying}
       setPlayingMessageId={setPlayingMessageId}
-      audioStates={audioStates}
-      setAudioStates={setAudioStates}
     />
   );
 
