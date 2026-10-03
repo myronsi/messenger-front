@@ -1,13 +1,7 @@
 import { useRef } from 'react';
-import { Message } from '@/entities/message';
+import { Message, ModalState } from '@/entities/message';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import { useChat } from './useChat';
-
-interface PreviewModal {
-  type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser';
-  message: string;
-  onConfirm?: () => void;
-}
 
 interface ChatRoomStateOptions {
   isPreview: boolean;
@@ -18,8 +12,8 @@ interface ChatRoomStateOptions {
   userId: number;
   firstUnreadMessageId?: number | null;
   onPresenceUpdate: (update: { username: string; is_online: boolean; last_seen: string | null }) => void;
-  previewModal: PreviewModal | null;
-  setPreviewModal: (modal: PreviewModal | null) => void;
+  previewModal: ModalState | null;
+  setPreviewModal: (modal: ModalState | null) => void;
 }
 
 export const useChatRoomState = ({

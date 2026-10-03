@@ -24,7 +24,11 @@ interface UserProfileHeaderProps {
 
 const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
   const { translations } = useLanguage();
-  const { avatarUrl, hasCustomAvatar, displayName, username, isCurrentUser, isEditingContactName, customNameInput, setCustomNameInput, onSaveContactName, onCancelContactNameEdit, onEditContactName, isSavingContactName, accountDisplayName, isOnline, lastSeen, onAvatarHistory } = props;
+  const {
+    avatarUrl, hasCustomAvatar, displayName, username, isCurrentUser, isEditingContactName, customNameInput,
+    setCustomNameInput, onSaveContactName, onCancelContactNameEdit, onEditContactName, isSavingContactName,
+    accountDisplayName, isOnline, lastSeen, onAvatarHistory,
+  } = props;
   return (
         <div className="px-5 pb-3 pt-5 text-center md:pt-4">
           {hasCustomAvatar ? (

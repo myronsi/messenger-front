@@ -111,3 +111,16 @@ export interface MarkChatReadResponse {
   read_message_ids: number[];
   read_at: string;
 }
+
+export type GroupRole = 'owner' | 'admin' | 'moderator' | 'member';
+
+export interface RawGroupParticipant {
+  id: number; username: string; display_name?: string; avatar_url?: string; role?: GroupRole;
+  is_owner?: boolean; is_admin?: boolean;
+}
+export interface RawGroupPendingInvite { request_id: number; id: number; username: string; display_name?: string; avatar_url?: string; }
+export interface RawGroupDetails {
+  chat_id: number; name?: string; description?: string; avatar_url?: string; owner_id?: number;
+  owner_username?: string; admin_id?: number; admin_username?: string; current_user_role?: GroupRole;
+  participants?: RawGroupParticipant[]; pending_invites?: RawGroupPendingInvite[];
+}

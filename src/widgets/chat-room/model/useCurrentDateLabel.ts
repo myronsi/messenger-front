@@ -6,7 +6,7 @@ import { isValidTimestamp } from './messageListScrollUtils';
 interface CurrentDateLabelOptions {
   messages: Message[];
   messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
-  chatContainerRef: RefObject<HTMLDivElement>;
+  chatContainerRef: RefObject<HTMLDivElement | null>;
   getFormattedDateLabel: (timestamp: string) => string;
 }
 

@@ -17,7 +17,24 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
   const renderMessageContent = (message: Message) => message.type === 'message' && typeof message.content === 'string'
     ? <div className="whitespace-pre-wrap break-words">{unescapeCurlyBraces(message.content)}</div>
     : <div />;
-  const { onBack, openGroupProfile, currentGroupAvatar, currentGroupName, groupDetails, translations, messages, username, currentUserId, firstUnreadMessageId, handleMessageClick, handleOpenUserProfile, highlightedMessageId, contextMenu, getFormattedDateLabel, getMessageTime, messageRefs, canDeleteMessage, jumpToSearchResult, setHighlightedMessageId, scrollToMessage, wsRef, openMenus, tempHighlightedMessageId, setTempHighlightedMessageId, loadOlderMessages, hasMoreMessages, isLoadingOlderMessages, isLoadingInitialMessages, loadNewerMessages, loadLatestMessages, hasMoreNewerMessages, isLoadingNewerMessages, markMessagesRead, isOwnMessage, setReadStatusMessage, setReactionDetails, chatId, closeMenus, reactionMenu, messageInputRef, messageInput, setMessageInput, replyTo, editingMessage, handleSendMessage, handleFileUpload, handleResendMessage, setReplyTo, setEditingMessage, token, createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed, settleOptimisticUpload, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage, reactionMenuRef, setReactionMenu, renderGroupProfile, isGroupProfileClosing, requestCloseGroupProfile, groupForm, setGroupForm, participantInput, setParticipantInput, isSavingGroup, groupAvatarInputRef, getAvatarSrc, handleGroupAvatarUpload, handleSaveGroup, handleAddParticipant, handleRemoveParticipant, handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm, unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage } = model;
+  const {
+     onBack, openGroupProfile, currentGroupAvatar, currentGroupName, groupDetails, translations, messages,
+     username, currentUserId, firstUnreadMessageId, handleMessageClick, handleOpenUserProfile,
+     highlightedMessageId, contextMenu, getFormattedDateLabel, getMessageTime, messageRefs, canDeleteMessage,
+     jumpToSearchResult, scrollToMessage, wsRef, openMenus, tempHighlightedMessageId,
+     setTempHighlightedMessageId, loadOlderMessages, hasMoreMessages, isLoadingOlderMessages,
+     isLoadingInitialMessages, loadNewerMessages, loadLatestMessages, hasMoreNewerMessages,
+     isLoadingNewerMessages, markMessagesRead, isOwnMessage, setReadStatusMessage, setReactionDetails, chatId,
+     closeMenus, reactionMenu, messageInputRef, messageInput, setMessageInput, replyTo, editingMessage,
+     handleSendMessage, handleFileUpload, handleResendMessage, setReplyTo, setEditingMessage, token,
+     createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
+     settleOptimisticUpload, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage,
+     reactionMenuRef, setReactionMenu, renderGroupProfile, isGroupProfileClosing, requestCloseGroupProfile,
+     groupForm, setGroupForm, participantInput, setParticipantInput, isSavingGroup, groupAvatarInputRef,
+     getAvatarSrc, handleGroupAvatarUpload, handleSaveGroup, handleAddParticipant, handleRemoveParticipant,
+     handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm,
+     unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
+  } = model;
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">

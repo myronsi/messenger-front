@@ -1,3 +1,4 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
 import { Message } from '@/entities/message';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
@@ -11,7 +12,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface MessageContentProps {
   message: Message;
   isMobile: boolean;
-  translations: Record<string, any>;
+  translations: Translations;
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;

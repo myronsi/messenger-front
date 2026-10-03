@@ -1,3 +1,4 @@
+import { asApiError } from '@/shared/lib/apiError';
 import { useEffect, useMemo, useState } from 'react';
 import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings, useGetCurrentUserQuery, useGetOneOnOneChatsQuery, useGetPrivacySettingsQuery, useLazyGetUserByUsernameQuery, useSearchUsersQuery, useUpdatePrivacyExceptionsMutation, useUpdatePrivacySettingsMutation } from '@/app/api/messengerApi';
 import type { User } from '@/entities/user';
@@ -6,7 +7,6 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 type PrivacySettingKey = Exclude<keyof PrivacySettings, 'privacy_exceptions'>;
 type PrivacyCandidate = Partial<Pick<User, 'id' | 'display_name' | 'avatar_url'>> & { username: string };
 type StatusMessage = { type: 'success' | 'error'; text: string };
-const exceptionKeys = ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'group_invites'] as const;
 
 export const usePrivacySettings = (isActive: boolean) => {
   const { translations } = useLanguage();
@@ -94,7 +94,8 @@ export const usePrivacySettings = (isActive: boolean) => {
     try {
       await updatePrivacySettings({ [key]: value }).unwrap();
       setStatus({ type: 'success', text: translations.saved || 'Saved' });
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setStatus({ type: 'error', text: error?.data?.detail || 'Failed to update privacy settings' });
     }
   };
@@ -104,7 +105,8 @@ export const usePrivacySettings = (isActive: boolean) => {
     try {
       await updatePrivacyExceptions({ settingKey: key, effect, usernames }).unwrap();
       setStatus({ type: 'success', text: translations.saved || 'Saved' });
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setStatus({ type: 'error', text: error?.data?.detail || 'Failed to update privacy exceptions' });
     }
   };
@@ -121,11 +123,18 @@ export const usePrivacySettings = (isActive: boolean) => {
       await handleExceptionListChange(key, effect, nextUsernames);
       setExceptionDrafts((drafts) => ({ ...drafts, [key]: '' }));
       setDebouncedSearch('');
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setStatus({ type: 'error', text: error?.data?.detail || translations.userNotFound || 'User not found' });
     }
   };
 
 
-  return { translations, currentUsername, privacySettings, isLoadingPrivacy, isUpdatingPrivacy, isUpdatingExceptions, isLookingUpUser, status, setStatus, openSelect, setOpenSelect, activeExceptionKey, setActiveExceptionKey, collapsedExceptionKeys, setCollapsedExceptionKeys, exceptionDrafts, setExceptionDrafts, debouncedSearch, searchData, isSearchingUsers, dmCandidates, visibilityLabel, handlePrivacyChange, handleExceptionListChange, handleAddException };
+  return {
+    translations, currentUsername, privacySettings, isLoadingPrivacy, isUpdatingPrivacy,
+    isUpdatingExceptions, isLookingUpUser, status, setStatus, openSelect, setOpenSelect, activeExceptionKey,
+    setActiveExceptionKey, collapsedExceptionKeys, setCollapsedExceptionKeys, exceptionDrafts,
+    setExceptionDrafts, debouncedSearch, searchData, isSearchingUsers, dmCandidates, visibilityLabel,
+    handlePrivacyChange, handleExceptionListChange, handleAddException,
+  };
 };

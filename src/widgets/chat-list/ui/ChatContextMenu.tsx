@@ -1,10 +1,11 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { CheckCheck, Pin, PinOff } from 'lucide-react';
 import type { ChatContextMenuState } from '../model/types';
 
 interface ChatContextMenuProps {
   menu: ChatContextMenuState | null;
   unreadCount: number;
-  translations: any;
+  translations: Translations;
   onMarkAsRead: (chatId: number) => void;
   onTogglePinned: (chatId: number) => void;
 }
@@ -38,7 +39,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
       >
         {menu.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-        <span>{menu.isPinned ? translations.unpin || 'Unpin' : translations.pin || 'Pin'}</span>
+        <span>{menu.isPinned ? translations.unpin : translations.pin}</span>
       </button>
     </div>
   );

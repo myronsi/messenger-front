@@ -12,7 +12,6 @@ import {
   useAddReactionMutation,
   useRemoveReactionMutation,
 } from '@/app/api/messengerApi';
-import { Message } from '@/entities/message';
 import { transformMessageHistory } from '../model/transformMessageHistory';
 
 interface MessageComponentRTKProps {

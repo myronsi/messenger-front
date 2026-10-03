@@ -1,3 +1,4 @@
+import type { Translations } from '@/shared/contexts/LanguageContext';
 import { MessageSquare } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import ChatListItem from './ChatListItem';
@@ -5,7 +6,7 @@ import ChatListItem from './ChatListItem';
 interface ChatListBodyProps {
   chats: Chat[];
   activeChatId?: number;
-  translations: any;
+  translations: Translations;
   getLastMessagePreview: (lastMessage?: ChatLastMessage | null) => string;
   getLastMessageTime: (lastMessage?: ChatLastMessage | null) => string;
   isOwnLastMessage: (lastMessage?: ChatLastMessage | null) => boolean;

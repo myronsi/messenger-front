@@ -1,19 +1,4 @@
-import { 
-  FileText, 
-  FileImage, 
-  FileVideo2, 
-  FileAudio2, 
-  File, 
-  FileArchive, 
-  Table, 
-  Presentation, 
-  FileCode2, 
-  Database,
-  FileType2,
-  ArrowDownToLine,
-  FileDown,
-  LucideProps
-} from 'lucide-react';
+import { FileText, FileImage, FileVideo2, FileAudio2, FileArchive, Table, Presentation, FileCode2, Database, FileType2, ArrowDownToLine, LucideProps } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 export interface FileTypeConfig {

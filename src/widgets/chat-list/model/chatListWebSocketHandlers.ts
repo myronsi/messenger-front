@@ -113,7 +113,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
           const baseChat = chatsByIdRef.current[chatId];
           const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
           const readerUserId = parsedData.reader_user_id ?? parsedData.user_id;
-          const nextLastMessage = lastMessage?.id === parsedData.message_id && readerUserId
+          const nextLastMessage = lastMessage && lastMessage.id === parsedData.message_id && readerUserId
             ? {
                 ...lastMessage,
                 read_by: [
@@ -200,7 +200,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
           const updateLastMessage = (chatId: number, existing: ChatOverrideMap[number]) => {
             const baseChat = chatsByIdRef.current[chatId];
             const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
-            if (lastMessage?.id !== parsedData.message_id) return existing;
+            if (!lastMessage || lastMessage.id !== parsedData.message_id) return existing;
 
             return {
               ...existing,

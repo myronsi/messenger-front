@@ -1,3 +1,4 @@
+import { asApiError } from '@/shared/lib/apiError';
 import React, { useState, useCallback } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
@@ -60,7 +61,8 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       }
       onLoginSuccess(username);
       setMessage('');
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       const errorMessage = error?.data?.detail || error?.message || translations.loginFailed;
       setMessage(errorMessage);
       console.error('Login error:', error);
@@ -84,7 +86,8 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       setTwoFactorCode('');
       setMessage('');
       onLoginSuccess(username);
-    } catch (error: any) {
+    } catch (caught) {
+      const error = asApiError(caught);
       setMessage(error?.data?.detail || error?.message || translations.loginFailed);
       console.error('2FA login error:', error);
     }

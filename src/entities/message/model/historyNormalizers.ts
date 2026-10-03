@@ -32,7 +32,17 @@ const normalizeAvatarUrl = (avatarUrl: unknown) => {
   return `${BASE_URL}${avatarUrl}`;
 };
 
-export const normalizeHistoryMessage = (rawMessage: any): Message => {
+// A history row as returned by the API: JSON columns may arrive as strings and optional fields may be missing.
+export type RawHistoryMessage = Omit<Message, 'type' | 'content' | 'reactions' | 'read_by' | 'reply_to' | 'avatar_url'> & {
+  type?: Message['type'];
+  content: unknown;
+  reactions?: unknown;
+  read_by?: unknown;
+  reply_to?: number | null;
+  avatar_url?: unknown;
+};
+
+export const normalizeHistoryMessage = (rawMessage: RawHistoryMessage): Message => {
   const type = rawMessage.type || 'message';
 
   return {
@@ -47,7 +57,7 @@ export const normalizeHistoryMessage = (rawMessage: any): Message => {
   };
 };
 
-export const normalizeHistoryMessages = (messages: unknown[] = []) => (
+export const normalizeHistoryMessages = (messages: RawHistoryMessage[] = []) => (
   messages.map((message) => normalizeHistoryMessage(message))
 );
 
