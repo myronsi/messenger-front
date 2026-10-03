@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Download, ZoomIn, ZoomOut, MessageSquare, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
+
+const MAX_HEIGHT = 300;
+const PLACEHOLDER = { width: 240, height: 180 };
 
 interface ImageMessageProps {
   fileUrl: string;
@@ -13,6 +17,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, fileName, onReply 
   const [isExpanded, setIsExpanded] = useState(false);
   const [scale, setScale] = useState(1);
   const imageRef = useRef<HTMLImageElement>(null);
+  const [dimensions, setDimensions] = useState(() => getImageDimensions(fileUrl));
+  const [isLoaded, setIsLoaded] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -89,17 +95,37 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, fileName, onReply 
     };
   }, [isExpanded]);
 
+  const box = dimensions ?? PLACEHOLDER;
+
   return (
     <>
-      <div className="relative group">
+      <div
+        className="relative group max-w-full overflow-hidden rounded-2xl"
+        style={{
+          width: `${Math.min(box.width, MAX_HEIGHT * (box.width / box.height))}px`,
+          aspectRatio: `${box.width} / ${box.height}`,
+        }}
+      >
         <img
           ref={imageRef}
           src={fileUrl}
           alt={fileName}
+          loading="lazy"
+          decoding="async"
+          width={box.width}
+          height={box.height}
+          onLoad={(e) => {
+            const { naturalWidth, naturalHeight } = e.currentTarget;
+            rememberImageDimensions(fileUrl, naturalWidth, naturalHeight);
+            if (!dimensions || dimensions.width !== naturalWidth || dimensions.height !== naturalHeight) {
+              setDimensions({ width: naturalWidth, height: naturalHeight });
+            }
+            setIsLoaded(true);
+          }}
+          onError={() => setIsLoaded(true)}
           onClick={() => setIsExpanded(true)}
-          className="max-w-full h-auto select-none rounded-2xl cursor-pointer"
-          style={{ 
-            maxHeight: '300px',
+          className={`block h-full w-full select-none rounded-2xl cursor-pointer object-cover transition-opacity duration-150 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+          style={{
             userSelect: 'none',
             WebkitUserSelect: 'none'
           }}
