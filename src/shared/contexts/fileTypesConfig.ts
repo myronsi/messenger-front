@@ -20,7 +20,7 @@ export const useFileTypes = () => {
   
   const fileTypes: FileTypeConfig[] = [
     {
-      extensions: ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'],
+      extensions: ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.avif'],
       icon: FileImage,
       onHover: ArrowDownToLine,
       replyText: translations.image,
@@ -34,7 +34,7 @@ export const useFileTypes = () => {
       isSpecial: true,
     },
     {
-      extensions: ['.mp3', '.wav', '.ogg'],
+      extensions: ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'],
       icon: FileAudio2,
       onHover: ArrowDownToLine,
       replyText: translations.music,

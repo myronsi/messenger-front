@@ -1,4 +1,4 @@
-import QRCode from 'react-qr-code';
+import { QRCodeSVG } from 'qrcode.react';
 import type { en } from '@/shared/lang/en';
 import { Button } from '@/shared/ui/button';
 
@@ -23,7 +23,7 @@ export const RegisterQrStep = ({
       className="flex justify-center mt-2 bg-white p-4 border border-gray-200"
       style={{ width: '240px', height: '240px', margin: '0 auto' }}
     >
-      <QRCode id="qr-code" value={qrPart} size={200} level="H" />
+      <QRCodeSVG id="qr-code" value={qrPart} size={200} level="H" />
     </div>
     <div className="space-y-2 mt-2">
       <Button onClick={onDownload} variant="outline" className="w-full">
