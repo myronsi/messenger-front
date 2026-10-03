@@ -76,9 +76,7 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
     const relativeY = reactionMenu.y - adjustedY;
 
     const handleReaction = (reaction: string) => {
-      console.log('Reaction clicked:', reaction); // Debug to confirm click
       if (wsRef.current) {
-        console.log('WebSocket state:', wsRef.current.readyState); // Debug WebSocket state
         if (wsRef.current.readyState === WebSocket.OPEN) {
           const message = reactionMenu.message;
           const hasReaction = message.reactions?.some((r) => r.user_id === userId && r.reaction === reaction);
@@ -87,12 +85,10 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
             message_id: message.id,
             reaction,
           };
-          console.log('Sending WebSocket message:', payload);
           try {
             wsRef.current.send(JSON.stringify(payload));
-            console.log('WebSocket message sent successfully');
           } catch (error) {
-            console.error('Failed to send WebSocket message:', error);
+            console.error('Failed to send reaction over WebSocket');
           }
         } else {
           console.error('WebSocket is not open, current state:', wsRef.current.readyState);
