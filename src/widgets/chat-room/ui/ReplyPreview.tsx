@@ -1,5 +1,6 @@
 import React from 'react';
 import { Message } from '@/entities/message';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 
@@ -28,7 +29,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
       if (message.content.file_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
         return {
           text: 'Image',
-          imageUrl: message.content.file_url,
+          imageUrl: resolveMediaUrl(message.content.thumbnail_url || message.content.file_url),
           isImage: true
         };
       }

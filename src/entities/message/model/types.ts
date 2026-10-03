@@ -11,6 +11,9 @@ export interface FileMessageContent {
   file_size: number;
   caption?: string;
   audio_metadata?: AudioMetadata;
+  image_width?: number;
+  image_height?: number;
+  thumbnail_url?: string;
 }
 
 export interface ForwardedFrom {
@@ -81,6 +84,9 @@ export interface ChatPhoto {
   name?: string;
   file_type?: string;
   file_size?: number;
+  image_width?: number;
+  image_height?: number;
+  thumbnail_url?: string;
   timestamp: string;
 }
 
