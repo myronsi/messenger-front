@@ -77,8 +77,8 @@ export const supplemental = {
   pin: "Закрепить",
   unpin: "Открепить",
   zoom: "Масштаб",
-  zoomIn: "Увеличить",
-  zoomOut: "Уменьшить",
-  attachFile: "Прикрепить файл",
   removeFile: "Удалить файл",
+  attachFile: "Прикрепить файл",
+  zoomOut: "Уменьшить",
+  zoomIn: "Увеличить",
 };
