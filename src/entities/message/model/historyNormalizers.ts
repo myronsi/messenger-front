@@ -59,12 +59,33 @@ export const prependUniqueMessages = (currentMessages: Message[], olderMessages:
   ];
 };
 
+// Live messages can already sit at the end of a window that was trimmed, so the page that fills
+// the gap is merged by id instead of simply appended.
 export const appendUniqueMessages = (currentMessages: Message[], newerMessages: Message[]) => {
   const existingIds = new Set(currentMessages.map((message) => message.id));
-  return [
+  const merged = [
     ...currentMessages,
     ...newerMessages.filter((message) => !existingIds.has(message.id)),
   ];
+  const confirmed = merged.filter((message) => message.id > 0);
+  const isOrdered = confirmed.every((message, index) => index === 0 || confirmed[index - 1].id < message.id);
+  if (isOrdered) return merged;
+  return [...confirmed.sort((a, b) => a.id - b.id), ...merged.filter((message) => message.id <= 0)];
+};
+
+// Drops the newest confirmed messages beyond `limit`; unsent (negative id) messages are kept.
+export const trimNewestMessages = (messages: Message[], limit: number) => {
+  const confirmedCount = messages.filter((message) => message.id > 0).length;
+  if (confirmedCount <= limit) return null;
+  let toDrop = confirmedCount - limit;
+  const kept: Message[] = [];
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (toDrop > 0 && messages[index].id > 0) toDrop -= 1;
+    else kept.push(messages[index]);
+  }
+  kept.reverse();
+  const newest = [...kept].reverse().find((message) => message.id > 0);
+  return { messages: kept, newestId: newest?.id ?? null };
 };
 
 export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {

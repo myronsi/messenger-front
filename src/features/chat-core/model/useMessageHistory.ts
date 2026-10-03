@@ -1,10 +1,12 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
-import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
+import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
 import { useGetMessageHistoryQuery, useMarkChatReadMutation } from '@/app/api/messengerApi';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const MESSAGE_PAGE_SIZE = 50;
+// Paging far back drops the newest loaded messages beyond this; they are refetched on the way down.
+const MAX_LOADED_MESSAGES = 500;
 
 interface MessageHistoryOptions {
   chatId: number;
@@ -40,6 +42,7 @@ export const useMessageHistory = ({
   const [newestMessageId, setNewestMessageId] = useState<number | null>(null);
   const isLoadingOlderMessagesRef = useRef(false);
   const isLoadingNewerMessagesRef = useRef(false);
+  const trimNewestPendingRef = useRef(false);
   const [markChatRead] = useMarkChatReadMutation();
   const {
     data: latestHistory,
@@ -60,7 +63,18 @@ export const useMessageHistory = ({
     setHasMoreNewerMessages(false);
     setOldestMessageId(null);
     setNewestMessageId(null);
+    trimNewestPendingRef.current = false;
   }, [chatId]);
+
+  useEffect(() => {
+    if (!trimNewestPendingRef.current) return;
+    trimNewestPendingRef.current = false;
+    const trimmed = trimNewestMessages(messages, MAX_LOADED_MESSAGES);
+    if (!trimmed || !trimmed.newestId) return;
+    setMessages((previous) => trimNewestMessages(previous, MAX_LOADED_MESSAGES)?.messages ?? previous);
+    setNewestMessageId(trimmed.newestId);
+    setHasMoreNewerMessages(true);
+  }, [messages, setMessages]);
 
   useEffect(() => {
     setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
@@ -104,6 +118,7 @@ export const useMessageHistory = ({
         const data: MessageHistoryResponse = await response.json();
         const olderMessages = normalizeHistoryMessages(data.history);
         setMessages((previous) => prependUniqueMessages(previous, olderMessages));
+        trimNewestPendingRef.current = true;
         setHasMoreMessages(data.has_more_before ?? data.has_more);
         if (olderMessages.length > 0) setOldestMessageId(olderMessages[0].id);
       } else if (response.status === 401) {

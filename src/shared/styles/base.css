@@ -157,6 +157,18 @@
     animation: avatarImageIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  /* Skips layout and paint of off-screen messages. The padding and negative margins give
+     the paint containment room for tails, reactions and shadows that overflow the row. */
+  .message-cv {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 72px;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: calc(100% + 1.5rem);
+    margin: -1.25rem -0.75rem;
+    padding: 1.25rem 0.75rem;
+  }
+
   /* Message tails */
   .message-tail-right {
     position: relative;
