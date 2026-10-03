@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.4.6](https://github.com/myronsi/messenger-front/compare/v0.4.5...v0.4.6) (2026-10-03)
+
+
+### Features
+
+* **chat:** use stored image dimensions and thumbnails ([bf68171](https://github.com/myronsi/messenger-front/commit/bf68171d657d05771c44216f52243db3c5c251ae))
+
+
+### Bug Fixes
+
+* **auth:** clear recovery share and cached data when the session ends ([7fe0bd6](https://github.com/myronsi/messenger-front/commit/7fe0bd6adfa539180e006c0ef17f229b0ee4556c))
+* **auth:** clear recovery share and cached data when the session ends ([bdfa945](https://github.com/myronsi/messenger-front/commit/bdfa945a966485ac2b24db820ffde9ef5b576363))
+* **chat-list:** stop unread counts drifting from the server ([f05d5b9](https://github.com/myronsi/messenger-front/commit/f05d5b9c8dc850984635c62c8d6f6d0e36dfc9f8))
+* **chat-list:** stop unread counts drifting from the server ([3649205](https://github.com/myronsi/messenger-front/commit/3649205b1ca33e788b01c3d258eb5ff09e699e28))
+* **chat:** make the scroll-to-bottom button reliable and accessible ([7e8a1cb](https://github.com/myronsi/messenger-front/commit/7e8a1cb5f85cb5296ee7a7c42a358c2191a7f979))
+
+
+### Performance Improvements
+
+* **audio:** keep playback progress inside the player and stop eager audio loading ([09c1882](https://github.com/myronsi/messenger-front/commit/09c1882142a335aa9af9c061655814c87b3b9677))
+* **chat:** lazy-load message images and reserve their space ([57ef2f6](https://github.com/myronsi/messenger-front/commit/57ef2f6188969a5e03ca8a2639e3db226fa1b732))
+* **chat:** memoize message items so an update re-renders only what changed ([eff47c5](https://github.com/myronsi/messenger-front/commit/eff47c51178fcc512538861870423b14d80c3b72))
+* **chat:** memoize message items so an update re-renders only what changed ([8b19384](https://github.com/myronsi/messenger-front/commit/8b19384c68c4d669d8096bd33c45542a6026438e))
+* **chat:** skip off-screen message rendering and cap loaded history ([7783b1e](https://github.com/myronsi/messenger-front/commit/7783b1e2846580ba97de40833a84429f9fafccec)), closes [#27](https://github.com/myronsi/messenger-front/issues/27)
+* **chat:** throttle scroll work and pin to the bottom with ResizeObserver ([4527568](https://github.com/myronsi/messenger-front/commit/45275687d944d88a6added12aab01239207b6871))
+
 ## [0.4.5](https://github.com/myronsi/messenger-front/compare/v0.4.4...v0.4.5) (2026-10-03)
 
 
