@@ -1,8 +1,10 @@
-import React, { MutableRefObject } from 'react';
+import React, { MutableRefObject, memo, useMemo } from 'react';
 import { Message, ReactionInfo } from '@/entities/message';
-import { parseUtcDate } from '@/shared/utils/dateFormatters';
+import { isValidTimestamp } from '../model/messageListScrollUtils';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
+import MessageContent from './MessageContent';
+import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '@/features/chat-core';
 import {
@@ -58,26 +60,37 @@ const UploadClockStatus: React.FC<{ progress?: number }> = ({ progress }) => {
   );
 };
 
+type AudioState = { currentTime: number; duration: number };
+
+// Only primitives, the message itself and stable callbacks are passed so React.memo can skip
+// every item that did not change when a new message, reaction or typing event arrives.
 interface MessageItemProps {
   message: Message;
-  index: number;
-  messages: Message[];
+  prevMessage: Message | null;
+  nextMessage: Message | null;
+  replyMessage?: Message;
   userId: number;
   isGroup: boolean;
-  visibleFirstUnreadId: number | null;
+  isImage: boolean;
+  isMobile: boolean;
+  showNewMessagesMarker: boolean;
+  nextShowsNewMessagesMarker: boolean;
   translations: Record<string, any>;
   interlocutorDeleted: boolean;
-  highlightedMessageId: number | null;
-  contextMenuMessageId?: number;
-  tempHighlightedMessageId: number | null;
+  isHighlighted: boolean;
+  isContextHighlighted: boolean;
   messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
   observerRef: MutableRefObject<IntersectionObserver | null>;
   firstUnreadMarkerRef: MutableRefObject<HTMLDivElement | null>;
   getFormattedDateLabel: (timestamp: string) => string;
   getMessageTime: (timestamp: string) => string;
   isOwnMessage: (message: Message) => boolean;
-  isImageMessage: (message: Message) => boolean;
-  renderContent: (message: Message) => React.ReactNode;
+  getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
+  renderMessageContent: (message: Message) => React.ReactNode;
+  playingMessageId: number | null;
+  setPlayingMessageId: (id: number | null) => void;
+  audioState?: AudioState;
+  setAudioStates: React.Dispatch<React.SetStateAction<{ [key: number]: AudioState }>>;
   onMessageClick: (event: React.MouseEvent, message: Message) => void;
   onClick: (event: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
@@ -89,48 +102,36 @@ interface MessageItemProps {
   onResendMessage?: (message: Message) => void;
 }
 
-const isValidTimestamp = (timestamp: string | undefined | null) => {
-  if (!timestamp) return false;
-  try {
-    return !isNaN(parseUtcDate(timestamp).getTime());
-  } catch {
-    return false;
-  }
-};
-
 const MessageItem: React.FC<MessageItemProps> = ({
-  message, index, messages, userId, isGroup, visibleFirstUnreadId, translations, interlocutorDeleted,
-  highlightedMessageId, contextMenuMessageId, tempHighlightedMessageId, messageRefs,
-  observerRef, firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, isImageMessage,
-  renderContent, onMessageClick, onClick, onAvatarClick, onReplyClick,
+  message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage, isMobile, showNewMessagesMarker,
+  nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
+  observerRef, firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
+  renderMessageContent, playingMessageId, setPlayingMessageId, audioState, setAudioStates,
+  onMessageClick, onClick, onAvatarClick, onReplyClick,
   setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
 }) => {
+  const audioStates = useMemo(() => (audioState ? { [message.id]: audioState } : {}), [audioState, message.id]);
   const isMine = isOwnMessage(message);
   const reducedMotion = prefersReducedMotion();
   const isOutgoingSend = isMine && (message.id < 0 || !!message.client_temp_id);
   const isUploadingMessage = isMine && message.upload_status === 'uploading';
   const hasReactions = !!message.reactions?.length;
-  const showNewMessagesMarker = visibleFirstUnreadId === message.id && !isMine;
-  const prevMessage = index > 0 ? messages[index - 1] : null;
-  const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
   const showDateSeparator = !prevMessage || (
     isValidTimestamp(message.timestamp) &&
     isValidTimestamp(prevMessage.timestamp) &&
     getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(prevMessage.timestamp)
   );
-  const isNextMine = nextMessage ? isOwnMessage(nextMessage) : false;
   const senderKey = (item: Message) => isOwnMessage(item) ? 'own' : item.sender_id ? `id:${item.sender_id}` : `name:${(item.sender_username || item.sender || '').toLowerCase()}`;
   const groupedWithPrevious = !!prevMessage && senderKey(message) === senderKey(prevMessage) && !showDateSeparator &&
     !showNewMessagesMarker;
   const groupedWithNext = !!nextMessage && senderKey(message) === senderKey(nextMessage) &&
     !(isValidTimestamp(message.timestamp) && isValidTimestamp(nextMessage.timestamp) &&
       getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(nextMessage.timestamp)) &&
-    !(visibleFirstUnreadId === nextMessage.id && !isNextMine);
+    !nextShowsNewMessagesMarker;
   const isLastInGroup = !groupedWithNext;
   const showSenderName = isGroup && !isMine && !groupedWithPrevious;
   const reserveAvatarSpace = isGroup && !isMine;
   const showAvatar = reserveAvatarSpace && isLastInGroup;
-  const isImage = isImageMessage(message);
   const showTail = isLastInGroup && !isImage;
   const forwardedFrom = message.forwarded_from;
   const forwardedLabel = forwardedFrom
@@ -177,8 +178,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
           }
         }}
         className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} flex ${isMine ? 'justify-end' : 'justify-start'} ${
-          highlightedMessageId === message.id ? 'highlight' : ''
-        } ${contextMenuMessageId === message.id || tempHighlightedMessageId === message.id ? 'context-menu-highlight' : ''} ${
+          isHighlighted ? 'highlight' : ''
+        } ${isContextHighlighted ? 'context-menu-highlight' : ''} ${
           message.is_deleting ? (reducedMotion ? 'message-deleting message-deleting-reduced' : 'message-deleting') : ''
         }`}
         style={{
@@ -217,10 +218,21 @@ const MessageItem: React.FC<MessageItemProps> = ({
               hasReactions ? (isImage ? 'mb-4' : 'mb-3.5') : ''
             }`}>
               {forwardedLabel && <div className="mb-1 text-xs font-medium opacity-70">{forwardedLabel}</div>}
-              {message.reply_to && <ReplyPreview replyMessage={messages.find((item) => item.id === message.reply_to)} isMine={isMine} onClick={handleReply} />}
+              {message.reply_to && <ReplyPreview replyMessage={replyMessage} isMine={isMine} onClick={handleReply} />}
               <div className="relative">
                 {message.is_deleting && !reducedMotion && <DissolveParticles />}
-                {renderContent(message)}
+                <MessageContent
+                  message={message}
+                  isMobile={isMobile}
+                  translations={translations}
+                  getFileTypeConfig={getFileTypeConfig}
+                  isOwnMessage={isOwnMessage}
+                  renderMessageContent={renderMessageContent}
+                  playingMessageId={playingMessageId}
+                  setPlayingMessageId={setPlayingMessageId}
+                  audioStates={audioStates}
+                  setAudioStates={setAudioStates}
+                />
                 {isImage && isValidTimestamp(message.timestamp) && (
                   <div className={`absolute bottom-1 text-[10px] px-2 py-1 bg-gray-500/50 rounded-xl flex items-center space-x-1 ${isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'}`}>
                     {message.edited_at && <span>{translations.edited}</span>}
@@ -276,4 +288,4 @@ const MessageItem: React.FC<MessageItemProps> = ({
   );
 };
 
-export default MessageItem;
+export default memo(MessageItem);
