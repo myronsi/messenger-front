@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import { trackWebSocket } from '@/shared/api/socketRegistry';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
+import { handleHelloEvent } from '@/shared/api/serverHello';
 import { handleChatListWebSocketMessage } from './chatListWebSocketHandlers';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap, WebSocketMessage } from './types';
 
@@ -88,6 +89,8 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
           console.error('Received non-JSON chat list message');
           return;
         }
+
+        if (handleHelloEvent(parsedData)) return;
 
         handleChatListWebSocketMessage(parsedData, {
           usernameRef,

@@ -189,7 +189,14 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
             >
               <Paperclip className="w-5 h-5" />
             </button>
-            <input type="file" ref={fileInputRef} onChange={handleSelectedFileChange} accept={UPLOAD_ACCEPT} className="hidden" />
+            <input
+              type="file"
+              ref={fileInputRef}
+              data-testid="message-file-input"
+              onChange={handleSelectedFileChange}
+              accept={UPLOAD_ACCEPT}
+              className="hidden"
+            />
             {isRecording ? (
               <div className="motion-reply-in flex min-h-10 flex-1 items-center justify-center rounded-full bg-red-50 px-3 text-sm text-red-600">
                 <span className="mr-2 h-2 w-2 rounded-full bg-red-500 motion-presence" />
@@ -202,6 +209,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
               <input
                 type="text"
                 ref={setInputNode}
+                data-testid="message-input-field"
                 value={messageInput}
                 onChange={(event) => setMessageInput(event.target.value)}
                 placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : selectedFile ? (translations.addCaption || 'Add a caption') : translations.writeMessage}

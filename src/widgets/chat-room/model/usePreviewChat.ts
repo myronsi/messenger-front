@@ -1,5 +1,6 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
+import { useDraftState } from '@/shared/hooks/useDraftState';
 import { FileMessageContent, Message, ModalState } from '@/entities/message';
 import { useCreateChatMutation } from '@/entities/chat';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
@@ -33,7 +34,8 @@ export const usePreviewChat = ({
   onChatCreated,
 }: PreviewChatOptions) => {
   const [createChat] = useCreateChatMutation();
-  const [previewMessageInput, setPreviewMessageInput] = useState('');
+  // Keyed by the recipient, so an unsent first message survives a reload.
+  const [previewMessageInput, setPreviewMessageInput] = useDraftState(chatName ? `preview:${chatName}` : null);
   const [previewFailedMessages, setPreviewFailedMessages] = useState<Message[]>([]);
   const [isCreatingPreviewChat, setIsCreatingPreviewChat] = useState(false);
   const [hasPendingApprovalRequest, setHasPendingApprovalRequest] = useState(false);
@@ -46,7 +48,6 @@ export const usePreviewChat = ({
         ? [createPendingApprovalPreviewMessage(initialPendingApprovalMessage)]
         : []
     );
-    setPreviewMessageInput('');
   }, [chatId, chatName, initialPendingApprovalRequest, initialPendingApprovalMessage]);
 
   const getDeliveryBlockedMessage = () => (

@@ -29,6 +29,9 @@ dist-ssr
 
 .env.mobile
 
+playwright-report
+test-results
+
 # Capacitor native build output
 android/app/build
 android/.gradle
@@ -36,3 +39,6 @@ android/local.properties
 ios/App/Pods
 ios/App/build
 ios/DerivedData
+
+# Backend stack started by scripts/backend-up.sh
+.backend-stack

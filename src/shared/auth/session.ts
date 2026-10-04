@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { clearDrafts } from '@/shared/lib/drafts';
+import { getTokenExpiresAt } from '@/shared/auth/tokenClaims';
+import { getUpdateStatus } from '@/shared/api/updateGate';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -13,19 +16,6 @@ let refreshPromise: Promise<string | null> | null = null;
 
 const notifyTokenListeners = (token: string | null) => {
   listeners.forEach((listener) => listener(token));
-};
-
-const getTokenExpiresAt = (token: string) => {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) return null;
-    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const paddedPayload = normalizedPayload.padEnd(normalizedPayload.length + (4 - normalizedPayload.length % 4) % 4, '=');
-    const decodedPayload = JSON.parse(atob(paddedPayload));
-    return typeof decodedPayload.exp === 'number' ? decodedPayload.exp * 1000 : null;
-  } catch {
-    return null;
-  }
 };
 
 const isTokenExpired = (token: string, skewMs = 30_000) => {
@@ -45,9 +35,17 @@ export const setAccessToken = (token: string | null) => {
 };
 
 export const clearAuthTokens = () => {
+  clearDrafts();
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   notifyTokenListeners(null);
+};
+
+// For failures that suggest the session is invalid (refresh or "who am I" failed). When the server answered
+// 426 client_outdated the credentials and drafts are fine; they must survive the reload that installs the update.
+export const dropInvalidSession = () => {
+  if (getUpdateStatus() === 'required') return;
+  clearAuthTokens();
 };
 
 // The device recovery share must not outlive an explicit logout or account deletion.
@@ -65,6 +63,7 @@ export const endSession = () => {
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key === ACCESS_TOKEN_KEY || event.key === null) {
+      if (!event.newValue) clearDrafts();
       notifyTokenListeners(event.key === null ? null : event.newValue);
     }
   });
@@ -89,7 +88,7 @@ export const refreshAccessToken = async () => {
         return refreshed.access_token as string;
       })
       .catch(() => {
-        clearAuthTokens();
+        dropInvalidSession();
         return null;
       })
       .finally(() => {

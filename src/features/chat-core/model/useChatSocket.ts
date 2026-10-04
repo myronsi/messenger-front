@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { trackWebSocket } from '@/shared/api/socketRegistry';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
+import { handleHelloEvent } from '@/shared/api/serverHello';
 import type { ChatTransport } from './types';
 import { parseServerEvent, type ServerEvent } from './socketEvents';
 
@@ -87,6 +88,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
           console.error('Received non-JSON chat message');
           return;
         }
+        if (handleHelloEvent(raw)) return;
         const parsed = parseServerEvent(raw);
         if (!parsed) {
           console.error('Ignoring malformed chat event');
