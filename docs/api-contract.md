@@ -79,7 +79,7 @@ MINOR contract updates must not break the client:
 
 `npm run backend:up [tag]` (`scripts/backend-up.sh`) downloads `deploy/compose.stack.yaml` from
 the matching backend release (or `master`) and starts the backend with all stores from Docker
-images on `http://127.0.0.1:8000`. The default tag is in `scripts/backend-version` (currently `master`, because the first backend release that accepts the client version headers is not published yet; switch it to that release afterwards).
+images on `http://127.0.0.1:8000`. The default tag is in `scripts/backend-version` (currently `v0.5.2`, the first backend release that accepts the client version headers; update it whenever the pinned contract moves to a backend that implements it).
 `scripts/backend-up.sh down` removes it.
 
 `npm run test:smoke` runs the Playwright suite in `e2e/smoke` (register, sign in, open a chat,
