@@ -68,7 +68,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --ignore-scripts
       - name: Pin is exact and matches the lockfile
         run: npm run check:contract
       - name: main only uses a stable contract
@@ -93,7 +93,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --ignore-scripts
       - name: Start the backend
         run: bash scripts/backend-up.sh ${{ github.event_name == 'schedule' && 'master' || '' }}
       - run: ./node_modules/.bin/playwright install --with-deps chromium

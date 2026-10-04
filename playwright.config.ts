@@ -4,7 +4,11 @@ import { defineConfig } from '@playwright/test';
 const DEFAULT_API_URL = 'http://127.0.0.1:8000';
 const APP_URL = 'http://127.0.0.1:5173';
 
-const trimTrailingSlashes = (value: string) => value.replace(/\/+$/, '');
+const trimTrailingSlashes = (value: string) => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end -= 1;
+  return value.slice(0, end);
+};
 
 const toWebSocketUrl = (value: string) => {
   const url = new URL(value);

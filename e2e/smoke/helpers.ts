@@ -11,7 +11,7 @@ export interface SmokeUser {
   password: string;
 }
 
-const uniquePart = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const uniquePart = () => `${Date.now().toString(36)}${crypto.randomUUID().slice(0, 4)}`;
 
 const chatListItemSelector = (chatName: string) => `[data-testid="chat-list-item"][data-chat-name="${chatName}"]`;
 const searchResultSelector = (username: string) => `[data-testid="user-search-result"][data-username="${username}"]`;

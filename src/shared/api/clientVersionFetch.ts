@@ -3,7 +3,7 @@ import { reportClientOutdated } from './updateGate';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-const getApiPrefix = () => new URL(BASE_URL || '/', window.location.href).href.replace(/\/+$/, '');
+const getApiPrefix = () => new URL(BASE_URL || '/', window.location.href).href.replace(/\/$/, '');
 
 const requestUrl = (input: RequestInfo | URL) => {
   const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;

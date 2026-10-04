@@ -17,8 +17,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIR="${BACKEND_STACK_DIR:-$ROOT/.backend-stack}"
 FILE="$DIR/compose.stack.yaml"
 
-if [ "${1:-}" = "down" ]; then
-  [ -f "$FILE" ] && docker compose -f "$FILE" down -v --remove-orphans
+if [[ "${1:-}" == "down" ]]; then
+  [[ -f "$FILE" ]] && docker compose -f "$FILE" down -v --remove-orphans
   exit 0
 fi
 
