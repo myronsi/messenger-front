@@ -32,11 +32,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --legacy-peer-deps
+      # Releases only use a stable, exactly pinned contract (docs/api-contract.md).
+      - run: npm run check:contract -- --stable
       - run: npm run build
         env:
           GITHUB_SHA: ${{ github.sha }}
           VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
           VITE_WS_URL: ${{ vars.VITE_WS_URL }}
+          # The contract version the target backend implements (Python backend: 1.0.0).
+          VITE_CLIENT_API_VERSION: ${{ vars.VITE_CLIENT_API_VERSION || '1.0.0' }}
       - name: Package dist
         run: tar -czf messenger-front-${{ needs.release-please.outputs.tag_name }}-dist.tar.gz -C dist .
       - name: Attach dist to the GitHub Release

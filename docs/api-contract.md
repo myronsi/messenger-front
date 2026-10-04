@@ -11,9 +11,10 @@ The frontend is built against the released contract package
 - `npm run generate:api` generates `src/shared/api/generated/schema.d.ts` from the package's
   `openapi.yaml`. The generated file is committed; CI regenerates it and fails if it differs.
 - `npm run check:contract` verifies the pin is exact and matches the lockfile.
-  `npm run check:contract -- --stable` additionally rejects `next` snapshots. CI runs it on `main`,
+  `npm run check:contract -- --stable` additionally rejects `next` snapshots. CI runs it on `main` and the release build runs it before building,
   so releases only use stable contracts.
 - WebSocket event types come from `@myronsi/messenger-api/ws-events`.
+- Today the generated types are used for `/meta` and the `hello` event. The chat screens still use handwritten models for the legacy Python routes; they move to the generated types together with the v2 migration, so `tsc` only guards those parts once that is done.
 
 ### Updating the contract
 
@@ -29,7 +30,7 @@ The frontend is built against the released contract package
 
 `npm run dev:mock` (same as `VITE_API_MOCK=true`) starts [Prism](https://stoplight.io/open-source/prism)
 from the contract and points the frontend at it, so UI work can start before the backend
-endpoint exists. WebSocket events are not mocked.
+endpoint exists. WebSocket events are not mocked. Prism serves the v2 contract paths (`/me`, `/chats`, `/groups`, ...); screens that still call the legacy Python routes (for example `/auth/me`, `/chats/list/{username}`) get "route not found" until they are migrated to the v2 API.
 
 ## Client version headers
 
@@ -42,7 +43,7 @@ Every request to the backend, including the WebSocket ticket request and uploads
 
 By default the contract version is `API_VERSION` from the package. `VITE_CLIENT_API_VERSION`
 overrides it. The Python backend implements contract `1.0.0`, so builds served by it must set
-`VITE_CLIENT_API_VERSION=1.0.0` (the smoke tests do).
+`VITE_CLIENT_API_VERSION=1.0.0`. The release build does this through the repository variable `VITE_CLIENT_API_VERSION` (default `1.0.0`); set the variable to the new contract version when production moves to the Go backend. The smoke tests also default to `1.0.0`.
 
 ## Outdated clients and new deployments
 
@@ -53,11 +54,11 @@ overrides it. The Python backend implements contract `1.0.0`, so builds served b
 | `min_client_api_version` is higher than the client's contract version | blocking dialog |
 | `vite:preloadError` (lazy chunk missing after a deploy) | reload once |
 
-Unsent message drafts are kept in `sessionStorage` and restored after the reload. They are
-removed when the session ends.
+Unsent message drafts (including the first message to a new contact) are kept in `sessionStorage`, per account and conversation, and restored after the reload. Text of a message that is being edited is not stored. Drafts are removed when the tokens are cleared (sign-out, failed refresh, or sign-out in another tab).
 
-The Python backend's `GET /version` has no API version fields, so the focus check only works
-with the Go backend's `/api/v2/meta`. `hello` and `426` work with both.
+In the native (Capacitor) apps a reload cannot update the bundled assets, so the dialog and banner tell the user to install the update from the app store instead of offering **Reload**. In the browser, **Reload** first waits (up to a few seconds) for a new service worker to take control, so the reload loads the new build.
+
+The focus check calls `/api/v2/meta` relative to `VITE_BASE_URL` (the host root, an `/api` prefix, or an `/api/v2` base all work). The Python backend's `GET /version` has no API version fields, so the check only works with the Go backend. `hello` and `426` work with both.
 
 ## Tolerant client
 

@@ -21,6 +21,10 @@ describe('compareVersions', () => {
     ['2.0.0-alpha.2', '2.0.0-alpha.1', 1],
     ['2.0.0-alpha.1.next.29', '2.0.0-alpha.1', 1],
     ['2.0.0-alpha.10', '2.0.0-alpha.9', 1],
+    ['2.0.0-9', '2.0.0-1a', -1],
+    ['2.0.0-1a', '2.0.0-9', 1],
+    ['2.0.0-alpha.9007199254740993', '2.0.0-alpha.9007199254740992', 1],
+    ['2.0.0-alpha.1', '2.0.0-alpha.1.0', -1],
   ])('compares %s with %s', (a, b, expected) => {
     expect(compareVersions(a, b)).toBe(expected);
   });
