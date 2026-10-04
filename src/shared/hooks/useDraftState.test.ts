@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearAuthTokens } from '@/shared/auth/session';
+import { reportClientOutdated, resetUpdateStatusForTests } from '@/shared/api/updateGate';
+import { clearAuthTokens, dropInvalidSession } from '@/shared/auth/session';
 import { draftId, readDraft } from '@/shared/lib/drafts';
 import { useDraftState } from './useDraftState';
 
@@ -10,6 +11,7 @@ describe('useDraftState', () => {
   beforeEach(() => {
     sessionStorage.clear();
     localStorage.clear();
+    resetUpdateStatusForTests();
     signIn('1');
   });
 
@@ -68,6 +70,26 @@ describe('useDraftState', () => {
     act(() => { signIn('2'); window.dispatchEvent(new StorageEvent('storage', { key: 'access_token', newValue: localStorage.getItem('access_token') })); });
     expect(result.current[0]).toBe('');
     expect(readDraft(draftId('2', 'chat:5'))).toBe('');
+  });
+
+  it('removes the stored draft synchronously when it is cleared, even if the component unmounts at once', () => {
+    const { result, unmount } = renderHook(() => useDraftState('chat:5'));
+    act(() => result.current[1]('first message'));
+    act(() => { result.current[1](''); unmount(); });
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('keeps tokens and drafts when the server reported an outdated client', () => {
+    sessionStorage.setItem('draft:1:chat:5', 'unsent');
+    reportClientOutdated();
+    dropInvalidSession();
+    expect(localStorage.getItem('access_token')).not.toBeNull();
+    expect(sessionStorage.getItem('draft:1:chat:5')).toBe('unsent');
+
+    resetUpdateStatusForTests();
+    dropInvalidSession();
+    expect(localStorage.getItem('access_token')).toBeNull();
+    expect(sessionStorage.getItem('draft:1:chat:5')).toBeNull();
   });
 
   it('is cleared when the tokens are cleared, in this tab or another one', () => {

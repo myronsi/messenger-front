@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { CurrentChat, directChatPath, dmPath, parseProfileUsername } from './messengerRoutes';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { authFetch, clearAuthTokens } from '@/shared/auth/session';
+import { authFetch, dropInvalidSession } from '@/shared/auth/session';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
 
@@ -54,7 +54,7 @@ export const useMessengerController = () => {
         setIsLoggedIn(true);
         setUsername(user.username);
       } catch {
-        clearAuthTokens();
+        dropInvalidSession();
         setIsLoggedIn(false);
         setUsername('');
       } finally {

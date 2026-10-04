@@ -23,8 +23,11 @@ export const useDraftState = (key: string | null, persist = true) => {
   const setValue = useCallback((next: SetStateAction<string>) => {
     const resolved = typeof next === 'function' ? next(valueRef.current) : next;
     valueRef.current = resolved;
+    // An empty value is removed right away: the component may unmount (for example after the first message
+    // creates the chat) before the effect below runs.
+    if (persist && !resolved.trim()) writeDraft(id, resolved);
     setDraft({ id, value: resolved });
-  }, [id]);
+  }, [id, persist]);
 
   return [value, setValue] as const;
 };

@@ -26,6 +26,18 @@ describe('handlePreloadError', () => {
     expect(second.defaultPrevented).toBe(false);
   });
 
+  it('lets the error surface when sessionStorage cannot be used', () => {
+    const reload = vi.fn();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    const event = new Event('vite:preloadError', { cancelable: true });
+
+    expect(handlePreloadError(event, 1_000, reload)).toBe(false);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    setItem.mockRestore();
+  });
+
   it('reloads again for a later deploy', () => {
     const reload = vi.fn();
     handlePreloadError(new Event('vite:preloadError', { cancelable: true }), 1_000, reload);

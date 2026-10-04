@@ -117,7 +117,8 @@ export const approvePendingRequestIfPresent = async (page: Page, requesterUserna
   await openProfile(page);
 
   const requestInboxButton = page.getByRole('button', { name: /Request inbox/i });
-  const hasRequestInbox = await requestInboxButton.isVisible({ timeout: 5_000 }).catch(() => false);
+  // The button appears only after the inbox query returns, so wait for it instead of checking once.
+  const hasRequestInbox = await requestInboxButton.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false);
 
   if (!hasRequestInbox) {
     await closeProfile(page);

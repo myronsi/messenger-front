@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { clearDrafts } from '@/shared/lib/drafts';
 import { getTokenExpiresAt } from '@/shared/auth/tokenClaims';
+import { getUpdateStatus } from '@/shared/api/updateGate';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -38,6 +39,13 @@ export const clearAuthTokens = () => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   notifyTokenListeners(null);
+};
+
+// For failures that suggest the session is invalid (refresh or "who am I" failed). When the server answered
+// 426 client_outdated the credentials and drafts are fine; they must survive the reload that installs the update.
+export const dropInvalidSession = () => {
+  if (getUpdateStatus() === 'required') return;
+  clearAuthTokens();
 };
 
 // The device recovery share must not outlive an explicit logout or account deletion.
@@ -80,7 +88,7 @@ export const refreshAccessToken = async () => {
         return refreshed.access_token as string;
       })
       .catch(() => {
-        clearAuthTokens();
+        dropInvalidSession();
         return null;
       })
       .finally(() => {
