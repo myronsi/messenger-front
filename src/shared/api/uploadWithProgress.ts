@@ -1,5 +1,6 @@
 import { asApiError } from '@/shared/lib/apiError';
 import { ensureAccessToken, refreshAccessToken } from '@/shared/auth/session';
+import { applyClientVersionToXhr, reportIfClientOutdated } from '@/shared/api/clientVersionFetch';
 
 interface UploadWithProgressOptions {
   url: string;
@@ -12,6 +13,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithPro
     const xhr = new XMLHttpRequest();
 
     xhr.open('POST', url);
+    applyClientVersionToXhr(xhr);
     if (token) {
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     }
@@ -39,6 +41,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithPro
         return;
       }
 
+      reportIfClientOutdated(xhr.status, parsedBody);
       reject({ status: xhr.status, body: parsedBody });
     };
 

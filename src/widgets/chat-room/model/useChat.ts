@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Message, ModalState } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useDraftState } from '@/shared/hooks/useDraftState';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
 
@@ -21,7 +22,7 @@ export const useChat = (
   onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [messageInput, setMessageInput] = useState('');
+  const [messageInput, setMessageInput] = useDraftState(chatId);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number; isMine: boolean } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);

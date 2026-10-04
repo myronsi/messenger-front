@@ -134,3 +134,5 @@ Layers may only import from layers below them (`app` > `pages` > `widgets` > `fe
 
 This project follows Semantic Versioning and Conventional Commits. See [docs/versioning.md](docs/versioning.md) for the scheme and [docs/releasing.md](docs/releasing.md) for the release checklist.
 
+The API layer is generated from the released contract package; see [docs/api-contract.md](docs/api-contract.md) for the mock backend (`npm run dev:mock`), local backend (`npm run backend:up`), smoke tests and outdated-client handling.
+

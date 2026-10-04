@@ -5,7 +5,7 @@ Both repositories (`messenger-front`, `messenger-back`) follow [Semantic Version
 | Number | Where | Rule |
 | --- | --- | --- |
 | App version | git tags `vX.Y.Z`, GitHub Releases, `package.json` | SemVer; shown in **Profile → About** |
-| API contract version | `@myronsi/messenger-api` (MSGC-60) | MAJOR = breaking change, MINOR = backwards-compatible addition, PATCH = docs and fixes |
+| API contract version | `@myronsi/messenger-api` (see [api-contract.md](api-contract.md)) | MAJOR = breaking change, MINOR = backwards-compatible addition, PATCH = docs and fixes |
 
 Compatibility is decided by the API contract version, not by app versions. The baseline is `v0.4.0`.
 

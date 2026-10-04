@@ -4,6 +4,7 @@ import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
 import { useAppDispatch } from '@/shared/hooks/redux';
+import { useDraftState } from '@/shared/hooks/useDraftState';
 import { useChatTransport, useLatest, useMessageHistory, useMessageSender } from '@/features/chat-core';
 import type { GroupDetails } from './GroupProfileTypes';
 import { useGroupChatSocket } from './useGroupChatSocket';
@@ -23,7 +24,7 @@ export const useGroupChatScreen = ({
   const translations = rawTranslations as unknown as GroupTranslations;
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [messageInput, setMessageInput] = useState('');
+  const [messageInput, setMessageInput] = useDraftState(chatId);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);

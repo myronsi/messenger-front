@@ -22,6 +22,12 @@ describe('parseServerEvent', () => {
     expect(parseServerEvent(raw)).toBe(raw);
   });
 
+  // MINOR contract updates may add fields and event types; the client must keep working.
+  it('keeps events that carry unknown extra fields', () => {
+    const raw = { type: 'delete', message_id: 3, added_in_a_minor_release: { nested: true } };
+    expect(parseServerEvent(raw)).toBe(raw);
+  });
+
   it('maps unhandled types to an unknown event', () => {
     expect(parseServerEvent({ type: 'something_new' })).toEqual({ type: 'unknown', rawType: 'something_new' });
   });

@@ -51,6 +51,8 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
                         if (isSelf) return;
                         if (onOpenPreview) onOpenPreview(u.username);
                       }}
+                      data-testid="user-search-result"
+                      data-username={u.username}
                       role="button"
                       tabIndex={isSelf ? -1 : 0}
                       aria-disabled={isSelf}

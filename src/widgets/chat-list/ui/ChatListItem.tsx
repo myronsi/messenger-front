@@ -33,6 +33,8 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
 
   return (
     <div
+      data-testid="chat-list-item"
+      data-chat-name={chat.name}
       onClick={() => onClick(chat)}
       onContextMenu={(event) => onContextMenu(event, chat)}
       className={`motion-list-item motion-press flex items-center p-3 rounded-lg cursor-pointer ${

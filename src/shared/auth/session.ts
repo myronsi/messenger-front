@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { clearDrafts } from '@/shared/lib/drafts';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -58,6 +59,7 @@ export const clearStoredRecoveryParts = () => {
 
 export const endSession = () => {
   clearStoredRecoveryParts();
+  clearDrafts();
   clearAuthTokens();
 };
 

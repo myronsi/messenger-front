@@ -1,9 +1,11 @@
 import { messengerApi } from '@/shared/api/baseApi';
+import type { components } from '@/shared/api/generated/schema';
 
 export interface ServerVersionInfo {
   serverVersion: string;
   commit?: string;
   apiVersion?: string;
+  minClientApiVersion?: string;
 }
 
 interface PythonVersionResponse {
@@ -11,11 +13,7 @@ interface PythonVersionResponse {
   commit?: string;
 }
 
-interface MetaResponse {
-  backend_version: string;
-  commit?: string;
-  api_version?: string;
-}
+type MetaResponse = Partial<components['schemas']['Meta']>;
 
 export const versionApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -27,13 +25,15 @@ export const versionApi = messengerApi.injectEndpoints({
           return { data: { serverVersion: version, commit } };
         }
 
+        // The v2 contract is served under /api/v2: the base URL is either the host root or already ends in /api/v2.
         const meta = await fetchWithBQ('/api/v2/meta');
-        if (meta.data) {
-          const { backend_version, commit, api_version } = meta.data as MetaResponse;
-          return { data: { serverVersion: backend_version, commit, apiVersion: api_version } };
+        const metaFromBase = meta.data ? meta : await fetchWithBQ('/meta');
+        if (metaFromBase.data) {
+          const { backend_version, commit, api_version, min_client_api_version } = metaFromBase.data as MetaResponse;
+          return { data: { serverVersion: backend_version ?? '', commit, apiVersion: api_version, minClientApiVersion: min_client_api_version } };
         }
 
-        return { error: meta.error ?? legacy.error! };
+        return { error: metaFromBase.error ?? legacy.error! };
       },
     }),
   }),

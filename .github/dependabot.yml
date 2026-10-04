@@ -8,7 +8,14 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      # A new version of the API contract gets its own PR so CI (regenerate, tsc, smoke tests)
+      # shows whether the frontend fits it. Only stable versions reach main (see docs/versioning.md).
+      api-contract:
+        patterns:
+          - "@myronsi/messenger-api"
       minor-and-patch:
+        exclude-patterns:
+          - "@myronsi/messenger-api"
         update-types:
           - minor
           - patch

@@ -1,9 +1,10 @@
 import { defineConfig } from "vitest/config";
-import { loadEnv } from "vite";
+import { loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 
 const { version: packageVersion } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8")) as { version: string };
 
@@ -24,9 +25,29 @@ const assertAbsoluteMobileUrls = (env: Record<string, string>) => {
   }
 };
 
+// VITE_API_MOCK=true serves the API from the contract package with Prism, so UI work can start before an endpoint exists.
+const MOCK_API_PORT = 4010;
+const mockApiPlugin = (): Plugin => ({
+  name: "mock-api",
+  apply: "serve",
+  configureServer(server) {
+    const prism = spawn(
+      process.execPath,
+      [
+        "node_modules/@stoplight/prism-cli/dist/index.js", "mock", "node_modules/@myronsi/messenger-api/dist/openapi.yaml",
+        "-p", String(MOCK_API_PORT), "--cors",
+      ],
+      { stdio: "inherit" },
+    );
+    server.httpServer?.once("close", () => prism.kill());
+    process.once("exit", () => prism.kill());
+  },
+});
+
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   const isMobile = mode === "mobile";
+  const useMockApi = command === "serve" && loadEnv(mode, process.cwd(), "VITE_").VITE_API_MOCK === "true";
   if (isMobile && command === "build") {
     assertAbsoluteMobileUrls(loadEnv(mode, process.cwd(), "VITE_"));
   }
@@ -39,9 +60,11 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? packageVersion),
       __APP_COMMIT__: JSON.stringify(process.env.GITHUB_SHA?.slice(0, 7) ?? 'dev'),
+      ...(useMockApi ? { 'import.meta.env.VITE_BASE_URL': JSON.stringify(`http://127.0.0.1:${MOCK_API_PORT}`) } : {}),
     },
     plugins: [
       react(),
+      ...(useMockApi ? [mockApiPlugin()] : []),
       VitePWA({
         // The native shell already bundles the assets, a service worker would only serve stale builds there.
         disable: isMobile || Boolean(process.env.VITEST),
