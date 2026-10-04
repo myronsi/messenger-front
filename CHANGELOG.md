@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/myronsi/messenger-front/compare/v0.5.0...v0.6.0) (2026-10-04)
+
+
+### Features
+
+* **api:** use the contract package and detect outdated clients ([#101](https://github.com/myronsi/messenger-front/issues/101)) ([86682c0](https://github.com/myronsi/messenger-front/commit/86682c0106a4d675fda79b0aa7cd92d491cb44ac))
+
+
+### Bug Fixes
+
+* **api:** pin the released contract 2.0.0-alpha.1 and backend v0.5.2 ([#107](https://github.com/myronsi/messenger-front/issues/107)) ([86f596f](https://github.com/myronsi/messenger-front/commit/86f596f662d9be341c45bfe988fed6f1c520380a))
+
+
+### Miscellaneous Chores
+
+* start the 0.6 release train ([#103](https://github.com/myronsi/messenger-front/issues/103)) ([7173179](https://github.com/myronsi/messenger-front/commit/717317998a5efb446ed2da9b36f97bb813653cab))
+
 ## [0.5.0](https://github.com/myronsi/messenger-front/compare/v0.4.7...v0.5.0) (2026-10-03)
 
 
