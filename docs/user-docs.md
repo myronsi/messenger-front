@@ -18,6 +18,9 @@ Links to the page: the sign-in screen footer and Profile -> About -> "Help & doc
 The text lives in `src/shared/lang/en/docs.ts` and `src/shared/lang/ru/docs.ts`.
 
 - `docs.sections` are the how-to sections; each `id` is the URL anchor (for example `/docs#groups`), so keep ids stable and identical in both languages.
-- `docs.upcoming` is the "Upcoming features" list. Remove an item when the feature ships.
+- `docs.upcoming` is the "Upcoming features" list. Remove an item when the feature ships. Section and upcoming icons are mapped by `id` in `src/pages/docs/model/docsIcons.ts`.
+- "What's new" is generated at build time from `CHANGELOG.md` (`src/pages/docs/model/parseChangelog.ts`): the latest 5 releases, only the Features, Bug Fixes and Performance Improvements sections, with scopes, links and duplicate entries removed. The entries come from Conventional Commit messages, so write `feat`/`fix`/`perf` PR titles that make sense to users. Entries are English in both languages.
 - Use the same button and menu labels as the app (see the other files in `src/shared/lang`).
-- `src/pages/docs/DocsPage.test.tsx` checks that both languages have the same sections.
+- `src/pages/docs/DocsPage.test.tsx` checks that both languages have the same sections and upcoming items.
+
+The page reuses the app's look (the profile panel shell, card sections and icon tiles), so keep new UI in the same style.

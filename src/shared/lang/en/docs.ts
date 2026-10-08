@@ -2,8 +2,9 @@ export const docs = {
   docsLink: "Help & docs",
   docs: {
     title: "Messenger help",
-    subtitle: "Short instructions for everyday tasks and what is coming next.",
+    subtitle: "Short instructions for everyday tasks, recent updates and what is coming next.",
     backToApp: "Back to the app",
+    stepsCount: "{count} steps",
     contents: "Contents",
     sections: [
       {
@@ -77,9 +78,13 @@ export const docs = {
     upcomingTitle: "Upcoming features",
     upcomingIntro: "We are working on these. Plans can change, so there are no dates yet.",
     upcoming: [
-      { title: "Notifications", description: "Push notifications and per-chat notification settings, including mute." },
-      { title: "Password reset by email", description: "An optional way to recover your account without the QR code." },
-      { title: "Mobile apps", description: "Android and iOS apps in the app stores." },
+      { id: "notifications", title: "Notifications", description: "Push notifications and per-chat notification settings, including mute." },
+      { id: "email-recovery", title: "Password reset by email", description: "An optional way to recover your account without the QR code." },
+      { id: "mobile-apps", title: "Mobile apps", description: "Android and iOS apps in the app stores." },
     ],
+    whatsNewTitle: "What's new",
+    whatsNewIntro: "Changes in the latest versions of the app.",
+    version: "Version {version}",
+    changeKinds: { features: "New", fixes: "Fixed", performance: "Faster" },
   },
 };
