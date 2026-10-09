@@ -41,6 +41,11 @@ describe('cleanChangelogEntry', () => {
   it('drops the scope, the issue and commit links and capitalises the text', () => {
     expect(cleanChangelogEntry('**chat:** add stickers ([#12](https://x/12)) ([abc1234](https://x/abc1234))')).toBe('Add stickers');
   });
+
+  it('drops the closes suffix release-please adds after the commit link', () => {
+    expect(cleanChangelogEntry('**chat:** add stickers ([abc1234](https://x/abc1234)), closes [#26](https://x/26)')).toBe('Add stickers');
+    expect(cleanChangelogEntry('add stickers ([abc1234](https://x/abc1234)), closes [#26](https://x/26), [#27](https://x/27)')).toBe('Add stickers');
+  });
 });
 
 describe('parseChangelog', () => {

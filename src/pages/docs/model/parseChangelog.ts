@@ -17,9 +17,10 @@ const RELEASE_HEADING = /^##\s+\[?([^\]\s]+)\]?(?:\([^)]*\))?(?:\s+\((\d{4}-\d{2
 const SECTION_HEADING = /^###\s+(.+?)\s*$/;
 const ENTRY = /^\*\s+(.+)$/;
 
-// "**chat:** make it faster ([#12](...)) ([abc123](...))" -> "Make it faster"
+// "**chat:** make it faster ([#12](...)) ([abc123](...)), closes [#7](...)" -> "Make it faster"
 export const cleanChangelogEntry = (entry: string) => {
   const text = entry
+    .replace(/,\s*closes\s+\[[^\]]*\]\([^)]*\)(?:,\s*\[[^\]]*\]\([^)]*\))*\s*$/i, '')
     .replace(/(?:\s*\(\[[^\]]*\]\([^)]*\)\))+\s*$/, '')
     .replace(/^\*\*[^*]+:\*\*\s*/, '')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')

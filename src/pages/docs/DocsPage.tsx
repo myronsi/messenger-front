@@ -30,7 +30,12 @@ const DocsPage = () => {
 
   // The page is lazy-loaded, so the browser cannot jump to /docs#section on its own.
   useEffect(() => {
-    const id = decodeURIComponent(hash.slice(1));
+    let id: string;
+    try {
+      id = decodeURIComponent(hash.slice(1));
+    } catch {
+      return; // malformed fragment such as /docs#%
+    }
     if (id) document.getElementById(id)?.scrollIntoView();
   }, [hash]);
 

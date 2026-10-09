@@ -7,9 +7,9 @@ import { en } from '@/shared/lang/en';
 import { ru } from '@/shared/lang/ru';
 import DocsPage from './DocsPage';
 
-const renderDocs = () => render(
+const renderDocs = (path = '/docs') => render(
   <LanguageProvider>
-    <MemoryRouter initialEntries={['/docs']}>
+    <MemoryRouter initialEntries={[path]}>
       <DocsPage />
     </MemoryRouter>
   </LanguageProvider>,
@@ -50,6 +50,12 @@ describe('DocsPage', () => {
   it('defaults to Russian like the rest of the app', () => {
     renderDocs();
     expect(screen.getByRole('heading', { level: 1, name: ru.docs.title })).toBeInTheDocument();
+  });
+
+  it('ignores a malformed anchor instead of crashing', () => {
+    localStorage.setItem('language', 'en');
+    renderDocs('/docs#%');
+    expect(screen.getByRole('heading', { level: 1, name: en.docs.title })).toBeInTheDocument();
   });
 
   it('keeps the same sections in both languages', () => {
