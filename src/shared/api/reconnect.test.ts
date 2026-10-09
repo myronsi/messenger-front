@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reconnectDelay, shouldReconnect } from './reconnect';
+import { closeForGood, reconnectDelay, shouldReconnect } from './reconnect';
 
 describe('reconnectDelay', () => {
   it('doubles per attempt and stays within half to full of the ceiling', () => {
@@ -13,11 +13,20 @@ describe('reconnectDelay', () => {
   });
 });
 
+const fakeSocket = () => ({ close: () => undefined }) as unknown as WebSocket;
+
 describe('shouldReconnect', () => {
   it('retries server and network closes but not policy violations', () => {
-    expect(shouldReconnect(1000)).toBe(true);
-    expect(shouldReconnect(1006)).toBe(true);
-    expect(shouldReconnect(1012)).toBe(true);
-    expect(shouldReconnect(1008)).toBe(false);
+    const socket = fakeSocket();
+    expect(shouldReconnect(socket, 1000)).toBe(true);
+    expect(shouldReconnect(socket, 1006)).toBe(true);
+    expect(shouldReconnect(socket, 1012)).toBe(true);
+    expect(shouldReconnect(socket, 1008)).toBe(false);
+  });
+
+  it('does not reopen a socket closed for good by the client', () => {
+    const socket = fakeSocket();
+    closeForGood(socket, 'Chat deleted');
+    expect(shouldReconnect(socket, 1000)).toBe(false);
   });
 });

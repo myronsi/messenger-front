@@ -1,5 +1,6 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useCallback } from 'react';
+import { closeForGood } from '@/shared/api/reconnect';
 import type { MutableRefObject } from 'react';
 import { useChatSocket, useMessageEvents, type ChatTransport, type ServerEvent } from '@/features/chat-core';
 import type { Message, ModalState } from '@/entities/message';
@@ -35,7 +36,7 @@ export const useGroupChatSocket = ({
       else void refreshGroupDetails();
       if (event.removed_username === username) {
         setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
-        socket.close(1000, 'Removed from group');
+        closeForGood(socket, 'Removed from group');
         setTimeout(() => onBackRef.current(), 1000);
       }
     } else if ((event.type === 'group_invite_rejected' || event.type === 'group_invite_approved') && event.chat_id === chatId) {

@@ -30,15 +30,20 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
   const onReconnectedRef = useRef(onReconnected);
   onReconnectedRef.current = onReconnected;
   const openedChatIdRef = useRef<number | null>(null);
+  // Survives the effect re-runs caused by requestReconnect(), so a socket the server rejected stays closed.
+  const rejectedRef = useRef(false);
   const isSignedIn = Boolean(token);
 
   useEffect(() => {
-    if (!isSignedIn || chatId <= 0) return undefined;
+    rejectedRef.current = false;
+  }, [chatId, isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn || chatId <= 0 || rejectedRef.current) return undefined;
     let isMounted = true;
     let reconnectAttempts = 0;
     let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let isRequestingTicket = false;
-    let isRejected = false;
 
     const scheduleReconnect = () => {
       reconnectAttempts += 1;
@@ -49,7 +54,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
 
     const reconnectNow = () => {
       const current = wsRef.current;
-      if (!isMounted || isRejected || isRequestingTicket || (current && current.readyState !== WebSocket.CLOSED)) return;
+      if (!isMounted || rejectedRef.current || isRequestingTicket || (current && current.readyState !== WebSocket.CLOSED)) return;
       if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
       reconnectTimeoutId = null;
       void connect();
@@ -97,9 +102,10 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
           if (wsRef.current === socket) wsRef.current = null;
           return;
         }
+        // Failed attempts before the first open count too: messages may have arrived after the history loaded.
+        const isReconnect = openedChatIdRef.current === chatId || reconnectAttempts > 0;
         reconnectAttempts = 0;
         flushQueue(socket);
-        const isReconnect = openedChatIdRef.current === chatId;
         openedChatIdRef.current = chatId;
         if (isReconnect) onReconnectedRef.current?.();
       };
@@ -129,8 +135,8 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
       socket.onclose = (event) => {
         if (wsRef.current === socket) wsRef.current = null;
         if (!isMounted) return;
-        if (shouldReconnect(event.code)) scheduleReconnect();
-        else isRejected = true;
+        if (shouldReconnect(socket, event.code)) scheduleReconnect();
+        else rejectedRef.current = true;
       };
     };
 

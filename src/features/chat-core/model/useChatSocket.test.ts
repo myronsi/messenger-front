@@ -26,11 +26,14 @@ class FakeWebSocket {
   drop(code = 1006) { this.readyState = FakeWebSocket.CLOSED; this.onclose?.({ code }); }
 }
 
-const transport = (): ChatTransport => ({
-  wsRef: { current: null },
-  messageQueueRef: { current: [] },
-  pendingMessageIdsRef: { current: [] },
-  connectionRetryKey: 0,
+const wsRef = { current: null as WebSocket | null };
+const messageQueueRef = { current: [] };
+const pendingMessageIdsRef = { current: [] };
+const transport = (connectionRetryKey = 0): ChatTransport => ({
+  wsRef,
+  messageQueueRef,
+  pendingMessageIdsRef,
+  connectionRetryKey,
   requestReconnect: () => undefined,
 });
 
@@ -41,6 +44,7 @@ describe('useChatSocket', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     FakeWebSocket.instances = [];
+    wsRef.current = null;
     vi.stubGlobal('WebSocket', FakeWebSocket);
   });
   afterEach(() => {
@@ -51,10 +55,9 @@ describe('useChatSocket', () => {
   const setup = (token = 'a') => {
     const onReconnected = vi.fn();
     const onConnectionFailed = vi.fn();
-    const chatTransport = transport();
-    const hook = renderHook(({ token: current }) => useChatSocket({
-      chatId: 7, token: current, transport: chatTransport, onEvent: () => undefined, onConnectionFailed, onReconnected,
-    }), { initialProps: { token } });
+    const hook = renderHook(({ token: current, retryKey }) => useChatSocket({
+      chatId: 7, token: current, transport: transport(retryKey), onEvent: () => undefined, onConnectionFailed, onReconnected,
+    }), { initialProps: { token, retryKey: 0 } });
     return { ...hook, onReconnected, onConnectionFailed };
   };
 
@@ -62,7 +65,7 @@ describe('useChatSocket', () => {
     const { rerender } = setup();
     await flush();
     act(() => latestSocket().open());
-    rerender({ token: 'b' });
+    rerender({ token: 'b', retryKey: 0 });
     await flush();
     expect(FakeWebSocket.instances).toHaveLength(1);
     expect(latestSocket().readyState).toBe(FakeWebSocket.OPEN);
@@ -79,6 +82,24 @@ describe('useChatSocket', () => {
     act(() => latestSocket().open());
     expect(FakeWebSocket.instances).toHaveLength(2);
     expect(onReconnected).toHaveBeenCalledTimes(1);
+  });
+
+  it('catches up when the first open only succeeds after failed attempts', async () => {
+    const { onReconnected } = setup();
+    await flush();
+    act(() => latestSocket().drop());
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    act(() => latestSocket().open());
+    expect(onReconnected).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a rejected socket closed when a send asks for a reconnect', async () => {
+    const { rerender } = setup();
+    await flush();
+    act(() => latestSocket().drop(1008));
+    rerender({ token: 'a', retryKey: 1 });
+    await flush();
+    expect(FakeWebSocket.instances).toHaveLength(1);
   });
 
   it('keeps retrying after reporting the outage once', async () => {

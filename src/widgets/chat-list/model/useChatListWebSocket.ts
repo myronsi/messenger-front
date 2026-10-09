@@ -100,10 +100,11 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
 
       socket.onopen = () => {
         if (!isMounted) return;
+        // Last messages and unread counts may have changed while the socket was down,
+        // including during failed attempts before the first open.
+        if (hasOpened || reconnectAttempts > 0) refetchRef.current();
         reconnectAttempts = 0;
         refetchRequestInboxRef.current();
-        // Last messages and unread counts may have changed while the socket was down.
-        if (hasOpened) refetchRef.current();
         hasOpened = true;
       };
 
@@ -138,7 +139,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
       socket.onclose = (event) => {
         if (wsRef.current === socket) wsRef.current = null;
         if (!isMounted) return;
-        if (shouldReconnect(event.code)) scheduleReconnect();
+        if (shouldReconnect(socket, event.code)) scheduleReconnect();
         else isRejected = true;
       };
 
