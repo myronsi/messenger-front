@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import {
   LoginComponent,
   PartsRecoveryComponent,
@@ -16,7 +16,7 @@ interface AuthFlowPageProps {
 
 const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, translations } = useLanguage();
   const handleBackToLogin = () => navigate('/login');
 
   return (
@@ -59,6 +59,9 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+          <p className="text-center text-sm">
+            <Link to="/docs" className="text-blue-600 hover:underline">{translations.docsLink}</Link>
+          </p>
         </div>
       </div>
     </>
