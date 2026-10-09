@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/myronsi/messenger-front/compare/v0.6.0...v0.6.1) (2026-10-09)
+
+
+### Features
+
+* **docs:** add public help page with what's new and upcoming features ([#108](https://github.com/myronsi/messenger-front/issues/108)) ([30c03a4](https://github.com/myronsi/messenger-front/commit/30c03a47b10644c5944797098ec5ccefc2880b84))
+
 ## [0.6.0](https://github.com/myronsi/messenger-front/compare/v0.5.0...v0.6.0) (2026-10-04)
 
 
