@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/myronsi/messenger-front/compare/v0.6.1...v0.6.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **chat:** keep sockets across token refreshes and catch up after reconnects ([#110](https://github.com/myronsi/messenger-front/issues/110)) ([4d25ac0](https://github.com/myronsi/messenger-front/commit/4d25ac06559f3ef11e81564652b756ff3797a5b8))
+
 ## [0.6.1](https://github.com/myronsi/messenger-front/compare/v0.6.0...v0.6.1) (2026-10-09)
 
 
