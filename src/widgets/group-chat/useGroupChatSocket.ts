@@ -20,12 +20,14 @@ interface UseGroupChatSocketArgs {
   setModal: React.Dispatch<React.SetStateAction<ModalState | null>>;
   markMessageFailed: (messageId: number, message?: string) => boolean;
   markLatestPendingMessageFailed: (message?: string) => boolean;
+  onReconnected: () => void;
 }
 
 // Group chats reuse the shared message socket and only add the group-membership events on top.
 export const useGroupChatSocket = ({
   token, chatId, username, translations, transport, currentUserIdRef, translationsRef, onBackRef,
   applyGroupDetails, refreshGroupDetails, setMessages, setModal, markMessageFailed, markLatestPendingMessageFailed,
+  onReconnected,
 }: UseGroupChatSocketArgs) => {
   const handleGroupEvent = useCallback((event: ServerEvent, socket: WebSocket) => {
     if (event.type === 'group_updated' && event.group?.chat_id === chatId) {
@@ -49,5 +51,10 @@ export const useGroupChatSocket = ({
   useChatSocket({
     chatId, token, transport, onEvent: handleSocketEvent,
     onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
+    onReconnected: () => {
+      onReconnected();
+      // Membership or settings may have changed while disconnected.
+      void refreshGroupDetails();
+    },
   });
 };

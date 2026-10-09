@@ -202,6 +202,37 @@ export const useMessageHistory = ({
     }
   }, [chatId, onBackRef, setMessages, setModal, token, translationsRef]);
 
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const hasMoreNewerMessagesRef = useRef(hasMoreNewerMessages);
+  hasMoreNewerMessagesRef.current = hasMoreNewerMessages;
+
+  // Loads messages sent while the socket was down. If the user is reading older history the newer pages
+  // load on scroll anyway; otherwise fetch everything after the newest loaded message.
+  const catchUpAfterReconnect = useCallback(async () => {
+    if (!token || chatId <= 0 || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
+    const newestLoadedId = messagesRef.current.reduce((newest, message) => Math.max(newest, message.id), 0);
+    if (newestLoadedId <= 0) return;
+    isLoadingNewerMessagesRef.current = true;
+    try {
+      const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE), after_id: String(newestLoadedId) });
+      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
+      if (!response.ok) return;
+      const data: MessageHistoryResponse = await response.json();
+      const missedMessages = normalizeHistoryMessages(data.history);
+      if (missedMessages.length > 0) {
+        setMessages((previous) => appendUniqueMessages(previous, missedMessages));
+        setNewestMessageId(missedMessages[missedMessages.length - 1].id);
+      }
+      // More than a page was missed: the rest loads on scroll like any newer page.
+      if (data.has_more_after) setHasMoreNewerMessages(true);
+    } catch (error) {
+      console.error('Error catching up on missed messages:', error);
+    } finally {
+      isLoadingNewerMessagesRef.current = false;
+    }
+  }, [chatId, setMessages, token]);
+
   const applyReadReceiptBatch = useCallback((
     messageIds: number[],
     readerUserId: number,
@@ -248,6 +279,7 @@ export const useMessageHistory = ({
     loadOlderMessages,
     loadNewerMessages,
     loadLatestMessages,
+    catchUpAfterReconnect,
     markMessagesRead,
     applyReadReceiptBatch,
   };

@@ -47,6 +47,7 @@ export const useChat = (
     loadOlderMessages,
     loadNewerMessages,
     loadLatestMessages,
+    catchUpAfterReconnect,
     markMessagesRead,
   } = useMessageHistory({
     chatId, token, username, firstUnreadMessageId, messages, setMessages,
@@ -88,6 +89,7 @@ export const useChat = (
   useChatSocket({
     chatId, token, transport, onEvent: handleSocketEvent,
     onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
+    onReconnected: catchUpAfterReconnect,
   });
 
   const scrollToMessage = (messageId: number) => {
