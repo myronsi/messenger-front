@@ -4,6 +4,7 @@ import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistor
 import { authFetch } from '@/shared/auth/session';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
+import { fetchMissedMessages } from './fetchMissedMessages';
 import { useGetMessageHistoryQuery } from '@/entities/message';
 import { useMarkChatReadMutation } from '@/entities/chat';
 
@@ -202,6 +203,40 @@ export const useMessageHistory = ({
     }
   }, [chatId, onBackRef, setMessages, setModal, token, translationsRef]);
 
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const hasMoreNewerMessagesRef = useRef(hasMoreNewerMessages);
+  hasMoreNewerMessagesRef.current = hasMoreNewerMessages;
+
+  const chatIdRef = useRef(chatId);
+  chatIdRef.current = chatId;
+
+  // Loads messages sent while the socket was down. If the user is reading older history the newer pages
+  // load on scroll anyway; otherwise fetch everything after the newest loaded message. If that keeps
+  // failing, the missed messages are left to the normal load-newer-on-scroll path.
+  const catchUpAfterReconnect = useCallback(async () => {
+    if (!token || chatId <= 0 || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
+    const newestLoadedId = messagesRef.current.reduce((newest, message) => Math.max(newest, message.id), 0);
+    if (newestLoadedId <= 0) return;
+    const isCurrent = () => chatIdRef.current === chatId;
+    isLoadingNewerMessagesRef.current = true;
+    try {
+      const data = await fetchMissedMessages(chatId, newestLoadedId, MESSAGE_PAGE_SIZE, isCurrent);
+      if (!isCurrent()) return;
+      const missedMessages = data ? normalizeHistoryMessages(data.history) : [];
+      if (missedMessages.length > 0) {
+        setMessages((previous) => appendUniqueMessages(previous, missedMessages));
+        setNewestMessageId(missedMessages[missedMessages.length - 1].id);
+      } else if (!data) {
+        setNewestMessageId(newestLoadedId);
+      }
+      // More than a page was missed, or the request failed: the rest loads on scroll like any newer page.
+      if (!data || data.has_more_after) setHasMoreNewerMessages(true);
+    } finally {
+      isLoadingNewerMessagesRef.current = false;
+    }
+  }, [chatId, setMessages, token]);
+
   const applyReadReceiptBatch = useCallback((
     messageIds: number[],
     readerUserId: number,
@@ -248,6 +283,7 @@ export const useMessageHistory = ({
     loadOlderMessages,
     loadNewerMessages,
     loadLatestMessages,
+    catchUpAfterReconnect,
     markMessagesRead,
     applyReadReceiptBatch,
   };

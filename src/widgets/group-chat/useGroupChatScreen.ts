@@ -67,6 +67,7 @@ export const useGroupChatScreen = ({
     token, chatId, username, translations, transport, currentUserIdRef, translationsRef, onBackRef,
     applyGroupDetails, refreshGroupDetails, setMessages, setModal,
     markMessageFailed: sender.markMessageFailed, markLatestPendingMessageFailed: sender.markLatestPendingMessageFailed,
+    onReconnected: history.catchUpAfterReconnect,
   });
 
   const {

@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { trackWebSocket } from '@/shared/api/socketRegistry';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
+import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/shared/api/reconnect';
 import { handleHelloEvent } from '@/shared/api/serverHello';
 import type { ChatTransport } from './types';
 import { parseServerEvent, type ServerEvent } from './socketEvents';
 
-export const MAX_WEBSOCKET_RECONNECT_ATTEMPTS = 5;
+// After this many failed attempts in a row the user is told, but reconnecting continues in the background.
+export const RECONNECT_ATTEMPTS_BEFORE_ERROR = 5;
 
 interface ChatSocketOptions {
   chatId: number;
@@ -13,29 +15,49 @@ interface ChatSocketOptions {
   transport: ChatTransport;
   onEvent: (event: ServerEvent, socket: WebSocket) => void;
   onConnectionFailed: () => void;
+  // Called when the socket reopens after a drop, to load what was missed while it was closed.
+  onReconnected?: () => void;
 }
 
 // Opens the chat WebSocket, flushes queued outgoing messages once connected and reconnects with backoff.
-export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionFailed }: ChatSocketOptions) => {
+// The socket authenticates with a one-time ticket, so a token refresh does not need a new connection.
+export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionFailed, onReconnected }: ChatSocketOptions) => {
   const { wsRef, messageQueueRef, connectionRetryKey } = transport;
   const onEventRef = useRef(onEvent);
   const onConnectionFailedRef = useRef(onConnectionFailed);
   onEventRef.current = onEvent;
   onConnectionFailedRef.current = onConnectionFailed;
+  const onReconnectedRef = useRef(onReconnected);
+  onReconnectedRef.current = onReconnected;
+  const openedChatIdRef = useRef<number | null>(null);
+  // Survives the effect re-runs caused by requestReconnect(), so a socket the server rejected stays closed.
+  const rejectedRef = useRef(false);
+  const isSignedIn = Boolean(token);
 
   useEffect(() => {
-    if (!token || chatId <= 0) return undefined;
+    rejectedRef.current = false;
+  }, [chatId, isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn || chatId <= 0 || rejectedRef.current) return undefined;
     let isMounted = true;
     let reconnectAttempts = 0;
     let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let isRequestingTicket = false;
 
     const scheduleReconnect = () => {
       reconnectAttempts += 1;
-      if (reconnectAttempts >= MAX_WEBSOCKET_RECONNECT_ATTEMPTS) {
-        onConnectionFailedRef.current();
-        return;
-      }
-      reconnectTimeoutId = setTimeout(() => { if (isMounted) void connect(); }, 1000 * reconnectAttempts);
+      if (reconnectAttempts === RECONNECT_ATTEMPTS_BEFORE_ERROR) onConnectionFailedRef.current();
+      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+      reconnectTimeoutId = setTimeout(() => { if (isMounted) void connect(); }, reconnectDelay(reconnectAttempts));
+    };
+
+    const reconnectNow = () => {
+      const current = wsRef.current;
+      if (!isMounted || rejectedRef.current || isRequestingTicket || (current && current.readyState !== WebSocket.CLOSED)) return;
+      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+      reconnectTimeoutId = null;
+      void connect();
     };
 
     const flushQueue = (socket: WebSocket) => {
@@ -57,7 +79,10 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
       const current = wsRef.current;
       if (current && (current.readyState === WebSocket.OPEN || current.readyState === WebSocket.CONNECTING)) return;
 
+      if (isRequestingTicket) return;
+
       let socket: WebSocket;
+      isRequestingTicket = true;
       try {
         const url = await getChatWebSocketUrl(chatId);
         if (!isMounted) return;
@@ -66,6 +91,8 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
         console.error('Error creating WebSocket:', error);
         if (isMounted) scheduleReconnect();
         return;
+      } finally {
+        isRequestingTicket = false;
       }
       wsRef.current = socket;
 
@@ -75,8 +102,12 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
           if (wsRef.current === socket) wsRef.current = null;
           return;
         }
+        // Failed attempts before the first open count too: messages may have arrived after the history loaded.
+        const isReconnect = openedChatIdRef.current === chatId || reconnectAttempts > 0;
         reconnectAttempts = 0;
         flushQueue(socket);
+        openedChatIdRef.current = chatId;
+        if (isReconnect) onReconnectedRef.current?.();
       };
 
       socket.onmessage = (event) => {
@@ -104,14 +135,17 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
       socket.onclose = (event) => {
         if (wsRef.current === socket) wsRef.current = null;
         if (!isMounted) return;
-        if (event.code !== 1000 && event.code !== 1001 && event.code !== 1008) scheduleReconnect();
+        if (shouldReconnect(socket, event.code)) scheduleReconnect();
+        else rejectedRef.current = true;
       };
     };
 
     void connect();
+    const stopWatchingConnectivity = onConnectivityRestored(reconnectNow);
 
     return () => {
       isMounted = false;
+      stopWatchingConnectivity();
       if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
       const socket = wsRef.current;
       wsRef.current = null;
@@ -119,5 +153,5 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
         try { socket.close(1000, 'Component unmounted'); } catch { /* socket already closed */ }
       }
     };
-  }, [chatId, token, connectionRetryKey, wsRef, messageQueueRef]);
+  }, [chatId, isSignedIn, connectionRetryKey, wsRef, messageQueueRef]);
 };

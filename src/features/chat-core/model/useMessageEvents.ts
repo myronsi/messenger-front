@@ -4,6 +4,7 @@ import { useLocalMessageDeletion, removeMessageAnimated } from '@/entities/messa
 import {
   addReaction, addReadReceipts, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
 } from './messageUpdates';
+import { closeForGood } from '@/shared/api/reconnect';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ReadBatchEvent, ReadEvent, ServerEvent } from './socketEvents';
 import type { ChatTransport, SetMessages, ShowError } from './types';
@@ -94,7 +95,7 @@ export const useMessageEvents = ({
       case 'chat_deleted':
         if (event.chat_id != null && event.chat_id !== chatId) return;
         setModal({ type: 'error', message: translationsRef.current[chatDeletedKey] });
-        socket.close(1000, 'Chat deleted');
+        closeForGood(socket, 'Chat deleted');
         setTimeout(() => onBackRef.current(), 1000);
         return;
       default:

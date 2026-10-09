@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import { trackWebSocket } from '@/shared/api/socketRegistry';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
+import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/shared/api/reconnect';
 import { handleHelloEvent } from '@/shared/api/serverHello';
 import { handleChatListWebSocketMessage } from './chatListWebSocketHandlers';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap, WebSocketMessage } from './types';
@@ -23,9 +24,9 @@ interface UseChatListWebSocketParams {
   setModal: (modal: ChatListModal | null) => void;
 }
 
-// Owns the chat-list WebSocket connection lifecycle (connect/reconnect on
-// token change, teardown on unmount) and forwards parsed messages to the
-// pure message-handling function.
+// Owns the chat-list WebSocket connection lifecycle (connect on sign-in, reconnect with backoff,
+// teardown on unmount) and forwards parsed messages to the pure message-handling function.
+// The socket authenticates with a one-time ticket, so a token refresh does not need a new connection.
 export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   const {
     token, username, activeChatId, activeChatName, onChatOpen, onChatDeleted, currentUserId,
@@ -41,6 +42,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   const onChatDeletedRef = useRef(onChatDeleted);
   const refetchRef = useRef(refetch);
   const refetchRequestInboxRef = useRef(refetchRequestInbox);
+  const isSignedIn = Boolean(token);
 
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
   useEffect(() => { activeChatNameRef.current = activeChatName; }, [activeChatName]);
@@ -52,35 +54,61 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   useEffect(() => { refetchRequestInboxRef.current = refetchRequestInbox; }, [refetchRequestInbox]);
 
   useEffect(() => {
+    if (!isSignedIn) return undefined;
     let isMounted = true;
-    let reconnectTimeoutId: NodeJS.Timeout | null = null;
+    let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
+    let hasOpened = false;
+    let isRequestingTicket = false;
+    let isRejected = false;
+
+    const scheduleReconnect = () => {
+      reconnectAttempts += 1;
+      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+      reconnectTimeoutId = setTimeout(() => { if (isMounted) void connectWebSocket(); }, reconnectDelay(reconnectAttempts));
+    };
+
+    const reconnectNow = () => {
+      const current = wsRef.current;
+      if (!isMounted || isRejected || isRequestingTicket || (current && current.readyState !== WebSocket.CLOSED)) return;
+      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+      reconnectTimeoutId = null;
+      void connectWebSocket();
+    };
 
     const connectWebSocket = async () => {
-      if (!isMounted) return;
+      if (!isMounted || isRequestingTicket) return;
 
       // Check if WebSocket is already connected or connecting
       if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
         return;
       }
 
+      isRequestingTicket = true;
       try {
         const url = await getChatWebSocketUrl(0);
         if (!isMounted) return;
         wsRef.current = trackWebSocket(new WebSocket(url));
       } catch (e) {
         console.error('Failed to create WebSocket for chat list', e);
-        if (isMounted && token) {
-          reconnectTimeoutId = setTimeout(() => { if (isMounted) void connectWebSocket(); }, 5000);
-        }
+        if (isMounted) scheduleReconnect();
         return;
+      } finally {
+        isRequestingTicket = false;
       }
+      const socket = wsRef.current;
 
-      wsRef.current.onopen = () => {
+      socket.onopen = () => {
         if (!isMounted) return;
+        // Last messages and unread counts may have changed while the socket was down,
+        // including during failed attempts before the first open.
+        if (hasOpened || reconnectAttempts > 0) refetchRef.current();
+        reconnectAttempts = 0;
         refetchRequestInboxRef.current();
+        hasOpened = true;
       };
 
-      wsRef.current.onmessage = (event) => {
+      socket.onmessage = (event) => {
         if (!isMounted) return;
         let parsedData: WebSocketMessage;
         try {
@@ -108,29 +136,26 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
         });
       };
 
-      wsRef.current.onclose = (event) => {
+      socket.onclose = (event) => {
+        if (wsRef.current === socket) wsRef.current = null;
         if (!isMounted) return;
-        // Only reconnect if it wasn't a clean close and component is still mounted
-        if (event.code !== 1000 && event.code !== 1001 && token) {
-          reconnectTimeoutId = setTimeout(() => {
-            if (isMounted && token) connectWebSocket();
-          }, 5000);
-        }
+        if (shouldReconnect(socket, event.code)) scheduleReconnect();
+        else isRejected = true;
       };
 
-      wsRef.current.onerror = (error) => {
+      socket.onerror = (error) => {
         if (!isMounted) return;
         console.error('WebSocket error for chat list:', error);
         // Don't show modal for transient errors - let reconnection logic handle it
       };
     };
 
-    if (token) {
-      connectWebSocket();
-    }
+    void connectWebSocket();
+    const stopWatchingConnectivity = onConnectivityRestored(reconnectNow);
 
     return () => {
       isMounted = false;
+      stopWatchingConnectivity();
       if (reconnectTimeoutId) {
         clearTimeout(reconnectTimeoutId);
       }
@@ -143,7 +168,6 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
         wsRef.current = null;
       }
     };
-    // token is the only reconnect trigger; setters/refs stay stable across renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+    // Signing in or out is the only reconnect trigger; setters/refs stay stable across renders.
+  }, [isSignedIn]);
 }
