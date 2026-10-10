@@ -26,11 +26,11 @@ export const isNewerId = (a: Id, b: Id) => compareIds(a, b) > 0;
 export const isServerId = (id: Id | null | undefined): id is Id => typeof id === 'string' && /^\d+$/.test(id);
 export const isLocalId = (id: Id | null | undefined): id is Id => typeof id === 'string' && !/^\d+$/.test(id);
 
-const randomPart = () => (
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-);
+// randomUUID needs a secure context; getRandomValues does not (a LAN address over plain HTTP).
+const randomPart = () => {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
 
 // newLocalId makes the id of a message that is not sent yet; it also serves as its client_temp_id.
 export const newLocalId = (): Id => `local-${randomPart()}`;
