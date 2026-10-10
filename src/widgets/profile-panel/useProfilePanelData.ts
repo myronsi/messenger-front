@@ -35,7 +35,7 @@ export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOpti
   const [pendingBlockUsername, setPendingBlockUsername] = useState('');
   const [isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed] = useState(true);
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
-  const { data: dmChatsData } = useGetOneOnOneChatsQuery(username, { skip: !username });
+  const { data: dmChatsData } = useGetOneOnOneChatsQuery({ skip: !username });
   const { data: requestInbox, refetch: refetchRequestInbox } = useGetApprovalRequestInboxQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });

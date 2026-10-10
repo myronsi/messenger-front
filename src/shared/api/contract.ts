@@ -9,7 +9,7 @@ export type Schema<Name extends keyof Schemas> = Schemas[Name];
 type Operation = keyof operations;
 type JsonContent<T> = T extends { content: { 'application/json': infer Body } } ? Body : never;
 type SuccessResponses<O extends Operation> = operations[O]['responses'] extends infer R
-  ? { [S in keyof R & (200 | 201 | 204)]: R[S] }[keyof R & (200 | 201 | 204)]
+  ? { [S in keyof R & (200 | 201 | 202 | 204)]: R[S] }[keyof R & (200 | 201 | 202 | 204)]
   : never;
 
 // ResponseOf<'getMe'> is the JSON body of the operation's success response (void for 204).

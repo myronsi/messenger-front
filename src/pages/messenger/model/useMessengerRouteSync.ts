@@ -4,8 +4,11 @@ import { CurrentChat, directChatPath, parseDmIdentifier, parseProfileUsername } 
 import { authFetch } from '@/shared/auth/session';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+import { apiUrl } from '@/shared/api/apiUrl';
+import { queryFor, type ResponseOf } from '@/shared/api/contract';
+import { errorFromResponse } from '@/shared/lib/apiError';
+import { toDirectChatItem } from '@/entities/chat';
+import { toUser } from '@/entities/user';
 
 interface MessengerRouteState {
   chatId?: Id;
@@ -43,9 +46,44 @@ interface DirectUserProfile {
   direct_message_reason?: CurrentChat['directDraftReason'];
 }
 
-interface DirectChatListResponse {
-  chats?: DirectChatSummary[];
-}
+const getJson = async <T,>(path: string): Promise<T> => {
+  const response = await authFetch(apiUrl(path));
+  if (!response.ok) throw await errorFromResponse(response);
+  return response.json() as Promise<T>;
+};
+
+// A direct chat by id (GET /chats/{id}).
+const loadDirectChat = async (chatId: Id): Promise<DirectChatSummary> => {
+  const chat = await getJson<ResponseOf<'getChat'>>(`/chats/${encodeURIComponent(chatId)}`);
+  if (chat.type !== 'direct') throw new Error('Not a direct chat');
+  const item = toDirectChatItem(chat);
+  return { ...item, interlocutor_deleted: !!item.interlocutor_deleted };
+};
+
+// A user by username and, if there is one, the direct chat with them (found in the chat list: the
+// contract's user carries no chat id).
+const loadDirectProfile = async (targetUsername: string): Promise<DirectUserProfile> => {
+  const user = toUser(await getJson<ResponseOf<'getUserByUsername'>>(`/usernames/${encodeURIComponent(targetUsername)}`));
+  let directChatId: Id | undefined;
+  let after: string | undefined;
+  for (let page = 0; page < 20 && !directChatId; page += 1) {
+    const chats = await getJson<ResponseOf<'listChats'>>(`/chats${queryFor<'listChats'>({ limit: 100, after })}`);
+    directChatId = chats.items.find((chat) => chat.type === 'direct' && chat.peer?.id === user.id)?.id;
+    if (!chats.next_cursor) break;
+    after = chats.next_cursor;
+  }
+  return {
+    direct_chat_id: directChatId,
+    username: user.username,
+    display_name: user.display_name,
+    is_online: user.is_online,
+    last_seen: user.last_seen,
+    avatar_url: user.avatar_url,
+    // Whether a new chat is allowed is decided when it is created (403 or an approval request).
+    can_message: !user.is_deleted,
+    direct_message_reason: null,
+  };
+};
 
 interface MessengerRouteSyncOptions {
   currentChat: CurrentChat | null;
@@ -129,18 +167,9 @@ export const useMessengerRouteSync = ({
           return;
         }
 
-        authFetch(`${BASE_URL}/chats/list/${encodeURIComponent(username)}`)
-          .then(async (response): Promise<DirectChatListResponse> => {
-            if (!response.ok) throw new Error(await response.text());
-            return response.json();
-          })
-          .then((data) => {
+        loadDirectChat(targetChatId)
+          .then((chat) => {
             if (isCancelled) return;
-            const chat = (data.chats || []).find((item) => item.id === targetChatId);
-            if (!chat) {
-              navigate('/', { replace: true });
-              return;
-            }
             const canonicalPath = directChatPath(chat.id, chat.interlocutor_name, chat.interlocutor_deleted);
             if (location.pathname !== canonicalPath) {
               navigate(canonicalPath, {
@@ -174,6 +203,7 @@ export const useMessengerRouteSync = ({
             if (isCancelled) return;
             console.error('Error loading direct chat by id:', error);
             setCurrentChat(null);
+            navigate('/', { replace: true });
           });
 
         return () => {
@@ -187,12 +217,8 @@ export const useMessengerRouteSync = ({
         return;
       }
 
-      authFetch(`${BASE_URL}/users/users/${encodeURIComponent(targetUsername)}`)
-        .then(async (response) => {
-          if (!response.ok) throw new Error(await response.text());
-          return response.json();
-        })
-        .then((user: DirectUserProfile) => {
+      loadDirectProfile(targetUsername)
+        .then((user) => {
           if (isCancelled) return;
           const canonicalPath = directChatPath(user.direct_chat_id || state.chatId || '', user.username || targetUsername, false);
           if (location.pathname !== canonicalPath) {

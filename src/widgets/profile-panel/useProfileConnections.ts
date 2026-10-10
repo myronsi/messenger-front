@@ -18,7 +18,7 @@ interface UseProfileConnectionsArgs {
 export const useProfileConnections = ({ username, blockUserConsequences, setModal }: UseProfileConnectionsArgs) => {
   const { translations } = useLanguage();
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
-  const { data: dmChatsData } = useGetOneOnOneChatsQuery(username, { skip: !username });
+  const { data: dmChatsData } = useGetOneOnOneChatsQuery({ skip: !username });
   const { data: requestInbox, refetch: refetchRequestInbox } = useGetApprovalRequestInboxQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });

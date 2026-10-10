@@ -231,7 +231,7 @@ export const useMessengerController = () => {
     if (!currentChat || currentChat.type !== 'one-on-one' || !isServerId(currentChat.id)) return;
 
     try {
-      const response = await authFetch(`${BASE_URL}/chats/delete/${currentChat.id}`, {
+      const response = await authFetch(apiUrl(`/chats/${encodeURIComponent(currentChat.id)}`), {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error(await response.text());

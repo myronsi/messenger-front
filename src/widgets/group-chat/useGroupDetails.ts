@@ -76,26 +76,24 @@ export const useGroupDetails = ({
     }
   }, [chatId, dispatch, groupName, normalizeGroupDetails, setGroupDetails, setGroupForm]);
 
-  const refreshGroupDetails = useCallback(async () => {
-    if (!token || !isServerId(chatId)) return;
-    try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
-    } catch (error) {
-      console.error('Error refreshing group details:', error);
-    }
-  }, [applyGroupDetails, chatId, token]);
-
   const {
     data: latestGroupDetails,
     error: groupDetailsError,
+    refetch: refetchGroupDetails,
   } = useGetGroupDetailsQuery(chatId, {
     skip: !token || !isServerId(chatId),
     refetchOnMountOrArgChange: true,
   });
+
+  const refreshGroupDetails = useCallback(async () => {
+    if (!token || !isServerId(chatId)) return;
+    try {
+      const details = await refetchGroupDetails().unwrap();
+      applyGroupDetails(details, false);
+    } catch (error) {
+      console.error('Error refreshing group details:', error);
+    }
+  }, [applyGroupDetails, chatId, refetchGroupDetails, token]);
 
   useEffect(() => {
     if (!latestGroupDetails) return;

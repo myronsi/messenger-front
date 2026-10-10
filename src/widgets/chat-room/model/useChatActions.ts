@@ -1,3 +1,4 @@
+import { apiUrl } from '@/shared/api/apiUrl';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
@@ -24,7 +25,7 @@ export const createDeleteChatAction = ({ chatId, translations, onBack, setModal 
     ],
     onConfirm: async () => {
       try {
-        const response = await authFetch(`${BASE_URL}/chats/delete/${chatId}`, { method: 'DELETE' });
+        const response = await authFetch(apiUrl(`/chats/${encodeURIComponent(chatId)}`), { method: 'DELETE' });
         if (response.ok) onBack();
         else throw new Error(translations.errorDeleting);
       } catch {

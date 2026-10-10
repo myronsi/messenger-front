@@ -2,10 +2,18 @@ import React from 'react';
 import type { GroupDetails, GroupProfileConfirmState, GroupRole } from './GroupProfileTypes';
 import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
 import type { ModalState } from '@/entities/message';
-import { authFetch } from '@/shared/auth/session';
+import {
+  useAddGroupParticipantMutation,
+  useDeleteGroupMutation,
+  useLeaveGroupMutation,
+  useRemoveGroupParticipantMutation,
+  useSetGroupAvatarMutation,
+  useTransferGroupOwnershipMutation,
+  useUpdateGroupMutation,
+  useUpdateGroupParticipantRoleMutation,
+} from '@/entities/chat';
 import type { Id } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface Args {
   chatId: Id; token: string; groupForm: { name: string; description: string };
   setModal: React.Dispatch<React.SetStateAction<ModalState | null>>; translations: GroupTranslations;
@@ -16,9 +24,18 @@ interface Args {
   groupDetails: GroupDetails | null; onBack: () => void;
 }
 export const useGroupManagement = ({
-  chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput,
+  chatId, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput,
   setParticipantInput, refreshGroupDetails, setGroupConfirm, groupDetails, onBack,
 }: Args) => {
+  const [updateGroup] = useUpdateGroupMutation();
+  const [setGroupAvatar] = useSetGroupAvatarMutation();
+  const [addGroupParticipant] = useAddGroupParticipantMutation();
+  const [removeGroupParticipant] = useRemoveGroupParticipantMutation();
+  const [updateGroupParticipantRole] = useUpdateGroupParticipantRoleMutation();
+  const [transferGroupOwnership] = useTransferGroupOwnershipMutation();
+  const [leaveGroup] = useLeaveGroupMutation();
+  const [deleteGroup] = useDeleteGroupMutation();
+
   const handleSaveGroup = async () => {
     if (!groupForm.name.trim()) {
       setModal({ type: 'error', message: translations.groupNameRequired || 'Group name is required' });
@@ -26,13 +43,11 @@ export const useGroupManagement = ({
     }
     setIsSavingGroup(true);
     try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: groupForm.name.trim(), description: groupForm.description.trim() }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
+      applyGroupDetails(await updateGroup({
+        chatId,
+        name: groupForm.name.trim(),
+        description: groupForm.description.trim() || null,
+      }).unwrap());
     } catch (error) {
       console.error('Error updating group:', error);
       setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
@@ -44,16 +59,8 @@ export const useGroupManagement = ({
   const handleGroupAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
     try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}/avatar`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
+      applyGroupDetails(await setGroupAvatar({ chatId, file }).unwrap());
     } catch (error) {
       console.error('Error uploading group avatar:', error);
       setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
@@ -66,18 +73,7 @@ export const useGroupManagement = ({
     const newUsername = (usernameOverride || participantInput).trim();
     if (!newUsername) return;
     try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: newUsername }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      const data = await response.json();
-      if (data?.participants || data?.pending_invites) {
-        applyGroupDetails(data);
-      } else {
-        await refreshGroupDetails();
-      }
+      applyGroupDetails(await addGroupParticipant({ chatId, user: { username: newUsername } }).unwrap());
       setParticipantInput('');
     } catch (error) {
       console.error('Error adding participant:', error);
@@ -95,12 +91,8 @@ export const useGroupManagement = ({
         onConfirm: async () => {
           setGroupConfirm(null);
           try {
-            const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants/${encodeURIComponent(participantUsername)}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!response.ok) throw new Error(await response.text());
-            applyGroupDetails(await response.json());
+            await removeGroupParticipant({ chatId, user: { username: participantUsername } }).unwrap();
+            await refreshGroupDetails();
           } catch (error) {
             console.error('Error removing participant:', error);
             setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
@@ -111,14 +103,10 @@ export const useGroupManagement = ({
   };
 
   const handleRoleChange = async (participantUsername: string, role: GroupRole) => {
+    // The contract assigns admin and member; ownership moves with a transfer.
+    if (role !== 'admin' && role !== 'member') return;
     try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}/participants/${encodeURIComponent(participantUsername)}/role`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
+      applyGroupDetails(await updateGroupParticipantRole({ chatId, user: { username: participantUsername }, role }).unwrap());
     } catch (error) {
       console.error('Error updating participant role:', error);
       setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
@@ -134,13 +122,7 @@ export const useGroupManagement = ({
         onConfirm: async () => {
           setGroupConfirm(null);
           try {
-            const response = await authFetch(`${BASE_URL}/groups/${chatId}/transfer-owner`, {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ username: participantUsername }),
-            });
-            if (!response.ok) throw new Error(await response.text());
-            applyGroupDetails(await response.json());
+            applyGroupDetails(await transferGroupOwnership({ chatId, user: { username: participantUsername } }).unwrap());
           } catch (error) {
             console.error('Error transferring ownership:', error);
             setModal({ type: 'error', message: translations.errorUpdatingGroup || 'Failed to update group' });
@@ -175,11 +157,7 @@ export const useGroupManagement = ({
         onConfirm: async () => {
           setGroupConfirm(null);
           try {
-            const response = await authFetch(BASE_URL + '/groups/' + chatId + '/leave', {
-              method: 'DELETE',
-              headers: { Authorization: 'Bearer ' + token },
-            });
-            if (!response.ok) throw new Error(await response.text());
+            await leaveGroup(chatId).unwrap();
             onBack();
           } catch (error) {
             console.error('Error leaving group:', error);
@@ -205,11 +183,7 @@ export const useGroupManagement = ({
         onConfirm: async () => {
           setGroupConfirm(null);
           try {
-            const response = await authFetch(`${BASE_URL}/groups/delete/${chatId}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!response.ok) throw new Error(await response.text());
+            await deleteGroup(chatId).unwrap();
             onBack();
           } catch (error) {
             console.error('Error deleting group:', error);

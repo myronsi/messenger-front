@@ -44,8 +44,8 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   const [selectedChatIds, setSelectedChatIds] = useState<Id[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [forwardMessage, { isLoading }] = useForwardMessageMutation();
-  const { data: directChatsData, isLoading: isLoadingDirect } = useGetOneOnOneChatsQuery(username, { skip: !open || !username });
-  const { data: groupChatsData, isLoading: isLoadingGroups } = useGetGroupChatsQuery(username, { skip: !open || !username });
+  const { data: directChatsData, isLoading: isLoadingDirect } = useGetOneOnOneChatsQuery({ skip: !open || !username });
+  const { data: groupChatsData, isLoading: isLoadingGroups } = useGetGroupChatsQuery({ skip: !open || !username });
   const { data: blockedUsersData } = useGetBlockedUsersQuery(undefined, { skip: !open });
 
   useEffect(() => {

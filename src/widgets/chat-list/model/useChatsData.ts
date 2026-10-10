@@ -21,7 +21,7 @@ export function useChatsData(username: string) {
     error: oneOnOneError,
     isLoading: isLoadingOneOnOne,
     refetch: refetchOneOnOne,
-  } = useGetOneOnOneChatsQuery(username);
+  } = useGetOneOnOneChatsQuery();
 
   const {
     data: groupChatsData,
@@ -30,7 +30,7 @@ export function useChatsData(username: string) {
     error: groupError,
     isLoading: isLoadingGroups,
     refetch: refetchGroups,
-  } = useGetGroupChatsQuery(username);
+  } = useGetGroupChatsQuery();
 
   const [createChat, { isLoading: isCreatingChat }] = useCreateChatMutation();
   const [setChatPinned] = useSetChatPinnedMutation();

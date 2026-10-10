@@ -2,44 +2,10 @@ import type { ChatLastMessage } from '@/entities/message';
 import type { User } from '@/entities/user';
 import type { Id } from '@/shared/lib/ids';
 
-export interface ApiChat {
-  id: Id;
-  name?: string;
-  type: 'private' | 'group';
-  participants: User[];
-  lastMessage?: ApiMessage;
-  unreadCount?: number;
-  last_message?: ChatLastMessage | null;
-  unread_count?: number;
-  first_unread_message_id?: Id | null;
-  avatar?: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ApiMessage {
-  id: Id;
-  sender_id?: Id;
-  content?: string;
-  senderId: Id;
-  chatId: Id;
-  timestamp: string;
-  type: 'text' | 'image' | 'audio' | 'file';
-  fileName?: string;
-  filePath?: string;
-  fileSize?: number;
-  isEdited?: boolean;
-  replyTo?: Id;
-  reactions?: Array<{
-    userId: Id;
-    emoji: string;
-  }>;
-}
-
 export interface OneOnOneChatResponse {
   chats: Array<{
     id: Id;
+    interlocutor_id?: Id;
     interlocutor_name: string;
     interlocutor_display_name?: string;
     interlocutor_is_online?: boolean;
@@ -65,6 +31,7 @@ export interface GroupChatResponse {
     unread_count?: number;
     first_unread_message_id?: Id | null;
     is_pinned?: boolean;
+    my_role?: GroupRole | null;
   }>;
 }
 
@@ -102,7 +69,8 @@ export interface CreateChatResponse {
 export interface MarkChatReadRequest {
   chatId: Id;
   messageIds?: Id[];
-  markAll?: boolean;
+  // The chat's newest message, to mark everything read.
+  lastMessageId?: Id | null;
 }
 
 export interface MarkChatReadResponse {

@@ -16,7 +16,7 @@ export const usePrivacySettings = (isActive: boolean) => {
   const { data: currentUser } = useGetCurrentUserQuery(undefined, { skip: !isActive });
   const currentUsername = currentUser?.username || '';
   const { data: privacySettings, isLoading: isLoadingPrivacy } = useGetPrivacySettingsQuery(undefined, { skip: !isActive });
-  const { data: dmChatsData } = useGetOneOnOneChatsQuery(currentUsername, { skip: !isActive || !currentUsername });
+  const { data: dmChatsData } = useGetOneOnOneChatsQuery({ skip: !isActive || !currentUsername });
   const [updatePrivacySettings, { isLoading: isUpdatingPrivacy }] = useUpdatePrivacySettingsMutation();
   const [updatePrivacyExceptions, { isLoading: isUpdatingExceptions }] = useUpdatePrivacyExceptionsMutation();
   const [lookupUser, { isFetching: isLookingUpUser }] = useLazyGetUserByUsernameQuery();
