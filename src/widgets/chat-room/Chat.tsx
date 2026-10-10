@@ -16,7 +16,6 @@ import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useGetBlockedUsersQuery } from '@/entities/user';
 import { isServerId } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export type { ChatProps } from './model/types';
 
