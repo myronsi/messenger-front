@@ -2,6 +2,7 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Check, CheckCheck, Pin } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import type { Id } from '@/shared/lib/ids';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -43,7 +44,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       }`}
     >
       <div className="relative mr-3">
-        <img
+        <MediaImg
           src={chat.avatar_url}
           alt={chat.display_name || chat.name}
           className={`motion-avatar w-10 h-10 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}

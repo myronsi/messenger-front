@@ -4,6 +4,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { ApprovalRequestInboxResponse, ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import type { Id } from '@/shared/lib/ids';
+import MediaImg from '@/shared/ui/MediaImg';
 
 
 interface ApprovalRequestsPageProps {
@@ -56,7 +57,7 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
               return (
                 <div key={request.id} className="rounded-lg border border-border bg-white p-3 shadow-sm">
                   <div className="flex gap-3">
-                    <img src={avatar} alt={subject} className="h-11 w-11 rounded-full object-cover" />
+                    <MediaImg src={avatar} alt={subject} className="h-11 w-11 rounded-full object-cover" />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium uppercase text-muted-foreground">{title}</div>
                       <div className="truncate text-sm font-semibold text-foreground">{subject}</div>

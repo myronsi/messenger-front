@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform } from '../model/audioMessageHelpers';
 import type { Id } from '@/shared/lib/ids';
+import MediaAudio from '@/shared/ui/MediaAudio';
 
 interface AudioMessageProps {
   fileUrl: string;
@@ -184,7 +185,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
           {loadError ? 'Ошибка' : isDurationUnknown ? `${formatAudioTime(currentTime)} / Неизвестно` : `${formatAudioTime(currentTime)} / ${formatAudioTime(duration)}`}
         </span>
       </div>
-      <audio ref={audioRef} src={fileUrl} preload={isUsableDuration(metadataDuration) ? 'none' : 'metadata'} />
+      <MediaAudio ref={audioRef} src={fileUrl} preload={isUsableDuration(metadataDuration) ? 'none' : 'metadata'} />
     </div>
   );
 };

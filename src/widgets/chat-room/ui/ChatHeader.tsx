@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface ChatHeaderProps {
   chatName: string;
@@ -29,7 +30,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <ArrowLeft className="w-5 h-5" />
         </button>
         <button onClick={!interlocutorDeleted ? onOpenProfile : undefined} className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1">
-          <img src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-gray-200 object-cover" />
+          <MediaImg src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-gray-200 object-cover" />
           <span className="flex min-w-0 flex-col items-start">
             <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>
             {!interlocutorDeleted && (

@@ -1,3 +1,4 @@
+import { apiUrl } from '@/shared/api/apiUrl';
 import type { Id } from '@/shared/lib/ids';
 import React, { useRef, useState, useEffect } from 'react';
 import { Message } from '@/entities/message';
@@ -116,7 +117,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const response = await authFetch(`${BASE_URL}/auth/me`);
+        const response = await authFetch(apiUrl('/me'));
         if (response.ok) {
           const data = await response.json();
           setUserId(data.id);

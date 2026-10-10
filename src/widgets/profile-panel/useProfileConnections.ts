@@ -65,7 +65,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
       consequences: blockUserConsequences,
       onConfirm: async () => {
         try {
-          await blockUser(nextUsername).unwrap();
+          await blockUser({ username: nextUsername }).unwrap();
           setBlockUsername('');
           setPendingBlockUsername('');
           setModal(null);
@@ -81,7 +81,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
     const nextUsername = pendingBlockUsername.trim();
     if (!nextUsername) return;
     try {
-      await blockUser(nextUsername).unwrap();
+      await blockUser({ username: nextUsername }).unwrap();
       setBlockUsername('');
       setPendingBlockUsername('');
       setModal(null);
@@ -93,7 +93,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
 
   const handleUnblockUser = async (targetUsername: string) => {
     try {
-      await unblockUser(targetUsername).unwrap();
+      await unblockUser({ username: targetUsername }).unwrap();
     } catch (caught) {
       const error = asApiError(caught);
       setModal({ type: 'error', message: error?.data?.detail || 'Failed to unblock user' });

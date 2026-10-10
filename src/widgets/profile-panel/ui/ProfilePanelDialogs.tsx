@@ -87,6 +87,7 @@ const ProfilePanelDialogs = ({
         }
         isError={modal.type === 'error'}
         isDestructive={modal.type === 'blockUser' || modal.type === 'deleteAccount'}
+        passwordPrompt={modal.type === 'deleteAccount' ? translations.password || 'Password' : undefined}
       />
     )}
     {avatarFile && avatarCropUrl && (

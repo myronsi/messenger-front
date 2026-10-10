@@ -1,3 +1,4 @@
+import { apiUrl } from '@/shared/api/apiUrl';
 import React, { useCallback, useEffect } from 'react';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { authFetch } from '@/shared/auth/session';
@@ -112,7 +113,7 @@ export const useGroupDetails = ({
     const fetchCurrentUser = async () => {
       if (!token) return;
       try {
-        const response = await authFetch(`${BASE_URL}/auth/me`, {
+        const response = await authFetch(apiUrl('/me'), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {

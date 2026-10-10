@@ -4,6 +4,8 @@ import { useGetUserAvatarHistoryQuery } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import MediaImg from '@/shared/ui/MediaImg';
+import { mediaFetch } from '@/shared/api/media';
 
 const getAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
@@ -23,7 +25,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
   onClose,
 }) => {
   const { translations } = useLanguage();
-  const { data, isLoading, isError } = useGetUserAvatarHistoryQuery(username);
+  const { data, isLoading, isError } = useGetUserAvatarHistoryQuery({ username });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
   const swipeStartXRef = useRef<number | null>(null);
@@ -79,7 +81,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
     const filename = `${username}-avatar-${selectedIndex + 1}.${extension}`;
 
     try {
-      const response = await fetch(selectedUrl, { credentials: 'include' });
+      const response = await mediaFetch(selectedUrl);
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -180,7 +182,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
               <span className="text-sm">{translations.failedToLoadImage || 'Failed to load image'}</span>
             </div>
           ) : (
-            <img
+            <MediaImg
               key={selectedUrl}
               src={selectedUrl}
               alt={`${displayName} avatar`}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Id } from '@/shared/lib/ids';
 import { isLocalId } from '@/shared/lib/ids';
+import MediaImg from '@/shared/ui/MediaImg';
 
 const PARTICLE_COUNT = 36;
 
@@ -198,7 +199,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               event.stopPropagation();
               onAvatarClick(message.sender_username || message.sender);
             }}>
-              <img src={resolveMediaUrl(message.avatar_url)} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
+              <MediaImg src={resolveMediaUrl(message.avatar_url)} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
             </button>
           )}
           {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}

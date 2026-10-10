@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_BASE_URL?.replace(/\/$/, "")
-export const DEFAULT_AVATAR = `${BASE_URL}/static/avatars/default.jpg`;
-export const DEFAULT_GROUP_AVATAR = `${BASE_URL}/static/avatars/group.png`;
-export const DELETED_AVATAR = `${BASE_URL}/static/avatars/deleted.jpg`;
+// The default images ship with the frontend (public/static/avatars); the v2 backend has no static files.
+export const DEFAULT_AVATAR = '/static/avatars/default.jpg';
+export const DEFAULT_GROUP_AVATAR = '/static/avatars/group.png';
+export const DELETED_AVATAR = '/static/avatars/deleted.jpg';

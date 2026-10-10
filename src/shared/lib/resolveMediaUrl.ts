@@ -1,12 +1,9 @@
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { toAbsoluteMediaUrl } from '@/shared/api/media';
 
-const BASE_URL = String(import.meta.env.VITE_BASE_URL ?? '').replace(/\/+$/, '');
-const ABSOLUTE_URL = /^(?:https?:|blob:|data:)/i;
-
-// Resolves a media path returned by the API (relative, e.g. "/static/avatars/a.jpg")
-// to a full URL. Absolute URLs are returned unchanged so the base is never prefixed twice.
-export const resolveMediaUrl = (path?: string | null, fallback: string = DEFAULT_AVATAR): string => {
-  if (!path) return fallback;
-  if (ABSOLUTE_URL.test(path)) return path;
-  return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
-};
+// Resolves a media path returned by the API (host-relative, e.g. "/api/v2/users/1/avatar?version=2") to a
+// full URL on the API's origin. Absolute, blob: and data: URLs are returned unchanged. API media still needs
+// the access token: render it with MediaImg or useMediaSrc (src/shared/api/media.ts).
+export const resolveMediaUrl = (path?: string | null, fallback: string = DEFAULT_AVATAR): string => (
+  path ? toAbsoluteMediaUrl(path) : fallback
+);

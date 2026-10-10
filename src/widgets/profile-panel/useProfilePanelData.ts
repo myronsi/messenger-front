@@ -80,7 +80,7 @@ export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOpti
     const target = pendingBlockUsername.trim();
     if (!target) return;
     try {
-      await blockUser(target).unwrap();
+      await blockUser({ username: target }).unwrap();
       setBlockUsername('');
       setPendingBlockUsername('');
       setModal(null);
@@ -103,7 +103,7 @@ export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOpti
 
   const handleUnblockUser = async (targetUsername: string) => {
     try {
-      await unblockUser(targetUsername).unwrap();
+      await unblockUser({ username: targetUsername }).unwrap();
     } catch (error) {
       setModal({ type: 'error', message: getErrorMessage(error, 'Failed to unblock user') });
     }

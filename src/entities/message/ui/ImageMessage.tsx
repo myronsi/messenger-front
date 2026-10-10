@@ -3,6 +3,7 @@ import { Download, ZoomIn, ZoomOut, MessageSquare, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
+import MediaImg from '@/shared/ui/MediaImg';
 
 const MAX_HEIGHT = 300;
 const PLACEHOLDER = { width: 240, height: 180 };
@@ -114,7 +115,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
           aspectRatio: `${box.width} / ${box.height}`,
         }}
       >
-        <img
+        <MediaImg
           ref={imageRef}
           src={previewUrl}
           alt={fileName}
@@ -209,7 +210,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
             onWheel={handleWheel}
             onContextMenu={e => e.preventDefault()}
           >
-            <img
+            <MediaImg
               src={fileUrl}
               alt={fileName}
               className="max-h-[80vh] max-w-[80vw] select-none object-contain rounded-lg"

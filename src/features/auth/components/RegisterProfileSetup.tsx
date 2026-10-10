@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface RegisterProfileSetupProps {
   profileAvatarFile: File | null;
@@ -53,7 +54,7 @@ export const RegisterProfileSetup = ({
       </div>
       <div className="flex flex-col items-center gap-3">
         <div className="relative">
-          <img
+          <MediaImg
             src={profileAvatarPreview || DEFAULT_AVATAR}
             alt="Profile avatar preview"
             className="h-24 w-24 rounded-full border border-gray-200 object-cover"

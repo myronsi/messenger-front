@@ -1,3 +1,4 @@
+import { apiUrl } from '@/shared/api/apiUrl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CurrentChat, directChatPath, dmPath, parseProfileUsername } from './messengerRoutes';
@@ -46,7 +47,7 @@ export const useMessengerController = () => {
 
     const loadCurrentUser = async () => {
       const fetchMe = async () => {
-        const response = await authFetch(`${BASE_URL}/auth/me`);
+        const response = await authFetch(apiUrl('/me'));
         if (!response.ok) throw new Error('Invalid token');
         return response.json();
       };
