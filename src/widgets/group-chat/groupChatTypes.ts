@@ -1,4 +1,5 @@
 import type { ChatRealtime } from '@/shared/api/realtime';
+import type { MessageJumpRequest } from '@/entities/message';
 import type * as React from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import type { GroupRole } from '@/entities/chat';
@@ -14,7 +15,7 @@ export interface GroupComponentProps {
   firstUnreadMessageId?: Id | null;
   onBack: () => void;
   onOpenUserProfile?: (username: string) => void;
-  messageJumpRequest?: { messageId: Id; key: number } | null;
+  messageJumpRequest?: MessageJumpRequest | null;
 }
 
 export type GroupTranslations = Record<string, string> & { leaveGroupConsequences?: string[]; deleteGroupConsequences?: string[] };

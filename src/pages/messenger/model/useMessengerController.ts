@@ -1,4 +1,5 @@
 import { useRealtimeSession } from '@/shared/api/realtimeSession';
+import type { MessageJumpRequest } from '@/entities/message';
 import { apiUrl } from '@/shared/api/apiUrl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -22,7 +23,7 @@ export const useMessengerController = () => {
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [chatSearchRequestKey, setChatSearchRequestKey] = useState(0);
-  const [messageJumpRequest, setMessageJumpRequest] = useState<{ messageId: Id; key: number } | null>(null);
+  const [messageJumpRequest, setMessageJumpRequest] = useState<MessageJumpRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const hasFetchedUser = useRef(false);
   const isMobile = useIsMobile();
@@ -86,6 +87,8 @@ export const useMessengerController = () => {
         // navigate may throw in some test environments; ignore
       }
     }
+    // A jump requested for the previous chat must not carry over; one for this chat is set after this call.
+    setMessageJumpRequest(null);
     setCurrentChat({
       id: chatId, name: chatName, displayName: chatDisplayName, isOnline, lastSeen, avatarUrl,
       interlocutorDeleted, type, firstUnreadMessageId, pendingApprovalRequest, pendingApprovalMessage,
@@ -157,8 +160,13 @@ export const useMessengerController = () => {
 
   const jumpToCurrentChatMessage = (messageId: Id) => {
     if (!currentChat || !isServerId(currentChat.id)) return;
-    setMessageJumpRequest({ messageId, key: Date.now() });
+    setMessageJumpRequest({ chatId: currentChat.id, messageId, key: Date.now() });
     closeUserProfile();
+  };
+
+  // Shows a message of a chat, e.g. a search result; called right after openChat when the chat changes.
+  const jumpToMessage = (chatId: Id, messageId: Id) => {
+    setMessageJumpRequest({ chatId, messageId, key: Date.now() });
   };
 
   const canSearchCurrentDirectChat = () => (
@@ -267,6 +275,7 @@ export const useMessengerController = () => {
     closeUserProfile,
     openCurrentChatSearch,
     jumpToCurrentChatMessage,
+    jumpToMessage,
     canSearchCurrentDirectChat,
     openDirectChatFromProfile,
     handleDirectChatCreated,

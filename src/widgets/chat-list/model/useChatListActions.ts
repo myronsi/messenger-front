@@ -3,7 +3,7 @@ import { asApiError } from '@/shared/lib/apiError';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Chat } from '@/entities/message';
+import type { Chat, MessageSearchHit } from '@/entities/message';
 import type { ChatContextMenuState, ChatListModal, ChatOverrideMap, ChatsListComponentProps } from './types';
 import type { Id } from '@/shared/lib/ids';
 
@@ -11,6 +11,7 @@ interface UseChatListActionsParams {
   username: string;
   activeChatId?: Id;
   onChatOpen: ChatsListComponentProps['onChatOpen'];
+  onJumpToMessage?: ChatsListComponentProps['onJumpToMessage'];
   createChat: (args: { user: UserRef }) => { unwrap: () => Promise<unknown> };
   setChatPinned: (args: { chatId: Id; pinned: boolean }) => { unwrap: () => Promise<unknown> };
   markChatRead: (args: { chatId: Id; lastMessageId?: Id | null }) => {
@@ -28,7 +29,7 @@ interface UseChatListActionsParams {
 // menu, pinning, and marking a chat read (each with optimistic updates).
 export function useChatListActions(params: UseChatListActionsParams) {
   const {
-    activeChatId, onChatOpen, createChat, setChatPinned, markChatRead, refetch,
+    activeChatId, onChatOpen, onJumpToMessage, createChat, setChatPinned, markChatRead, refetch,
     chatsByIdRef, setChatOverrides, setChatContextMenu, setModal, translations,
   } = params;
 
@@ -94,6 +95,22 @@ export function useChatListActions(params: UseChatListActionsParams) {
       chat.pending_approval_request,
       typeof chat.last_message?.content === 'string' ? chat.last_message.content : undefined,
     );
+  };
+
+  // Opens the chat of a search result at that message. The unread marker is left out: the result is the target.
+  const handleOpenSearchHit = (hit: MessageSearchHit) => {
+    const chat = chatsByIdRef.current[hit.chatId];
+    if (!chat) {
+      refetch();
+      return;
+    }
+    if (chat.id !== activeChatId) {
+      onChatOpen(
+        chat.id, chat.name, chat.interlocutor_deleted, chat.type, chat.display_name, chat.is_online, chat.last_seen, null,
+        chat.avatar_url, chat.pending_approval_request,
+      );
+    }
+    onJumpToMessage?.(chat.id, hit.id);
   };
 
   const handleChatContextMenu = (event: React.MouseEvent, chat: Chat) => {
@@ -186,6 +203,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     handleCreateChat,
     handleCreateChatWith,
     handleChatClick,
+    handleOpenSearchHit,
     handleChatContextMenu,
     handleTogglePinnedChat,
     handleMarkChatRead,

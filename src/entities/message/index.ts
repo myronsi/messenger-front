@@ -9,3 +9,4 @@ export { default as MessageItem } from './ui/MessageItem';
 export * from './ui/ProfileChatPanels';
 export * from './model/fromApi';
 export * from './api/history';
+export * from './api/searchApi';

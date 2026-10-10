@@ -169,3 +169,11 @@ export interface ModalState {
   onDeleteForMe?: () => void | Promise<void>;
   onDeleteForAll?: () => void;
 }
+
+// A request to show one message of a chat: scroll to it, loading the history around it when needed. `key`
+// tells two requests for the same message apart.
+export interface MessageJumpRequest {
+  chatId: Id;
+  messageId: Id;
+  key: number;
+}

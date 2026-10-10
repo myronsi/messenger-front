@@ -45,7 +45,9 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         translations={model.translations}
         username={model.username}
         oneOnOneChats={model.oneOnOneChatsData?.chats || []}
+        chats={model.chats}
         onChatOpen={model.onChatOpen}
+        onOpenSearchHit={model.handleOpenSearchHit}
         onClose={model.handleCloseSearch}
         onCreated={model.refetch}
       />

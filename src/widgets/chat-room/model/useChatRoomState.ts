@@ -11,6 +11,7 @@ interface ChatRoomStateOptions {
   onBack: () => void;
   userId: Id;
   firstUnreadMessageId?: Id | null;
+  focusMessageId?: Id | null;
   onPresenceUpdate: (update: { username: string; is_online: boolean; last_seen: string | null }) => void;
   previewModal: ModalState | null;
   setPreviewModal: (modal: ModalState | null) => void;
@@ -24,11 +25,12 @@ export const useChatRoomState = ({
   onBack,
   userId,
   firstUnreadMessageId,
+  focusMessageId,
   onPresenceUpdate,
   previewModal,
   setPreviewModal,
 }: ChatRoomStateOptions) => {
-  const chatState = useChat(chatId, username, token, onBack, userId, firstUnreadMessageId, onPresenceUpdate);
+  const chatState = useChat(chatId, username, token, onBack, userId, firstUnreadMessageId, onPresenceUpdate, focusMessageId);
   if (!isPreview) return chatState;
 
   return {

@@ -48,11 +48,13 @@ export const useGroupChatScreen = ({
 
   const profilePanel = useGroupProfilePanel();
   const { isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime } = useGroupMessageHelpers({ username, language, currentUserId, groupDetails });
-  const menus = useGroupMessageMenus({ isOwnMessage, messageJumpRequest });
-
+  // Opened from a search result: the first page is the one around that message.
+  const [focusMessageId] = useState(() => (messageJumpRequest?.chatId === chatId ? messageJumpRequest.messageId : null));
   const history = useMessageHistory({
-    chatId, token, username, firstUnreadMessageId, messages, setMessages, currentUserIdRef, onBackRef, translationsRef, setModal,
+    chatId, token, username, firstUnreadMessageId, focusMessageId, messages, setMessages, currentUserIdRef, onBackRef, translationsRef,
+    setModal,
   });
+  const menus = useGroupMessageMenus({ isOwnMessage, chatId, messageJumpRequest, ensureMessageLoaded: history.ensureMessageLoaded });
 
   const { getAvatarSrc, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({
     chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
