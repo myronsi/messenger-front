@@ -4,6 +4,8 @@ import type { ChatAudio, ChatPhoto, ChatSearchResult } from '../model/types';
 import { useSearchChatMessagesQuery } from '../api/messageApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -13,7 +15,7 @@ export const normalizeProfileMediaUrl = (mediaUrl: string) => {
 };
 
 export interface ProfilePhotoItem {
-  id: number;
+  id: Id;
   url: string;
   thumbnailUrl: string;
   name: string;
@@ -21,7 +23,7 @@ export interface ProfilePhotoItem {
 }
 
 export interface ProfileAudioItem {
-  id: number;
+  id: Id;
   url: string;
   name: string;
   kind: 'voice' | 'file';
@@ -66,8 +68,8 @@ const getSearchText = (result: ChatSearchResult) => {
 };
 
 export const ProfileSearchPanel: React.FC<{
-  chatId: number;
-  onJumpToMessage: (messageId: number) => void;
+  chatId: Id;
+  onJumpToMessage: (messageId: Id) => void;
   autoFocus?: boolean;
 }> = ({ chatId, onJumpToMessage, autoFocus = true }) => {
   const { translations, language } = useLanguage();
@@ -76,7 +78,7 @@ export const ProfileSearchPanel: React.FC<{
   const normalizedQuery = query.trim();
   const { data, isFetching, error } = useSearchChatMessagesQuery(
     { chatId, query: normalizedQuery },
-    { skip: chatId <= 0 || normalizedQuery.length === 0 }
+    { skip: !isServerId(chatId) || normalizedQuery.length === 0 }
   );
   const results = data?.results || [];
 

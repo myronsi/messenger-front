@@ -1,10 +1,11 @@
 import { MutableRefObject, useEffect, useRef } from 'react';
 import { Message } from '@/entities/message';
+import type { Id } from '@/shared/lib/ids';
 
 interface HighlightScrollOptions {
-  targetId: number | null;
+  targetId: Id | null;
   messages: Message[];
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
   onLoadOlderMessages?: () => Promise<void>;
@@ -16,7 +17,7 @@ interface HighlightScrollOptions {
 export const useHighlightScroll = ({
   targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior,
 }: HighlightScrollOptions) => {
-  const requestRef = useRef<{ id: number; done: boolean } | null>(null);
+  const requestRef = useRef<{ id: Id; done: boolean } | null>(null);
 
   useEffect(() => {
     if (!targetId) {

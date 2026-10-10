@@ -1,10 +1,11 @@
 import { MutableRefObject, RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
+import type { Id } from '@/shared/lib/ids';
 
 interface ScrollToBottomOptions {
   chatContainerRef: RefObject<HTMLDivElement | null>;
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   messages: Message[];
   isPositioned: boolean;
   hasMoreNewerMessages: boolean;
@@ -28,9 +29,9 @@ export const useScrollToBottom = ({
   chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
   scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, autoScrollUntilRef,
 }: ScrollToBottomOptions) => {
-  const [unseenIds, setUnseenIds] = useState<number[]>([]);
+  const [unseenIds, setUnseenIds] = useState<Id[]>([]);
   const [isFarFromBottom, setIsFarFromBottom] = useState(false);
-  const countedIdsRef = useRef<Set<number>>(new Set());
+  const countedIdsRef = useRef<Set<Id>>(new Set());
   const hasMoreNewerMessagesRef = useLatestRef(hasMoreNewerMessages);
   const onLoadLatestMessagesRef = useLatestRef(onLoadLatestMessages);
   const isOwnMessageRef = useLatestRef(isOwnMessage);
@@ -64,9 +65,9 @@ export const useScrollToBottom = ({
   useEffect(() => {
     const container = chatContainerRef.current;
     if (!container || unseenIds.length === 0 || typeof IntersectionObserver === 'undefined') return;
-    const elementIds = new Map<Element, number>();
+    const elementIds = new Map<Element, Id>();
     const observer = new IntersectionObserver((entries) => {
-      const seen = new Set<number>();
+      const seen = new Set<Id>();
       entries.forEach((entry) => {
         const id = elementIds.get(entry.target);
         if (entry.isIntersecting && id !== undefined) seen.add(id);

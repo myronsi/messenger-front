@@ -1,6 +1,7 @@
 import { messengerApi } from '@/shared/api/baseApi';
 import type { ChatAudiosResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message } from '../model/types';
 import type { MessageHistoryResponse } from '../model/history';
+import type { Id } from '@/shared/lib/ids';
 
 export const messageApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -22,7 +23,7 @@ export const messageApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Message'],
     }),
 
-    forwardMessage: builder.mutation<ForwardMessagesResponse, { sourceMessageId: number; targetChatIds: number[] }>({
+    forwardMessage: builder.mutation<ForwardMessagesResponse, { sourceMessageId: Id; targetChatIds: Id[] }>({
       query: ({ sourceMessageId, targetChatIds }) => ({
         url: '/messages/forward',
         method: 'POST',
@@ -35,8 +36,8 @@ export const messageApi = messengerApi.injectEndpoints({
     }),
 
     getMessageHistory: builder.query<MessageHistoryResponse, {
-      chatId: number; limit?: number; beforeId?: number | null; afterId?: number | null;
-      aroundId?: number | null;
+      chatId: Id; limit?: number; beforeId?: Id | null; afterId?: Id | null;
+      aroundId?: Id | null;
     }>({
       query: ({ chatId, limit = 50, beforeId, afterId, aroundId }) => {
         const params = new URLSearchParams({ limit: String(limit) });
@@ -49,25 +50,25 @@ export const messageApi = messengerApi.injectEndpoints({
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: chatId }],
     }),
 
-    getChatPhotos: builder.query<ChatPhotosResponse, number>({
+    getChatPhotos: builder.query<ChatPhotosResponse, Id>({
       query: (chatId) => `/messages/photos/${chatId}`,
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Message', id: `${chatId}-photos` }],
     }),
 
-    getChatAudios: builder.query<ChatAudiosResponse, number>({
+    getChatAudios: builder.query<ChatAudiosResponse, Id>({
       query: (chatId) => `/messages/audios/${chatId}`,
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Message', id: `${chatId}-audios` }],
     }),
 
-    searchChatMessages: builder.query<ChatSearchResponse, { chatId: number; query: string }>({
+    searchChatMessages: builder.query<ChatSearchResponse, { chatId: Id; query: string }>({
       query: ({ chatId, query }) => `/messages/search/${chatId}?q=${encodeURIComponent(query)}`,
       keepUnusedDataFor: 60,
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: `${chatId}-search` }],
     }),
 
-    getMessages: builder.query<Message[], { chatId: number; page?: number; limit?: number }>({
+    getMessages: builder.query<Message[], { chatId: Id; page?: number; limit?: number }>({
       query: ({ chatId, page = 1, limit = 50 }) =>
         `/chats/${chatId}/messages?page=${page}&limit=${limit}`,
       providesTags: (result, error, { chatId }) => [
@@ -76,7 +77,7 @@ export const messageApi = messengerApi.injectEndpoints({
       ],
     }),
 
-    sendMessage: builder.mutation<Message, { chatId: number; content?: string; type: string; file?: File; replyTo?: number }>({
+    sendMessage: builder.mutation<Message, { chatId: Id; content?: string; type: string; file?: File; replyTo?: Id }>({
       query: ({ chatId, ...messageData }) => {
         const formData = new FormData();
         if (messageData.content) formData.append('content', messageData.content);
@@ -96,7 +97,7 @@ export const messageApi = messengerApi.injectEndpoints({
       ],
     }),
 
-    updateMessage: builder.mutation<Message, { id: number; content: string }>({
+    updateMessage: builder.mutation<Message, { id: Id; content: string }>({
       query: ({ id, content }) => ({
         url: `/messages/${id}`,
         method: 'PATCH',
@@ -105,7 +106,7 @@ export const messageApi = messengerApi.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [{ type: 'Message', id }],
     }),
 
-    deleteMessage: builder.mutation<void, number>({
+    deleteMessage: builder.mutation<void, Id>({
       query: (id) => ({
         url: `/messages/${id}`,
         method: 'DELETE',
@@ -113,7 +114,7 @@ export const messageApi = messengerApi.injectEndpoints({
       invalidatesTags: (result, error, id) => [{ type: 'Message', id }],
     }),
 
-    deleteMessageForMe: builder.mutation<void, number>({
+    deleteMessageForMe: builder.mutation<void, Id>({
       query: (id) => ({
         url: `/messages/${id}/delete-for-me`,
         method: 'POST',
@@ -121,7 +122,7 @@ export const messageApi = messengerApi.injectEndpoints({
       invalidatesTags: (result, error, id) => [{ type: 'Message', id }],
     }),
 
-    addReaction: builder.mutation<Message, { messageId: number; emoji: string }>({
+    addReaction: builder.mutation<Message, { messageId: Id; emoji: string }>({
       query: ({ messageId, emoji }) => ({
         url: `/messages/${messageId}/reactions`,
         method: 'POST',
@@ -130,7 +131,7 @@ export const messageApi = messengerApi.injectEndpoints({
       invalidatesTags: (result, error, { messageId }) => [{ type: 'Message', id: messageId }],
     }),
 
-    removeReaction: builder.mutation<Message, { messageId: number; emoji: string }>({
+    removeReaction: builder.mutation<Message, { messageId: Id; emoji: string }>({
       query: ({ messageId, emoji }) => ({
         url: `/messages/${messageId}/reactions`,
         method: 'DELETE',

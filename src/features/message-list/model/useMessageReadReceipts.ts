@@ -1,14 +1,16 @@
 import { MutableRefObject, useEffect, useRef } from 'react';
 import { Message } from '@/entities/message';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 
 interface MessageReadReceiptOptions {
   messages: Message[];
   username: string;
-  userId: number;
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  userId: Id;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   chatContainerRef: MutableRefObject<HTMLDivElement | null>;
   isOwnMessage: (message: Message) => boolean;
-  onMarkMessagesRead?: (messageIds: number[]) => Promise<void>;
+  onMarkMessagesRead?: (messageIds: Id[]) => Promise<void>;
   enabled?: boolean;
 }
 
@@ -23,8 +25,8 @@ export const useMessageReadReceipts = ({
   enabled = true,
 }: MessageReadReceiptOptions) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const sentReadReceiptsRef = useRef<Set<number>>(new Set());
-  const queuedReadReceiptsRef = useRef<Set<number>>(new Set());
+  const sentReadReceiptsRef = useRef<Set<Id>>(new Set());
+  const queuedReadReceiptsRef = useRef<Set<Id>>(new Set());
   const readFlushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMarkMessagesReadRef = useRef(onMarkMessagesRead);
 
@@ -43,8 +45,8 @@ export const useMessageReadReceipts = ({
     }
   };
 
-  const queueReadReceipt = (messageId: number) => {
-    if (!onMarkMessagesReadRef.current || userId <= 0 || sentReadReceiptsRef.current.has(messageId)) return;
+  const queueReadReceipt = (messageId: Id) => {
+    if (!onMarkMessagesReadRef.current || !isServerId(userId) || sentReadReceiptsRef.current.has(messageId)) return;
     sentReadReceiptsRef.current.add(messageId);
     queuedReadReceiptsRef.current.add(messageId);
     if (readFlushTimeoutRef.current) clearTimeout(readFlushTimeoutRef.current);
@@ -76,7 +78,7 @@ export const useMessageReadReceipts = ({
     observerRef.current = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
-        const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
+        const messageId = entry.target.getAttribute('data-message-id') || '';
         const message = messages.find((item) => item.id === messageId);
         if (message && !isOwnMessage(message) && !message.read_by?.some((reader) => reader.user_id === userId)) {
           queueReadReceipt(messageId);

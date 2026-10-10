@@ -7,14 +7,16 @@ import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupRole } fr
 import type { RawGroupDetails } from './groupChatTypes';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface Args {
-  chatId: number; username: string; groupName: string; token: string;
+  chatId: Id; username: string; groupName: string; token: string;
   dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null;
   groupForm: { name: string; description: string };
   setGroupDetails: React.Dispatch<React.SetStateAction<GroupDetails | null>>;
   setGroupForm: React.Dispatch<React.SetStateAction<{ name: string; description: string }>>;
-  setCurrentUserId: React.Dispatch<React.SetStateAction<number>>;
+  setCurrentUserId: React.Dispatch<React.SetStateAction<Id>>;
 }
 export const useGroupDetails = ({
   chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
@@ -49,7 +51,7 @@ export const useGroupDetails = ({
       name: raw.name || groupName,
       description: raw.description || '',
       avatar_url: raw.avatar_url || DEFAULT_GROUP_AVATAR,
-      owner_id: raw.owner_id ?? raw.admin_id ?? 0,
+      owner_id: raw.owner_id ?? raw.admin_id ?? '',
       owner_username: raw.owner_username || raw.admin_username || '',
       admin_id: raw.admin_id ?? raw.owner_id,
       admin_username: raw.admin_username || raw.owner_username,
@@ -68,13 +70,13 @@ export const useGroupDetails = ({
     setGroupDetails(data);
     setGroupForm({ name: data.name || groupName, description: data.description || '' });
 
-    if (syncCache && chatId > 0) {
+    if (syncCache && isServerId(chatId)) {
       dispatch(Reflect.apply(messengerApi.util.upsertQueryData, messengerApi.util, ['getGroupDetails', chatId, rawDetails]));
     }
   }, [chatId, dispatch, groupName, normalizeGroupDetails, setGroupDetails, setGroupForm]);
 
   const refreshGroupDetails = useCallback(async () => {
-    if (!token || chatId <= 0) return;
+    if (!token || !isServerId(chatId)) return;
     try {
       const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -90,7 +92,7 @@ export const useGroupDetails = ({
     data: latestGroupDetails,
     error: groupDetailsError,
   } = useGetGroupDetailsQuery(chatId, {
-    skip: !token || chatId <= 0,
+    skip: !token || !isServerId(chatId),
     refetchOnMountOrArgChange: true,
   });
 

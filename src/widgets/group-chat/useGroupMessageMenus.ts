@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Message } from '@/entities/message';
+import type { Id } from '@/shared/lib/ids';
 
-type ContextMenuState = { x: number; y: number; messageId: number; isMine: boolean; isClosing?: boolean };
+type ContextMenuState = { x: number; y: number; messageId: Id; isMine: boolean; isClosing?: boolean };
 type ReactionMenuState = { message: Message; x: number; y: number; isClosing?: boolean };
 
 interface UseGroupMessageMenusArgs {
   isOwnMessage: (message: Message) => boolean;
-  messageJumpRequest?: { messageId: number; key: number } | null;
+  messageJumpRequest?: { messageId: Id; key: number } | null;
 }
 
 // Context/reaction menus plus message highlighting and "jump to message" behaviour of the group chat view.
@@ -14,9 +15,9 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [reactionMenu, setReactionMenu] = useState<ReactionMenuState | null>(null);
   const [isClosing, setIsClosing] = useState(false);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
-  const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
-  const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const [highlightedMessageId, setHighlightedMessageId] = useState<Id | null>(null);
+  const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<Id | null>(null);
+  const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const reactionMenuRef = useRef<HTMLDivElement>(null);
 
@@ -52,12 +53,12 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
     }
   }, [closeMenus, contextMenu, openMenus, reactionMenu]);
 
-  const scrollToMessage = useCallback((messageId: number) => {
+  const scrollToMessage = useCallback((messageId: Id) => {
     setHighlightedMessageId(messageId);
     setTimeout(() => setHighlightedMessageId(null), 6000);
   }, []);
 
-  const jumpToSearchResult = useCallback((messageId: number) => {
+  const jumpToSearchResult = useCallback((messageId: Id) => {
     const messageElement = messageRefs.current[messageId];
     if (messageElement) {
       messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });

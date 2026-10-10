@@ -12,6 +12,8 @@ import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { useGetBlockedUsersQuery } from '@/entities/user';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 
 interface ForwardMessageDialogProps {
   open: boolean;
@@ -22,7 +24,7 @@ interface ForwardMessageDialogProps {
 }
 
 interface ForwardTarget {
-  id: number;
+  id: Id;
   name: string;
   subtitle: string;
   avatarUrl: string;
@@ -38,7 +40,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
 }) => {
   const { translations } = useLanguage();
   const [query, setQuery] = useState('');
-  const [selectedChatIds, setSelectedChatIds] = useState<number[]>([]);
+  const [selectedChatIds, setSelectedChatIds] = useState<Id[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [forwardMessage, { isLoading }] = useForwardMessageMutation();
   const { data: directChatsData, isLoading: isLoadingDirect } = useGetOneOnOneChatsQuery(username, { skip: !open || !username });
@@ -57,7 +59,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     const blockedUsernameSet = new Set((blockedUsersData?.users || []).map((user) => user.username.toLowerCase()));
     const directTargets = (directChatsData?.chats || [])
       .filter((chat) => (
-        chat.id > 0 &&
+        isServerId(chat.id) &&
         !chat.pending_approval_request &&
         !chat.interlocutor_deleted &&
         !blockedUsernameSet.has(chat.interlocutor_name.toLowerCase())
@@ -86,7 +88,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     ));
   }, [blockedUsersData?.users, directChatsData?.chats, groupChatsData?.groups, query, translations.group]);
 
-  const toggleTarget = (chatId: number) => {
+  const toggleTarget = (chatId: Id) => {
     setSelectedChatIds((current) => (
       current.includes(chatId)
         ? current.filter((id) => id !== chatId)

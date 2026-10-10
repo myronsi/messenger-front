@@ -1,10 +1,11 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Check, CheckCheck, Pin } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
+import type { Id } from '@/shared/lib/ids';
 
 interface ChatListItemProps {
   chat: Chat;
-  activeChatId?: number;
+  activeChatId?: Id;
   translations: Translations;
   getLastMessagePreview: (lastMessage?: ChatLastMessage | null) => string;
   getLastMessageTime: (lastMessage?: ChatLastMessage | null) => string;

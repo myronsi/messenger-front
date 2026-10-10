@@ -16,10 +16,12 @@ import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanel
 import UserProfilePanelView from './ui/UserProfilePanelView';
 import { useProfilePanelTransition } from './useProfilePanelTransition';
 import { toProfileAudios, toProfilePhotos } from '@/entities/message';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 
 interface UserProfileComponentRTKProps {
   username: string;
-  directChatId?: number;
+  directChatId?: Id;
   onClose: () => void;
   onMessage?: (user: {
     username: string;
@@ -27,7 +29,7 @@ interface UserProfileComponentRTKProps {
     isOnline?: boolean;
     lastSeen?: string | null;
   }) => void;
-  onJumpToMessage?: (messageId: number) => void;
+  onJumpToMessage?: (messageId: Id) => void;
   onDeleteChat?: () => void;
   hideMessageAction?: boolean;
 }
@@ -65,15 +67,15 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     data: chatPhotosData,
     isLoading: isLoadingDmPhotos,
     error: dmPhotosQueryError,
-  } = useGetChatPhotosQuery(directChatId || 0, {
-    skip: !directChatId || directChatId <= 0,
+  } = useGetChatPhotosQuery(directChatId || '', {
+    skip: !directChatId || !isServerId(directChatId),
   });
   const {
     data: chatAudiosData,
     isLoading: isLoadingDmAudios,
     error: dmAudiosQueryError,
-  } = useGetChatAudiosQuery(directChatId || 0, {
-    skip: !directChatId || directChatId <= 0,
+  } = useGetChatAudiosQuery(directChatId || '', {
+    skip: !directChatId || !isServerId(directChatId),
   });
   const profileDisplayName = userData?.display_name || username;
   const accountDisplayName = userData?.account_display_name || username;
@@ -173,10 +175,10 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const hasBlockedRelationship = isBlocked || userData.direct_message_reason === 'blocked';
   const canShowCreatedAt = !!userData.created_at && !hasBlockedRelationship;
   const canShowMessageAction = !hideMessageAction && !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
-  const canShowSearchAction = !!directChatId && directChatId > 0 && !isCurrentUser && !!onJumpToMessage;
-  const canShowPhotosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmPhotos.length > 0;
-  const canShowAudiosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmAudios.length > 0;
-  const canShowDmSections = !!directChatId && directChatId > 0 && !isCurrentUser;
+  const canShowSearchAction = !!directChatId && isServerId(directChatId) && !isCurrentUser && !!onJumpToMessage;
+  const canShowPhotosAction = !!directChatId && isServerId(directChatId) && !isCurrentUser && dmPhotos.length > 0;
+  const canShowAudiosAction = !!directChatId && isServerId(directChatId) && !isCurrentUser && dmAudios.length > 0;
+  const canShowDmSections = !!directChatId && isServerId(directChatId) && !isCurrentUser;
   const actionCount = [canShowMessageAction, canShowDmSections, canShowSearchAction, canShowPhotosAction, canShowAudiosAction]
     .filter(Boolean).length;
   const actionColumns = Math.min(Math.max(actionCount, 1), 4);

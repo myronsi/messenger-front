@@ -12,24 +12,25 @@ import {
   type ServerEvent,
 } from '@/features/chat-core';
 import { createDeleteChatAction } from './useChatActions';
+import type { Id } from '@/shared/lib/ids';
 
 export const useChat = (
-  chatId: number,
+  chatId: Id,
   username: string,
   token: string,
   onBack: () => void,
-  currentUserId = 0,
-  firstUnreadMessageId?: number | null,
+  currentUserId: Id = '',
+  firstUnreadMessageId?: Id | null,
   onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number; isMine: boolean } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: Id; isMine: boolean } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [messageInput, setMessageInput] = useDraftState(chatDraftKey(chatId), editingMessage === null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<Id | null>(null);
   const { translations, language } = useLanguage();
   const onBackRef = useLatest(onBack);
   const translationsRef = useLatest(translations);
@@ -92,7 +93,7 @@ export const useChat = (
     onReconnected: catchUpAfterReconnect,
   });
 
-  const scrollToMessage = (messageId: number) => {
+  const scrollToMessage = (messageId: Id) => {
     setHighlightedMessageId(messageId);
     setTimeout(() => setHighlightedMessageId(null), 6000);
   };

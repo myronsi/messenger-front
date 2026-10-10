@@ -7,26 +7,28 @@ import { Message, ReactionInfo } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useStableCallback } from '@/shared/lib/useStableCallback';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 
 interface MessageListProps {
   messages: Message[];
   username: string;
-  userId: number;
+  userId: Id;
   interlocutorDeleted: boolean;
-  firstUnreadMessageId?: number | null;
+  firstUnreadMessageId?: Id | null;
   onMessageClick: (e: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
-  highlightedMessageId: number | null;
-  contextMenuMessageId?: number;
+  highlightedMessageId: Id | null;
+  contextMenuMessageId?: Id;
   getFormattedDateLabel: (timestamp: string) => string;
   getMessageTime: (timestamp: string) => string;
   renderMessageContent: (message: Message) => React.ReactNode;
-  messageRefs: React.MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
-  onReplyClick: (messageId: number) => void;
+  messageRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
+  onReplyClick: (messageId: Id) => void;
   wsRef: React.MutableRefObject<WebSocket | null>;
   onOpenReactionMenu: (message: Message, e: React.MouseEvent) => void;
-  tempHighlightedMessageId: number | null;
-  setTempHighlightedMessageId: (id: number | null) => void;
+  tempHighlightedMessageId: Id | null;
+  setTempHighlightedMessageId: (id: Id | null) => void;
   onLoadOlderMessages?: () => Promise<void>;
   onLoadNewerMessages?: () => Promise<void>;
   onLoadLatestMessages?: () => Promise<void>;
@@ -35,7 +37,7 @@ interface MessageListProps {
   isLoadingOlderMessages?: boolean;
   isLoadingNewerMessages?: boolean;
   isLoadingInitialMessages?: boolean;
-  onMarkMessagesRead?: (messageIds: number[]) => Promise<void>;
+  onMarkMessagesRead?: (messageIds: Id[]) => Promise<void>;
   isGroup?: boolean;
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
@@ -94,7 +96,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
       .some((value) => String(value).toLowerCase() === ownUsername);
   }, [userId, username]);
 
-  const latchedBoundaryRef = useRef<{ key: string | number | undefined; id: number | null }>({ key: scrollToBottomKey, id: null });
+  const latchedBoundaryRef = useRef<{ key: string | number | undefined; id: Id | null }>({ key: scrollToBottomKey, id: null });
   if (latchedBoundaryRef.current.key !== scrollToBottomKey) latchedBoundaryRef.current = { key: scrollToBottomKey, id: null };
 
   // Latched per chat so the separator doesn't jump as messages become read.
@@ -105,7 +107,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     if (boundaryIndex === -1) return firstUnreadMessageId;
     const firstUnreadMessage = messages.slice(boundaryIndex).find((message) => (
       !isOwnMessage(message) &&
-      !(userId > 0 && message.read_by?.some((reader) => reader.user_id === userId))
+      !(isServerId(userId) && message.read_by?.some((reader) => reader.user_id === userId))
     ));
     if (firstUnreadMessage) latchedBoundaryRef.current.id = firstUnreadMessage.id;
     return firstUnreadMessage?.id ?? null;
@@ -139,7 +141,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     onMarkMessagesRead, enabled: isPositioned,
   });
 
-  const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
+  const [playingMessageId, setPlayingMessageId] = useState<Id | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {

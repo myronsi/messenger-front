@@ -5,20 +5,22 @@ import { FileMessageContent, Message, ModalState } from '@/entities/message';
 import { useCreateChatMutation } from '@/entities/chat';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { getLocalUploadFileType } from '@/features/chat-core';
+import type { Id } from '@/shared/lib/ids';
+import { newLocalId } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface PreviewChatOptions {
-  chatId: number;
+  chatId: Id;
   chatName: string;
   username: string;
-  userId: number | null;
+  userId: Id | null;
   directDraftDisabled: boolean;
   directDraftReason: 'self' | 'blocked' | 'privacy' | null;
   translations: Translations;
   initialPendingApprovalRequest: boolean;
   initialPendingApprovalMessage: string;
-  onChatCreated?: (newId: number, newName: string) => void;
+  onChatCreated?: (newId: Id, newName: string) => void;
 }
 
 export const usePreviewChat = ({
@@ -60,7 +62,7 @@ export const usePreviewChat = ({
 
   const addFailedPreviewMessage = (content: string) => {
     setPreviewFailedMessages((current) => [...current, {
-      id: -Date.now(),
+      id: newLocalId(),
       sender_id: userId || undefined,
       is_own: true,
       sender: username,
@@ -74,7 +76,7 @@ export const usePreviewChat = ({
   };
 
   const createPendingApprovalPreviewMessage = (content: string): Message => ({
-    id: -Date.now(),
+    id: newLocalId(),
     sender_id: userId || undefined,
     is_own: true,
     sender: username,
@@ -91,7 +93,7 @@ export const usePreviewChat = ({
   };
 
   const createPreviewUploadMessage = (file: File, caption = '') => {
-    const tempId = -Date.now();
+    const tempId = newLocalId();
     const objectUrl = URL.createObjectURL(file);
     const content: FileMessageContent = {
       file_url: objectUrl,
@@ -120,7 +122,7 @@ export const usePreviewChat = ({
     return tempId;
   };
 
-  const updatePreviewUploadProgress = (messageId: number, percent: number) => {
+  const updatePreviewUploadProgress = (messageId: Id, percent: number) => {
     setPreviewFailedMessages((current) => current.map((message) => (
       message.id === messageId
         ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
@@ -128,7 +130,7 @@ export const usePreviewChat = ({
     )));
   };
 
-  const markPreviewUploadFailed = (messageId: number, errorMessage?: string) => {
+  const markPreviewUploadFailed = (messageId: Id, errorMessage?: string) => {
     setPreviewFailedMessages((current) => current.map((message) => (
       message.id === messageId
         ? { ...message, upload_status: 'failed', delivery_error: errorMessage || translations.errorLoading || 'Upload failed' }
@@ -178,7 +180,7 @@ export const usePreviewChat = ({
       return;
     }
     setIsCreatingPreviewChat(true);
-    let optimisticMessageId: number | null = null;
+    let optimisticMessageId: Id | null = null;
     try {
       const response = await createChat({ user1: username, user2: chatName }).unwrap();
       if (response.approval_required || !response.chat_id) {

@@ -1,10 +1,11 @@
 import { MutableRefObject, RefObject, useEffect, useMemo, useState } from 'react';
 import { Message, isValidTimestamp } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
+import type { Id } from '@/shared/lib/ids';
 
 interface CurrentDateLabelOptions {
   messages: Message[];
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   chatContainerRef: RefObject<HTMLDivElement | null>;
   getFormattedDateLabel: (timestamp: string) => string;
 }
@@ -16,7 +17,7 @@ export const useCurrentDateLabel = ({ messages, messageRefs, chatContainerRef, g
   const getLabelRef = useLatestRef(getFormattedDateLabel);
 
   const separators = useMemo(() => {
-    const result: { id: number; label: string }[] = [];
+    const result: { id: Id; label: string }[] = [];
     let previousLabel: string | null = null;
     for (const message of messages) {
       if (!isValidTimestamp(message.timestamp)) continue;

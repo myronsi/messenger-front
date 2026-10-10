@@ -2,11 +2,13 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, type NavigateFunction } from 'react-router-dom';
 import { CurrentChat, directChatPath, parseDmIdentifier, parseProfileUsername } from './messengerRoutes';
 import { authFetch } from '@/shared/auth/session';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface MessengerRouteState {
-  chatId?: number;
+  chatId?: Id;
   chatName?: string;
   chatDisplayName?: string;
   isOnline?: boolean;
@@ -14,24 +16,24 @@ interface MessengerRouteState {
   avatarUrl?: string;
   interlocutorDeleted?: boolean;
   type?: 'one-on-one' | 'group';
-  firstUnreadMessageId?: number | null;
+  firstUnreadMessageId?: Id | null;
   pendingApprovalRequest?: boolean;
   pendingApprovalMessage?: string;
 }
 
 interface DirectChatSummary {
-  id: number;
+  id: Id;
   interlocutor_name: string;
   interlocutor_display_name?: string;
   interlocutor_is_online?: boolean;
   interlocutor_last_seen?: string | null;
   avatar_url?: string;
   interlocutor_deleted: boolean;
-  first_unread_message_id?: number | null;
+  first_unread_message_id?: Id | null;
 }
 
 interface DirectUserProfile {
-  direct_chat_id?: number;
+  direct_chat_id?: Id;
   username?: string;
   display_name?: string;
   is_online?: boolean;
@@ -71,8 +73,8 @@ export const useMessengerRouteSync = ({
   useEffect(() => {
     const match = location.pathname.match(/^\/chat\/(\d+)$/);
     if (match) {
-      const id = Number(match[1]);
-      if (id <= 0) {
+      const id: Id = match[1];
+      if (!isServerId(id)) {
         navigate('/');
         return;
       }
@@ -106,7 +108,7 @@ export const useMessengerRouteSync = ({
       const state = (location.state as MessengerRouteState | null) ?? {};
       if (state.chatName || state.chatDisplayName || state.chatId) {
         setCurrentChat({
-          id: state.chatId || 0,
+          id: state.chatId || '',
           name: state.chatName || String(directIdentifier.value),
           displayName: state.chatDisplayName || state.chatName || String(directIdentifier.value),
           isOnline: state.isOnline,
@@ -192,7 +194,7 @@ export const useMessengerRouteSync = ({
         })
         .then((user: DirectUserProfile) => {
           if (isCancelled) return;
-          const canonicalPath = directChatPath(user.direct_chat_id || state.chatId || 0, user.username || targetUsername, false);
+          const canonicalPath = directChatPath(user.direct_chat_id || state.chatId || '', user.username || targetUsername, false);
           if (location.pathname !== canonicalPath) {
             navigate(canonicalPath, {
               replace: true,
@@ -209,7 +211,7 @@ export const useMessengerRouteSync = ({
           }
 
           setCurrentChat({
-            id: user.direct_chat_id || state.chatId || 0,
+            id: user.direct_chat_id || state.chatId || '',
             name: user.username || targetUsername,
             displayName: user.display_name || state.chatDisplayName || targetUsername,
             isOnline: user.is_online ?? state.isOnline,

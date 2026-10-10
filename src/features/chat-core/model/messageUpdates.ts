@@ -2,6 +2,8 @@ import type { FileMessageContent, Message, ReactionInfo } from '@/entities/messa
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { unescapeCurlyBraces } from './messageText';
 import type { NewMessageEvent } from './socketEvents';
+import type { Id } from '@/shared/lib/ids';
+import { isLocalId } from '@/shared/lib/ids';
 
 export interface ReaderInfo {
   username?: string;
@@ -13,7 +15,7 @@ const isSameSender = (a: Message, b: Message) => (!!a.sender_id && a.sender_id =
 
 export const buildMessageFromSocketEvent = (
   event: NewMessageEvent,
-  context: { currentUserId: number; username: string }
+  context: { currentUserId: Id; username: string }
 ): Message => ({
   id: event.data.message_id,
   client_temp_id: event.data.client_temp_id ?? null,
@@ -41,7 +43,7 @@ export const buildMessageFromSocketEvent = (
 export const mergeIncomingMessage = (
   previous: Message[],
   incoming: Message,
-  onTempIdResolved?: (tempId: number) => void
+  onTempIdResolved?: (tempId: Id) => void
 ): Message[] => {
   const existingIndex = previous.findIndex((message) => message.id === incoming.id);
   if (existingIndex !== -1) {
@@ -72,7 +74,7 @@ export const mergeIncomingMessage = (
   }
 
   const pendingTextIndex = previous.findIndex((message) =>
-    message.id < 0 &&
+    isLocalId(message.id) &&
     isSameSender(message, incoming) &&
     typeof message.content === 'string' &&
     typeof incoming.content === 'string' &&
@@ -93,14 +95,14 @@ export const mergeIncomingMessage = (
   return [...previous, incoming];
 };
 
-export const applyMessageEdit = (previous: Message[], messageId: number, content: Message['content'], editedAt?: string): Message[] =>
+export const applyMessageEdit = (previous: Message[], messageId: Id, content: Message['content'], editedAt?: string): Message[] =>
   previous.map((message) => (
     message.id === messageId
       ? { ...message, content, edited_at: editedAt || new Date().toISOString() }
       : message
   ));
 
-export const addReaction = (previous: Message[], messageId: number, reaction: ReactionInfo): Message[] =>
+export const addReaction = (previous: Message[], messageId: Id, reaction: ReactionInfo): Message[] =>
   previous.map((message) => {
     if (message.id !== messageId) return message;
     const reactions = message.reactions || [];
@@ -108,7 +110,7 @@ export const addReaction = (previous: Message[], messageId: number, reaction: Re
     return { ...message, reactions: [...reactions, reaction] };
   });
 
-export const removeReaction = (previous: Message[], messageId: number, userId: number, reaction: string): Message[] =>
+export const removeReaction = (previous: Message[], messageId: Id, userId: Id, reaction: string): Message[] =>
   previous.map((message) => (
     message.id === messageId
       ? { ...message, reactions: (message.reactions || []).filter((item) => !(item.user_id === userId && item.reaction === reaction)) }
@@ -117,8 +119,8 @@ export const removeReaction = (previous: Message[], messageId: number, userId: n
 
 export const addReadReceipts = (
   previous: Message[],
-  messageIds: number[],
-  readerUserId: number,
+  messageIds: Id[],
+  readerUserId: Id,
   readAt: string,
   reader?: ReaderInfo
 ): Message[] => {

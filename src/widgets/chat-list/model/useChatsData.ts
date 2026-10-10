@@ -8,6 +8,7 @@ import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 
 import type { ChatOverrideMap, PresenceMap } from './types';
+import type { Id } from '@/shared/lib/ids';
 
 // Coordinates RTK Query data sources (one-on-one chats, group chats, request
 // inbox, current user) and merges them with live presence/override state
@@ -59,7 +60,7 @@ export function useChatsData(username: string) {
       const now = Date.now();
       const stamped: ChatOverrideMap = {};
       Object.keys(next).forEach((key) => {
-        const id = Number(key);
+        const id: Id = key;
         stamped[id] = next[id] === prev[id] ? next[id] : { ...next[id], updated_at: now };
       });
       return stamped;
@@ -68,14 +69,14 @@ export function useChatsData(username: string) {
 
   // Server data is authoritative: once a fetch lands, drop overrides written before that
   // request started (it already reflects them). Newer ones are live events and are kept.
-  const dropOverridesOlderThan = useCallback((chatIds: number[], startedAt: number | undefined) => {
+  const dropOverridesOlderThan = useCallback((chatIds: Id[], startedAt: number | undefined) => {
     if (!startedAt || chatIds.length === 0) return;
     const ids = new Set(chatIds);
     setRawChatOverrides((prev) => {
       let changed = false;
       const next: ChatOverrideMap = {};
       Object.keys(prev).forEach((key) => {
-        const id = Number(key);
+        const id: Id = key;
         if (ids.has(id) && (prev[id].updated_at ?? 0) < startedAt) {
           changed = true;
         } else {
@@ -152,9 +153,9 @@ export function useChatsData(username: string) {
       .map(({ chat }) => chat);
   }, [oneOnOneChatsData, groupChatsData, presenceByUsername, chatOverrides]);
 
-  const chatsByIdRef = useRef<Record<number, Chat>>({});
+  const chatsByIdRef = useRef<Record<Id, Chat>>({});
   useEffect(() => {
-    chatsByIdRef.current = chats.reduce<Record<number, Chat>>((acc, chat) => {
+    chatsByIdRef.current = chats.reduce<Record<Id, Chat>>((acc, chat) => {
       acc[chat.id] = chat;
       return acc;
     }, {});

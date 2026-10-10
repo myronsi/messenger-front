@@ -1,5 +1,6 @@
+import type { Id } from '@/shared/lib/ids';
 export interface User {
-  id: number;
+  id: Id;
   username: string;
   display_name: string;
   account_display_name?: string;
@@ -11,12 +12,12 @@ export interface User {
   is_online?: boolean;
   last_seen?: string | null;
   can_message?: boolean;
-  direct_chat_id?: number | null;
+  direct_chat_id?: Id | null;
   direct_message_reason?: 'self' | 'blocked' | 'privacy' | null;
 }
 
 export interface UserAvatarHistoryItem {
-  id: number;
+  id: Id;
   avatar_url: string;
   created_at: string;
   is_current: boolean;

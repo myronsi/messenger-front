@@ -5,13 +5,14 @@ import { getAppendedMessages } from '@/entities/message';
 import { useCurrentDateLabel } from './useCurrentDateLabel';
 import { useHighlightScroll } from './useHighlightScroll';
 import { getScrollBehavior, useScrollToBottom } from './useScrollToBottom';
+import type { Id } from '@/shared/lib/ids';
 
 interface MessageListScrollOptions {
   messages: Message[];
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
-  firstUnreadMessageId?: number | null;
-  highlightedMessageId: number | null;
-  tempHighlightedMessageId: number | null;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
+  firstUnreadMessageId?: Id | null;
+  highlightedMessageId: Id | null;
+  tempHighlightedMessageId: Id | null;
   getFormattedDateLabel: (timestamp: string) => string;
   hasMoreMessages: boolean;
   hasMoreNewerMessages: boolean;
@@ -34,7 +35,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages, isLoadingOlderMessages,
     onLoadOlderMessages, onLoadLatestMessages, scrollToBottomKey, isOwnMessage,
   } = options;
-  const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<number | null>(firstUnreadMessageId ?? null);
+  const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<Id | null>(firstUnreadMessageId ?? null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isPositioned, setIsPositioned] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,7 +47,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const hasScrolledToFirstUnreadRef = useRef(false);
   const isSeekingFirstUnreadRef = useRef(false);
   const shouldStickToBottomRef = useRef(true);
-  const lastMessageIdRef = useRef<number | null>(null);
+  const lastMessageIdRef = useRef<Id | null>(null);
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const positionedFrameRef = useRef(0);
   const autoScrollUntilRef = useRef(0);

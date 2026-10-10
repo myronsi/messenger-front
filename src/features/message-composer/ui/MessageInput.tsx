@@ -4,6 +4,7 @@ import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { UPLOAD_ACCEPT, validateUploadFile } from '@/shared/lib/uploadValidation';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
+import type { Id } from '@/shared/lib/ids';
 
 interface MessageInputProps {
   messageInput: string;
@@ -13,15 +14,15 @@ interface MessageInputProps {
   onSendMessage: () => void;
   onFileUpload: (file: File, caption?: string) => void;
   onCancelReplyOrEdit: () => void;
-  chatId: number;
+  chatId: Id;
   token: string;
   disableVoice?: boolean;
   isSending?: boolean;
   disabled?: boolean;
-  onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => number | null;
-  onVoiceUploadProgress?: (messageId: number, percent: number) => void;
-  onVoiceUploadError?: (messageId: number, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: number) => void;
+  onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => Id | null;
+  onVoiceUploadProgress?: (messageId: Id, percent: number) => void;
+  onVoiceUploadError?: (messageId: Id, errorMessage?: string) => void;
+  onVoiceUploadComplete?: (messageId: Id) => void;
 }
 
 const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({

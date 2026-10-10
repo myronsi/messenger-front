@@ -5,21 +5,22 @@ import type { MutableRefObject } from 'react';
 import { useChatSocket, useMessageEvents, type ChatTransport, type ServerEvent } from '@/features/chat-core';
 import type { Message, ModalState } from '@/entities/message';
 import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
+import type { Id } from '@/shared/lib/ids';
 
 interface UseGroupChatSocketArgs {
   token: string;
-  chatId: number;
+  chatId: Id;
   username: string;
   translations: GroupTranslations;
   transport: ChatTransport;
-  currentUserIdRef: MutableRefObject<number>;
+  currentUserIdRef: MutableRefObject<Id>;
   translationsRef: MutableRefObject<Translations>;
   onBackRef: MutableRefObject<() => void>;
   applyGroupDetails: (raw: RawGroupDetails, syncCache?: boolean) => void;
   refreshGroupDetails: () => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setModal: React.Dispatch<React.SetStateAction<ModalState | null>>;
-  markMessageFailed: (messageId: number, message?: string) => boolean;
+  markMessageFailed: (messageId: Id, message?: string) => boolean;
   markLatestPendingMessageFailed: (message?: string) => boolean;
   onReconnected: () => void;
 }

@@ -7,6 +7,7 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { ProfileModalState } from './useProfileAccountActions';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
+import type { Id } from '@/shared/lib/ids';
 
 interface UseProfileConnectionsArgs {
   username: string;
@@ -109,7 +110,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
     }
   };
 
-  const handleRejectRequest = async (requestId: number) => {
+  const handleRejectRequest = async (requestId: Id) => {
     try {
       await rejectRequest(requestId).unwrap();
       refetchRequestInbox();

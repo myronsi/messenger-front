@@ -3,13 +3,14 @@ import { Search } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import type { Id } from '@/shared/lib/ids';
 
 interface MessageSearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   messages: Message[];
   getMessageTime: (timestamp: string) => string;
-  onJumpToMessage: (messageId: number) => void;
+  onJumpToMessage: (messageId: Id) => void;
 }
 
 const getSearchText = (message: Message) => {

@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from 'react-dom';
 import { ReactionInfo } from '../model/types';
 import { ReactionGroup, groupAndSortReactions, splitVisibleReactions } from '../model/reactions';
+import type { Id } from '@/shared/lib/ids';
 
 interface ReactionListProps {
   reactions: ReactionInfo[];
-  messageId: number;
-  userId: number;
+  messageId: Id;
+  userId: Id;
   isMine: boolean;
   /** Image bubbles keep their time badge inside the image, so the strip overlaps the bubble less. */
   isImage?: boolean;

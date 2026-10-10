@@ -6,16 +6,18 @@ import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { escapeCurlyBraces } from './messageText';
 import { getLocalUploadFileType } from './uploadFileType';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
+import type { Id } from '@/shared/lib/ids';
+import { newLocalId } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const SOCKET_CONNECT_WAIT_ATTEMPTS = 30;
 const SOCKET_CONNECT_WAIT_MS = 100;
 
 interface MessageSenderOptions {
-  chatId: number;
+  chatId: Id;
   username: string;
-  currentUserId: number;
-  currentUserIdRef: MutableRefObject<number>;
+  currentUserId: Id;
+  currentUserIdRef: MutableRefObject<Id>;
   translations: Translations;
   translationsRef: MutableRefObject<Translations>;
   transport: ChatTransport;
@@ -47,7 +49,7 @@ export const useMessageSender = ({
     return message || translationsRef.current.messageNotDeliveredPrivacy || 'This message cannot be received due to the user privacy settings.';
   };
 
-  const markMessageFailed = (messageId: number, message?: string) => {
+  const markMessageFailed = (messageId: Id, message?: string) => {
     setMessages((previous) => previous.map((item) => item.id === messageId
       ? { ...item, delivery_error: getDeliveryErrorMessage(message) }
       : item));
@@ -61,7 +63,7 @@ export const useMessageSender = ({
     return true;
   };
 
-  const clearMessageDeliveryError = (messageId: number) => {
+  const clearMessageDeliveryError = (messageId: Id) => {
     setMessages((previous) => previous.map((item) => item.id === messageId
       ? { ...item, delivery_error: undefined }
       : item));
@@ -73,7 +75,7 @@ export const useMessageSender = ({
     fileType = getLocalUploadFileType(fileName, file.type),
     caption = ''
   ) => {
-    const tempId = -Date.now();
+    const tempId = newLocalId();
     const objectUrl = URL.createObjectURL(file);
     const content: FileMessageContent = {
       file_url: objectUrl,
@@ -105,19 +107,19 @@ export const useMessageSender = ({
     return tempId;
   };
 
-  const updateOptimisticUploadProgress = (messageId: number, percent: number) => {
+  const updateOptimisticUploadProgress = (messageId: Id, percent: number) => {
     setMessages((previous) => previous.map((message) => message.id === messageId
       ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
       : message));
   };
 
-  const markOptimisticUploadFailed = (messageId: number, errorMessage?: string) => {
+  const markOptimisticUploadFailed = (messageId: Id, errorMessage?: string) => {
     setMessages((previous) => previous.map((message) => message.id === messageId
       ? { ...message, upload_status: 'failed', delivery_error: errorMessage || translationsRef.current.errorLoading || 'Upload failed' }
       : message));
   };
 
-  const settleOptimisticUpload = (messageId: number) => updateOptimisticUploadProgress(messageId, 99);
+  const settleOptimisticUpload = (messageId: Id) => updateOptimisticUploadProgress(messageId, 99);
 
   // Sends now when the socket is open, otherwise queues the payload for the next successful connection.
   const sendOrQueue = (payload: OutgoingPayload) => {
@@ -164,7 +166,7 @@ export const useMessageSender = ({
         : message));
       payload = { type: 'edit', message_id: editingMessage.id, content: escapedMessage };
     } else {
-      const tempId = -Date.now();
+      const tempId = newLocalId();
       const optimisticMessage: Message = {
         id: tempId,
         client_temp_id: tempId,

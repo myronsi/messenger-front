@@ -3,6 +3,7 @@ import { Check, Inbox, MessageSquare, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { ApprovalRequestInboxResponse, ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import type { Id } from '@/shared/lib/ids';
 
 
 interface ApprovalRequestsPageProps {
@@ -11,7 +12,7 @@ interface ApprovalRequestsPageProps {
   isApproving: boolean;
   isRejecting: boolean;
   onApprove: (request: ApprovalRequest) => void;
-  onReject: (requestId: number) => void;
+  onReject: (requestId: Id) => void;
   onBack: () => void;
   getMediaUrl: (path?: string | null, fallback?: string) => string;
 }
