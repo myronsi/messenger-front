@@ -15,6 +15,8 @@ import ChatOverlays from './ui/ChatOverlays';
 import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useGetBlockedUsersQuery } from '@/entities/user';
 import { isServerId } from '@/shared/lib/ids';
+import { userIdOf } from '@/shared/lib/userDirectory';
+import { ChatSearchBar } from '@/features/message-search';
 
 
 export type { ChatProps } from './model/types';
@@ -155,6 +157,11 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   });
 
   const displayedMessages = isPreview ? previewFailedMessages : messages;
+  const interlocutorId = userIdOf(chatName);
+  const searchSenders = [
+    ...(userId ? [{ id: userId, name: translations.searchSenderYou }] : []),
+    ...(interlocutorId ? [{ id: interlocutorId, name: chatDisplayName || chatName }] : []),
+  ];
 
   const content = (
     <div className="relative flex h-full flex-col overflow-hidden">
@@ -168,7 +175,16 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         onDeleteChat={handleDeleteChat}
         onOpenProfile={onOpenProfile}
         interlocutorAvatar={interlocutorAvatar}
+        onOpenSearch={!isPreview && !interlocutorDeleted ? () => setIsSearchOpen(true) : undefined}
       />
+      {isSearchOpen && !isPreview && (
+        <ChatSearchBar
+          chatId={chatId}
+          senders={searchSenders}
+          onJumpToMessage={jumpToSearchResult}
+          onClose={() => setIsSearchOpen(false)}
+        />
+      )}
       <MessageList
           ref={chatWindowRef}
           messages={displayedMessages}
@@ -266,10 +282,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         setModal={setModal}
         closeMenus={closeMenus}
         onForward={setForwardMessage}
-        isSearchOpen={isSearchOpen}
-        setIsSearchOpen={setIsSearchOpen}
-        getMessageTime={getMessageTime}
-        jumpToSearchResult={jumpToSearchResult}
         forwardMessage={forwardMessage}
         username={username}
         onForwarded={() => setModal({ type: 'copy', message: translations.messageForwarded || 'Message forwarded' })}

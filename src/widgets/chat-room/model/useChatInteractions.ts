@@ -128,6 +128,8 @@ export const useChatInteractions = ({
       setTempHighlightedMessageId(messageId);
       setTimeout(() => setTempHighlightedMessageId(null), 2000);
     } else {
+      // A target still shown from an earlier jump would take precedence over this one.
+      setTempHighlightedMessageId(null);
       scrollToMessage(messageId);
     }
   };

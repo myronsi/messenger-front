@@ -71,6 +71,8 @@ export const useGroupMessageMenus = ({ isOwnMessage, chatId, messageJumpRequest,
       setTimeout(() => setTempHighlightedMessageId(null), 2000);
       return;
     }
+    // A target still shown from an earlier jump would take precedence over this one.
+    setTempHighlightedMessageId(null);
     scrollToMessage(messageId);
   }, [scrollToMessage]);
 

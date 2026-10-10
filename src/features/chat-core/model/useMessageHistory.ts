@@ -5,10 +5,10 @@ import { authFetch } from '@/shared/auth/session';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
 import { fetchMissedMessages } from './fetchMissedMessages';
+import { useOwnReadReceipts } from './useOwnReadReceipts';
 import { historyDirection, historyPath, toHistoryResponse, useGetMessageHistoryQuery } from '@/entities/message';
 import type { HistoryRequest } from '@/entities/message';
 import { apiUrl } from '@/shared/api/apiUrl';
-import { useMarkChatReadMutation } from '@/entities/chat';
 import type { Id } from '@/shared/lib/ids';
 import { maxId } from '@/shared/lib/ids';
 import { isLocalId, isServerId } from '@/shared/lib/ids';
@@ -55,7 +55,10 @@ export const useMessageHistory = ({
   const isLoadingOlderMessagesRef = useRef(false);
   const isLoadingNewerMessagesRef = useRef(false);
   const trimNewestPendingRef = useRef(false);
-  const [markChatRead] = useMarkChatReadMutation();
+  // Changes whenever the loaded window is replaced (a jump, the newest page). Pages requested for an earlier
+  // window are dropped: their cursors belong to messages that are no longer loaded.
+  const windowVersionRef = useRef(0);
+  const isReplacingWindowRef = useRef(false);
   const {
     data: latestHistory,
     isLoading: isLoadingLatestHistory,
@@ -141,12 +144,13 @@ export const useMessageHistory = ({
   }, [chatId, onBackRef, setModal, translationsRef]);
 
   const loadOlderMessages = useCallback(async () => {
-    if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;
+    if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current || isReplacingWindowRef.current) return;
+    const version = windowVersionRef.current;
     isLoadingOlderMessagesRef.current = true;
     setIsLoadingOlderMessages(true);
     try {
       const data = await fetchHistoryPage({ limit: MESSAGE_PAGE_SIZE, before: oldestMessageId });
-      if (!data) return;
+      if (!data || version !== windowVersionRef.current) return;
       const olderMessages = normalizeHistoryMessages(data.history);
       setMessages((previous) => prependUniqueMessages(previous, olderMessages));
       trimNewestPendingRef.current = true;
@@ -159,12 +163,13 @@ export const useMessageHistory = ({
   }, [fetchHistoryPage, hasMoreMessages, oldestMessageId, setMessages, token]);
 
   const loadNewerMessages = useCallback(async () => {
-    if (!token || !newestMessageId || !hasMoreNewerMessages || isLoadingNewerMessagesRef.current) return;
+    if (!token || !newestMessageId || !hasMoreNewerMessages || isLoadingNewerMessagesRef.current || isReplacingWindowRef.current) return;
+    const version = windowVersionRef.current;
     isLoadingNewerMessagesRef.current = true;
     setIsLoadingNewerMessages(true);
     try {
       const data = await fetchHistoryPage({ limit: MESSAGE_PAGE_SIZE, after: newestMessageId });
-      if (!data) return;
+      if (!data || version !== windowVersionRef.current) return;
       const newerMessages = normalizeHistoryMessages(data.history);
       setMessages((previous) => appendUniqueMessages(previous, newerMessages));
       setHasMoreNewerMessages(!!data.has_more_after);
@@ -176,14 +181,16 @@ export const useMessageHistory = ({
   }, [fetchHistoryPage, hasMoreNewerMessages, newestMessageId, setMessages, token]);
 
   // Replaces the loaded window with one page: the newest one, or the one around a message. Messages still
-  // being sent stay.
+  // being sent stay. The latest call wins when several overlap (quick jumps between search results).
   const replaceWindow = useCallback(async (around?: Id) => {
-    if (!token || !isServerId(chatId) || isLoadingNewerMessagesRef.current) return;
-    isLoadingNewerMessagesRef.current = true;
+    if (!token || !isServerId(chatId)) return;
+    windowVersionRef.current += 1;
+    const version = windowVersionRef.current;
+    isReplacingWindowRef.current = true;
     setIsLoadingNewerMessages(true);
     try {
       const data = await fetchHistoryPage({ limit: MESSAGE_PAGE_SIZE, around });
-      if (!data) return;
+      if (!data || version !== windowVersionRef.current) return;
       const pageMessages = normalizeHistoryMessages(data.history);
       setMessages((previous) => [...pageMessages, ...previous.filter((message) => isLocalId(message.id))]);
       setOldestMessageId(pageMessages[0]?.id || null);
@@ -191,8 +198,10 @@ export const useMessageHistory = ({
       setHasMoreMessages(data.has_more_before ?? data.has_more);
       setHasMoreNewerMessages(!!data.has_more_after);
     } finally {
-      isLoadingNewerMessagesRef.current = false;
-      setIsLoadingNewerMessages(false);
+      if (version === windowVersionRef.current) {
+        isReplacingWindowRef.current = false;
+        setIsLoadingNewerMessages(false);
+      }
     }
   }, [chatId, fetchHistoryPage, setMessages, token]);
 
@@ -211,6 +220,7 @@ export const useMessageHistory = ({
     if (messageId === focusMessageId && isLoadingLatestHistoryRef.current) return;
     await replaceWindow(messageId);
   }, [focusMessageId, replaceWindow]);
+
   const hasMoreNewerMessagesRef = useRef(hasMoreNewerMessages);
   hasMoreNewerMessagesRef.current = hasMoreNewerMessages;
 
@@ -221,14 +231,15 @@ export const useMessageHistory = ({
   // load on scroll anyway; otherwise fetch everything after the newest loaded message. If that keeps
   // failing, the missed messages are left to the normal load-newer-on-scroll path.
   const catchUpAfterReconnect = useCallback(async () => {
-    if (!token || !isServerId(chatId) || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
+    if (!token || !isServerId(chatId) || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current || isReplacingWindowRef.current) return;
+    const version = windowVersionRef.current;
     const newestLoadedId = maxId(messagesRef.current.map((message) => message.id).filter(isServerId));
     if (!newestLoadedId) return;
     const isCurrent = () => chatIdRef.current === chatId;
     isLoadingNewerMessagesRef.current = true;
     try {
       const data = await fetchMissedMessages(chatId, newestLoadedId, MESSAGE_PAGE_SIZE, isCurrent);
-      if (!isCurrent()) return;
+      if (!isCurrent() || version !== windowVersionRef.current) return;
       const missedMessages = data ? normalizeHistoryMessages(data.history) : [];
       if (missedMessages.length > 0) {
         setMessages((previous) => appendUniqueMessages(previous, missedMessages));
@@ -243,42 +254,7 @@ export const useMessageHistory = ({
     }
   }, [chatId, setMessages, token]);
 
-  const applyReadReceiptBatch = useCallback((
-    messageIds: Id[],
-    readerUserId: Id,
-    readAt: string,
-    reader?: { username?: string; display_name?: string; avatar_url?: string }
-  ) => {
-    if (!messageIds.length || !readerUserId) return;
-    const readMessageIds = new Set(messageIds);
-    setMessages((previous) => previous.map((message) => {
-      if (!readMessageIds.has(message.id)) return message;
-      const readBy = message.read_by || [];
-      if (readBy.some((read) => read.user_id === readerUserId)) return message;
-      return {
-        ...message,
-        read_by: [...readBy, {
-          user_id: readerUserId,
-          username: reader?.username,
-          display_name: reader?.display_name,
-          avatar_url: reader?.avatar_url,
-          read_at: readAt,
-        }],
-      };
-    }));
-  }, [setMessages]);
-
-  const markMessagesRead = useCallback(async (messageIds: Id[]) => {
-    const uniqueMessageIds = Array.from(new Set(messageIds.filter((messageId) => isServerId(messageId))));
-    if (!uniqueMessageIds.length || !currentUserIdRef.current) return;
-    const result = await markChatRead({ chatId, messageIds: uniqueMessageIds }).unwrap();
-    applyReadReceiptBatch(
-      result.read_message_ids || uniqueMessageIds,
-      currentUserIdRef.current,
-      result.read_at || new Date().toISOString(),
-      { username }
-    );
-  }, [applyReadReceiptBatch, chatId, currentUserIdRef, markChatRead, username]);
+  const { markMessagesRead, applyReadReceiptBatch } = useOwnReadReceipts({ chatId, username, currentUserIdRef, setMessages });
 
   return {
     isLoadingInitialMessages,
