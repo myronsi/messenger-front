@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
 import MediaImg from '@/shared/ui/MediaImg';
@@ -14,11 +14,12 @@ interface ChatHeaderProps {
   onDeleteChat: () => void;
   onOpenProfile: () => void;
   interlocutorAvatar: string;
+  onOpenSearch?: () => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onOpenProfile,
-  interlocutorAvatar,
+  interlocutorAvatar, onOpenSearch,
 }) => {
   const { translations } = useLanguage();
   const displayName = chatDisplayName || chatName;
@@ -41,6 +42,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </span>
         </button>
       </div>
+      {onOpenSearch && (
+        <button type="button" onClick={onOpenSearch} aria-label={translations.searchInChat} className="motion-press rounded-full p-2 transition-colors hover:bg-accent">
+          <Search className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 };

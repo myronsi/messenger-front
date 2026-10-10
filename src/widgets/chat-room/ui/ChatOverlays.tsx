@@ -2,7 +2,6 @@ import type { ChatRealtime } from '@/shared/api/realtime';
 import React, { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
 import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal } from '@/features/message-actions';
-import MessageSearchDialog from './MessageSearchDialog';
 import type { Id } from '@/shared/lib/ids';
 
 type ContextMenuState = NonNullable<React.ComponentProps<typeof ContextMenu>['contextMenu']>;
@@ -29,10 +28,6 @@ interface ChatOverlaysProps {
   setModal: (modal: ModalState) => void;
   closeMenus: () => void;
   onForward: (message: Message | null) => void;
-  isSearchOpen: boolean;
-  setIsSearchOpen: (open: boolean) => void;
-  getMessageTime: (timestamp: string) => string;
-  jumpToSearchResult: (messageId: Id) => void;
   forwardMessage: Message | null;
   username: string;
   onForwarded: () => void;
@@ -43,7 +38,6 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
   token, chatId, userId, isClosing, chatRealtime, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, setModal, closeMenus, onForward,
-  isSearchOpen, setIsSearchOpen, getMessageTime, jumpToSearchResult,
   forwardMessage, username, onForwarded, modal,
 }) => (
   <>
@@ -84,13 +78,6 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         contextMenuRef={contextMenuRef}
       />
     )}
-    <MessageSearchDialog
-      open={isSearchOpen}
-      onOpenChange={setIsSearchOpen}
-      messages={messages}
-      getMessageTime={getMessageTime}
-      onJumpToMessage={jumpToSearchResult}
-    />
     <ForwardMessageDialog
       open={!!forwardMessage}
       onOpenChange={(open) => { if (!open) onForward(null); }}

@@ -1,10 +1,11 @@
-import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Search } from 'lucide-react';
 import type { Message } from '@/entities/message';
 import { unescapeCurlyBraces } from '@/features/chat-core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { MessageList } from '@/features/message-list';
 import { MessageInput } from '@/features/message-composer';
+import { ChatSearchBar } from '@/features/message-search';
 import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog } from '@/features/message-actions';
 import GroupProfileDialog from './GroupProfileDialog';
 
@@ -33,6 +34,11 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm,
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchSenders = (groupDetails?.participants ?? []).map((participant) => ({
+    id: participant.id,
+    name: participant.id === currentUserId ? translations.searchSenderYou : participant.display_name || participant.username,
+  }));
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
@@ -55,7 +61,18 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
             </span>
           </button>
         </div>
+        <button
+          type="button"
+          onClick={() => setIsSearchOpen(true)}
+          aria-label={translations.searchInChat}
+          className="motion-press rounded-full p-2 transition-colors hover:bg-accent"
+        >
+          <Search className="h-5 w-5" />
+        </button>
       </div>
+      {isSearchOpen && (
+        <ChatSearchBar chatId={chatId} senders={searchSenders} onJumpToMessage={jumpToSearchResult} onClose={() => setIsSearchOpen(false)} />
+      )}
 
       <MessageList
         messages={messages}
