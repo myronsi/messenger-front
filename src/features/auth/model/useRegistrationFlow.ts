@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { setAccessToken } from '@/shared/auth/session';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+import { authFetch, setAccessToken } from '@/shared/auth/session';
+import { apiUrl } from '@/shared/api/apiUrl';
+import { uploadAttachment } from '@/shared/api/attachments';
+import { apiErrorMessage, errorFromResponse } from '@/shared/lib/apiError';
+import { useRegisterMutation } from '../api/authApi';
 
 const normalizeDisplayName = (value: string) => value.trim().replace(/\s+/g, ' ');
 const isValidDisplayName = (value: string) => {
@@ -30,6 +32,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { translations } = useLanguage();
+  const [register] = useRegisterMutation();
 
   useEffect(() => () => {
     if (profileAvatarPreview) URL.revokeObjectURL(profileAvatarPreview);
@@ -59,19 +62,14 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
       return;
     }
     try {
-      const response = await fetch(`${BASE_URL}/auth/register`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: normalizedUsername, display_name: normalizedDisplayName, password }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        if (!data.access_token) throw new Error(translations.registerFailed || 'Registration failed');
-        setAccessToken(data.access_token);
+      const data = await register({ username: normalizedUsername, display_name: normalizedDisplayName, password }).unwrap();
+      setAccessToken(data.access_token);
+      setUsername(normalizedUsername);
+      // The recovery shares of the temporary recovery flow; a backend without it (redesigned in 1.1) sends
+      // none, and there is nothing to save.
+      if (data.device_part && data.qr_part) {
         const existingDeviceParts = JSON.parse(localStorage.getItem('device_parts') || '{}');
         existingDeviceParts[normalizedUsername] = data.device_part;
-        setUsername(normalizedUsername);
         localStorage.setItem('device_parts', JSON.stringify(existingDeviceParts));
         localStorage.setItem('device_part', data.device_part);
         setQrPart(data.qr_part);
@@ -79,13 +77,15 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
         setShowProfileSetup(false);
         setMessage(`${translations.registerSuccess} ${translations.saveQrPart}`);
       } else {
-        setMessage(data.detail || translations.registerFailed);
+        setShowQr(false);
+        setShowProfileSetup(true);
+        setMessage('');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setMessage(translations.networkError);
+      setMessage(apiErrorMessage(error, translations.registerFailed || translations.networkError));
     }
-  }, [username, displayName, password, translations]);
+  }, [username, displayName, password, translations, register]);
 
   const handleContinue = useCallback(() => {
     setShowQr(false);
@@ -134,47 +134,38 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   }, [profileAvatarPreview]);
 
   const handleSaveProfileSetup = useCallback(async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
+    if (!localStorage.getItem('access_token')) {
       setMessage(translations.registerFailed || 'Registration failed');
       return;
     }
     setIsSavingProfile(true);
     setMessage('');
+    let fallback = translations.networkError || 'Something went wrong.';
     try {
       if (profileAvatarFile) {
-        const formData = new FormData();
-        formData.append('file', profileAvatarFile);
-        const avatarResponse = await fetch(`${BASE_URL}/auth/me/avatar`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
+        // An avatar is an attachment (purpose "avatar") that PUT /me/avatar then makes current.
+        fallback = translations.avatarUploadFailed || 'Avatar upload failed.';
+        const attachment = await uploadAttachment(profileAvatarFile, 'avatar');
+        const avatarResponse = await authFetch(apiUrl('/me/avatar'), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attachment_id: attachment.id }),
         });
-        if (!avatarResponse.ok) {
-          const data = await avatarResponse.json().catch(() => ({}));
-          throw new Error(data.detail || translations.avatarUploadFailed || 'Avatar upload failed.');
-        }
+        if (!avatarResponse.ok) throw await errorFromResponse(avatarResponse);
       }
       const normalizedBio = profileBio.trim();
       if (normalizedBio) {
-        const bioResponse = await fetch(`${BASE_URL}/auth/me/bio`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+        fallback = translations.bioUpdateFailed || 'Bio update failed.';
+        const bioResponse = await authFetch(apiUrl('/me'), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bio: normalizedBio }),
         });
-        if (!bioResponse.ok) {
-          const data = await bioResponse.json().catch(() => ({}));
-          throw new Error(data.detail || translations.bioUpdateFailed || 'Bio update failed.');
-        }
+        if (!bioResponse.ok) throw await errorFromResponse(bioResponse);
       }
       finishRegistration();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : translations.networkError || 'Something went wrong.');
+      setMessage(apiErrorMessage(error, fallback));
     } finally {
       setIsSavingProfile(false);
     }

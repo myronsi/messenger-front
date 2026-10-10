@@ -1,4 +1,4 @@
-import { asApiError } from '@/shared/lib/apiError';
+import { apiErrorMessage } from '@/shared/lib/apiError';
 import React, { useState, useCallback } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
@@ -14,6 +14,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLoginMutation, useLoginTwoFactorMutation } from './api/authApi';
+import { isTwoFactorChallenge } from './model/types';
 import { setAccessToken } from '@/shared/auth/session';
 
 interface LoginComponentProps {
@@ -46,23 +47,17 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
     
     try {
       const result = await login({ username, password }).unwrap();
-      if (result.two_factor_required && result.login_challenge) {
+      if (isTwoFactorChallenge(result)) {
         setLoginChallenge(result.login_challenge);
         setMessage('');
-        return;
-      }
-      if (!result.access_token) {
-        setMessage(translations.loginFailed);
         return;
       }
       setAccessToken(result.access_token);
       onLoginSuccess(username);
       setMessage('');
     } catch (caught) {
-      const error = asApiError(caught);
-      const errorMessage = error?.data?.detail || error?.message || translations.loginFailed;
-      setMessage(errorMessage);
-      console.error('Login error:', error);
+      setMessage(apiErrorMessage(caught, translations.loginFailed));
+      console.error('Login error:', caught);
     }
   }, [username, password, translations, onLoginSuccess, login]);
 
@@ -74,19 +69,14 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
 
     try {
       const result = await loginTwoFactor({ login_challenge: loginChallenge, code: twoFactorCode.trim() }).unwrap();
-      if (!result.access_token) {
-        setMessage(translations.loginFailed);
-        return;
-      }
       setAccessToken(result.access_token);
       setLoginChallenge(null);
       setTwoFactorCode('');
       setMessage('');
       onLoginSuccess(username);
     } catch (caught) {
-      const error = asApiError(caught);
-      setMessage(error?.data?.detail || error?.message || translations.loginFailed);
-      console.error('2FA login error:', error);
+      setMessage(apiErrorMessage(caught, translations.loginFailed));
+      console.error('2FA login error:', caught);
     }
   }, [loginChallenge, twoFactorCode, loginTwoFactor, onLoginSuccess, username, translations]);
 

@@ -29,4 +29,4 @@ Both repositories use the same milestones: `0.5`, `1.0` and `1.1`. Every open is
 
 ## Build metadata
 
-`vite.config.ts` injects `__APP_VERSION__` (from `package.json`) and `__APP_COMMIT__` (first 7 characters of `GITHUB_SHA`, `dev` locally). The About screen reads the server version from `GET /version` (Python backend) or `GET /api/v2/meta` (Go backend).
+`vite.config.ts` injects `__APP_VERSION__` (from `package.json`) and `__APP_COMMIT__` (first 7 characters of `GITHUB_SHA`, `dev` locally). The About screen reads the server version from `GET /meta` of the API (Go backend).

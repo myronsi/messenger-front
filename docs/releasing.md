@@ -28,7 +28,7 @@ One-time setup:
 
 1. Server: create the web root `/var/www/messenger` owned by the deploy user (or set the repository variable `FRONTEND_DEPLOY_PATH`) and point nginx at `root /var/www/messenger/current;`.
 2. GitHub: create the environment `production` and add the secrets `SSH_HOST`, `SSH_USER`, `SSH_KEY` and `SSH_KNOWN_HOSTS` (output of `ssh-keyscan <host>`), as in the backend repository.
-3. GitHub repository variables (they are baked into the build): `VITE_BASE_URL` (for example `https://chat.example.com/api`) and `VITE_WS_URL` (for example `wss://chat.example.com/api`).
+3. GitHub repository variables (they are baked into the build): `VITE_API_URL` (for example `https://chat.example.com/api/v2`) and, only when the WebSocket is hosted elsewhere, `VITE_WS_URL`. The v1 variable `VITE_BASE_URL` (for example `https://chat.example.com/api`) is still read when `VITE_API_URL` is not set. `VITE_CLIENT_API_VERSION` overrides the contract version the client sends; leave it unset with the Go backend.
 4. Repository settings → Actions → General: allow workflows to create pull requests (needed by release-please).
 
 The frontend deploy is triggered by its own release, so keep the order from this document: deploy the backend first, then merge the frontend release PR.

@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const API = 'https://chat.example.test/api';
+// VITE_BASE_URL in the v1 form (the proxy's /api prefix); requests go to the v2 root below it.
+const BASE = 'https://chat.example.test/api';
+const API = `${BASE}/v2`;
 
 const load = async () => {
   vi.resetModules();
-  vi.stubEnv('VITE_BASE_URL', API);
+  vi.stubEnv('VITE_API_URL', '');
+  vi.stubEnv('VITE_BASE_URL', BASE);
   vi.stubEnv('VITE_CLIENT_API_VERSION', '2.2.0');
   const [fetchModule, gate] = await Promise.all([import('./clientVersionFetch'), import('./updateGate')]);
   return { ...fetchModule, gate };
@@ -38,7 +41,7 @@ describe('client version headers', () => {
     expect(new Headers(baseFetch.mock.calls[0][1]?.headers).get('X-Other')).toBe('1');
   });
 
-  it.each(['https://cdn.example.test/avatar.png', 'https://chat.example.test/apix/other', 'https://chat.example.test/api-v2'])(
+  it.each(['https://cdn.example.test/avatar.png', 'https://chat.example.test/apix/other', 'https://chat.example.test/api-v2', 'https://chat.example.test/api/auth/ws-ticket'])(
     'leaves %s untouched',
     async (url) => {
       const { withClientVersion } = await load();

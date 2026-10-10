@@ -280,7 +280,7 @@ export interface paths {
         get?: never;
         /**
          * Change the password
-         * @description Revokes all other sessions.
+         * @description Revokes all other sessions. A wrong current password answers `403` with `code: invalid_credentials`.
          */
         put: operations["changePassword"];
         post?: never;
@@ -376,7 +376,7 @@ export interface paths {
         put?: never;
         /**
          * Start two-factor setup
-         * @description Returns the secret and an `otpauth://` URI; two-factor stays off until confirmed.
+         * @description Returns the secret and an `otpauth://` URI; two-factor stays off until confirmed. A wrong password answers `403` with `code: invalid_credentials`; `409` when two-factor is already on.
          */
         post: operations["setupTwoFactor"];
         delete?: never;
@@ -399,7 +399,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Turn two-factor on with a code */
+        /**
+         * Turn two-factor on with a code
+         * @description Returns the recovery codes. They are shown only once, so store them safely.
+         */
         post: operations["confirmTwoFactor"];
         delete?: never;
         options?: never;
@@ -421,7 +424,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Turn two-factor off */
+        /**
+         * Turn two-factor off
+         * @description A wrong password or code answers `403` (`invalid_credentials` or `invalid_two_factor_code`); `409` when two-factor is off.
+         */
         post: operations["disableTwoFactor"];
         delete?: never;
         options?: never;
@@ -611,7 +617,8 @@ export interface paths {
         };
         /**
          * Current avatar image
-         * @description Respects the avatar visibility of the user; falls back to the default avatar.
+         * @description Respects the avatar visibility of the user; falls back to the default avatar. With `version`, an
+         *     earlier avatar of the history (`AvatarVersion.url`).
          */
         get: operations["getUserAvatar"];
         put?: never;
@@ -714,7 +721,11 @@ export interface paths {
         };
         /**
          * Download an attachment
-         * @description Only participants of the chat the attachment was sent to (and its uploader) can download it.
+         * @description Only the uploader and members of a chat in which a message using the attachment is visible to them can
+         *     download it. The answer is the file, or a `302` redirect to a short-lived signed URL of the object
+         *     storage. Images, audio and video are sent `inline`; everything else as a download
+         *     (`Content-Disposition: attachment`, `application/octet-stream`), always with
+         *     `X-Content-Type-Options: nosniff`.
          */
         get: operations["getAttachmentContent"];
         put?: never;
@@ -739,7 +750,11 @@ export interface paths {
         };
         /**
          * My chats with last message and unread count
-         * @description One request replaces `GET /chats/list/{username}` and `GET /groups/list/{username}`; pinned chats come first.
+         * @description One request replaces `GET /chats/list/{username}` and `GET /groups/list/{username}`.
+         *     Pinned chats come first (most recently pinned first), then the others by their last
+         *     message (newest first). `last_message` is the newest message the caller can see; in
+         *     direct chats its `read_by` holds the other user once they read it (with read receipts
+         *     on), in groups it is empty. `unread_count` stops at 999.
          */
         get: operations["listChats"];
         put?: never;
@@ -775,8 +790,10 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Delete a direct chat for yourself
-         * @description For groups use `DELETE /groups/{chat_id}` (owner) or `POST /groups/{chat_id}/leave`.
+         * Delete a direct chat
+         * @description Deletes the chat and its messages for both users (as v1 did); both get `chat_deleted`.
+         *     For groups use `DELETE /groups/{chat_id}` (owner) or `POST /groups/{chat_id}/leave`;
+         *     a group here is `422`.
          */
         delete: operations["deleteChat"];
         options?: never;
@@ -799,7 +816,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Pin a chat */
+        /**
+         * Pin a chat
+         * @description At most 10 chats can be pinned (`409` beyond that). Pinning a pinned chat changes nothing.
+         */
         put: operations["pinChat"];
         post?: never;
         /** Unpin a chat */
@@ -974,6 +994,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search/messages": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search messages in all my chats
+         * @description Full-text search across every chat the caller is in, newest first. Only chats the caller
+         *     is a member of are searched, messages they deleted for themselves are left out, and every
+         *     hit is checked against the message store before it is returned (a deleted message never
+         *     shows, even when the index lags behind). Edits and deletions reach the results within a
+         *     few seconds.
+         */
+        get: operations["searchAllMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requests": {
         parameters: {
             query?: never;
@@ -1062,6 +1111,7 @@ export interface paths {
         /**
          * Create a group
          * @description Members whose `group_invites` setting requires approval get an approval request instead of being added.
+         *     If any of them does not allow invitations from the caller at all, nothing is created (`403`).
          */
         post: operations["createGroup"];
         delete?: never;
@@ -1111,7 +1161,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set the group avatar from an uploaded attachment */
+        /**
+         * Set the group avatar from an uploaded attachment
+         * @description The attachment must be an image the caller uploaded with purpose `avatar` (`422` otherwise).
+         */
         put: operations["setGroupAvatar"];
         post?: never;
         delete?: never;
@@ -1186,7 +1239,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Make another member the owner */
+        /**
+         * Make another member the owner
+         * @description The previous owner becomes an admin. Transferring to yourself is `422`.
+         */
         post: operations["transferGroupOwnership"];
         delete?: never;
         options?: never;
@@ -1230,6 +1286,12 @@ export interface components {
          * @example 7217400317439950848
          */
         Id: string;
+        /**
+         * Format: uuid
+         * @description ID of an uploaded attachment (a UUID, unlike the decimal IDs of messages, users and chats).
+         * @example 5f0c8a64-2f2b-4c7e-9d0e-6b1f3a2c4d5e
+         */
+        AttachmentRef: string;
         /** @description Opaque cursor; `null` when there are no more results. */
         Cursor: string | null;
         /** Format: date-time */
@@ -1290,6 +1352,7 @@ export interface components {
         };
         TwoFactorLoginRequest: {
             login_challenge: string;
+            /** @description A code of the authenticator app, or an unused recovery code. */
             code: string;
         };
         TokenResponse: {
@@ -1338,7 +1401,7 @@ export interface components {
             bio?: string | null;
         };
         SetAvatarRequest: {
-            attachment_id: components["schemas"]["Id"];
+            attachment_id: components["schemas"]["AttachmentRef"];
         };
         SecuritySettings: {
             session_duration_days: number;
@@ -1348,7 +1411,8 @@ export interface components {
             session_duration_days: number;
         };
         Session: {
-            id: components["schemas"]["Id"];
+            /** Format: uuid */
+            id: string;
             /** @description Sanitised user agent */
             device?: string | null;
             created_at: components["schemas"]["Timestamp"];
@@ -1363,8 +1427,13 @@ export interface components {
         TwoFactorCode: {
             code: string;
         };
+        TwoFactorRecoveryCodes: {
+            /** @description One-time codes for signing in without the authenticator app. Shown only once. */
+            recovery_codes: string[];
+        };
         DisableTwoFactorRequest: {
             password: string;
+            /** @description A code of the authenticator app, or an unused recovery code. */
             code: string;
         };
         /**
@@ -1451,7 +1520,7 @@ export interface components {
             waveform?: number[];
         };
         Attachment: {
-            id: components["schemas"]["Id"];
+            id: components["schemas"]["AttachmentRef"];
             kind: components["schemas"]["AttachmentKind"];
             filename: string;
             /** @description Detected by the server */
@@ -1514,7 +1583,12 @@ export interface components {
         };
         SearchHit: {
             message: components["schemas"]["Message"];
-            /** @description Plain-text excerpt; never HTML. */
+            /**
+             * @description Plain-text excerpt of the matching text or file name; never HTML. The matched words are
+             *     wrapped in U+E000 (start) and U+E001 (end), characters of the Unicode private use area,
+             *     so a client can mark them without parsing markup. `null` when the message matched without
+             *     an excerpt.
+             */
             highlight?: string | null;
         };
         MessageSearchPage: {
@@ -1527,7 +1601,7 @@ export interface components {
             type: "text" | "file" | "voice";
             content?: string | null;
             /** @description Required and not null for `file` and `voice`; never a URL. */
-            attachment_id?: components["schemas"]["Id"] | null;
+            attachment_id?: components["schemas"]["AttachmentRef"] | null;
             reply_to?: components["schemas"]["Id"] | null;
         };
         EditMessageRequest: {
@@ -1720,8 +1794,8 @@ export interface components {
         MessageId: components["schemas"]["Id"];
         UserId: components["schemas"]["Id"];
         RequestId: components["schemas"]["Id"];
-        AttachmentId: components["schemas"]["Id"];
-        SessionId: components["schemas"]["Id"];
+        AttachmentId: components["schemas"]["AttachmentRef"];
+        SessionId: string;
         /** @description Version of the client app, for logs and the per-client metric. */
         ClientVersion: string;
         /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
@@ -1729,7 +1803,7 @@ export interface components {
     };
     requestBodies: never;
     headers: {
-        /** @description HttpOnly, Secure, SameSite refresh cookie scoped to `/api/v2/auth`. Login and refresh set it; logout clears it (expired cookie). */
+        /** @description HttpOnly, Secure, SameSite refresh cookie scoped to `/api/v2/auth/refresh`, so the browser sends it only to the refresh endpoint. Login and refresh set it; logout clears it (expired cookie). */
         RefreshCookie: string;
     };
     pathItems: never;
@@ -2070,6 +2144,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     updateMe: {
@@ -2165,6 +2240,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
@@ -2369,14 +2445,17 @@ export interface operations {
         };
         responses: {
             /** @description Two-factor authentication enabled */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TwoFactorRecoveryCodes"];
+                };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
         };
@@ -2409,6 +2488,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
         };
@@ -2701,7 +2781,10 @@ export interface operations {
     };
     getUserAvatar: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `id` of an `AvatarVersion` of this user. */
+                version?: components["schemas"]["Id"];
+            };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
@@ -2724,9 +2807,32 @@ export interface operations {
                     "image/*": string;
                 };
             };
+            /** @description The requested byte range (`Range` header) */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            /** @description Not modified (`If-None-Match` with the `ETag` of an earlier answer) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            /** @description The requested range is outside the file */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -2871,7 +2977,10 @@ export interface operations {
     };
     getAttachmentContent: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `thumbnail`: a JPEG of at most 320 px (images only; `thumbnail_url` of the attachment). */
+                variant?: "thumbnail";
+            };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
@@ -2894,10 +3003,40 @@ export interface operations {
                     "application/octet-stream": string;
                 };
             };
+            /** @description The requested byte range (`Range` header); players use it to seek */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Redirect to a short-lived signed URL of object storage (`MEDIA_SIGNED_URLS`); not cached */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not modified (`If-None-Match` with the `ETag` of an earlier answer) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            /** @description The requested range is outside the file */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -2983,6 +3122,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
         };
@@ -3044,6 +3184,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -3267,6 +3408,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     listChatMedia: {
@@ -3411,6 +3553,52 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    searchAllMessages: {
+        parameters: {
+            query: {
+                q: string;
+                /** @description Only this chat */
+                chat_id?: components["schemas"]["Id"];
+                /** @description Only messages of this user */
+                sender_id?: components["schemas"]["Id"];
+                type?: "text" | "file" | "voice";
+                /** @description Messages created at or after this time */
+                from?: components["schemas"]["Timestamp"];
+                /** @description Messages created before this time */
+                to?: components["schemas"]["Timestamp"];
+                /** @description Page size */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque `next_cursor` of the previous page */
+                after?: components["parameters"]["After"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageSearchPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
@@ -3579,6 +3767,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
@@ -3715,6 +3904,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -3857,6 +4047,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
     };

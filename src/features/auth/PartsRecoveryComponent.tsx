@@ -13,8 +13,8 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+import { apiErrorMessage } from '@/shared/lib/apiError';
+import { useStartRecoveryMutation } from './api/authApi';
 
 interface PartsRecoveryComponentProps {
   onBackToLogin: () => void;
@@ -23,6 +23,9 @@ interface PartsRecoveryComponentProps {
 const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = () => {
   const [username, setUsername] = useState('');
   const [part1, setPart1] = useState('');
+  // The share this browser kept at registration; anything else typed in is the QR share.
+  const [devicePart, setDevicePart] = useState('');
+  const [startRecovery] = useStartRecoveryMutation();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showPart1, setShowPart1] = useState(false);
@@ -40,6 +43,7 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = () => {
 
     setUsername(recoveryUsername);
     setPart1(recoveryDevicePart || '');
+    setDevicePart(recoveryDevicePart || '');
   }, [navigate]);
 
   const handleRecoverPassword = useCallback(async () => {
@@ -52,28 +56,19 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = () => {
     setMessage('');
     
     try {
-      const response = await fetch(`${BASE_URL}/auth/recover`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, part1: part1.trim() }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        sessionStorage.setItem('recovery_token', data.recovery_token);
-        
-        navigate('/reset-password');
-      } else {
-        setMessage(data.detail || translations.recoveryFailed);
-      }
+      const part = part1.trim();
+      const { recovery_token } = await startRecovery(
+        part === devicePart.trim() ? { username, device_part: part } : { username, qr_part: part },
+      ).unwrap();
+      sessionStorage.setItem('recovery_token', recovery_token);
+      navigate('/reset-password');
     } catch (err) {
-      setMessage(translations.networkError);
+      setMessage(apiErrorMessage(err, translations.recoveryFailed));
       console.error('Recovery error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [username, part1, translations, navigate]);
+  }, [username, part1, devicePart, translations, navigate, startRecovery]);
 
   const handleBack = () => {
     sessionStorage.removeItem('recovery_username');

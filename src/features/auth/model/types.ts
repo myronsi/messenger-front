@@ -1,28 +1,18 @@
-import type { User } from '@/entities/user';
+import type { components } from '@/shared/api/generated/schema';
 
-export interface AuthResponse {
-  access_token?: string | null;
-  token_type?: string;
-  user?: User;
-  device_part?: string;
-  qr_part?: string;
-  two_factor_required?: boolean;
-  login_challenge?: string;
-}
+type Schemas = components['schemas'];
 
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
+export type LoginRequest = Schemas['LoginRequest'];
+export type TwoFactorLoginRequest = Schemas['TwoFactorLoginRequest'];
+export type RegisterRequest = Schemas['RegisterRequest'];
+export type TokenResponse = Schemas['TokenResponse'];
+export type RegisterResponse = Schemas['RegisterResponse'];
+export type TwoFactorChallenge = Schemas['TwoFactorChallenge'];
+// A login either signs in or, with 2FA on, asks for a code with a challenge.
+export type LoginResponse = Schemas['LoginResponse'];
+export type RecoveryRequest = Schemas['RecoveryRequest'];
+export type RecoveryResponse = Schemas['RecoveryResponse'];
+export type ResetPasswordRequest = Schemas['ResetPasswordRequest'];
 
-export interface TwoFactorLoginRequest {
-  login_challenge: string;
-  code: string;
-}
-
-export interface RegisterRequest {
-  username: string;
-  display_name: string;
-  password: string;
-  email?: string;
-}
+export const isTwoFactorChallenge = (response: LoginResponse): response is TwoFactorChallenge =>
+  'two_factor_required' in response && response.two_factor_required === true;

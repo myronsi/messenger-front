@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { clearDrafts } from '@/shared/lib/drafts';
 import { getTokenExpiresAt } from '@/shared/auth/tokenClaims';
 import { getUpdateStatus } from '@/shared/api/updateGate';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+import { apiUrl } from '@/shared/api/apiUrl';
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const DEVICE_PART_KEYS = ['device_part', 'device_parts'];
@@ -76,7 +75,8 @@ export const subscribeToAccessToken = (listener: TokenListener) => {
 
 export const refreshAccessToken = async () => {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
+    // The refresh token is an HttpOnly cookie scoped to this path; the answer is a TokenResponse.
+    refreshPromise = fetch(apiUrl('/auth/refresh'), {
       method: 'POST',
       credentials: 'include',
     })
