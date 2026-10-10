@@ -94,9 +94,16 @@ export const trimNewestMessages = (messages: Message[], limit: number) => {
   return { messages: kept, newestId: newest?.id ?? null };
 };
 
-export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {
+// Replaces the loaded server messages with a freshly fetched page, keeping older loaded ones and messages
+// still being sent. When the page is the newest one, messages newer than it are kept too: they arrived over
+// the socket after the page was requested (e.g. the first message of a chat that opened as it was created).
+export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[], options: { isNewestPage?: boolean } = {}) => {
+  const newestFreshId = freshMessages[freshMessages.length - 1]?.id;
+  const arrivedSince = options.isNewestPage
+    ? currentMessages.filter((message) => isServerId(message.id) && (!newestFreshId || compareIds(message.id, newestFreshId) > 0))
+    : [];
   if (freshMessages.length === 0) {
-    return currentMessages.filter((message) => isLocalId(message.id));
+    return [...arrivedSince, ...currentMessages.filter((message) => isLocalId(message.id))];
   }
 
   const freshIds = new Set(freshMessages.map((message) => message.id));
@@ -124,6 +131,7 @@ export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessa
   return [
     ...olderMessages,
     ...mergedFreshMessages,
+    ...arrivedSince,
     ...pendingMessages,
   ];
 };

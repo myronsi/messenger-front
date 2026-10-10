@@ -95,4 +95,11 @@ describe('mergeFreshHistoryMessages', () => {
     expect(result[0].is_own).toBe(true);
     expect(result[0].client_temp_id).toBe('local-9');
   });
+
+  it('keeps messages that arrived over the socket after the newest page was requested', () => {
+    expect(ids(mergeFreshHistoryMessages([msg(7), msg(-1)], [], { isNewestPage: true }))).toEqual([7, -1]);
+    expect(ids(mergeFreshHistoryMessages([msg(5), msg(7), msg(-1)], [msg(5), msg(6)], { isNewestPage: true }))).toEqual([5, 6, 7, -1]);
+    // An older page (more after it) does not know what came later, so it keeps nothing newer.
+    expect(ids(mergeFreshHistoryMessages([msg(5), msg(7)], [msg(5), msg(6)]))).toEqual([5, 6]);
+  });
 });
