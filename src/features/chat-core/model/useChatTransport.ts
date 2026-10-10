@@ -1,12 +1,10 @@
 import type { Id } from '@/shared/lib/ids';
-import { useCallback, useRef, useState } from 'react';
-import type { ChatTransport, OutgoingPayload } from './types';
+import { useRef } from 'react';
+import { useChatRealtime } from '@/shared/api/realtimeSession';
+import type { ChatTransport } from './types';
 
-export const useChatTransport = (): ChatTransport => {
-  const wsRef = useRef<WebSocket | null>(null);
-  const messageQueueRef = useRef<OutgoingPayload[]>([]);
+export const useChatTransport = (chatId: Id): ChatTransport => {
+  const realtime = useChatRealtime(chatId);
   const pendingMessageIdsRef = useRef<Id[]>([]);
-  const [connectionRetryKey, setConnectionRetryKey] = useState(0);
-  const requestReconnect = useCallback(() => setConnectionRetryKey((key) => key + 1), []);
-  return { wsRef, messageQueueRef, pendingMessageIdsRef, connectionRetryKey, requestReconnect };
+  return { realtime, pendingMessageIdsRef };
 };

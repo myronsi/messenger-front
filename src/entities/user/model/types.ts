@@ -1,5 +1,6 @@
 import type { Schema } from '@/shared/api/contract';
 import type { Id } from '@/shared/lib/ids';
+import { rememberUser } from '@/shared/lib/userDirectory';
 
 export type ApiUser = Schema<'User'>;
 export type ApiMe = Schema<'Me'>;
@@ -28,7 +29,12 @@ export interface User {
   direct_message_reason?: 'self' | 'blocked' | 'privacy' | null;
 }
 
-export const toUser = (user: ApiUser | ApiMe): User => ({
+export const toUser = (user: ApiUser | ApiMe): User => {
+  rememberUser(user.id, user.username);
+  return mapUser(user);
+};
+
+const mapUser = (user: ApiUser | ApiMe): User => ({
   id: user.id,
   username: user.username,
   display_name: user.contact_name?.trim() || user.display_name,

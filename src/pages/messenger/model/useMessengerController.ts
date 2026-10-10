@@ -1,3 +1,4 @@
+import { useRealtimeSession } from '@/shared/api/realtimeSession';
 import { apiUrl } from '@/shared/api/apiUrl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,6 +14,8 @@ import { isServerId } from '@/shared/lib/ids';
 
 export const useMessengerController = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // The user's one WebSocket is open while they are signed in.
+  useRealtimeSession(isLoggedIn);
   const [username, setUsername] = useState('');
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);

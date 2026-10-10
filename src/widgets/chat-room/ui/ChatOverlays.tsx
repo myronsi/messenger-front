@@ -1,3 +1,4 @@
+import type { ChatRealtime } from '@/shared/api/realtime';
 import React, { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
 import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal } from '@/features/message-actions';
@@ -19,7 +20,7 @@ interface ChatOverlaysProps {
   chatId: Id;
   userId: Id | null;
   isClosing: boolean;
-  wsRef: MutableRefObject<WebSocket | null>;
+  chatRealtime: ChatRealtime;
   setContextMenu: (menu: ContextMenuState | null) => void;
   setReactionMenu: (menu: ReactionMenuState | null) => void;
   setEditingMessage: (message: Message | null) => void;
@@ -40,7 +41,7 @@ interface ChatOverlaysProps {
 
 const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
-  token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
+  token, chatId, userId, isClosing, chatRealtime, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, setModal, closeMenus, onForward,
   isSearchOpen, setIsSearchOpen, getMessageTime, jumpToSearchResult,
   forwardMessage, username, onForwarded, modal,
@@ -60,7 +61,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         setMessageInput={setMessageInput}
         setReplyTo={setReplyTo}
         setModal={setModal}
-        wsRef={wsRef}
+        chatRealtime={chatRealtime}
         isClosing={isClosing}
         onClose={closeMenus}
         reactionMenu={reactionMenu}
@@ -74,7 +75,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         key={`reaction-${reactionMenu.message.id}`}
         ref={reactionMenuRef}
         reactionMenu={reactionMenu}
-        wsRef={wsRef}
+        chatRealtime={chatRealtime}
         userId={userId}
         setReactionMenu={setReactionMenu}
         onClose={closeMenus}

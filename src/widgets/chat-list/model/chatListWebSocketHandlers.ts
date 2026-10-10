@@ -1,9 +1,13 @@
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
+import { toChatLastMessage } from '@/entities/message';
+import { toDirectChatItem } from '@/entities/chat';
+import type { ServerEvent } from '@/shared/api/realtime';
+import { usernameOf } from '@/shared/lib/userDirectory';
 import { getMediaSrc } from './types';
-import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap, WebSocketMessage } from './types';
+import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 import type { Id } from '@/shared/lib/ids';
-import { compareIds, isServerId, maxId } from '@/shared/lib/ids';
+import { compareIds, maxId } from '@/shared/lib/ids';
 
 export interface ChatListWebSocketContext {
   usernameRef: MutableRefObject<string>;
@@ -20,254 +24,107 @@ export interface ChatListWebSocketContext {
   setModal: (modal: ChatListModal | null) => void;
 }
 
-// Applies a single parsed chat-list WebSocket message to the relevant piece
-// of state (overrides, presence, modal) or triggers a refetch/navigation.
-export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx: ChatListWebSocketContext) {
+// Applies one event of the user's socket to the chat list: overrides of the list entries, presence, or a
+// refetch when chats appear or disappear.
+export function handleChatListWebSocketMessage(event: ServerEvent, ctx: ChatListWebSocketContext) {
   const {
-    usernameRef, activeChatIdRef, activeChatNameRef, onChatOpenRef, onChatDeletedRef,
-    currentUserIdRef, chatsByIdRef, refetchRef, refetchRequestInboxRef, setChatOverrides,
-    setPresenceByUsername, setModal,
+    activeChatIdRef, activeChatNameRef, onChatOpenRef, onChatDeletedRef,
+    currentUserIdRef, chatsByIdRef, refetchRef, refetchRequestInboxRef, setChatOverrides, setPresenceByUsername,
   } = ctx;
 
-  switch (parsedData.type) {
+  switch (event.type) {
     case 'approval_request_created':
       refetchRequestInboxRef.current();
       refetchRef.current();
       break;
-    case 'chat_created':
-      if (parsedData.chat?.chat_id) {
-        const chat = parsedData.chat;
-        const ownUsername = usernameRef.current.toLowerCase();
-        const user1 = chat.user1?.toLowerCase();
-        const user2 = chat.user2?.toLowerCase();
-        const otherUsername = user1 === ownUsername
-          ? chat.user2
-          : user2 === ownUsername
-          ? chat.user1
-          : null;
-        const activeId = activeChatIdRef.current;
-        const activeName = activeChatNameRef.current?.toLowerCase();
 
-        if (
-          typeof activeId === 'number' &&
-          !isServerId(activeId) &&
-          otherUsername &&
-          activeName === otherUsername.toLowerCase()
-        ) {
-          const otherAvatarUrl = user1 === ownUsername ? chat.user2_avatar_url : chat.user1_avatar_url;
-          onChatOpenRef.current(
-            chat.chat_id,
-            otherUsername,
-            false,
-            'one-on-one',
-            otherUsername,
-            undefined,
-            undefined,
-            null,
-            getMediaSrc(otherAvatarUrl),
-          );
-        }
+    case 'chat_created': {
+      // The chat the user is drafting (opened from a profile, not created yet) now exists: open it for real.
+      const { chat } = event.data;
+      const activeName = activeChatNameRef.current?.toLowerCase();
+      if (chat.type === 'direct' && chat.peer && !activeChatIdRef.current && activeName === chat.peer.username.toLowerCase()) {
+        const item = toDirectChatItem(chat);
+        onChatOpenRef.current(
+          chat.id, item.interlocutor_name, false, 'one-on-one', item.interlocutor_display_name,
+          item.interlocutor_is_online, item.interlocutor_last_seen, null, getMediaSrc(item.avatar_url),
+        );
       }
       refetchRef.current();
       break;
+    }
+
     case 'group_created':
     case 'group_updated':
-      // Refetch chats when a new chat is created
       refetchRef.current();
       break;
+
     case 'chat_deleted':
-      if (parsedData.chat_id && onChatDeletedRef.current) {
-        onChatDeletedRef.current(parsedData.chat_id);
-      }
-      // Refetch chats when a chat is deleted
+      onChatDeletedRef.current?.(event.chat_id);
       refetchRef.current();
       break;
-    case 'chat_list_message':
-      if (parsedData.chat_id && parsedData.last_message) {
-        setChatOverrides((prev) => {
-          const chatId = parsedData.chat_id as Id;
-          const existing = prev[chatId] || {};
-          const baseChat = chatsByIdRef.current[chatId];
-          const messageId = parsedData.last_message?.id;
-          const knownMessageId = maxId([
-            existing.last_counted_message_id,
-            existing.last_message?.id ?? baseChat?.last_message?.id,
-          ]);
-          if (messageId && knownMessageId && compareIds(messageId, knownMessageId) <= 0) return prev;
-          const existingUnreadCount = existing.unread_count ?? baseChat?.unread_count ?? 0;
-          const existingFirstUnreadId = existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null;
-          const isOwnMessage = parsedData.sender_id === currentUserIdRef.current;
-          const shouldCountUnread = !isOwnMessage && parsedData.chat_id !== activeChatIdRef.current;
-          const nextUnreadCount = shouldCountUnread ? existingUnreadCount + 1 : existingUnreadCount;
-          return {
-            ...prev,
-            [chatId]: {
-              ...existing,
-              last_message: parsedData.last_message || null,
-              last_counted_message_id: typeof messageId === 'number' ? messageId : existing.last_counted_message_id,
-              unread_count: isOwnMessage || parsedData.chat_id === activeChatIdRef.current ? existingUnreadCount : nextUnreadCount,
-              first_unread_message_id: shouldCountUnread
-                ? existingFirstUnreadId || parsedData.last_message?.id || null
-                : existingFirstUnreadId,
-            },
-          };
-        });
+
+    // The server's own view of the entry: last message, unread count and pin.
+    case 'chat_list_update': {
+      const { chat } = event.data;
+      if (!chatsByIdRef.current[chat.id]) {
+        refetchRef.current();
+        break;
       }
+      setChatOverrides((prev) => ({
+        ...prev,
+        [chat.id]: {
+          ...(prev[chat.id] || {}),
+          last_message: chat.last_message ? toChatLastMessage(chat.last_message) : null,
+          last_counted_message_id: chat.last_message?.id ?? prev[chat.id]?.last_counted_message_id,
+          unread_count: chat.id === activeChatIdRef.current ? 0 : chat.unread_count,
+          is_pinned: chat.is_pinned,
+          first_unread_message_id: null,
+        },
+      }));
       break;
-    case 'chat_list_read':
-      if (parsedData.chat_id) {
-        setChatOverrides((prev) => {
-          const chatId = parsedData.chat_id as Id;
-          const existing = prev[chatId] || {};
-          const baseChat = chatsByIdRef.current[chatId];
-          const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
-          const readerUserId = parsedData.reader_user_id ?? parsedData.user_id;
-          const nextLastMessage = lastMessage && lastMessage.id === parsedData.message_id && readerUserId
-            ? {
-                ...lastMessage,
-                read_by: [
-                  ...(lastMessage.read_by || []).filter((read) => read.user_id !== readerUserId),
-                  { user_id: readerUserId, read_at: parsedData.timestamp || new Date().toISOString() },
-                ],
-              }
-            : lastMessage;
+    }
 
-          return {
-            ...prev,
-            [chatId]: {
-              ...existing,
-              last_message: nextLastMessage,
-              unread_count: readerUserId === currentUserIdRef.current
-                ? parsedData.unread_count ?? 0
-                : existing.unread_count ?? baseChat?.unread_count ?? 0,
-              first_unread_message_id: readerUserId === currentUserIdRef.current
-                ? parsedData.first_unread_message_id ?? null
-                : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,
-            },
-          };
-        });
+    // A new message also moves the entry at once, before its chat_list_update.
+    case 'message': {
+      const message = event.data.message;
+      const chatId = event.chat_id;
+      if (!chatsByIdRef.current[chatId]) {
+        refetchRef.current();
+        break;
       }
-      break;
-    case 'chat_read_batch':
-      if (parsedData.chat_id) {
-        setChatOverrides((prev) => {
-          const chatId = parsedData.chat_id as Id;
-          const existing = prev[chatId] || {};
-          const baseChat = chatsByIdRef.current[chatId];
-          const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
-          const readMessageIds = parsedData.message_ids || [];
-          const readAt = parsedData.read_at || parsedData.timestamp || new Date().toISOString();
-          const readerUserId = parsedData.reader_user_id ?? parsedData.user_id;
-          const nextLastMessage = lastMessage && readerUserId && readMessageIds.includes(lastMessage.id)
-            ? {
-                ...lastMessage,
-                read_by: [
-                  ...(lastMessage.read_by || []).filter((read) => read.user_id !== readerUserId),
-                  { user_id: readerUserId, read_at: readAt },
-                ],
-              }
-            : lastMessage;
-
-          return {
-            ...prev,
-            [chatId]: {
-              ...existing,
-              last_message: nextLastMessage,
-              unread_count: readerUserId === currentUserIdRef.current
-                ? parsedData.unread_count ?? 0
-                : existing.unread_count ?? baseChat?.unread_count ?? 0,
-              first_unread_message_id: readerUserId === currentUserIdRef.current
-                ? parsedData.first_unread_message_id ?? null
-                : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,
-            },
-          };
-        });
-      }
-      break;
-    case 'chat_list_delete':
-      if (parsedData.chat_id) {
-        setChatOverrides((prev) => {
-          const chatId = parsedData.chat_id as Id;
-          const existing = prev[chatId] || {};
-          const baseChat = chatsByIdRef.current[chatId];
-
-          return {
-            ...prev,
-            [chatId]: {
-              ...existing,
-              last_message: parsedData.last_message ?? null,
-              unread_count: parsedData.unread_count ?? existing.unread_count ?? baseChat?.unread_count ?? 0,
-              first_unread_message_id: parsedData.first_unread_message_id ?? null,
-            },
-          };
-        });
-      }
-      break;
-    case 'edit':
-      if (parsedData.message_id) {
-        setChatOverrides((prev) => {
-          const updateLastMessage = (chatId: Id, existing: ChatOverrideMap[number]) => {
-            const baseChat = chatsByIdRef.current[chatId];
-            const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
-            if (!lastMessage || lastMessage.id !== parsedData.message_id) return existing;
-
-            return {
-              ...existing,
-              last_message: {
-                ...lastMessage,
-                content: parsedData.new_content ?? lastMessage.content,
-                edited_at: parsedData.timestamp || new Date().toISOString(),
-              },
-            };
-          };
-
-          if (parsedData.chat_id) {
-            const chatId = parsedData.chat_id as Id;
-            const existing = prev[chatId] || {};
-            const updated = updateLastMessage(chatId, existing);
-            if (updated === existing) return prev;
-            return {
-              ...prev,
-              [chatId]: updated,
-            };
-          }
-
-          const next = { ...prev };
-          let changed = false;
-          const chatIds = new Set<Id>([
-            ...Object.keys(chatsByIdRef.current),
-            ...Object.keys(prev),
-          ]);
-
-          chatIds.forEach((chatId) => {
-            const existing = prev[chatId] || {};
-            const updated = updateLastMessage(chatId, existing);
-            if (updated !== existing) {
-              next[chatId] = updated;
-              changed = true;
-            }
-          });
-
-          return changed ? next : prev;
-        });
-      }
-      break;
-    case 'presence_update':
-      if (parsedData.username) {
-        setPresenceByUsername((prev) => ({
+      setChatOverrides((prev) => {
+        const existing = prev[chatId] || {};
+        const baseChat = chatsByIdRef.current[chatId];
+        const knownMessageId = maxId([existing.last_counted_message_id, existing.last_message?.id ?? baseChat?.last_message?.id]);
+        // Replays and messages already counted change nothing.
+        if (knownMessageId && compareIds(message.id, knownMessageId) <= 0) return prev;
+        const isOwn = message.sender?.id === currentUserIdRef.current;
+        const isOpen = chatId === activeChatIdRef.current;
+        const unread = existing.unread_count ?? baseChat?.unread_count ?? 0;
+        return {
           ...prev,
-          [parsedData.username as string]: {
-            is_online: !!parsedData.is_online,
-            last_seen: parsedData.last_seen || null,
+          [chatId]: {
+            ...existing,
+            last_message: toChatLastMessage(message),
+            last_counted_message_id: message.id,
+            unread_count: isOwn || isOpen ? unread : unread + 1,
           },
-        }));
-      }
-      break;
-    case 'error':
-      setModal({
-        type: 'error',
-        message: parsedData.message || 'Unknown error',
+        };
       });
+      break;
+    }
+
+    case 'presence': {
+      const username = usernameOf(event.data.user_id);
+      if (!username) break;
+      setPresenceByUsername((prev) => ({
+        ...prev,
+        [username]: { is_online: event.data.is_online, last_seen: event.data.last_seen },
+      }));
+      break;
+    }
+
+    default:
       break;
   }
 }

@@ -1,160 +1,135 @@
 import { messengerApi } from '@/shared/api/baseApi';
+import { queryFor, type BodyOf, type ResponseOf, type Schema } from '@/shared/api/contract';
+import type { Id } from '@/shared/lib/ids';
 import type { ChatAudiosResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message } from '../model/types';
 import type { MessageHistoryResponse } from '../model/history';
-import type { Id } from '@/shared/lib/ids';
+import { toAppMessage, toFileContent } from '../model/fromApi';
+import { historyDirection, historyPath, toHistoryResponse } from './history';
+
+// Messages of the v2 contract over HTTP. Sending, editing, reactions and read markers go over the WebSocket
+// (src/shared/api/realtime.ts); these are the reads and the actions that answer a result.
+
+const MEDIA_PAGE = 100;
+
+const toSearchResult = (hit: Schema<'SearchHit'>) => {
+  const message = toAppMessage(hit.message);
+  return {
+    id: message.id,
+    sender_id: message.sender_id,
+    sender: message.sender,
+    sender_username: message.sender_username,
+    avatar_url: message.avatar_url,
+    content: message.content,
+    type: message.type,
+    forwarded_from: message.forwarded_from,
+    timestamp: message.timestamp,
+  };
+};
 
 export const messageApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
-    uploadFile: builder.mutation<{ message: string; filePath: string }, FormData>({
-      query: (formData) => ({
-        url: '/messages/upload',
-        method: 'POST',
-        body: formData,
-      }),
-      invalidatesTags: ['Message'],
-    }),
-
-    uploadVoiceMessage: builder.mutation<{ message: string; filePath: string }, FormData>({
-      query: (formData) => ({
-        url: '/messages/vm',
-        method: 'POST',
-        body: formData,
-      }),
-      invalidatesTags: ['Message'],
-    }),
-
-    forwardMessage: builder.mutation<ForwardMessagesResponse, { sourceMessageId: Id; targetChatIds: Id[] }>({
-      query: ({ sourceMessageId, targetChatIds }) => ({
-        url: '/messages/forward',
-        method: 'POST',
-        body: {
-          source_message_id: sourceMessageId,
-          target_chat_ids: targetChatIds,
-        },
-      }),
-      invalidatesTags: ['Message', 'Chat'],
-    }),
-
     getMessageHistory: builder.query<MessageHistoryResponse, {
       chatId: Id; limit?: number; beforeId?: Id | null; afterId?: Id | null;
       aroundId?: Id | null;
     }>({
-      query: ({ chatId, limit = 50, beforeId, afterId, aroundId }) => {
-        const params = new URLSearchParams({ limit: String(limit) });
-        if (beforeId) params.set('before_id', String(beforeId));
-        if (afterId) params.set('after_id', String(afterId));
-        if (aroundId) params.set('around_id', String(aroundId));
-        return `/messages/history/${chatId}?${params.toString()}`;
-      },
+      query: ({ chatId, limit = 50, beforeId, afterId, aroundId }) => historyPath(chatId, {
+        limit, before: beforeId, after: afterId, around: aroundId,
+      }),
+      transformResponse: (page: ResponseOf<'listMessages'>, _meta, { beforeId, afterId, aroundId }) => toHistoryResponse(
+        page, historyDirection({ limit: 0, before: beforeId, after: afterId, around: aroundId }),
+      ),
       keepUnusedDataFor: 300,
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: chatId }],
     }),
 
+    // Forwards one message to several chats; answers the new messages.
+    forwardMessage: builder.mutation<ForwardMessagesResponse, { sourceMessageId: Id; targetChatIds: Id[] }>({
+      query: ({ sourceMessageId, targetChatIds }) => ({
+        url: `/messages/${encodeURIComponent(sourceMessageId)}/forward`,
+        method: 'POST',
+        body: { chat_ids: targetChatIds } satisfies BodyOf<'forwardMessage'>,
+      }),
+      transformResponse: (result: ResponseOf<'forwardMessage'>) => ({
+        forwarded: result.items.map((message) => ({ chat_id: message.chat_id, message_id: message.id })),
+        failed: [],
+      }),
+      invalidatesTags: ['Message', 'Chat'],
+    }),
+
+    // Images of a chat, newest first.
     getChatPhotos: builder.query<ChatPhotosResponse, Id>({
-      query: (chatId) => `/messages/photos/${chatId}`,
+      query: (chatId) => `/chats/${encodeURIComponent(chatId)}/media${queryFor<'listChatMedia'>({ kind: 'image', limit: MEDIA_PAGE })}`,
+      transformResponse: (page: ResponseOf<'listChatMedia'>) => ({
+        photos: page.items.flatMap(({ message }) => (message.attachment ? [{
+          id: message.id,
+          url: message.attachment.url,
+          file_url: message.attachment.url,
+          file_name: message.attachment.filename,
+          file_type: message.attachment.content_type,
+          file_size: message.attachment.size,
+          image_width: message.attachment.width ?? undefined,
+          image_height: message.attachment.height ?? undefined,
+          thumbnail_url: message.attachment.thumbnail_url ?? undefined,
+          timestamp: message.created_at,
+        }] : [])),
+      }),
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Message', id: `${chatId}-photos` }],
     }),
 
+    // Voice messages and audio files of a chat, newest first.
     getChatAudios: builder.query<ChatAudiosResponse, Id>({
-      query: (chatId) => `/messages/audios/${chatId}`,
+      query: (chatId) => `/chats/${encodeURIComponent(chatId)}/media${queryFor<'listChatMedia'>({ kind: 'audio', limit: MEDIA_PAGE })}`,
+      transformResponse: (page: ResponseOf<'listChatMedia'>) => ({
+        audios: page.items.flatMap(({ message }) => {
+          if (!message.attachment) return [];
+          const content = toFileContent(message.attachment);
+          return [{
+            id: message.id,
+            url: content.file_url,
+            file_url: content.file_url,
+            file_name: content.file_name,
+            file_type: content.file_type,
+            file_size: content.file_size,
+            audio_metadata: content.audio_metadata,
+            audio_kind: message.attachment.kind === 'voice' ? 'voice' as const : 'file' as const,
+            timestamp: message.created_at,
+          }];
+        }),
+      }),
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Message', id: `${chatId}-audios` }],
     }),
 
     searchChatMessages: builder.query<ChatSearchResponse, { chatId: Id; query: string }>({
-      query: ({ chatId, query }) => `/messages/search/${chatId}?q=${encodeURIComponent(query)}`,
-      keepUnusedDataFor: 60,
-      providesTags: (result, error, { chatId }) => [{ type: 'Message', id: `${chatId}-search` }],
+      query: ({ chatId, query }) => `/chats/${encodeURIComponent(chatId)}/messages/search${queryFor<'searchMessages'>({ q: query, limit: 50 })}`,
+      transformResponse: (page: ResponseOf<'searchMessages'>) => ({ results: page.items.map(toSearchResult) }),
     }),
 
-    getMessages: builder.query<Message[], { chatId: Id; page?: number; limit?: number }>({
-      query: ({ chatId, page = 1, limit = 50 }) =>
-        `/chats/${chatId}/messages?page=${page}&limit=${limit}`,
-      providesTags: (result, error, { chatId }) => [
-        { type: 'Message', id: chatId },
-        ...(result ? result.map(({ id }) => ({ type: 'Message' as const, id })) : []),
-      ],
-    }),
-
-    sendMessage: builder.mutation<Message, { chatId: Id; content?: string; type: string; file?: File; replyTo?: Id }>({
-      query: ({ chatId, ...messageData }) => {
-        const formData = new FormData();
-        if (messageData.content) formData.append('content', messageData.content);
-        formData.append('type', messageData.type);
-        if (messageData.file) formData.append('file', messageData.file);
-        if (messageData.replyTo) formData.append('replyTo', messageData.replyTo.toString());
-
-        return {
-          url: `/chats/${chatId}/messages`,
-          method: 'POST',
-          body: formData,
-        };
-      },
-      invalidatesTags: (result, error, { chatId }) => [
-        { type: 'Message', id: chatId },
-        'Chat',
-      ],
-    }),
-
-    updateMessage: builder.mutation<Message, { id: Id; content: string }>({
+    editMessage: builder.mutation<Message, { id: Id; content: string }>({
       query: ({ id, content }) => ({
-        url: `/messages/${id}`,
+        url: `/messages/${encodeURIComponent(id)}`,
         method: 'PATCH',
-        body: { content },
+        body: { content } satisfies BodyOf<'editMessage'>,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Message', id }],
+      transformResponse: (message: ResponseOf<'editMessage'>) => toAppMessage(message),
     }),
 
-    deleteMessage: builder.mutation<void, Id>({
-      query: (id) => ({
-        url: `/messages/${id}`,
+    deleteMessage: builder.mutation<void, { id: Id; scope: 'me' | 'everyone' }>({
+      query: ({ id, scope }) => ({
+        url: `/messages/${encodeURIComponent(id)}${queryFor<'deleteMessage'>({ scope })}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Message', id }],
-    }),
-
-    deleteMessageForMe: builder.mutation<void, Id>({
-      query: (id) => ({
-        url: `/messages/${id}/delete-for-me`,
-        method: 'POST',
-      }),
-      invalidatesTags: (result, error, id) => [{ type: 'Message', id }],
-    }),
-
-    addReaction: builder.mutation<Message, { messageId: Id; emoji: string }>({
-      query: ({ messageId, emoji }) => ({
-        url: `/messages/${messageId}/reactions`,
-        method: 'POST',
-        body: { emoji },
-      }),
-      invalidatesTags: (result, error, { messageId }) => [{ type: 'Message', id: messageId }],
-    }),
-
-    removeReaction: builder.mutation<Message, { messageId: Id; emoji: string }>({
-      query: ({ messageId, emoji }) => ({
-        url: `/messages/${messageId}/reactions`,
-        method: 'DELETE',
-        body: { emoji },
-      }),
-      invalidatesTags: (result, error, { messageId }) => [{ type: 'Message', id: messageId }],
     }),
   }),
 });
 
 export const {
-  useUploadFileMutation,
-  useUploadVoiceMessageMutation,
-  useForwardMessageMutation,
   useGetMessageHistoryQuery,
+  useForwardMessageMutation,
   useGetChatPhotosQuery,
   useGetChatAudiosQuery,
   useSearchChatMessagesQuery,
-  useGetMessagesQuery,
-  useSendMessageMutation,
-  useUpdateMessageMutation,
+  useEditMessageMutation,
   useDeleteMessageMutation,
-  useDeleteMessageForMeMutation,
-  useAddReactionMutation,
-  useRemoveReactionMutation,
 } = messageApi;

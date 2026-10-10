@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { clearAuthTokens, useAccessToken } from '@/shared/auth/session';
+import { clearAuthTokens } from '@/shared/auth/session';
 import { useChatsData } from './useChatsData';
 import { useChatFormatters } from './useChatFormatters';
 import { useChatSearchOverlay } from './useChatSearchOverlay';
@@ -15,7 +15,6 @@ export function useChatListModel(props: ChatsListComponentProps) {
 
   const [modal, setModal] = useState<ChatListModal | null>(null);
   const [chatContextMenu, setChatContextMenu] = useState<ChatContextMenuState | null>(null);
-  const token = useAccessToken();
 
   const {
     chats, isLoading, error, refetch, requestInbox, refetchRequestInbox, currentUserData,
@@ -44,7 +43,6 @@ export function useChatListModel(props: ChatsListComponentProps) {
   });
 
   useChatListWebSocket({
-    token,
     username,
     activeChatId,
     activeChatName,

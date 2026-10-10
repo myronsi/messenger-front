@@ -4,7 +4,9 @@ import { fetchMissedMessages } from './fetchMissedMessages';
 
 vi.mock('@/shared/auth/session', () => ({ authFetch: vi.fn() }));
 
-const page = { history: [], has_more_after: false };
+// A v2 MessagePage, and what the app makes of it.
+const page = { items: [], next_cursor: null, prev_cursor: null };
+const mapped = { history: [], has_more: false, has_more_before: false, has_more_after: false, next_before_id: null, next_after_id: null };
 const ok = () => ({ ok: true, json: async () => page }) as Response;
 const failed = () => ({ ok: false, status: 502 }) as Response;
 
@@ -17,15 +19,15 @@ describe('fetchMissedMessages', () => {
 
   it('asks for the messages after the newest loaded one', async () => {
     vi.mocked(authFetch).mockResolvedValueOnce(ok());
-    await expect(fetchMissedMessages('7', '120', 50, () => true)).resolves.toEqual(page);
-    expect(vi.mocked(authFetch).mock.calls[0][0]).toMatch(/\/messages\/history\/7\?limit=50&after_id=120$/);
+    await expect(fetchMissedMessages('7', '120', 50, () => true)).resolves.toEqual(mapped);
+    expect(vi.mocked(authFetch).mock.calls[0][0]).toMatch(/\/chats\/7\/messages\?limit=50&after=120$/);
   });
 
   it('retries failed requests before giving up', async () => {
     vi.mocked(authFetch).mockResolvedValueOnce(failed()).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(ok());
     const result = fetchMissedMessages('7', '120', 50, () => true);
     await vi.runAllTimersAsync();
-    await expect(result).resolves.toEqual(page);
+    await expect(result).resolves.toEqual(mapped);
     expect(authFetch).toHaveBeenCalledTimes(3);
   });
 

@@ -5,13 +5,13 @@ import { authFetch } from '@/shared/auth/session';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
 import { fetchMissedMessages } from './fetchMissedMessages';
-import { useGetMessageHistoryQuery } from '@/entities/message';
+import { historyPath, toHistoryResponse, useGetMessageHistoryQuery } from '@/entities/message';
+import { apiUrl } from '@/shared/api/apiUrl';
 import { useMarkChatReadMutation } from '@/entities/chat';
 import type { Id } from '@/shared/lib/ids';
 import { maxId } from '@/shared/lib/ids';
 import { isLocalId, isServerId } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 const MESSAGE_PAGE_SIZE = 50;
 // Paging far back drops the newest loaded messages beyond this; they are refetched on the way down.
 const MAX_LOADED_MESSAGES = 500;
@@ -120,10 +120,9 @@ export const useMessageHistory = ({
     isLoadingOlderMessagesRef.current = true;
     setIsLoadingOlderMessages(true);
     try {
-      const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE), before_id: String(oldestMessageId) });
-      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
+      const response = await authFetch(apiUrl(historyPath(chatId, { limit: MESSAGE_PAGE_SIZE, before: oldestMessageId })));
       if (response.ok) {
-        const data: MessageHistoryResponse = await response.json();
+        const data: MessageHistoryResponse = toHistoryResponse(await response.json(), 'before');
         const olderMessages = normalizeHistoryMessages(data.history);
         setMessages((previous) => prependUniqueMessages(previous, olderMessages));
         trimNewestPendingRef.current = true;
@@ -150,10 +149,9 @@ export const useMessageHistory = ({
     isLoadingNewerMessagesRef.current = true;
     setIsLoadingNewerMessages(true);
     try {
-      const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE), after_id: String(newestMessageId) });
-      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
+      const response = await authFetch(apiUrl(historyPath(chatId, { limit: MESSAGE_PAGE_SIZE, after: newestMessageId })));
       if (response.ok) {
-        const data: MessageHistoryResponse = await response.json();
+        const data: MessageHistoryResponse = toHistoryResponse(await response.json(), 'after');
         const newerMessages = normalizeHistoryMessages(data.history);
         setMessages((previous) => appendUniqueMessages(previous, newerMessages));
         setHasMoreNewerMessages(!!data.has_more_after);
@@ -180,10 +178,9 @@ export const useMessageHistory = ({
     isLoadingNewerMessagesRef.current = true;
     setIsLoadingNewerMessages(true);
     try {
-      const params = new URLSearchParams({ limit: String(MESSAGE_PAGE_SIZE) });
-      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
+      const response = await authFetch(apiUrl(historyPath(chatId, { limit: MESSAGE_PAGE_SIZE })));
       if (response.ok) {
-        const data: MessageHistoryResponse = await response.json();
+        const data: MessageHistoryResponse = toHistoryResponse(await response.json(), 'latest');
         const latestMessages = normalizeHistoryMessages(data.history);
         setMessages((previous) => [...latestMessages, ...previous.filter((message) => isLocalId(message.id))]);
         setOldestMessageId(latestMessages[0]?.id || null);

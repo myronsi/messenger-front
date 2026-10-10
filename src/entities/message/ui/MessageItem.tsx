@@ -1,3 +1,4 @@
+import type { ChatRealtime } from '@/shared/api/realtime';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { MutableRefObject, memo } from 'react';
 import { Message, ReactionInfo } from '../model/types';
@@ -96,7 +97,7 @@ interface MessageItemProps {
   onAvatarClick: (username: string) => void;
   onReplyClick: (messageId: Id) => void;
   setTempHighlightedMessageId: (id: Id | null) => void;
-  wsRef: MutableRefObject<WebSocket | null>;
+  chatRealtime: ChatRealtime;
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
   onResendMessage?: (message: Message) => void;
@@ -108,7 +109,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   observerRef, firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
   renderMessageContent, isAudioPlaying, setPlayingMessageId,
   onMessageClick, onClick, onAvatarClick, onReplyClick,
-  setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
+  setTempHighlightedMessageId, chatRealtime, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
 }) => {
   const isMine = isOwnMessage(message);
   const reducedMotion = prefersReducedMotion();
@@ -252,7 +253,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 )}
               </div>
               {message.reactions?.length ? (
-                <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} wsRef={wsRef}
+                <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} chatRealtime={chatRealtime}
                   onOpenReactionDetails={(reaction, reactions) => onOpenReactionDetails?.(message, reaction, reactions)} />
               ) : null}
               {!isImage && isValidTimestamp(message.timestamp) && (

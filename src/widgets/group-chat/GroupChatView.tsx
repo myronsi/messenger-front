@@ -20,14 +20,13 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      onBack, openGroupProfile, currentGroupAvatar, currentGroupName, groupDetails, translations, messages,
      username, currentUserId, firstUnreadMessageId, handleMessageClick, handleOpenUserProfile,
      highlightedMessageId, contextMenu, getFormattedDateLabel, getMessageTime, messageRefs, canDeleteMessage,
-     jumpToSearchResult, scrollToMessage, wsRef, openMenus, tempHighlightedMessageId,
+     jumpToSearchResult, scrollToMessage, chatRealtime, openMenus, tempHighlightedMessageId,
      setTempHighlightedMessageId, loadOlderMessages, hasMoreMessages, isLoadingOlderMessages,
      isLoadingInitialMessages, loadNewerMessages, loadLatestMessages, hasMoreNewerMessages,
      isLoadingNewerMessages, markMessagesRead, isOwnMessage, setReadStatusMessage, setReactionDetails, chatId,
      closeMenus, reactionMenu, messageInputRef, messageInput, setMessageInput, replyTo, editingMessage,
      handleSendMessage, handleFileUpload, handleResendMessage, setReplyTo, setEditingMessage, token,
-     createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
-     settleOptimisticUpload, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage,
+     handleVoiceMessage, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage,
      reactionMenuRef, setReactionMenu, renderGroupProfile, isGroupProfileClosing, requestCloseGroupProfile,
      groupForm, setGroupForm, participantInput, setParticipantInput, isSavingGroup, groupAvatarInputRef,
      getAvatarSrc, handleGroupAvatarUpload, handleSaveGroup, handleAddParticipant, handleRemoveParticipant,
@@ -73,7 +72,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         renderMessageContent={renderMessageContent}
         messageRefs={messageRefs}
         onReplyClick={scrollToMessage}
-        wsRef={wsRef}
+        chatRealtime={chatRealtime}
         onOpenReactionMenu={(message, event) => openMenus(message, event)}
         tempHighlightedMessageId={tempHighlightedMessageId}
         setTempHighlightedMessageId={setTempHighlightedMessageId}
@@ -115,10 +114,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           }}
           chatId={chatId}
           token={token}
-          onVoiceUploadStart={createOptimisticUploadMessage}
-          onVoiceUploadProgress={updateOptimisticUploadProgress}
-          onVoiceUploadError={markOptimisticUploadFailed}
-          onVoiceUploadComplete={settleOptimisticUpload}
+          onSendVoice={handleVoiceMessage}
         />
       </div>
 
@@ -135,7 +131,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           setMessageInput={setMessageInput}
           setReplyTo={setReplyTo}
           setModal={setModal}
-          wsRef={wsRef}
+          chatRealtime={chatRealtime}
           isClosing={isClosing}
           onClose={closeMenus}
           reactionMenu={reactionMenu}
@@ -150,7 +146,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         <ReactionMenu
           ref={reactionMenuRef}
           reactionMenu={reactionMenu}
-          wsRef={wsRef}
+          chatRealtime={chatRealtime}
           userId={currentUserId}
           setReactionMenu={setReactionMenu}
           onClose={closeMenus}

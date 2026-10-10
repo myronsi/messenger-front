@@ -8,7 +8,6 @@ import type { Id } from '@/shared/lib/ids';
 // active language bundle's shape without depending on its internal type name.
 export type Translations = ReturnType<typeof useLanguage>['translations'];
 
-export const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export const getMediaSrc = (path?: string | null, fallback: string = DEFAULT_AVATAR) => resolveMediaUrl(path, fallback);
 

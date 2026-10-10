@@ -1,10 +1,11 @@
+import type { ChatRealtime } from '@/shared/api/realtime';
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Message, ContextMenuState } from '@/entities/message';
 import type { Id } from '@/shared/lib/ids';
 
 interface ReactionMenuProps {
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean };
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  chatRealtime: ChatRealtime;
   userId: Id;
   setReactionMenu: (value: { message: Message; x: number; y: number; isClosing?: boolean } | null) => void;
   onClose: () => void;
@@ -14,7 +15,7 @@ interface ReactionMenuProps {
 }
 
 const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
-  ({ reactionMenu, wsRef, userId, setReactionMenu, onClose, contextMenu, setContextMenu, contextMenuRef }, ref) => {
+  ({ reactionMenu, chatRealtime, userId, setReactionMenu, onClose, contextMenu, setContextMenu, contextMenuRef }, ref) => {
     const [adjustedX, setAdjustedX] = useState(reactionMenu.x);
     const [adjustedY, setAdjustedY] = useState(reactionMenu.y);
     const [isAnimated, setIsAnimated] = useState(false);
@@ -77,26 +78,9 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
     const relativeY = reactionMenu.y - adjustedY;
 
     const handleReaction = (reaction: string) => {
-      if (wsRef.current) {
-        if (wsRef.current.readyState === WebSocket.OPEN) {
-          const message = reactionMenu.message;
-          const hasReaction = message.reactions?.some((r) => r.user_id === userId && r.reaction === reaction);
-          const payload = {
-            type: hasReaction ? 'reaction_remove' : 'reaction_add',
-            message_id: message.id,
-            reaction,
-          };
-          try {
-            wsRef.current.send(JSON.stringify(payload));
-          } catch (error) {
-            console.error('Failed to send reaction over WebSocket');
-          }
-        } else {
-          console.error('WebSocket is not open, current state:', wsRef.current.readyState);
-        }
-      } else {
-        console.error('WebSocket reference is null');
-      }
+      const message = reactionMenu.message;
+      const hasReaction = message.reactions?.some((r) => r.user_id === userId && r.reaction === reaction);
+      chatRealtime.send({ type: hasReaction ? 'reaction_remove' : 'reaction_add', data: { message_id: message.id, emoji: reaction } });
       setReactionMenu({ ...reactionMenu, isClosing: true });
       setContextMenu(contextMenu ? { ...contextMenu, isClosing: true } : null);
       setTimeout(() => onClose(), 200);

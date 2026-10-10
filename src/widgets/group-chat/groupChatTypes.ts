@@ -1,3 +1,4 @@
+import type { ChatRealtime } from '@/shared/api/realtime';
 import type * as React from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import type { GroupRole } from '@/entities/chat';
@@ -46,7 +47,7 @@ export interface GroupChatViewModel {
   setHighlightedMessageId: Setter<Id | null>;
   messageRefs: React.MutableRefObject<Record<Id, HTMLDivElement | null>>;
   scrollToMessage: (messageId: Id) => void;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  chatRealtime: ChatRealtime;
   openMenus: (message: Message, event: React.MouseEvent) => void;
   tempHighlightedMessageId: Id | null;
   setTempHighlightedMessageId: Setter<Id | null>;
@@ -75,6 +76,7 @@ export interface GroupChatViewModel {
   setReplyTo: Setter<Message | null>;
   setEditingMessage: Setter<Message | null>;
   token: string;
+  handleVoiceMessage: (file: Blob, fileName: string) => void;
   createOptimisticUploadMessage: (file: Blob, fileName: string, fileType?: string, caption?: string) => Id;
   updateOptimisticUploadProgress: (messageId: Id, percent: number) => void;
   markOptimisticUploadFailed: (messageId: Id, errorMessage?: string) => void;

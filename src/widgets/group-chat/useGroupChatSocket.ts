@@ -1,16 +1,14 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useCallback } from 'react';
-import { closeForGood } from '@/shared/api/reconnect';
 import type { MutableRefObject } from 'react';
-import { useChatSocket, useMessageEvents, type ChatTransport, type ServerEvent } from '@/features/chat-core';
+import { useChatSocket, useMessageEvents, type ChatServerEvent, type ChatTransport } from '@/features/chat-core';
+import { toGroupDetails } from '@/entities/chat';
 import type { Message, ModalState } from '@/entities/message';
 import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
 import type { Id } from '@/shared/lib/ids';
 
 interface UseGroupChatSocketArgs {
-  token: string;
   chatId: Id;
-  username: string;
   translations: GroupTranslations;
   transport: ChatTransport;
   currentUserIdRef: MutableRefObject<Id>;
@@ -21,37 +19,35 @@ interface UseGroupChatSocketArgs {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setModal: React.Dispatch<React.SetStateAction<ModalState | null>>;
   markMessageFailed: (messageId: Id, message?: string) => boolean;
-  markLatestPendingMessageFailed: (message?: string) => boolean;
   onReconnected: () => void;
 }
 
-// Group chats reuse the shared message socket and only add the group-membership events on top.
+// Group chats use the chat's share of the socket and add the group events on top: a group_updated event
+// carries the whole group, and a member who is no longer in it was removed.
 export const useGroupChatSocket = ({
-  token, chatId, username, translations, transport, currentUserIdRef, translationsRef, onBackRef,
-  applyGroupDetails, refreshGroupDetails, setMessages, setModal, markMessageFailed, markLatestPendingMessageFailed,
-  onReconnected,
+  chatId, translations, transport, currentUserIdRef, translationsRef, onBackRef,
+  applyGroupDetails, refreshGroupDetails, setMessages, setModal, markMessageFailed, onReconnected,
 }: UseGroupChatSocketArgs) => {
-  const handleGroupEvent = useCallback((event: ServerEvent, socket: WebSocket) => {
-    if (event.type === 'group_updated' && event.group?.chat_id === chatId) {
-      if (event.group.participants) applyGroupDetails(event.group as RawGroupDetails);
-      else void refreshGroupDetails();
-      if (event.removed_username === username) {
-        setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
-        closeForGood(socket, 'Removed from group');
-        setTimeout(() => onBackRef.current(), 1000);
-      }
-    } else if ((event.type === 'group_invite_rejected' || event.type === 'group_invite_approved') && event.chat_id === chatId) {
-      void refreshGroupDetails();
+  const handleGroupEvent = useCallback((event: ChatServerEvent) => {
+    if (event.type !== 'group_updated') return;
+    const { group } = event.data;
+    const me = currentUserIdRef.current;
+    if (me && !group.members.some((member) => member.user.id === me)) {
+      setModal({ type: 'error', message: translations.groupDeletedOrUnavailable });
+      setTimeout(() => onBackRef.current(), 1000);
+      return;
     }
-  }, [applyGroupDetails, chatId, onBackRef, refreshGroupDetails, setModal, translations, username]);
+    applyGroupDetails(toGroupDetails(group));
+  }, [applyGroupDetails, currentUserIdRef, onBackRef, setModal, translations]);
 
   const handleSocketEvent = useMessageEvents({
-    chatId, username, transport, currentUserIdRef, translationsRef, onBackRef, setMessages, setModal,
-    markMessageFailed, markLatestPendingMessageFailed, chatDeletedKey: 'groupDeleted', onExtraEvent: handleGroupEvent,
+    chatId, transport, currentUserIdRef, translationsRef, onBackRef, setMessages, setModal,
+    markMessageFailed, chatDeletedKey: 'groupDeleted', onExtraEvent: handleGroupEvent,
   });
 
   useChatSocket({
-    chatId, token, transport, onEvent: handleSocketEvent,
+    chatId,
+    onEvent: handleSocketEvent,
     onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
     onReconnected: () => {
       onReconnected();

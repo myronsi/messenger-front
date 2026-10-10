@@ -8,7 +8,6 @@ import ImageMessage from './ImageMessage';
 import FileMessage from './FileMessage';
 import type { Id } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface MessageContentProps {
   message: Message;
@@ -38,10 +37,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
 
   const fileName = message.content.file_name || '';
   const fileUrl = message.content.file_url || '';
-  const fullFileUrl = fileUrl.startsWith('blob:') || fileUrl.startsWith('data:') ||
-    fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
-    ? fileUrl
-    : `${BASE_URL}${fileUrl}`;
+  // Absolute for the API's attachments (loaded with the token by MediaImg/MediaAudio/mediaFetch).
+  const fullFileUrl = resolveMediaUrl(fileUrl, fileUrl);
   const config = getFileTypeConfig(fileName);
   const audioMetadata = message.content.audio_metadata;
   const caption = message.content.caption?.trim();
