@@ -28,7 +28,7 @@ export const createSmokeUser = (label: string): SmokeUser => {
 };
 
 export const createEnglishContext = async (browser: Browser): Promise<BrowserContext> => {
-  const context = await browser.newContext();
+  const context = await browser.newContext({ permissions: ['microphone'] });
   await context.addInitScript(() => {
     window.localStorage.setItem('language', 'en');
   });
@@ -54,8 +54,12 @@ export const registerUser = async (page: Page, user: SmokeUser) => {
   await page.getByLabel('Password').fill(user.password);
   await page.getByRole('button', { name: 'Register' }).click();
 
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Skip for now' }).click();
+  // A recovery step ("Continue") may come before the profile step, depending on the backend's features.
+  const continueButton = page.getByRole('button', { name: 'Continue' });
+  const skipButton = page.getByRole('button', { name: 'Skip for now' });
+  await expect(continueButton.or(skipButton)).toBeVisible();
+  if (await continueButton.isVisible()) await continueButton.click();
+  await skipButton.click();
 
   await waitForMessenger(page);
 };
@@ -90,7 +94,7 @@ export const logoutUser = async (page: Page) => {
 
 export const openPreviewChat = async (page: Page, targetUsername: string) => {
   await page.getByRole('button', { name: 'Open search' }).click();
-  await page.getByPlaceholder('Search users...').fill(targetUsername);
+  await page.getByPlaceholder('Search people and messages').fill(targetUsername);
   await expect(page.locator(searchResultSelector(targetUsername))).toBeVisible();
   await page.locator(searchResultSelector(targetUsername)).click();
   await expect(page.getByTestId('message-input-field')).toBeVisible();
@@ -151,4 +155,71 @@ export const uploadFile = async (
 ) => {
   await page.getByTestId('message-file-input').setInputFiles(file);
   await page.getByTestId('message-input-field').press('Enter');
+};
+
+export const messageByText = (page: Page, text: string) => page.locator('[data-message-id]').filter({ hasText: text }).last();
+
+export interface DirectChat {
+  userA: SmokeUser;
+  userB: SmokeUser;
+  pageA: Page;
+  pageB: Page;
+  close: () => Promise<void>;
+}
+
+// Two new users with a direct chat open on both sides: A writes first, B approves the request if the
+// backend asks for one, and both open the chat from their list.
+export const openDirectChat = async (browser: Browser, label: string, firstMessage: string): Promise<DirectChat> => {
+  const userA = createSmokeUser(`${label}a`);
+  const userB = createSmokeUser(`${label}b`);
+  const contextA = await createEnglishContext(browser);
+  const contextB = await createEnglishContext(browser);
+  const close = async () => { await Promise.all([contextA.close(), contextB.close()]); };
+  try {
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    await registerUser(pageA, userA);
+    await registerUser(pageB, userB);
+    await openPreviewChat(pageA, userB.username);
+    await sendMessage(pageA, firstMessage);
+    await approvePendingRequestIfPresent(pageB, userA.username);
+    await reloadMessenger(pageA);
+    await reloadMessenger(pageB);
+    await openChatFromList(pageA, userB.username);
+    await openChatFromList(pageB, userA.username);
+    await expect(messageByText(pageB, firstMessage)).toBeVisible();
+    return { userA, userB, pageA, pageB, close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+};
+
+// Right-click opens the context menu and the reaction bar of a message.
+export const openMessageMenu = async (page: Page, text: string) => {
+  await messageByText(page, text).click({ button: 'right' });
+};
+
+export const uniqueText = (label: string) => `${label} ${Date.now().toString(36)}${crypto.randomUUID().slice(0, 4)}`;
+
+const API_URL = (process.env.E2E_API_URL ?? process.env.VITE_API_URL ?? 'http://127.0.0.1:8080/api/v2').replace(/\/+$/, '');
+
+// Calls the API as the user signed in on the page (its access token), for setup the UI would make slow.
+// 429 answers are retried after the time the server asks for.
+export const apiAs = async (page: Page, method: string, path: string, body?: unknown) => {
+  const token = await page.evaluate(() => window.localStorage.getItem('access_token'));
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const response = await page.request.fetch(`${API_URL}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${token}` },
+      ...(body === undefined ? {} : { data: body }),
+    });
+    if (response.status() !== 429) {
+      expect(response.ok(), `${method} ${path} answered ${response.status()}`).toBe(true);
+      return response.status() === 204 ? null : response.json();
+    }
+    const retryAfter = Number(response.headers()['retry-after'] ?? '1');
+    await page.waitForTimeout(Math.max(1, retryAfter) * 1_000);
+  }
+  throw new Error(`${method} ${path} stayed rate limited`);
 };

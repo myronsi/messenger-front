@@ -92,9 +92,8 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # The v2 branch ports the app to the Go backend screen by screen; until the port is complete (#47) the
-    # smoke suite reports how far it gets without failing the pull request.
-    continue-on-error: ${{ github.ref == 'refs/heads/v2' || github.base_ref == 'v2' }}
+    # End-to-end against the Go backend: auth, direct and group chats, message actions, media, search and
+    # reconnecting (e2e/smoke).
     env:
       E2E_API_URL: http://127.0.0.1:8080/api/v2
     steps:
