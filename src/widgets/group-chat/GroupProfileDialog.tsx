@@ -68,7 +68,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const canAssignRoles = !!permissions?.can_assign_roles;
   const canTransferOwnership = !!permissions?.can_transfer_ownership;
   const canDeleteGroup = !!permissions?.can_delete_group;
-  const { data: dmChatsData } = useGetOneOnOneChatsQuery(currentUsername, {
+  const { data: dmChatsData } = useGetOneOnOneChatsQuery({
     skip: !open || !canManage || !currentUsername,
   });
   const participants = groupDetails?.participants ?? emptyParticipants;

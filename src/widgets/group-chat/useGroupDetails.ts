@@ -10,7 +10,6 @@ import { useAppDispatch } from '@/shared/hooks/redux';
 import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface Args {
   chatId: Id; username: string; groupName: string; token: string;
   dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null;
@@ -76,26 +75,24 @@ export const useGroupDetails = ({
     }
   }, [chatId, dispatch, groupName, normalizeGroupDetails, setGroupDetails, setGroupForm]);
 
-  const refreshGroupDetails = useCallback(async () => {
-    if (!token || !isServerId(chatId)) return;
-    try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
-    } catch (error) {
-      console.error('Error refreshing group details:', error);
-    }
-  }, [applyGroupDetails, chatId, token]);
-
   const {
     data: latestGroupDetails,
     error: groupDetailsError,
+    refetch: refetchGroupDetails,
   } = useGetGroupDetailsQuery(chatId, {
     skip: !token || !isServerId(chatId),
     refetchOnMountOrArgChange: true,
   });
+
+  const refreshGroupDetails = useCallback(async () => {
+    if (!token || !isServerId(chatId)) return;
+    try {
+      const details = await refetchGroupDetails().unwrap();
+      applyGroupDetails(details, false);
+    } catch (error) {
+      console.error('Error refreshing group details:', error);
+    }
+  }, [applyGroupDetails, chatId, refetchGroupDetails, token]);
 
   useEffect(() => {
     if (!latestGroupDetails) return;

@@ -49,7 +49,7 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
   const { data: searchData, isFetching: isSearching } = useSearchUsersQuery(debouncedSearch, {
     skip: debouncedSearch.length < 2,
   });
-  const { data: dmChatsData } = useGetOneOnOneChatsQuery(currentUsername, {
+  const { data: dmChatsData } = useGetOneOnOneChatsQuery({
     skip: !currentUsername,
   });
 

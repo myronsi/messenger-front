@@ -148,7 +148,7 @@ export const usePreviewChat = ({
     }
     setIsCreatingPreviewChat(true);
     try {
-      const response = await createChat({ user1: username, user2: chatName, initial_message: content }).unwrap();
+      const response = await createChat({ user: { username: chatName }, initialMessage: content }).unwrap();
       if (response.approval_required) {
         setHasPendingApprovalRequest(true);
         if (response.already_pending) {
@@ -182,7 +182,7 @@ export const usePreviewChat = ({
     setIsCreatingPreviewChat(true);
     let optimisticMessageId: Id | null = null;
     try {
-      const response = await createChat({ user1: username, user2: chatName }).unwrap();
+      const response = await createChat({ user: { username: chatName } }).unwrap();
       if (response.approval_required || !response.chat_id) {
         throw new Error(translations.waitingForApproval || 'Waiting for user approval');
       }

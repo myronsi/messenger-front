@@ -10,7 +10,6 @@ import { useMessengerRouteSync } from './useMessengerRouteSync';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export const useMessengerController = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -231,7 +230,7 @@ export const useMessengerController = () => {
     if (!currentChat || currentChat.type !== 'one-on-one' || !isServerId(currentChat.id)) return;
 
     try {
-      const response = await authFetch(`${BASE_URL}/chats/delete/${currentChat.id}`, {
+      const response = await authFetch(apiUrl(`/chats/${encodeURIComponent(currentChat.id)}`), {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error(await response.text());

@@ -1,3 +1,4 @@
+import type { UserRef } from '@/entities/user';
 import { asApiError } from '@/shared/lib/apiError';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useState } from 'react';
@@ -10,9 +11,9 @@ interface UseChatListActionsParams {
   username: string;
   activeChatId?: Id;
   onChatOpen: ChatsListComponentProps['onChatOpen'];
-  createChat: (args: { user1: string; user2: string }) => { unwrap: () => Promise<unknown> };
+  createChat: (args: { user: UserRef }) => { unwrap: () => Promise<unknown> };
   setChatPinned: (args: { chatId: Id; pinned: boolean }) => { unwrap: () => Promise<unknown> };
-  markChatRead: (args: { chatId: Id; markAll: boolean }) => {
+  markChatRead: (args: { chatId: Id; lastMessageId?: Id | null }) => {
     unwrap: () => Promise<{ unread_count: number; first_unread_message_id: Id | null }>;
   };
   refetch: () => void;
@@ -27,7 +28,7 @@ interface UseChatListActionsParams {
 // menu, pinning, and marking a chat read (each with optimistic updates).
 export function useChatListActions(params: UseChatListActionsParams) {
   const {
-    username, activeChatId, onChatOpen, createChat, setChatPinned, markChatRead, refetch,
+    activeChatId, onChatOpen, createChat, setChatPinned, markChatRead, refetch,
     chatsByIdRef, setChatOverrides, setChatContextMenu, setModal, translations,
   } = params;
 
@@ -43,10 +44,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     }
 
     try {
-      await createChat({
-        user1: username,
-        user2: targetUser.trim(),
-      }).unwrap();
+      await createChat({ user: { username: targetUser.trim() } }).unwrap();
 
       setTargetUser('');
       setModal({
@@ -68,7 +66,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
   // Create chat directly with a selected username (used by suggestion click)
   const handleCreateChatWith = async (usernameTo: string) => {
     try {
-      await createChat({ user1: username, user2: usernameTo }).unwrap();
+      await createChat({ user: { username: usernameTo } }).unwrap();
       setTargetUser('');
       setModal({ type: 'success', message: translations.chatCreated || 'Chat created successfully' });
       refetch();
@@ -161,7 +159,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     try {
       // A successful mark-all means everything known is read; don't let a stale
       // server summary resurrect the badge.
-      await markChatRead({ chatId, markAll: true }).unwrap();
+      await markChatRead({ chatId, lastMessageId: chatsByIdRef.current[chatId]?.last_message?.id }).unwrap();
     } catch (caught) {
       const error = asApiError(caught);
       setChatOverrides((prev) => ({
