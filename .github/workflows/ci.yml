@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, v2]
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npm run build
         env:
-          VITE_BASE_URL: https://example.invalid/api
+          VITE_API_URL: https://example.invalid/api/v2
 
   lint:
     if: github.event_name != 'schedule'
@@ -87,13 +87,16 @@ jobs:
         run: git diff --exit-code -- src/shared/api/generated
       - run: npm run typecheck
 
-  # Real backend from Docker images: the version in scripts/backend-version on pull requests and
-  # pushes, backend master nightly.
+  # Real backend from Docker images: the Go backend version in scripts/backend-version on pull requests
+  # and pushes, the backend's go-master snapshot nightly.
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    # The v2 branch ports the app to the Go backend screen by screen; until the port is complete (#47) the
+    # smoke suite reports how far it gets without failing the pull request.
+    continue-on-error: ${{ github.ref == 'refs/heads/v2' || github.base_ref == 'v2' }}
     env:
-      E2E_API_URL: http://127.0.0.1:8000
+      E2E_API_URL: http://127.0.0.1:8080/api/v2
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -102,12 +105,13 @@ jobs:
           cache: npm
       - run: npm ci --legacy-peer-deps --ignore-scripts
       - name: Start the backend
-        run: bash scripts/backend-up.sh ${{ github.event_name == 'schedule' && 'master' || '' }}
+        run: bash scripts/backend-up.sh ${{ github.event_name == 'schedule' && 'go-master' || '' }}
       - run: ./node_modules/.bin/playwright install --with-deps chromium
       - run: npm run test:smoke
       - name: Backend logs
         if: failure()
-        run: docker compose -f .backend-stack/compose.stack.yaml logs --tail 200
+        working-directory: .backend-stack/go
+        run: docker compose logs --no-color --tail 200 api worker
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:

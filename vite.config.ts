@@ -12,9 +12,9 @@ const { version: packageVersion } = JSON.parse(readFileSync(new URL("./package.j
 // so the API and WebSocket URLs must be absolute and point at the real backend.
 const assertAbsoluteMobileUrls = (env: Record<string, string>) => {
   const errors: string[] = [];
-  const baseUrl = env.VITE_BASE_URL?.trim();
-  if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
-    errors.push("VITE_BASE_URL must be an absolute http(s) URL (for example https://chat.example.com/api)");
+  const apiUrl = (env.VITE_API_URL || env.VITE_BASE_URL)?.trim();
+  if (!apiUrl || !/^https?:\/\//i.test(apiUrl)) {
+    errors.push("VITE_API_URL must be an absolute http(s) URL (for example https://chat.example.com/api/v2)");
   }
   const wsUrl = env.VITE_WS_URL?.trim();
   if (wsUrl && !/^wss?:\/\//i.test(wsUrl)) {
@@ -60,7 +60,8 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? packageVersion),
       __APP_COMMIT__: JSON.stringify(process.env.GITHUB_SHA?.slice(0, 7) ?? 'dev'),
-      ...(useMockApi ? { 'import.meta.env.VITE_BASE_URL': JSON.stringify(`http://127.0.0.1:${MOCK_API_PORT}`) } : {}),
+      // Prism serves the contract's paths at its root.
+      ...(useMockApi ? { 'import.meta.env.VITE_API_URL': JSON.stringify(`http://127.0.0.1:${MOCK_API_PORT}`) } : {}),
     },
     plugins: [
       react(),

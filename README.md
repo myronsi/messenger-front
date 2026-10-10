@@ -70,17 +70,19 @@ This project uses npm only: `package-lock.json` is the single lock file (CI runs
 
 ### Configure the frontend
 
-Create a `.env.local` file with the API server URL:
+> **Branch `v2`** ports the app to the Go backend (API contract v2, issues F26–F30). `main` keeps
+> talking to the Python backend until the switch; `v2` is merged into it then.
+
+Copy `.env.example` to `.env.local`. `VITE_API_URL` is the API root of the Go backend:
 
 ```env
-VITE_BASE_URL=http://localhost:8000
+VITE_API_URL=http://127.0.0.1:8080/api/v2
 ```
 
-The WebSocket endpoint defaults to the same origin as `VITE_BASE_URL`, using `ws://` or `wss://` as appropriate. Set `VITE_WS_URL` only when WebSockets are hosted on a different origin:
-
-```env
-VITE_WS_URL=ws://localhost:8000
-```
+`npm run backend:up` starts that backend with all its stores from Docker images (see
+[docs/api-contract.md](docs/api-contract.md#local-backend-and-smoke-tests)). The WebSocket connects to
+`VITE_API_URL` with `ws://` or `wss://`; set `VITE_WS_URL` only when it is hosted elsewhere. The v1
+variable `VITE_BASE_URL` (the host root, an `/api` prefix or the `/api/v2` root) is still accepted.
 
 ### Install as a mobile app
 

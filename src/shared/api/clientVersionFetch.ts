@@ -1,9 +1,6 @@
 import { clientVersionHeaders } from './clientVersion';
 import { reportClientOutdated } from './updateGate';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
-const getApiPrefix = () => new URL(BASE_URL || '/', window.location.href).href.replace(/\/$/, '');
+import { isApiUrl } from './apiUrl';
 
 const requestUrl = (input: RequestInfo | URL) => {
   const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
@@ -11,11 +8,7 @@ const requestUrl = (input: RequestInfo | URL) => {
 };
 
 // Only requests to the backend get the version headers; media CDNs and third-party URLs are left alone.
-export const isBackendRequest = (input: RequestInfo | URL) => {
-  const prefix = getApiPrefix();
-  const url = requestUrl(input);
-  return url === prefix || (url.startsWith(prefix) && ['/', '?', '#'].includes(url.charAt(prefix.length)));
-};
+export const isBackendRequest = (input: RequestInfo | URL) => isApiUrl(requestUrl(input));
 
 export const applyClientVersionHeaders = (headers: Headers) => {
   Object.entries(clientVersionHeaders()).forEach(([name, value]) => headers.set(name, value));

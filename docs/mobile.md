@@ -41,11 +41,11 @@ cp .env.mobile.example .env.mobile
 ```
 
 ```env
-VITE_BASE_URL=https://chat.example.com/api
-VITE_WS_URL=wss://chat.example.com/api   # optional
+VITE_API_URL=https://chat.example.com/api/v2
+VITE_WS_URL=wss://chat.example.com/api/v2   # optional
 ```
 
-`npm run build:mobile` (`vite build --mode mobile`) fails early if `VITE_BASE_URL` is not an absolute `http(s)` URL.
+`npm run build:mobile` (`vite build --mode mobile`) fails early if `VITE_API_URL` is not an absolute `http(s)` URL.
 `.env.mobile` is git-ignored. Variables set in the shell (for example in CI) override the file.
 
 Set `CAPACITOR_APP_ID` to override the default bundle id `com.messenger.app` (it can't be changed after publishing).

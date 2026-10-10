@@ -14,8 +14,9 @@ import { Label } from '@/shared/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clearAuthTokens } from '@/shared/auth/session';
+import { apiErrorMessage } from '@/shared/lib/apiError';
+import { useResetPasswordMutation } from './api/authApi';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface PasswordResetComponentProps {
   onBackToLogin: () => void;
@@ -33,6 +34,7 @@ const PasswordResetComponent: React.FC<PasswordResetComponentProps> = ({ onBackT
   const passwordsMismatch = newPassword && confirmPassword && newPassword !== confirmPassword;
   const { translations } = useLanguage();
   const navigate = useNavigate();
+  const [resetPassword] = useResetPasswordMutation();
 
   useEffect(() => {
     const token = sessionStorage.getItem('recovery_token');
@@ -63,39 +65,28 @@ const PasswordResetComponent: React.FC<PasswordResetComponentProps> = ({ onBackT
     setMessage('');
     
     try {
-      const response = await fetch(`${BASE_URL}/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recovery_token: recoveryToken, new_password: newPassword }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        setMessage(translations.resetPasswordSuccess);
-        
-        sessionStorage.removeItem('recovery_username');
-        sessionStorage.removeItem('recovery_cloud_part');
-        sessionStorage.removeItem('recovery_device_part');
-        sessionStorage.removeItem('recovery_token');
-        clearAuthTokens();
-        
-        setTimeout(() => {
-          setNewPassword('');
-          setConfirmPassword('');
-          setMessage('');
-          onBackToLogin();
-        }, 2000);
-      } else {
-        setMessage(data.detail || translations.resetPasswordFailed);
-      }
+      await resetPassword({ recovery_token: recoveryToken, new_password: newPassword }).unwrap();
+      setMessage(translations.resetPasswordSuccess);
+
+      sessionStorage.removeItem('recovery_username');
+      sessionStorage.removeItem('recovery_cloud_part');
+      sessionStorage.removeItem('recovery_device_part');
+      sessionStorage.removeItem('recovery_token');
+      clearAuthTokens();
+
+      setTimeout(() => {
+        setNewPassword('');
+        setConfirmPassword('');
+        setMessage('');
+        onBackToLogin();
+      }, 2000);
     } catch (err) {
-      setMessage(translations.networkError);
+      setMessage(apiErrorMessage(err, translations.resetPasswordFailed));
       console.error('Reset password error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [newPassword, confirmPassword, recoveryToken, translations, onBackToLogin]);
+  }, [newPassword, confirmPassword, recoveryToken, translations, onBackToLogin, resetPassword]);
 
   const handleBack = () => {
     navigate('/recover-parts');

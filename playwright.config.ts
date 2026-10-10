@@ -1,34 +1,14 @@
 import process from 'node:process';
 import { defineConfig } from '@playwright/test';
 
-const DEFAULT_API_URL = 'http://127.0.0.1:8000';
+// The Go backend of scripts/backend-up.sh; the app derives the WebSocket URL from the API root.
+const DEFAULT_API_URL = 'http://127.0.0.1:8080/api/v2';
 const APP_URL = 'http://127.0.0.1:5173';
 
-const trimTrailingSlashes = (value: string) => {
-  let end = value.length;
-  while (end > 0 && value[end - 1] === '/') end -= 1;
-  return value.slice(0, end);
-};
+const apiUrl = process.env.E2E_API_URL ?? process.env.VITE_API_URL ?? DEFAULT_API_URL;
 
-const toWebSocketUrl = (value: string) => {
-  const url = new URL(value);
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  return trimTrailingSlashes(url.toString());
-};
-
-const apiUrl = trimTrailingSlashes(
-  process.env.E2E_API_URL ?? process.env.VITE_BASE_URL ?? DEFAULT_API_URL
-);
-
-const webSocketUrl = trimTrailingSlashes(
-  process.env.E2E_API_URL
-    ? toWebSocketUrl(process.env.E2E_API_URL)
-    : process.env.VITE_WS_URL ?? toWebSocketUrl(apiUrl)
-);
-
-const clientApiVersion = process.env.E2E_CLIENT_API_VERSION
-  ?? process.env.VITE_CLIENT_API_VERSION
-  ?? '1.0.0';
+// Unset, the app sends the version of its contract package.
+const clientApiVersion = process.env.E2E_CLIENT_API_VERSION ?? process.env.VITE_CLIENT_API_VERSION;
 
 export default defineConfig({
   testDir: './e2e/smoke',
@@ -58,9 +38,8 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
-      VITE_BASE_URL: apiUrl,
-      VITE_WS_URL: webSocketUrl,
-      VITE_CLIENT_API_VERSION: clientApiVersion,
+      VITE_API_URL: apiUrl,
+      ...(clientApiVersion ? { VITE_CLIENT_API_VERSION: clientApiVersion } : {}),
     },
   },
 });
