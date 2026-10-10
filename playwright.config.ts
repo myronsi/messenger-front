@@ -13,7 +13,7 @@ const clientApiVersion = process.env.E2E_CLIENT_API_VERSION ?? process.env.VITE_
 export default defineConfig({
   testDir: './e2e/smoke',
   fullyParallel: false,
-  globalTimeout: 270_000,
+  globalTimeout: 600_000,
   timeout: 60_000,
   outputDir: 'test-results',
   reporter: [
@@ -30,6 +30,9 @@ export default defineConfig({
     serviceWorkers: 'block',
     trace: 'retain-on-failure',
     viewport: { width: 1440, height: 960 },
+    // Voice messages record from a fake microphone.
+    permissions: ['microphone'],
+    launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] },
   },
   webServer: {
     command: 'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort',

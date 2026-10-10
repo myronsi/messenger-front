@@ -98,7 +98,7 @@ export const useMessageHistory = ({
   useEffect(() => {
     if (!latestHistory) return;
     const nextMessages = normalizeHistoryMessages(latestHistory.history);
-    setMessages((previous) => mergeFreshHistoryMessages(previous, nextMessages));
+    setMessages((previous) => mergeFreshHistoryMessages(previous, nextMessages, { isNewestPage: !latestHistory.has_more_after }));
     setOldestMessageId(nextMessages[0]?.id || null);
     setNewestMessageId(nextMessages[nextMessages.length - 1]?.id || null);
     setHasMoreMessages(latestHistory.has_more_before ?? latestHistory.has_more);
