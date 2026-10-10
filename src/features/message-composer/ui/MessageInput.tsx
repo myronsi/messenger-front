@@ -1,8 +1,9 @@
-import React, { useRef, forwardRef, useState, useEffect } from 'react';
-import { File as FileIcon, Paperclip, Send, X, Mic, Square } from 'lucide-react';
+import React, { useRef, forwardRef, useState } from 'react';
+import { Paperclip, Send, X, Mic, Square } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { UPLOAD_ACCEPT, validateUploadFile } from '@/shared/lib/uploadValidation';
+import { formatMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
+import SelectedFilesPreview from './SelectedFilesPreview';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
 import type { Id } from '@/shared/lib/ids';
 import MediaImg from '@/shared/ui/MediaImg';
@@ -13,7 +14,10 @@ interface MessageInputProps {
   replyTo: Message | null;
   editingMessage: Message | null;
   onSendMessage: () => void;
-  onFileUpload: (file: File, caption?: string) => void;
+  // The chosen files, each sent as its own message; the caption goes with the first.
+  onFilesUpload: (files: File[], caption?: string) => void;
+  // False allows one file at a time (a chat that is created by its first message).
+  multipleFiles?: boolean;
   onCancelReplyOrEdit: () => void;
   chatId: Id;
   token: string;
@@ -29,7 +33,8 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
   replyTo,
   editingMessage,
   onSendMessage,
-  onFileUpload,
+  onFilesUpload,
+  multipleFiles = true,
   onCancelReplyOrEdit,
   chatId,
   disableVoice = false,
@@ -40,10 +45,9 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
   const { translations } = useLanguage();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedFilePreviewUrl, setSelectedFilePreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const isDisabled = disabled || isSending;
-  const hasSelectedFile = !!selectedFile;
+  const hasSelectedFile = selectedFiles.length > 0;
   const hasDraft = messageInput.trim().length > 0 || hasSelectedFile;
   const {
     isRecording,
@@ -68,46 +72,38 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
 
   const sendAndKeepFocus = () => {
     if (!hasDraft || isDisabled) return;
-    if (selectedFile) {
-      onFileUpload(selectedFile, messageInput);
-      setSelectedFile(null);
+    if (hasSelectedFile) {
+      onFilesUpload(selectedFiles, messageInput);
+      setSelectedFiles([]);
       setMessageInput('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
     } else {
       onSendMessage();
     }
     requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   };
 
+  // Adds the chosen files that can be uploaded; the first one that cannot is named in the error.
   const handleSelectedFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    const validationError = file ? validateUploadFile(file) : null;
-    if (file && validationError) {
-      setErrorMessage(validationError === 'tooLarge'
-        ? translations.uploadFileTooLarge || 'File is too large. The maximum size is 10 MB.'
-        : translations.uploadUnsupportedType || 'This file type is not supported.');
-      setSelectedFile(null);
-      event.target.value = '';
-      return;
-    }
-    setErrorMessage(null);
-    setSelectedFile(file);
+    const chosen = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    let firstError: string | null = null;
+    const accepted = chosen.filter((file) => {
+      const problem = validateUploadFile(file);
+      if (problem && !firstError) {
+        const template = problem.reason === 'tooLarge' ? translations.uploadFileTooLarge
+          : problem.reason === 'empty' ? translations.uploadFileEmpty : translations.uploadUnsupportedType;
+        firstError = template.replace('{name}', file.name).replace('{size}', problem.reason === 'tooLarge' ? formatMegabytes(problem.limitBytes) : '');
+      }
+      return !problem;
+    });
+    setErrorMessage(firstError);
+    if (accepted.length === 0) return;
+    setSelectedFiles((previous) => (multipleFiles ? [...previous, ...accepted] : accepted.slice(0, 1)));
   };
 
-  const clearSelectedFile = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles((previous) => previous.filter((_, position) => position !== index));
   };
-
-  useEffect(() => {
-    if (!selectedFile || !selectedFile.type.startsWith('image/')) {
-      setSelectedFilePreviewUrl(null);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(selectedFile);
-    setSelectedFilePreviewUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedFile]);
 
   const handleActionClick = () => {
     if (isRecording) {
@@ -151,25 +147,8 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
             </button>
           </div>
         )}
-        {selectedFile && (
-          <div className="motion-reply-in flex justify-start">
-            <div className="flex max-w-[min(100%,24rem)] items-center gap-2 rounded-2xl border border-border/60 bg-background/55 px-2 py-2 shadow-lg shadow-foreground/10 backdrop-blur-2xl">
-              {selectedFilePreviewUrl ? (
-                <MediaImg src={selectedFilePreviewUrl} alt={selectedFile.name} className="h-11 w-11 rounded-xl object-cover" />
-              ) : (
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent">
-                  <FileIcon className="h-5 w-5" />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{selectedFile.name}</div>
-                <div className="text-xs text-muted-foreground">{Math.ceil(selectedFile.size / 1024)} KB</div>
-              </div>
-              <button type="button" onClick={clearSelectedFile} aria-label={translations.removeFile || 'Remove file'} className="motion-press shrink-0 rounded-full p-1 transition-colors hover:bg-accent">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+        {hasSelectedFile && (
+          <SelectedFilesPreview files={selectedFiles} removeLabel={translations.removeFile || 'Remove file'} onRemove={removeSelectedFile} />
         )}
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">
@@ -187,7 +166,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
               ref={fileInputRef}
               data-testid="message-file-input"
               onChange={handleSelectedFileChange}
-              accept={UPLOAD_ACCEPT}
+              multiple={multipleFiles}
               className="hidden"
             />
             {isRecording ? (
@@ -205,7 +184,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
                 data-testid="message-input-field"
                 value={messageInput}
                 onChange={(event) => setMessageInput(event.target.value)}
-                placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : selectedFile ? (translations.addCaption || 'Add a caption') : translations.writeMessage}
+                placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : hasSelectedFile ? (translations.addCaption || 'Add a caption') : translations.writeMessage}
                 className="min-h-10 min-w-0 flex-1 bg-transparent px-1 text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none"
                 onKeyDown={(event) => event.key === 'Enter' && sendAndKeepFocus()}
                 disabled={isDisabled}

@@ -19,17 +19,19 @@ export const uploadAttachment = async (file: File | Blob, purpose: UploadPurpose
   return response.json() as Promise<Attachment>;
 };
 
-// uploadAttachmentWithProgress is uploadAttachment with upload progress (0-100), for message files and
-// voice messages; `kind: 'voice'` makes the server measure duration and waveform.
+// uploadAttachmentWithProgress is uploadAttachment with upload progress (0-100) and cancelling (`signal`), for
+// message files and voice messages; `kind: 'voice'` makes the server measure duration and waveform.
 export const uploadAttachmentWithProgress = (
   file: File | Blob,
-  options: { purpose: UploadPurpose; kind?: Attachment['kind']; fileName?: string; onProgress?: (percent: number) => void },
+  options: {
+    purpose: UploadPurpose; kind?: Attachment['kind']; fileName?: string; onProgress?: (percent: number) => void; signal?: AbortSignal;
+  },
 ): Promise<Attachment> => {
   const form = new FormData();
   form.append('file', file, options.fileName ?? (file instanceof File ? file.name : 'upload'));
   form.append('purpose', options.purpose);
   if (options.kind) form.append('kind', options.kind);
-  return uploadWithProgress<Attachment>({ url: apiUrl('/attachments'), formData: form, onProgress: options.onProgress })
+  return uploadWithProgress<Attachment>({ url: apiUrl('/attachments'), formData: form, onProgress: options.onProgress, signal: options.signal })
     .catch((caught: unknown) => {
       // uploadWithProgress rejects with { status, body }; shape it like every other API error.
       const failure = caught as { status?: number; body?: unknown };

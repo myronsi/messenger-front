@@ -1,31 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_UPLOAD_BYTES, validateUploadFile } from './uploadValidation';
+import { UPLOAD_LIMITS, formatMegabytes, uploadKindOf, validateUploadFile } from './uploadValidation';
+
+const file = (type: string, size: number) => ({ type, size });
 
 describe('validateUploadFile', () => {
-  it('accepts supported files within the size limit', () => {
-    expect(validateUploadFile({ name: 'photo.JPG', size: 1024 })).toBeNull();
-    expect(validateUploadFile({ name: 'clip.mov', size: MAX_UPLOAD_BYTES })).toBeNull();
+  it('accepts any type of message file within the limit of its kind', () => {
+    expect(validateUploadFile(file('image/jpeg', 1024))).toBeNull();
+    expect(validateUploadFile(file('video/quicktime', UPLOAD_LIMITS.video))).toBeNull();
+    expect(validateUploadFile(file('application/x-msdownload', 10))).toBeNull();
+    expect(validateUploadFile(file('', 10))).toBeNull();
   });
 
-  it('accepts every supported upload extension', () => {
-    const supportedExtensions = [
-      'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif',
-      'mp4', 'mov', 'ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac',
-      'pdf', 'doc', 'docx', 'txt', 'pptx', 'zip',
-      'js', 'ts', 'py', 'java', 'cpp', 'html', 'css',
-    ];
-
-    supportedExtensions.forEach((extension) => {
-      expect(validateUploadFile({ name: `file.${extension}`, size: 1024 })).toBeNull();
-    });
+  it('applies the limit of the kind', () => {
+    expect(validateUploadFile(file('image/png', UPLOAD_LIMITS.image + 1))).toEqual({ reason: 'tooLarge', limitBytes: UPLOAD_LIMITS.image });
+    expect(validateUploadFile(file('audio/ogg', UPLOAD_LIMITS.audio + 1))).toEqual({ reason: 'tooLarge', limitBytes: UPLOAD_LIMITS.audio });
+    expect(validateUploadFile(file('application/pdf', UPLOAD_LIMITS.file + 1))).toEqual({ reason: 'tooLarge', limitBytes: UPLOAD_LIMITS.file });
   });
 
-  it('rejects files over 10 MB', () => {
-    expect(validateUploadFile({ name: 'doc.pdf', size: MAX_UPLOAD_BYTES + 1 })).toBe('tooLarge');
+  it('rejects empty files', () => {
+    expect(validateUploadFile(file('text/plain', 0))).toEqual({ reason: 'empty' });
   });
 
-  it('rejects unsupported or extensionless files', () => {
-    expect(validateUploadFile({ name: 'run.exe', size: 10 })).toBe('unsupportedType');
-    expect(validateUploadFile({ name: 'README', size: 10 })).toBe('unsupportedType');
+  it('accepts only decodable images as avatars, up to the avatar limit', () => {
+    expect(validateUploadFile(file('image/webp', 1024), 'avatar')).toBeNull();
+    expect(validateUploadFile(file('image/bmp', 1024), 'avatar')).toEqual({ reason: 'unsupportedType' });
+    expect(validateUploadFile(file('image/png', UPLOAD_LIMITS.avatar + 1), 'avatar')).toEqual({ reason: 'tooLarge', limitBytes: UPLOAD_LIMITS.avatar });
+  });
+
+  it('names kinds and sizes', () => {
+    expect(uploadKindOf('video/mp4')).toBe('video');
+    expect(uploadKindOf('application/zip')).toBe('file');
+    expect(formatMegabytes(UPLOAD_LIMITS.image)).toBe('20 MB');
   });
 });
