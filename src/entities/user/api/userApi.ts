@@ -8,9 +8,10 @@ import { toUser, type BlockedUsersResponse, type User, type UserAvatarHistoryRes
 // tsc catches a username passed where the API needs an id.
 export type UserRef = { id: Id } | { username: string };
 
-type FetchWithBQ = (args: string | FetchArgs) => ReturnType<BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>>;
+export type FetchWithBQ = (args: string | FetchArgs) => ReturnType<BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>>;
 
-const resolveUserId = async (ref: UserRef, fetchWithBQ: FetchWithBQ): Promise<{ id: Id } | { error: FetchBaseQueryError }> => {
+// resolveUserId turns a UserRef into the id the API needs (looking a username up first).
+export const resolveUserId = async (ref: UserRef, fetchWithBQ: FetchWithBQ): Promise<{ id: Id } | { error: FetchBaseQueryError }> => {
   if ('id' in ref) return { id: ref.id };
   const result = await fetchWithBQ(`/usernames/${encodeURIComponent(ref.username.replace(/^@/, ''))}`);
   if (result.error) return { error: result.error };

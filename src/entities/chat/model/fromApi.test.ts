@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Schema } from '@/shared/api/contract';
-import { toAppMessage, toChatLastMessage } from '@/entities/message/model/fromApi';
+import { toAppMessage, toChatLastMessage } from '@/entities/message';
 import { toApprovalRequest, toDirectChatItem, toGroupChatItem, toGroupDetails } from './fromApi';
 
 const user = (id: string, username: string, extra: Partial<Schema<'User'>> = {}): Schema<'User'> => ({

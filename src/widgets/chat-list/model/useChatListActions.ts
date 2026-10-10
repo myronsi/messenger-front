@@ -28,7 +28,7 @@ interface UseChatListActionsParams {
 // menu, pinning, and marking a chat read (each with optimistic updates).
 export function useChatListActions(params: UseChatListActionsParams) {
   const {
-    username, activeChatId, onChatOpen, createChat, setChatPinned, markChatRead, refetch,
+    activeChatId, onChatOpen, createChat, setChatPinned, markChatRead, refetch,
     chatsByIdRef, setChatOverrides, setChatContextMenu, setModal, translations,
   } = params;
 

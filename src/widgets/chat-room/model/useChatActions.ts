@@ -4,7 +4,6 @@ import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
 import type { Id } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface DeleteChatActionOptions {
   chatId: Id;

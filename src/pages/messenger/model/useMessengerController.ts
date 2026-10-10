@@ -10,7 +10,6 @@ import { useMessengerRouteSync } from './useMessengerRouteSync';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export const useMessengerController = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

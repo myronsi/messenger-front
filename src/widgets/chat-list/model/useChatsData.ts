@@ -13,7 +13,7 @@ import type { Id } from '@/shared/lib/ids';
 // Coordinates RTK Query data sources (one-on-one chats, group chats, request
 // inbox, current user) and merges them with live presence/override state
 // (kept fresh by the WebSocket hook) into the final sorted chat list.
-export function useChatsData(username: string) {
+export function useChatsData() {
   const {
     data: oneOnOneChatsData,
     startedTimeStamp: oneOnOneStartedAt,

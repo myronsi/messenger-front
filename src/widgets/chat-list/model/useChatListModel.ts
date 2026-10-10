@@ -21,7 +21,7 @@ export function useChatListModel(props: ChatsListComponentProps) {
     chats, isLoading, error, refetch, requestInbox, refetchRequestInbox, currentUserData,
     createChat, setChatPinned, markChatRead, oneOnOneChatsData, chatsByIdRef,
     setChatOverrides, setPresenceByUsername,
-  } = useChatsData(username);
+  } = useChatsData();
 
   const { translations, language, getLastMessagePreview, getLastMessageTime, isOwnLastMessage, isOwnLastMessageRead } =
     useChatFormatters(currentUserData?.id);

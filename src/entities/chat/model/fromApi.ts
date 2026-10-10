@@ -1,6 +1,6 @@
 import type { Schema } from '@/shared/api/contract';
 import { toUser } from '@/entities/user';
-import { toChatLastMessage } from '@/entities/message/model/fromApi';
+import { toChatLastMessage } from '@/entities/message';
 import type { ApprovalRequest, GroupChatResponse, GroupRole, OneOnOneChatResponse, RawGroupDetails } from './types';
 
 export type ApiChat = Schema<'Chat'>;

@@ -10,7 +10,6 @@ import { useAppDispatch } from '@/shared/hooks/redux';
 import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface Args {
   chatId: Id; username: string; groupName: string; token: string;
   dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null;
