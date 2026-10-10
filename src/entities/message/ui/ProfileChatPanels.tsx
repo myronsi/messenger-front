@@ -1,4 +1,4 @@
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image as ImageIcon, Loader2, Music, Search } from 'lucide-react';
 import type { ChatAudio, ChatPhoto, ChatSearchResult } from '../model/types';
@@ -10,7 +10,6 @@ import { isServerId } from '@/shared/lib/ids';
 import MediaImg from '@/shared/ui/MediaImg';
 import MediaAudio from '@/shared/ui/MediaAudio';
 
-export const normalizeProfileMediaUrl = (mediaUrl: string) => resolveMediaUrl(mediaUrl, mediaUrl);
 
 export interface ProfilePhotoItem {
   id: Id;
@@ -34,8 +33,8 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
       const url = photo.file_url || photo.url || '';
       return {
         id: photo.id,
-        url: url ? normalizeProfileMediaUrl(url) : '',
-        thumbnailUrl: photo.thumbnail_url ? normalizeProfileMediaUrl(photo.thumbnail_url) : (url ? normalizeProfileMediaUrl(url) : ''),
+        url: url ? mediaUrl(url) : '',
+        thumbnailUrl: photo.thumbnail_url ? mediaUrl(photo.thumbnail_url) : (url ? mediaUrl(url) : ''),
         name: photo.file_name || photo.name || fallbackName,
         timestamp: photo.timestamp,
       };
@@ -50,7 +49,7 @@ export const toProfileAudios = (audios: ChatAudio[] = [], fallbackName: string):
       const url = audio.file_url || audio.url || '';
       return {
         id: audio.id,
-        url: url ? normalizeProfileMediaUrl(url) : '',
+        url: url ? mediaUrl(url) : '',
         name: audio.file_name || audio.name || fallbackName,
         kind: audio.audio_kind,
         timestamp: audio.timestamp,

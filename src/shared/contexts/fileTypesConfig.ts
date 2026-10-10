@@ -1,4 +1,4 @@
-import { FileText, FileImage, FileVideo2, FileAudio2, FileArchive, Table, Presentation, FileCode2, Database, FileType2, ArrowDownToLine, LucideProps } from 'lucide-react';
+import { File as FileIcon, FileText, FileImage, FileVideo2, FileAudio2, FileArchive, Table, Presentation, FileCode2, Database, FileType2, ArrowDownToLine, LucideProps } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 export interface FileTypeConfig {
@@ -95,11 +95,12 @@ export const useFileTypes = () => {
     },
   ];
 
-  const getFileTypeConfig = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    return fileTypes.find((config) => 
-      config.extensions.some(ext => ext.slice(1) === extension)
-    );
+  // Any other file: the server takes every type, so there is always a card to show.
+  const genericFile: FileTypeConfig = { extensions: [], icon: FileIcon, onHover: ArrowDownToLine, replyText: translations.file };
+
+  const getFileTypeConfig = (fileName: string): FileTypeConfig => {
+    const extension = fileName.includes('.') ? fileName.split('.').pop()?.toLowerCase() : undefined;
+    return fileTypes.find((config) => config.extensions.some((ext) => ext.slice(1) === extension)) ?? genericFile;
   };
 
   return {

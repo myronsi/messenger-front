@@ -20,4 +20,5 @@ export const messages = {
   uploadFileTooLarge: "Файл {name} слишком большой. Максимум для такого файла — {size}.",
   uploadFileEmpty: "Файл {name} пустой.",
   cancelUpload: "Отменить загрузку",
+  mediaUnavailable: "Этот файл больше недоступен.",
 };

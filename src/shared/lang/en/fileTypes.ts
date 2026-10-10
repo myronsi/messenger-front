@@ -1,4 +1,5 @@
 export const fileTypes = {
+  file: "File",
   image: "Image",
   voiceMessage: "Voice Message",
   video: "Video",

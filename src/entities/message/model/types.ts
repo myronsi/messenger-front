@@ -10,6 +10,8 @@ export interface FileMessageContent {
   file_name: string;
   file_type: string;
   file_size: number;
+  // The attachment's kind as the server detected it (absent on older copies, see fileKindOf).
+  kind?: 'image' | 'audio' | 'voice' | 'video' | 'file';
   caption?: string;
   audio_metadata?: AudioMetadata;
   image_width?: number;

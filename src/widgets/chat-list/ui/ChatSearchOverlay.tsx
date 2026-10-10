@@ -7,7 +7,7 @@ import type { Chat, MessageSearchHit } from '@/entities/message';
 import type { User } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import GlobalSearch from './GlobalSearch';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import type { ChatsListComponentProps } from '../model/types';
 import type { Id } from '@/shared/lib/ids';
 
@@ -58,7 +58,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
         existing.interlocutor_is_online,
         existing.interlocutor_last_seen,
         null,
-        resolveMediaUrl(existing.avatar_url, DEFAULT_AVATAR)
+        mediaUrl(existing.avatar_url, DEFAULT_AVATAR)
       );
     } else {
       onChatOpen(newLocalId(), user.username, false, 'one-on-one');

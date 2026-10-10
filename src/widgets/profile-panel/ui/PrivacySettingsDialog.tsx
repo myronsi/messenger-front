@@ -9,7 +9,6 @@ import {
   BreadcrumbSeparator,
 } from '@/shared/ui/breadcrumb';
 import { PrivacyExceptionKey, PrivacySettings } from '@/features/profile';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import {
   Select,
   SelectContent,
@@ -37,7 +36,6 @@ interface PrivacySettingsPanelProps {
   onBack: () => void;
 }
 
-const getAvatarSrc = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
 const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, onBack }) => {
   const {
@@ -103,7 +101,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, o
             collapsedExceptionKeys={collapsedExceptionKeys} setCollapsedExceptionKeys={setCollapsedExceptionKeys}
             handleExceptionListChange={handleExceptionListChange} handleAddException={handleAddException}
             isUpdatingExceptions={isUpdatingExceptions} isLookingUpUser={isLookingUpUser}
-            translations={translations} getAvatarSrc={getAvatarSrc}
+            translations={translations}
           />
         )}
       </div>

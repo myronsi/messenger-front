@@ -1,6 +1,7 @@
 import React from 'react';
 import { Message } from '../model/types';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { fileKindOf } from '../model/fileKind';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import MediaImg from '@/shared/ui/MediaImg';
@@ -22,15 +23,15 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
       const fileName = message.content.file_name || '';
       const config = getFileTypeConfig(fileName);
 
-      if (message.content.file_type === 'voice') {
+      const kind = fileKindOf(message.content);
+      if (kind === 'voice') {
         return { text: translations.voiceMessage };
       }
-      
-      // Check if it's an image
-      if (message.content.file_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
+
+      if (message.content.file_url && kind === 'image') {
         return {
-          text: 'Image',
-          imageUrl: resolveMediaUrl(message.content.thumbnail_url || message.content.file_url),
+          text: translations.image,
+          imageUrl: mediaUrl(message.content.thumbnail_url || message.content.file_url),
           isImage: true
         };
       }

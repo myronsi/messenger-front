@@ -56,7 +56,7 @@ export const useGroupChatScreen = ({
   });
   const menus = useGroupMessageMenus({ isOwnMessage, chatId, messageJumpRequest, ensureMessageLoaded: history.ensureMessageLoaded });
 
-  const { getAvatarSrc, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({
+  const { currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({
     chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
     setCurrentUserId,
   });
@@ -96,7 +96,7 @@ export const useGroupChatScreen = ({
 
   return {
     chatId, username, token, translations, onBack, firstUnreadMessageId,
-    currentUserId, groupDetails, currentGroupAvatar, currentGroupName, getAvatarSrc,
+    currentUserId, groupDetails, currentGroupAvatar, currentGroupName,
     messages, chatRealtime: transport.realtime, isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime,
     loadOlderMessages: history.loadOlderMessages,
     hasMoreMessages: history.hasMoreMessages,

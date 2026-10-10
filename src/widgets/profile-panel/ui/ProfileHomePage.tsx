@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import React from 'react';
 import { AtSign, CalendarDays, Camera, ChevronDown, Globe, Image, Loader2, LogOut, Shield, Trash, Users } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -17,7 +18,6 @@ interface ProfileHomePageProps {
   blockUsername: string; setBlockUsername: (username: string) => void; handleBlockUser: (usernameOverride?: string) => void;
   isBlockingUser: boolean; isBlockDmContactsCollapsed: boolean; setIsBlockDmContactsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
   blockDmContactSuggestions: Array<{ username: string; display_name?: string | null; avatar_url?: string | null }>;
-  getAvatarUrl: (avatarUrl?: string | null) => string;
   blockedUsers: Array<Pick<User, 'username' | 'display_name'>>; handleUnblockUser: (username: string) => void;
   isUnblockingUser: boolean; handleLogout: () => void; isLoggingOut: boolean;
   handleDeleteAccount: () => void; isDeletingAccount: boolean;
@@ -29,7 +29,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
     userData, avatarUrl, hasCustomAvatar, displayName, bio, language, setLanguage, setIsAvatarViewerOpen,
     setIsGroupModalOpen, setAvatarFile, setAvatarCropUrl, settingsRows, futureSettingsRows, blockUsername,
     setBlockUsername, handleBlockUser, isBlockingUser, isBlockDmContactsCollapsed,
-    setIsBlockDmContactsCollapsed, blockDmContactSuggestions, getAvatarUrl, blockedUsers, handleUnblockUser,
+    setIsBlockDmContactsCollapsed, blockDmContactSuggestions, blockedUsers, handleUnblockUser,
     isUnblockingUser, handleLogout, isLoggingOut, handleDeleteAccount, isDeletingAccount,
   } = props;
   return (
@@ -229,7 +229,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
                             onClick={() => handleBlockUser(contact.username)}
                             className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-white"
                           >
-                            <MediaImg src={getAvatarUrl(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
+                            <MediaImg src={mediaUrl(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-medium text-gray-900">{contact.display_name || contact.username}</span>
                               <span className="block truncate text-xs text-gray-500">@{contact.username}</span>

@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import React, { forwardRef } from 'react';
 import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
@@ -47,11 +48,9 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     setPendingBlockUsername, isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed, blockedUsers,
     blockDmContactSuggestions, requestInbox, pendingRequestCount, isApprovingRequest, isRejectingRequest,
     isBlockingUser, isUnblockingUser, handleBlockUser, handleUnblockUser, handleApproveRequest,
-    handleRejectRequest, getProfileAvatarUrl, getProfileMediaUrl,
+    handleRejectRequest,
   } = panelData;
   const handleBlockUserConfirmed = panelData.confirmBlockUser;
-  const getAvatarUrl = getProfileAvatarUrl;
-  const getMediaUrl = getProfileMediaUrl;
 
   if (isLoadingUser) {
     return (
@@ -80,7 +79,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     );
   }
 
-  const avatarUrl = getAvatarUrl(userData?.avatar_url);
+  const avatarUrl = mediaUrl(userData?.avatar_url);
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
   const settingsRows = [
     ...(pendingRequestCount > 0 ? [{
@@ -156,14 +155,14 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
               blockUsername={blockUsername} setBlockUsername={setBlockUsername} handleBlockUser={handleBlockUser}
               isBlockingUser={isBlockingUser} isBlockDmContactsCollapsed={isBlockDmContactsCollapsed}
               setIsBlockDmContactsCollapsed={setIsBlockDmContactsCollapsed} blockDmContactSuggestions={blockDmContactSuggestions}
-              getAvatarUrl={getAvatarUrl} blockedUsers={blockedUsers} handleUnblockUser={handleUnblockUser}
+              blockedUsers={blockedUsers} handleUnblockUser={handleUnblockUser}
               isUnblockingUser={isUnblockingUser} handleLogout={handleLogout} isLoggingOut={isLoggingOut}
               handleDeleteAccount={handleDeleteAccount} isDeletingAccount={isDeletingAccount}
             />
           </div>
 
           <div aria-hidden={activeProfilePage !== 'requests'} inert={activeProfilePage !== 'requests' ? true : undefined} className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${activeProfilePage === 'requests' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'}`}>
-            <ApprovalRequestsPage inbox={requestInbox} pendingCount={pendingRequestCount} isApproving={isApprovingRequest} isRejecting={isRejectingRequest} onApprove={handleApproveRequest} onReject={handleRejectRequest} onBack={() => setActiveProfilePage('profile')} getMediaUrl={getMediaUrl} />
+            <ApprovalRequestsPage inbox={requestInbox} pendingCount={pendingRequestCount} isApproving={isApprovingRequest} isRejecting={isRejectingRequest} onApprove={handleApproveRequest} onReject={handleRejectRequest} onBack={() => setActiveProfilePage('profile')} />
           </div>
 
           <div aria-hidden={activeProfilePage !== 'personal'} inert={activeProfilePage !== 'personal' ? true : undefined} className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${activeProfilePage === 'personal' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'}`}>

@@ -1,4 +1,5 @@
 import type { ChatLastMessage } from '@/entities/message';
+import { fileKindOf } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
 import type { Id } from '@/shared/lib/ids';
@@ -15,10 +16,9 @@ export function useChatFormatters(currentUserId?: Id) {
     );
 
     if (lastMessage.type === 'file' && typeof lastMessage.content !== 'string') {
-      const fileType = lastMessage.content.file_type;
-      const fileName = lastMessage.content.file_name || '';
-      if (fileType === 'voice' || /\.opus$/i.test(fileName)) return withEditedLabel(translations.voiceMessagePreview);
-      if (fileType === 'image' || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) return withEditedLabel(translations.photoMessage);
+      const kind = fileKindOf(lastMessage.content);
+      if (kind === 'voice') return withEditedLabel(translations.voiceMessagePreview);
+      if (kind === 'image') return withEditedLabel(translations.photoMessage);
       return withEditedLabel(translations.fileMessagePreview);
     }
     if (lastMessage.delivery_error) return lastMessage.delivery_error;

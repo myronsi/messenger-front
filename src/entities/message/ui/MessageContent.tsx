@@ -1,7 +1,7 @@
-import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
 import { Message } from '../model/types';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { fileKindOf } from '../model/fileKind';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
@@ -12,8 +12,7 @@ import type { Id } from '@/shared/lib/ids';
 interface MessageContentProps {
   message: Message;
   isMobile: boolean;
-  translations: Translations;
-  getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
+  getFileTypeConfig: (fileName: string) => FileTypeConfig;
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
@@ -23,7 +22,6 @@ interface MessageContentProps {
 const MessageContent: React.FC<MessageContentProps> = ({
   message,
   isMobile,
-  translations,
   getFileTypeConfig,
   isOwnMessage,
   renderMessageContent,
@@ -38,7 +36,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   const fileName = message.content.file_name || '';
   const fileUrl = message.content.file_url || '';
   // Absolute for the API's attachments (loaded with the token by MediaImg/MediaAudio/mediaFetch).
-  const fullFileUrl = resolveMediaUrl(fileUrl, fileUrl);
+  const fullFileUrl = mediaUrl(fileUrl, fileUrl);
   const config = getFileTypeConfig(fileName);
   const audioMetadata = message.content.audio_metadata;
   const caption = message.content.caption?.trim();
@@ -63,12 +61,13 @@ const MessageContent: React.FC<MessageContentProps> = ({
     />
   );
 
-  if (message.content.file_type === 'voice') return withCaption(audioPlayer);
-  if (config?.isSpecial && config.replyText === translations.image) {
+  const kind = fileKindOf(message.content);
+  if (kind === 'voice') return withCaption(audioPlayer);
+  if (kind === 'image') {
     return withCaption(
       <ImageMessage
         fileUrl={fullFileUrl}
-        thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
+        thumbnailUrl={message.content.thumbnail_url ? mediaUrl(message.content.thumbnail_url) : undefined}
         width={message.content.image_width}
         height={message.content.image_height}
         fileName={fileName}
@@ -77,9 +76,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
       true
     );
   }
-  if (config?.isSpecial && config.replyText === translations.voiceMessage) return withCaption(audioPlayer);
-  if (config) return withCaption(<FileMessage config={config} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile} />);
-  return null;
+  return withCaption(<FileMessage config={config} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile} />);
 };
 
 export default MessageContent;

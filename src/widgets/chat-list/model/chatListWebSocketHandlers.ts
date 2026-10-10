@@ -4,7 +4,7 @@ import { toChatLastMessage } from '@/entities/message';
 import { toDirectChatItem } from '@/entities/chat';
 import type { ServerEvent } from '@/shared/api/realtime';
 import { usernameOf } from '@/shared/lib/userDirectory';
-import { getMediaSrc } from './types';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 import type { Id } from '@/shared/lib/ids';
 import { compareIds, maxId } from '@/shared/lib/ids';
@@ -46,7 +46,7 @@ export function handleChatListWebSocketMessage(event: ServerEvent, ctx: ChatList
         const item = toDirectChatItem(chat);
         onChatOpenRef.current(
           chat.id, item.interlocutor_name, false, 'one-on-one', item.interlocutor_display_name,
-          item.interlocutor_is_online, item.interlocutor_last_seen, null, getMediaSrc(item.avatar_url),
+          item.interlocutor_is_online, item.interlocutor_last_seen, null, mediaUrl(item.avatar_url),
         );
       }
       refetchRef.current();

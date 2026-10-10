@@ -1,6 +1,4 @@
 import { Chat, ChatLastMessage } from '@/entities/message';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { Id } from '@/shared/lib/ids';
 
@@ -9,7 +7,6 @@ import type { Id } from '@/shared/lib/ids';
 export type Translations = ReturnType<typeof useLanguage>['translations'];
 
 
-export const getMediaSrc = (path?: string | null, fallback: string = DEFAULT_AVATAR) => resolveMediaUrl(path, fallback);
 
 export interface ChatsListComponentProps {
   username: string;

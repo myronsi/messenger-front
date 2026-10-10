@@ -21,6 +21,7 @@ export const toFileContent = (attachment: ApiAttachment, caption?: string | null
   file_name: attachment.filename,
   file_type: attachment.kind === 'voice' ? 'voice' : attachment.content_type,
   file_size: attachment.size,
+  kind: attachment.kind,
   ...(caption?.trim() ? { caption: caption.trim() } : {}),
   ...(attachment.width ? { image_width: attachment.width } : {}),
   ...(attachment.height ? { image_height: attachment.height } : {}),
