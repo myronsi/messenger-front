@@ -7,7 +7,8 @@ import { useGetGroupDetailsQuery } from '@/entities/chat';
 import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import type { RawGroupDetails } from './groupChatTypes';
 import { useAppDispatch } from '@/shared/hooks/redux';
-import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
+import { permissionsForRole } from './groupChatUtils';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
 interface Args {
@@ -63,7 +64,7 @@ export const useGroupDetails = ({
   }, [groupName, username]);
 
   const currentGroupName = groupDetails?.name || groupForm.name || groupName;
-  const currentGroupAvatar = getAvatarSrc(groupDetails?.avatar_url || DEFAULT_GROUP_AVATAR);
+  const currentGroupAvatar = mediaUrl(groupDetails?.avatar_url || DEFAULT_GROUP_AVATAR);
 
   const applyGroupDetails = useCallback((rawDetails: RawGroupDetails, syncCache = true) => {
     const data = normalizeGroupDetails(rawDetails);
@@ -124,5 +125,5 @@ export const useGroupDetails = ({
     fetchCurrentUser();
   }, [token, setCurrentUserId]);
 
-  return { getAvatarSrc, normalizeGroupDetails, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails };
+  return { normalizeGroupDetails, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails };
 };

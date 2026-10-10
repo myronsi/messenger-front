@@ -99,7 +99,6 @@ export interface GroupChatViewModel {
   setParticipantInput: Setter<string>;
   isSavingGroup: boolean;
   groupAvatarInputRef: React.RefObject<HTMLInputElement | null>;
-  getAvatarSrc: (avatarUrl?: string | null) => string;
   handleGroupAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
   handleSaveGroup: () => void | Promise<void>;
   handleAddParticipant: (usernameOverride?: string) => void | Promise<void>;

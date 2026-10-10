@@ -1,5 +1,4 @@
 import type { GroupRole } from './GroupProfileTypes';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 
 
 export const permissionsForRole = (role?: GroupRole | null) => ({
@@ -12,4 +11,3 @@ export const permissionsForRole = (role?: GroupRole | null) => ({
 });
 
 
-export const getAvatarSrc = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);

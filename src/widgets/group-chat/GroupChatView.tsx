@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import React, { useState } from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
 import type { Message } from '@/entities/message';
@@ -30,7 +31,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      handleVoiceMessage, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage,
      reactionMenuRef, setReactionMenu, renderGroupProfile, isGroupProfileClosing, requestCloseGroupProfile,
      groupForm, setGroupForm, participantInput, setParticipantInput, isSavingGroup, groupAvatarInputRef,
-     getAvatarSrc, handleGroupAvatarUpload, handleSaveGroup, handleAddParticipant, handleRemoveParticipant,
+     handleGroupAvatarUpload, handleSaveGroup, handleAddParticipant, handleRemoveParticipant,
      handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm,
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
@@ -195,7 +196,6 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         isSavingGroup={isSavingGroup}
         currentUsername={username}
         groupAvatarInputRef={groupAvatarInputRef}
-        getAvatarSrc={getAvatarSrc}
         onAvatarUpload={handleGroupAvatarUpload}
         onSaveGroup={handleSaveGroup}
         onAddParticipant={handleAddParticipant}
@@ -225,7 +225,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
                 <div className="space-y-2">
                   {readStatusMessage?.read_by.map((read) => (
                     <button key={read.user_id} type="button" onClick={() => read.username && handleOpenUserProfile(read.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
-                      <MediaImg src={getAvatarSrc(read.avatar_url)} alt={read.display_name || read.username || ''} className="h-8 w-8 rounded-full object-cover" />
+                      <MediaImg src={mediaUrl(read.avatar_url)} alt={read.display_name || read.username || ''} className="h-8 w-8 rounded-full object-cover" />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{read.display_name || read.username}</div>
                         {read.username && <div className="truncate text-xs text-muted-foreground">@{read.username}</div>}
@@ -243,7 +243,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
                 <div className="space-y-2">
                   {unreadParticipants.map((participant) => (
                     <button key={participant.id} type="button" onClick={() => handleOpenUserProfile(participant.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
-                      <MediaImg src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-8 w-8 rounded-full object-cover" />
+                      <MediaImg src={mediaUrl(participant.avatar_url)} alt={participant.username} className="h-8 w-8 rounded-full object-cover" />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{participant.display_name || participant.username}</div>
                         <div className="truncate text-xs text-muted-foreground">@{participant.username}</div>
@@ -267,7 +267,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           <div className="max-h-[50vh] space-y-2 overflow-y-auto">
             {reactionDetails?.reactions.map((reaction) => (
               <button key={`${reaction.user_id}-${reaction.reaction}`} type="button" onClick={() => reaction.username && handleOpenUserProfile(reaction.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
-                <MediaImg src={getAvatarSrc(reaction.avatar_url)} alt={reaction.display_name || reaction.username || ''} className="h-8 w-8 rounded-full object-cover" />
+                <MediaImg src={mediaUrl(reaction.avatar_url)} alt={reaction.display_name || reaction.username || ''} className="h-8 w-8 rounded-full object-cover" />
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{reaction.display_name || reaction.username}</div>
                   {reaction.username && <div className="truncate text-xs text-muted-foreground">@{reaction.username}</div>}

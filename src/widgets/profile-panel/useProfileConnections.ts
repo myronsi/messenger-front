@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import type { ProfileModalState } from './useProfileAccountActions';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
@@ -120,7 +120,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
     }
   };
 
-  const getMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => resolveMediaUrl(path, fallback);
+  const getMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => mediaUrl(path, fallback);
 
   return {
     blockedUsers, requestInbox, pendingRequestCount: requestInbox?.unread_count || 0,

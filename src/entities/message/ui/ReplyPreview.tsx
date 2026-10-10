@@ -1,7 +1,7 @@
 import React from 'react';
 import { Message } from '../model/types';
 import { fileKindOf } from '../model/fileKind';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import MediaImg from '@/shared/ui/MediaImg';
@@ -31,7 +31,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
       if (message.content.file_url && kind === 'image') {
         return {
           text: translations.image,
-          imageUrl: resolveMediaUrl(message.content.thumbnail_url || message.content.file_url),
+          imageUrl: mediaUrl(message.content.thumbnail_url || message.content.file_url),
           isImage: true
         };
       }

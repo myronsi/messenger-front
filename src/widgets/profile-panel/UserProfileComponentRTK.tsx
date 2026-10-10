@@ -2,7 +2,7 @@ import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
 import { useGetUserByUsernameQuery, useUpdateContactDisplayNameMutation, useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
@@ -114,7 +114,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     setIsEditingContactName(false);
   }, [userData?.contact_display_name, username]);
 
-  const getAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
   const handleBlockToggle = async () => {
     if (isCurrentUser || isBlockActionLoading) return;
@@ -169,7 +168,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     return <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose} />;
   }
 
-  const avatarUrl = getAvatarUrl(userData.avatar_url);
+  const avatarUrl = mediaUrl(userData.avatar_url);
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
   const displayName = profileDisplayName;
   const bio = userData.bio?.trim();

@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import React from 'react';
 import { ChevronDown, Crown, MoreVertical, Trash2, UserPlus } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -23,7 +24,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const {
-    currentUsername, getAvatarSrc, onOpenUserProfile, onRoleChange, onTransferOwner, onRemoveParticipant,
+    currentUsername, onOpenUserProfile, onRoleChange, onTransferOwner, onRemoveParticipant,
     participantInput, setParticipantInput, onAddParticipant,
   } = model;
   const renderParticipant = (participant: GroupParticipant) => {
@@ -32,7 +33,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
     return (
       <div key={participant.id} className="flex items-center gap-3 border-b border-gray-200 px-3 py-3 last:border-b-0">
         <button type="button" onClick={() => onOpenUserProfile(participant.username)} className="shrink-0 rounded-full">
-          <MediaImg src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-10 w-10 rounded-full object-cover" />
+          <MediaImg src={mediaUrl(participant.avatar_url)} alt={participant.username} className="h-10 w-10 rounded-full object-cover" />
         </button>
         <button type="button" onClick={() => onOpenUserProfile(participant.username)} className="min-w-0 flex-1 text-left">
           <div className="flex min-w-0 items-center gap-2">
@@ -110,7 +111,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
   const renderPendingInvite = (invite: GroupPendingInvite) => (
     <div key={`pending-${invite.request_id}`} className="flex items-center gap-3 border-b border-gray-200 bg-amber-50/50 px-3 py-3 last:border-b-0">
       <button type="button" onClick={() => onOpenUserProfile(invite.username)} className="shrink-0 rounded-full">
-        <MediaImg src={getAvatarSrc(invite.avatar_url)} alt={invite.username} className="h-10 w-10 rounded-full object-cover opacity-80" />
+        <MediaImg src={mediaUrl(invite.avatar_url)} alt={invite.username} className="h-10 w-10 rounded-full object-cover opacity-80" />
       </button>
       <button type="button" onClick={() => onOpenUserProfile(invite.username)} className="min-w-0 flex-1 text-left">
         <div className="truncate text-sm font-medium text-gray-900">{invite.display_name || invite.username}</div>
@@ -176,7 +177,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
                         onClick={() => onAddParticipant(contact.username)}
                         className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-white"
                       >
-                        <MediaImg src={getAvatarSrc(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
+                        <MediaImg src={mediaUrl(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium text-gray-900">{contact.display_name}</span>
                           <span className="block truncate text-xs text-gray-500">@{contact.username}</span>

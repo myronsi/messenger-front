@@ -1,7 +1,7 @@
 import React from 'react';
 import { Message } from '../model/types';
 import { fileKindOf } from '../model/fileKind';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
@@ -36,7 +36,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   const fileName = message.content.file_name || '';
   const fileUrl = message.content.file_url || '';
   // Absolute for the API's attachments (loaded with the token by MediaImg/MediaAudio/mediaFetch).
-  const fullFileUrl = resolveMediaUrl(fileUrl, fileUrl);
+  const fullFileUrl = mediaUrl(fileUrl, fileUrl);
   const config = getFileTypeConfig(fileName);
   const audioMetadata = message.content.audio_metadata;
   const caption = message.content.caption?.trim();
@@ -67,7 +67,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
     return withCaption(
       <ImageMessage
         fileUrl={fullFileUrl}
-        thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
+        thumbnailUrl={message.content.thumbnail_url ? mediaUrl(message.content.thumbnail_url) : undefined}
         width={message.content.image_width}
         height={message.content.image_height}
         fileName={fileName}

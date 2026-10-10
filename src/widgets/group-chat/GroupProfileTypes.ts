@@ -73,7 +73,6 @@ export interface GroupProfileDialogProps {
   isSavingGroup: boolean;
   currentUsername: string;
   groupAvatarInputRef: React.RefObject<HTMLInputElement | null>;
-  getAvatarSrc: (avatarUrl?: string | null) => string;
   onAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSaveGroup: () => void;
   onAddParticipant: (usernameOverride?: string) => void;

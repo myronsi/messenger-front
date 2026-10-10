@@ -2,14 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, X } from 'lucide-react';
 import { useGetUserAvatarHistoryQuery } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import MediaImg from '@/shared/ui/MediaImg';
 import { mediaFetch } from '@/shared/api/media';
 
-const getAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
-const isDefaultAvatar = (avatarUrl?: string | null) => getAvatarUrl(avatarUrl) === DEFAULT_AVATAR;
+const isDefaultAvatar = (avatarUrl?: string | null) => mediaUrl(avatarUrl) === DEFAULT_AVATAR;
 
 interface AvatarHistoryViewerProps {
   username: string;
@@ -35,7 +34,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
     const normalizedHistory = history
       .map((avatar) => ({
         ...avatar,
-        fullUrl: getAvatarUrl(avatar.avatar_url),
+        fullUrl: mediaUrl(avatar.avatar_url),
       }))
       .filter((avatar) => !isDefaultAvatar(avatar.avatar_url));
     const currentExists = normalizedHistory.some((avatar) => avatar.fullUrl === currentAvatarUrl);

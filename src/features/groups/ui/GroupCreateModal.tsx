@@ -1,7 +1,8 @@
 import React from 'react';
 import { Camera, Check, ChevronDown, ChevronLeft, Loader2, Search, UserPlus, X } from 'lucide-react';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
-import { useGroupCreateForm, getAvatarSrc, type GroupCreatePayload } from '../model/useGroupCreateForm';
+import { useGroupCreateForm, type GroupCreatePayload } from '../model/useGroupCreateForm';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import MediaImg from '@/shared/ui/MediaImg';
 
 
@@ -134,7 +135,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                             onClick={() => handleSelectUser(user)}
                             className="motion-list-item motion-press flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-background"
                           >
-                            <MediaImg src={getAvatarSrc(user.avatar_url)} alt={user.username} className="motion-avatar h-9 w-9 rounded-full object-cover" />
+                            <MediaImg src={mediaUrl(user.avatar_url)} alt={user.username} className="motion-avatar h-9 w-9 rounded-full object-cover" />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-medium">{user.display_name || user.username}</span>
                               <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
@@ -177,7 +178,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                           disabled={isDisabled}
                           className="motion-list-item motion-press flex w-full items-center gap-3 border-b border-border px-3 py-3 text-left last:border-b-0 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-55"
                         >
-                          <MediaImg src={getAvatarSrc(user.avatar_url)} alt={user.username} className="motion-avatar h-10 w-10 rounded-full object-cover" />
+                          <MediaImg src={mediaUrl(user.avatar_url)} alt={user.username} className="motion-avatar h-10 w-10 rounded-full object-cover" />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium">{user.display_name || user.username}</span>
                             <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
@@ -206,7 +207,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                   <div className="space-y-2">
                     {selectedUsers.map((user) => (
                       <div key={user.id} className="motion-list-item flex items-center gap-3 rounded-md border border-border px-3 py-2">
-                        <MediaImg src={getAvatarSrc(user.avatar_url)} alt={user.username} className="motion-avatar h-9 w-9 rounded-full object-cover" />
+                        <MediaImg src={mediaUrl(user.avatar_url)} alt={user.username} className="motion-avatar h-9 w-9 rounded-full object-cover" />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium">{user.display_name || user.username}</div>
                           <div className="truncate text-xs text-muted-foreground">@{user.username}</div>

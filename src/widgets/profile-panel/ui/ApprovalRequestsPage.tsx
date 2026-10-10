@@ -1,3 +1,4 @@
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import React from 'react';
 import { Check, Inbox, MessageSquare, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -15,11 +16,10 @@ interface ApprovalRequestsPageProps {
   onApprove: (request: ApprovalRequest) => void;
   onReject: (requestId: Id) => void;
   onBack: () => void;
-  getMediaUrl: (path?: string | null, fallback?: string) => string;
 }
 
 const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
-  inbox, pendingCount, isApproving, isRejecting, onApprove, onReject, onBack, getMediaUrl,
+  inbox, pendingCount, isApproving, isRejecting, onApprove, onReject, onBack,
 }) => {
   const { translations } = useLanguage();
   return (
@@ -52,8 +52,8 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
                 ? `@${requester?.username || ''}`
                 : `${translations.from || 'From'} ${requester?.display_name || requester?.username || translations.deletedUser || 'Deleted User'}`;
               const avatar = isDm
-                ? getMediaUrl(requester?.avatar_url)
-                : getMediaUrl(request.group?.avatar_url, DEFAULT_GROUP_AVATAR);
+                ? mediaUrl(requester?.avatar_url)
+                : mediaUrl(request.group?.avatar_url, DEFAULT_GROUP_AVATAR);
               return (
                 <div key={request.id} className="rounded-lg border border-border bg-white p-3 shadow-sm">
                   <div className="flex gap-3">

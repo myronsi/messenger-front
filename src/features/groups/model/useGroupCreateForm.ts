@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useSearchUsersQuery } from '@/entities/user';
 import type { User } from '@/entities/user';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 export interface GroupCreatePayload {
@@ -19,7 +17,6 @@ interface UseGroupCreateFormOptions {
   onCreate: (payload: GroupCreatePayload) => Promise<void> | void;
 }
 
-export const getAvatarSrc = (avatarUrl?: string | null, fallback = DEFAULT_AVATAR) => resolveMediaUrl(avatarUrl, fallback);
 
 export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreateFormOptions) => {
   const { translations } = useLanguage();

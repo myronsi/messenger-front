@@ -5,7 +5,7 @@ import type { User } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { mediaUrl } from '@/shared/lib/mediaUrl';
 import { formatDateOnly, formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
 import HighlightedText from '@/shared/ui/HighlightedText';
 import MediaImg from '@/shared/ui/MediaImg';
@@ -118,7 +118,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ translations, currentUserna
                   onMouseEnter={() => search.setActiveIndex(index)}
                   className={`${rowClass(active)} disabled:cursor-not-allowed disabled:opacity-50`}
                 >
-                  <MediaImg src={resolveMediaUrl(item.user.avatar_url, DEFAULT_AVATAR)} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                  <MediaImg src={mediaUrl(item.user.avatar_url, DEFAULT_AVATAR)} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{item.user.display_name || item.user.username}</span>
                     <span className="block truncate text-sm text-muted-foreground">@{item.user.username}</span>
@@ -143,7 +143,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ translations, currentUserna
                 onMouseEnter={() => search.setActiveIndex(index)}
                 className={`${rowClass(active)} items-start`}
               >
-                <MediaImg src={resolveMediaUrl(hit.avatarUrl, DEFAULT_AVATAR)} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                <MediaImg src={mediaUrl(hit.avatarUrl, DEFAULT_AVATAR)} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="truncate font-medium">{chatTitle(hit.chatId) || hit.senderName}</span>
