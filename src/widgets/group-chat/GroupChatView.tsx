@@ -9,6 +9,7 @@ import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog } from '@/featur
 import GroupProfileDialog from './GroupProfileDialog';
 
 import type { GroupChatViewModel } from './groupChatTypes';
+import { isServerId } from '@/shared/lib/ids';
 
 const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
   const renderMessageContent = (message: Message) => message.type === 'message' && typeof message.content === 'string'
@@ -120,7 +121,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         />
       </div>
 
-      {contextMenu && currentUserId > 0 && (
+      {contextMenu && isServerId(currentUserId) && (
         <ContextMenu
           ref={contextMenuRef}
           contextMenu={contextMenu}
@@ -144,7 +145,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         />
       )}
 
-      {reactionMenu && currentUserId > 0 && (
+      {reactionMenu && isServerId(currentUserId) && (
         <ReactionMenu
           ref={reactionMenuRef}
           reactionMenu={reactionMenu}

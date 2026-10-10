@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import type { Id } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const OPUS_AUDIO_BITS_PER_SECOND = 48_000;
@@ -19,13 +20,13 @@ interface RecordingSession {
 }
 
 interface VoiceRecorderOptions {
-  chatId: number;
+  chatId: Id;
   isDisabled: boolean;
   disableVoice: boolean;
-  onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => number | null;
-  onVoiceUploadProgress?: (messageId: number, percent: number) => void;
-  onVoiceUploadError?: (messageId: number, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: number) => void;
+  onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => Id | null;
+  onVoiceUploadProgress?: (messageId: Id, percent: number) => void;
+  onVoiceUploadError?: (messageId: Id, errorMessage?: string) => void;
+  onVoiceUploadComplete?: (messageId: Id) => void;
 }
 
 const getSupportedOpusMimeType = () => {

@@ -2,10 +2,11 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import { MessageSquare } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import ChatListItem from './ChatListItem';
+import type { Id } from '@/shared/lib/ids';
 
 interface ChatListBodyProps {
   chats: Chat[];
-  activeChatId?: number;
+  activeChatId?: Id;
   translations: Translations;
   getLastMessagePreview: (lastMessage?: ChatLastMessage | null) => string;
   getLastMessageTime: (lastMessage?: ChatLastMessage | null) => string;

@@ -1,3 +1,4 @@
+import type { Id } from '@/shared/lib/ids';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { Message } from '@/entities/message';
 
@@ -10,7 +11,7 @@ export type OutgoingPayload = Record<string, unknown>;
 export interface ChatTransport {
   wsRef: MutableRefObject<WebSocket | null>;
   messageQueueRef: MutableRefObject<OutgoingPayload[]>;
-  pendingMessageIdsRef: MutableRefObject<number[]>;
+  pendingMessageIdsRef: MutableRefObject<Id[]>;
   connectionRetryKey: number;
   requestReconnect: () => void;
 }

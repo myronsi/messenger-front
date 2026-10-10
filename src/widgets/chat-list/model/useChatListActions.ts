@@ -4,18 +4,19 @@ import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import type { ChatContextMenuState, ChatListModal, ChatOverrideMap, ChatsListComponentProps } from './types';
+import type { Id } from '@/shared/lib/ids';
 
 interface UseChatListActionsParams {
   username: string;
-  activeChatId?: number;
+  activeChatId?: Id;
   onChatOpen: ChatsListComponentProps['onChatOpen'];
   createChat: (args: { user1: string; user2: string }) => { unwrap: () => Promise<unknown> };
-  setChatPinned: (args: { chatId: number; pinned: boolean }) => { unwrap: () => Promise<unknown> };
-  markChatRead: (args: { chatId: number; markAll: boolean }) => {
-    unwrap: () => Promise<{ unread_count: number; first_unread_message_id: number | null }>;
+  setChatPinned: (args: { chatId: Id; pinned: boolean }) => { unwrap: () => Promise<unknown> };
+  markChatRead: (args: { chatId: Id; markAll: boolean }) => {
+    unwrap: () => Promise<{ unread_count: number; first_unread_message_id: Id | null }>;
   };
   refetch: () => void;
-  chatsByIdRef: React.MutableRefObject<Record<number, Chat>>;
+  chatsByIdRef: React.MutableRefObject<Record<Id, Chat>>;
   setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>>;
   setChatContextMenu: Dispatch<SetStateAction<ChatContextMenuState | null>>;
   setModal: (modal: ChatListModal | null) => void;
@@ -110,7 +111,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     });
   };
 
-  const handleTogglePinnedChat = async (chatId: number) => {
+  const handleTogglePinnedChat = async (chatId: Id) => {
     const chat = chatsByIdRef.current[chatId];
     const nextPinned = !chat?.is_pinned;
     setChatContextMenu(null);
@@ -141,7 +142,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     }
   };
 
-  const handleMarkChatRead = async (chatId: number) => {
+  const handleMarkChatRead = async (chatId: Id) => {
     const chat = chatsByIdRef.current[chatId];
     const previousUnreadCount = chat?.unread_count ?? 0;
     const previousFirstUnreadId = chat?.first_unread_message_id ?? null;

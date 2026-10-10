@@ -1,8 +1,9 @@
 import type { ChatLastMessage } from '@/entities/message';
 import type { User } from '@/entities/user';
+import type { Id } from '@/shared/lib/ids';
 
 export interface ApiChat {
-  id: number;
+  id: Id;
   name?: string;
   type: 'private' | 'group';
   participants: User[];
@@ -10,7 +11,7 @@ export interface ApiChat {
   unreadCount?: number;
   last_message?: ChatLastMessage | null;
   unread_count?: number;
-  first_unread_message_id?: number | null;
+  first_unread_message_id?: Id | null;
   avatar?: string;
   description?: string;
   createdAt: string;
@@ -18,27 +19,27 @@ export interface ApiChat {
 }
 
 export interface ApiMessage {
-  id: number;
-  sender_id?: number;
+  id: Id;
+  sender_id?: Id;
   content?: string;
-  senderId: number;
-  chatId: number;
+  senderId: Id;
+  chatId: Id;
   timestamp: string;
   type: 'text' | 'image' | 'audio' | 'file';
   fileName?: string;
   filePath?: string;
   fileSize?: number;
   isEdited?: boolean;
-  replyTo?: number;
+  replyTo?: Id;
   reactions?: Array<{
-    userId: number;
+    userId: Id;
     emoji: string;
   }>;
 }
 
 export interface OneOnOneChatResponse {
   chats: Array<{
-    id: number;
+    id: Id;
     interlocutor_name: string;
     interlocutor_display_name?: string;
     interlocutor_is_online?: boolean;
@@ -47,35 +48,35 @@ export interface OneOnOneChatResponse {
     interlocutor_deleted?: boolean;
     last_message?: ChatLastMessage | null;
     unread_count?: number;
-    first_unread_message_id?: number | null;
+    first_unread_message_id?: Id | null;
     is_pinned?: boolean;
     pending_approval_request?: boolean;
-    pending_request_id?: number;
+    pending_request_id?: Id;
   }>;
 }
 
 export interface GroupChatResponse {
   groups: Array<{
-    chat_id: number;
+    chat_id: Id;
     name: string;
     description?: string;
     avatar_url?: string;
     last_message?: ChatLastMessage | null;
     unread_count?: number;
-    first_unread_message_id?: number | null;
+    first_unread_message_id?: Id | null;
     is_pinned?: boolean;
   }>;
 }
 
 export interface ApprovalRequestGroup {
-  chat_id: number;
+  chat_id: Id;
   name: string;
   description?: string;
   avatar_url?: string;
 }
 
 export interface ApprovalRequest {
-  id: number;
+  id: Id;
   type: 'direct_message' | 'group_invite';
   status: 'pending' | 'approved' | 'rejected';
   message_text?: string;
@@ -91,36 +92,36 @@ export interface ApprovalRequestInboxResponse {
 }
 
 export interface CreateChatResponse {
-  chat_id?: number;
+  chat_id?: Id;
   message: string;
   approval_required?: boolean;
   already_pending?: boolean;
-  request_id?: number;
+  request_id?: Id;
 }
 
 export interface MarkChatReadRequest {
-  chatId: number;
-  messageIds?: number[];
+  chatId: Id;
+  messageIds?: Id[];
   markAll?: boolean;
 }
 
 export interface MarkChatReadResponse {
-  chat_id: number;
+  chat_id: Id;
   unread_count: number;
-  first_unread_message_id: number | null;
-  read_message_ids: number[];
+  first_unread_message_id: Id | null;
+  read_message_ids: Id[];
   read_at: string;
 }
 
 export type GroupRole = 'owner' | 'admin' | 'moderator' | 'member';
 
 export interface RawGroupParticipant {
-  id: number; username: string; display_name?: string; avatar_url?: string; role?: GroupRole;
+  id: Id; username: string; display_name?: string; avatar_url?: string; role?: GroupRole;
   is_owner?: boolean; is_admin?: boolean;
 }
-export interface RawGroupPendingInvite { request_id: number; id: number; username: string; display_name?: string; avatar_url?: string; }
+export interface RawGroupPendingInvite { request_id: Id; id: Id; username: string; display_name?: string; avatar_url?: string; }
 export interface RawGroupDetails {
-  chat_id: number; name?: string; description?: string; avatar_url?: string; owner_id?: number;
-  owner_username?: string; admin_id?: number; admin_username?: string; current_user_role?: GroupRole;
+  chat_id: Id; name?: string; description?: string; avatar_url?: string; owner_id?: Id;
+  owner_username?: string; admin_id?: Id; admin_username?: string; current_user_role?: GroupRole;
   participants?: RawGroupParticipant[]; pending_invites?: RawGroupPendingInvite[];
 }

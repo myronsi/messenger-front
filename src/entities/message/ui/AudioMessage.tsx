@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform } from '../model/audioMessageHelpers';
+import type { Id } from '@/shared/lib/ids';
 
 interface AudioMessageProps {
   fileUrl: string;
-  messageId: number;
+  messageId: Id;
   duration?: number;
   waveform?: number[];
   isPlaying: boolean;
-  setPlayingMessageId: (id: number | null) => void;
+  setPlayingMessageId: (id: Id | null) => void;
 }
 
 const isUsableDuration = (value: number | undefined): value is number => !!value && Number.isFinite(value) && value > 0;

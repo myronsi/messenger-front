@@ -3,10 +3,11 @@ import type { GroupDetails, GroupProfileConfirmState, GroupRole } from './GroupP
 import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
 import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
+import type { Id } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface Args {
-  chatId: number; token: string; groupForm: { name: string; description: string };
+  chatId: Id; token: string; groupForm: { name: string; description: string };
   setModal: React.Dispatch<React.SetStateAction<ModalState | null>>; translations: GroupTranslations;
   setIsSavingGroup: React.Dispatch<React.SetStateAction<boolean>>;
   applyGroupDetails: (details: RawGroupDetails) => void; participantInput: string;

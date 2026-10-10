@@ -1,6 +1,7 @@
 import type { MessageHistoryResponse } from '@/entities/message';
 import { reconnectDelay } from '@/shared/api/reconnect';
 import { authFetch } from '@/shared/auth/session';
+import type { Id } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const ATTEMPTS = 3;
@@ -8,8 +9,8 @@ const ATTEMPTS = 3;
 // Fetches the page after `afterId`, retrying a failed request with backoff.
 // Returns null when every attempt failed or `isCurrent()` turned false (the user left the chat).
 export const fetchMissedMessages = async (
-  chatId: number,
-  afterId: number,
+  chatId: Id,
+  afterId: Id,
   limit: number,
   isCurrent: () => boolean,
 ): Promise<MessageHistoryResponse | null> => {

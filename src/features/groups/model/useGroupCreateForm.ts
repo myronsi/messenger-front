@@ -63,7 +63,7 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
     return (dmChatsData?.chats || [])
       .filter((chat) => !chat.interlocutor_deleted && !!chat.interlocutor_name)
       .map((chat) => ({
-        id: -Math.abs(chat.id || 0),
+        id: `dm-${chat.id}`,
         username: chat.interlocutor_name,
         display_name: chat.interlocutor_display_name || chat.interlocutor_name,
         avatar_url: chat.avatar_url,

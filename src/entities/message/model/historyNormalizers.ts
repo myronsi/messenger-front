@@ -1,5 +1,6 @@
 import type { Message } from './types';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { compareIds, isLocalId, isServerId, type Id } from '@/shared/lib/ids';
 export type { MessageHistoryResponse } from './history';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -38,7 +39,7 @@ export type RawHistoryMessage = Omit<Message, 'type' | 'content' | 'reactions' |
   content: unknown;
   reactions?: unknown;
   read_by?: unknown;
-  reply_to?: number | null;
+  reply_to?: Id | null;
   avatar_url?: unknown;
 };
 
@@ -77,41 +78,41 @@ export const appendUniqueMessages = (currentMessages: Message[], newerMessages: 
     ...currentMessages,
     ...newerMessages.filter((message) => !existingIds.has(message.id)),
   ];
-  const confirmed = merged.filter((message) => message.id > 0);
-  const isOrdered = confirmed.every((message, index) => index === 0 || confirmed[index - 1].id < message.id);
+  const confirmed = merged.filter((message) => isServerId(message.id));
+  const isOrdered = confirmed.every((message, index) => index === 0 || compareIds(confirmed[index - 1].id, message.id) < 0);
   if (isOrdered) return merged;
-  return [...confirmed.sort((a, b) => a.id - b.id), ...merged.filter((message) => message.id <= 0)];
+  return [...confirmed.sort((a, b) => compareIds(a.id, b.id)), ...merged.filter((message) => isLocalId(message.id))];
 };
 
-// Drops the newest confirmed messages beyond `limit`; unsent (negative id) messages are kept.
+// Drops the newest confirmed messages beyond `limit`; unsent (local id) messages are kept.
 export const trimNewestMessages = (messages: Message[], limit: number) => {
-  const confirmedCount = messages.filter((message) => message.id > 0).length;
+  const confirmedCount = messages.filter((message) => isServerId(message.id)).length;
   if (confirmedCount <= limit) return null;
   let toDrop = confirmedCount - limit;
   const kept: Message[] = [];
   for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (toDrop > 0 && messages[index].id > 0) toDrop -= 1;
+    if (toDrop > 0 && isServerId(messages[index].id)) toDrop -= 1;
     else kept.push(messages[index]);
   }
   kept.reverse();
-  const newest = [...kept].reverse().find((message) => message.id > 0);
+  const newest = [...kept].reverse().find((message) => isServerId(message.id));
   return { messages: kept, newestId: newest?.id ?? null };
 };
 
 export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {
   if (freshMessages.length === 0) {
-    return currentMessages.filter((message) => message.id < 0);
+    return currentMessages.filter((message) => isLocalId(message.id));
   }
 
   const freshIds = new Set(freshMessages.map((message) => message.id));
   const currentById = new Map(currentMessages.map((message) => [message.id, message]));
   const oldestFreshId = freshMessages[0].id;
   const olderMessages = currentMessages.filter((message) => (
-    message.id > 0 &&
-    message.id < oldestFreshId &&
+    isServerId(message.id) &&
+    compareIds(message.id, oldestFreshId) < 0 &&
     !freshIds.has(message.id)
   ));
-  const pendingMessages = currentMessages.filter((message) => message.id < 0);
+  const pendingMessages = currentMessages.filter((message) => isLocalId(message.id));
   const mergedFreshMessages = freshMessages.map((message) => {
     const current = currentById.get(message.id);
     return current

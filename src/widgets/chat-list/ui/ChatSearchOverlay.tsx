@@ -1,3 +1,4 @@
+import { newLocalId } from '@/shared/lib/ids';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { X } from 'lucide-react';
 import type { OneOnOneChatResponse } from '@/entities/chat';
@@ -100,7 +101,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
             }
 
             // open a temporary (fake) chat — real chat will be created when the first message is sent
-            const tempId = -Date.now();
+            const tempId = newLocalId();
             onChatOpen(tempId, previewUsername, false, 'one-on-one');
             onClose();
           }}

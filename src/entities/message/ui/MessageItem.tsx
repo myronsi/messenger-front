@@ -12,6 +12,8 @@ import {
   AlertCircle, Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
   Clock7, Clock8, Clock9, Clock10, Clock11, Clock12,
 } from 'lucide-react';
+import type { Id } from '@/shared/lib/ids';
+import { isLocalId } from '@/shared/lib/ids';
 
 const PARTICLE_COUNT = 36;
 
@@ -68,7 +70,7 @@ interface MessageItemProps {
   prevMessage: Message | null;
   nextMessage: Message | null;
   replyMessage?: Message;
-  userId: number;
+  userId: Id;
   isGroup: boolean;
   isImage: boolean;
   isMobile: boolean;
@@ -78,7 +80,7 @@ interface MessageItemProps {
   interlocutorDeleted: boolean;
   isHighlighted: boolean;
   isContextHighlighted: boolean;
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   observerRef: MutableRefObject<IntersectionObserver | null>;
   firstUnreadMarkerRef: MutableRefObject<HTMLDivElement | null>;
   getFormattedDateLabel: (timestamp: string) => string;
@@ -87,12 +89,12 @@ interface MessageItemProps {
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
-  setPlayingMessageId: (id: number | null) => void;
+  setPlayingMessageId: (id: Id | null) => void;
   onMessageClick: (event: React.MouseEvent, message: Message) => void;
   onClick: (event: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
-  onReplyClick: (messageId: number) => void;
-  setTempHighlightedMessageId: (id: number | null) => void;
+  onReplyClick: (messageId: Id) => void;
+  setTempHighlightedMessageId: (id: Id | null) => void;
   wsRef: MutableRefObject<WebSocket | null>;
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
@@ -109,7 +111,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const isMine = isOwnMessage(message);
   const reducedMotion = prefersReducedMotion();
-  const isOutgoingSend = isMine && (message.id < 0 || !!message.client_temp_id);
+  const isOutgoingSend = isMine && (isLocalId(message.id) || !!message.client_temp_id);
   const isUploadingMessage = isMine && message.upload_status === 'uploading';
   const hasReactions = !!message.reactions?.length;
   const showDateSeparator = !prevMessage || (

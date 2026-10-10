@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Message } from './types';
 import { getAppendedMessages, isValidTimestamp } from './messageListScrollUtils';
+import { nid, tid } from '@/test/ids';
 
-const msg = (id: number): Message => ({
-  id, sender: 'a', content: '', timestamp: 't', type: 'message', read_by: [],
+const msg = (n: number): Message => ({
+  id: tid(n), sender: 'a', content: '', timestamp: 't', type: 'message', read_by: [],
 });
 
 describe('getAppendedMessages', () => {
@@ -12,7 +13,7 @@ describe('getAppendedMessages', () => {
   });
 
   it('returns the messages after the previous last one', () => {
-    expect(getAppendedMessages([msg(1), msg(2)], [msg(1), msg(2), msg(3), msg(4)]).map((m) => m.id)).toEqual([3, 4]);
+    expect(getAppendedMessages([msg(1), msg(2)], [msg(1), msg(2), msg(3), msg(4)]).map((m) => nid(m.id))).toEqual([3, 4]);
   });
 
   it('returns nothing when the previous tail is gone (history replaced)', () => {

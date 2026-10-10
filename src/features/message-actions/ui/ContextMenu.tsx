@@ -4,13 +4,14 @@ import { useDeleteMessageForMeMutation } from '@/entities/message';
 import { notifyMessageDeletedLocally } from '@/entities/message';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import type { Id } from '@/shared/lib/ids';
 
 interface ContextMenuProps {
   contextMenu: ContextMenuState;
   messages: Message[];
   token: string;
-  chatId: number;
-  userId: number;
+  chatId: Id;
+  userId: Id;
   setContextMenu: (value: ContextMenuState | null) => void;
   setEditingMessage: (message: Message | null) => void;
   setMessageInput: (value: string) => void;

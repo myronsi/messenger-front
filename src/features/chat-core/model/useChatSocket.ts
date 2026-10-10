@@ -5,12 +5,14 @@ import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/share
 import { handleHelloEvent } from '@/shared/api/serverHello';
 import type { ChatTransport } from './types';
 import { parseServerEvent, type ServerEvent } from './socketEvents';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 
 // After this many failed attempts in a row the user is told, but reconnecting continues in the background.
 export const RECONNECT_ATTEMPTS_BEFORE_ERROR = 5;
 
 interface ChatSocketOptions {
-  chatId: number;
+  chatId: Id;
   token: string;
   transport: ChatTransport;
   onEvent: (event: ServerEvent, socket: WebSocket) => void;
@@ -29,7 +31,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
   onConnectionFailedRef.current = onConnectionFailed;
   const onReconnectedRef = useRef(onReconnected);
   onReconnectedRef.current = onReconnected;
-  const openedChatIdRef = useRef<number | null>(null);
+  const openedChatIdRef = useRef<Id | null>(null);
   // Survives the effect re-runs caused by requestReconnect(), so a socket the server rejected stays closed.
   const rejectedRef = useRef(false);
   const isSignedIn = Boolean(token);
@@ -39,7 +41,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
   }, [chatId, isSignedIn]);
 
   useEffect(() => {
-    if (!isSignedIn || chatId <= 0 || rejectedRef.current) return undefined;
+    if (!isSignedIn || !isServerId(chatId) || rejectedRef.current) return undefined;
     let isMounted = true;
     let reconnectAttempts = 0;
     let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;

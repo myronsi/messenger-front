@@ -7,18 +7,19 @@ import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/share
 import { handleHelloEvent } from '@/shared/api/serverHello';
 import { handleChatListWebSocketMessage } from './chatListWebSocketHandlers';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap, WebSocketMessage } from './types';
+import type { Id } from '@/shared/lib/ids';
 
 interface UseChatListWebSocketParams {
   token: string | null | undefined;
   username: string;
-  activeChatId?: number;
+  activeChatId?: Id;
   activeChatName?: string;
   onChatOpen: ChatsListComponentProps['onChatOpen'];
-  onChatDeleted?: (chatId: number) => void;
-  currentUserId?: number;
+  onChatDeleted?: (chatId: Id) => void;
+  currentUserId?: Id;
   refetch: () => void;
   refetchRequestInbox: () => void;
-  chatsByIdRef: React.MutableRefObject<Record<number, Chat>>;
+  chatsByIdRef: React.MutableRefObject<Record<Id, Chat>>;
   setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>>;
   setPresenceByUsername: Dispatch<SetStateAction<PresenceMap>>;
   setModal: (modal: ChatListModal | null) => void;
@@ -38,7 +39,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   const activeChatNameRef = useRef(activeChatName);
   const usernameRef = useRef(username);
   const onChatOpenRef = useRef(onChatOpen);
-  const currentUserIdRef = useRef<number | undefined>(currentUserId);
+  const currentUserIdRef = useRef<Id | undefined>(currentUserId);
   const onChatDeletedRef = useRef(onChatDeleted);
   const refetchRef = useRef(refetch);
   const refetchRequestInboxRef = useRef(refetchRequestInbox);
@@ -86,7 +87,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
 
       isRequestingTicket = true;
       try {
-        const url = await getChatWebSocketUrl(0);
+        const url = await getChatWebSocketUrl('0');
         if (!isMounted) return;
         wsRef.current = trackWebSocket(new WebSocket(url));
       } catch (e) {

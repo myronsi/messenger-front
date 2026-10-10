@@ -9,6 +9,7 @@ import type {
   TwoFactorSetupResponse,
   UserSessionsResponse,
 } from '../model/types';
+import type { Id } from '@/shared/lib/ids';
 
 export const profileApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -17,7 +18,7 @@ export const profileApi = messengerApi.injectEndpoints({
       providesTags: ['Auth'],
     }),
 
-    updateUser: builder.mutation<User, Partial<User> & { id: number }>({
+    updateUser: builder.mutation<User, Partial<User> & { id: Id }>({
       query: ({ id, ...patch }) => ({
         url: '/auth/me',
         method: 'PUT',

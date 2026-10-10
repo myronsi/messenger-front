@@ -15,6 +15,7 @@ import { useGroupMessageHelpers } from './useGroupMessageHelpers';
 import { useGroupMessageMenus } from './useGroupMessageMenus';
 import { useGroupProfilePanel } from './useGroupProfilePanel';
 import type { GroupChatViewModel, GroupComponentProps, GroupTranslations } from './groupChatTypes';
+import type { Id } from '@/shared/lib/ids';
 
 export const useGroupChatScreen = ({
   chatId, groupName, username, firstUnreadMessageId, onBack, onOpenUserProfile, messageJumpRequest = null,
@@ -32,7 +33,7 @@ export const useGroupChatScreen = ({
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [readStatusMessage, setReadStatusMessage] = useState<Message | null>(null);
   const [reactionDetails, setReactionDetails] = useState<{ message: Message; reaction: string; reactions: ReactionInfo[] } | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<number>(0);
+  const [currentUserId, setCurrentUserId] = useState<Id>('');
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [groupForm, setGroupForm] = useState({ name: groupName, description: '' });
   const [participantInput, setParticipantInput] = useState('');

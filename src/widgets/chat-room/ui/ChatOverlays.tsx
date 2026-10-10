@@ -2,6 +2,7 @@ import React, { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
 import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal } from '@/features/message-actions';
 import MessageSearchDialog from './MessageSearchDialog';
+import type { Id } from '@/shared/lib/ids';
 
 type ContextMenuState = NonNullable<React.ComponentProps<typeof ContextMenu>['contextMenu']>;
 type ReactionMenuState = NonNullable<React.ComponentProps<typeof ReactionMenu>['reactionMenu']>;
@@ -15,8 +16,8 @@ interface ChatOverlaysProps {
   messageInputRef: MutableRefObject<HTMLInputElement | null>;
   messages: Message[];
   token: string;
-  chatId: number;
-  userId: number | null;
+  chatId: Id;
+  userId: Id | null;
   isClosing: boolean;
   wsRef: MutableRefObject<WebSocket | null>;
   setContextMenu: (menu: ContextMenuState | null) => void;
@@ -30,7 +31,7 @@ interface ChatOverlaysProps {
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
   getMessageTime: (timestamp: string) => string;
-  jumpToSearchResult: (messageId: number) => void;
+  jumpToSearchResult: (messageId: Id) => void;
   forwardMessage: Message | null;
   username: string;
   onForwarded: () => void;

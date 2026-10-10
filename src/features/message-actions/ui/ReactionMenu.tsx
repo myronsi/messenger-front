@@ -1,10 +1,11 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Message, ContextMenuState } from '@/entities/message';
+import type { Id } from '@/shared/lib/ids';
 
 interface ReactionMenuProps {
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean };
   wsRef: React.MutableRefObject<WebSocket | null>;
-  userId: number;
+  userId: Id;
   setReactionMenu: (value: { message: Message; x: number; y: number; isClosing?: boolean } | null) => void;
   onClose: () => void;
   contextMenu: ContextMenuState | null;

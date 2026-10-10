@@ -8,17 +8,18 @@ import { closeForGood } from '@/shared/api/reconnect';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ReadBatchEvent, ReadEvent, ServerEvent } from './socketEvents';
 import type { ChatTransport, SetMessages, ShowError } from './types';
+import type { Id } from '@/shared/lib/ids';
 
 interface MessageEventsOptions {
-  chatId: number;
+  chatId: Id;
   username: string;
   transport: ChatTransport;
-  currentUserIdRef: MutableRefObject<number>;
+  currentUserIdRef: MutableRefObject<Id>;
   translationsRef: MutableRefObject<Translations>;
   onBackRef: MutableRefObject<() => void>;
   setMessages: SetMessages;
   setModal: ShowError;
-  markMessageFailed: (messageId: number, message?: string) => boolean;
+  markMessageFailed: (messageId: Id, message?: string) => boolean;
   markLatestPendingMessageFailed: (message?: string) => boolean;
   // Translation key shown when the whole chat is deleted (differs for one-to-one and group chats).
   chatDeletedKey: 'chatDeleted' | 'groupDeleted';
@@ -74,7 +75,7 @@ export const useMessageEvents = ({
         setMessages((previous) => addReadReceipts(
           previous,
           event.message_id ? [event.message_id] : [],
-          event.user_id || event.reader_user_id || (event.type === 'is_read' ? event.id : undefined) || 0,
+          event.user_id || event.reader_user_id || (event.type === 'is_read' ? event.id : undefined) || '',
           event.read_at || event.timestamp || new Date().toISOString(),
           readerFrom(event)
         ));
@@ -83,7 +84,7 @@ export const useMessageEvents = ({
         setMessages((previous) => addReadReceipts(
           previous,
           event.message_ids || [],
-          event.reader_user_id || event.user_id || 0,
+          event.reader_user_id || event.user_id || '',
           event.read_at || event.timestamp || new Date().toISOString(),
           readerFrom(event)
         ));

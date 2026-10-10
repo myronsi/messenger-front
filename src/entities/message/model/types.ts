@@ -1,3 +1,4 @@
+import type { Id } from '@/shared/lib/ids';
 
 export interface AudioMetadata {
   duration?: number;
@@ -17,15 +18,15 @@ export interface FileMessageContent {
 }
 
 export interface ForwardedFrom {
-  message_id: number;
-  sender_id?: number | null;
+  message_id: Id;
+  sender_id?: Id | null;
   sender_name?: string | null;
   sender_username?: string | null;
 }
 
 export interface ChatLastMessage {
-  id: number;
-  sender_id: number;
+  id: Id;
+  sender_id: Id;
   sender_name: string;
   content: string | FileMessageContent;
   type: 'message' | 'file';
@@ -37,7 +38,7 @@ export interface ChatLastMessage {
 }
 
 export interface UserMessageMeta {
-  user_id: number;
+  user_id: Id;
   username?: string | null;
   display_name?: string | null;
   avatar_url?: string | null;
@@ -52,12 +53,12 @@ export interface ReadReceiptInfo extends UserMessageMeta {
 }
 
 export interface Message {
-  id: number;
-  client_temp_id?: number | null;
+  id: Id;
+  client_temp_id?: Id | null;
   local_object_url?: string | null;
   upload_status?: 'uploading' | 'failed';
   upload_progress?: number;
-  sender_id?: number;
+  sender_id?: Id;
   is_own?: boolean;
   is_live?: boolean;
   sender: string;
@@ -65,7 +66,7 @@ export interface Message {
   content: string | FileMessageContent;
   timestamp: string;
   avatar_url?: string;
-  reply_to?: number | null;
+  reply_to?: Id | null;
   is_deleted?: boolean;
   is_deleting?: boolean;
   edited_at?: string | null;
@@ -77,7 +78,7 @@ export interface Message {
 }
 
 export interface ChatPhoto {
-  id: number;
+  id: Id;
   file_url?: string;
   url?: string;
   file_name?: string;
@@ -95,7 +96,7 @@ export interface ChatPhotosResponse {
 }
 
 export interface ChatAudio {
-  id: number;
+  id: Id;
   file_url?: string;
   url?: string;
   file_name?: string;
@@ -112,8 +113,8 @@ export interface ChatAudiosResponse {
 }
 
 export interface ChatSearchResult {
-  id: number;
-  sender_id?: number;
+  id: Id;
+  sender_id?: Id;
   sender: string;
   sender_username?: string | null;
   avatar_url?: string | null;
@@ -124,8 +125,8 @@ export interface ChatSearchResult {
 }
 
 export interface ForwardMessagesResponse {
-  forwarded: Array<{ chat_id: number; message_id: number }>;
-  failed: Array<{ chat_id: number; reason: string }>;
+  forwarded: Array<{ chat_id: Id; message_id: Id }>;
+  failed: Array<{ chat_id: Id; reason: string }>;
 }
 
 export interface ChatSearchResponse {
@@ -133,7 +134,7 @@ export interface ChatSearchResponse {
 }
 
 export interface Chat {
-  id: number;
+  id: Id;
   name: string;
   interlocutor_name: string;
   display_name?: string;
@@ -144,16 +145,16 @@ export interface Chat {
   type: 'one-on-one' | 'group';
   last_message?: ChatLastMessage | null;
   unread_count?: number;
-  first_unread_message_id?: number | null;
+  first_unread_message_id?: Id | null;
   is_pinned?: boolean;
   pending_approval_request?: boolean;
-  pending_request_id?: number;
+  pending_request_id?: Id;
 }
 
 export interface ContextMenuState {
   x: number;
   y: number;
-  messageId: number;
+  messageId: Id;
   isMine: boolean;
   isClosing?: boolean;
 }
@@ -164,7 +165,7 @@ export interface ModalState {
   consequences?: string[];
   onConfirm?: () => void;
   isMessageSender?: boolean;
-  messageId?: number;
+  messageId?: Id;
   onDeleteForMe?: () => void | Promise<void>;
   onDeleteForAll?: () => void;
 }

@@ -2,9 +2,10 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatTransport } from './types';
 import { RECONNECT_ATTEMPTS_BEFORE_ERROR, useChatSocket } from './useChatSocket';
+import type { Id } from '@/shared/lib/ids';
 
 vi.mock('@/shared/api/webSocketUrl', () => ({
-  getChatWebSocketUrl: vi.fn(async (chatId: number) => `ws://test/ws/chat/${chatId}?ticket=t`),
+  getChatWebSocketUrl: vi.fn(async (chatId: Id) => `ws://test/ws/chat/${chatId}?ticket=t`),
 }));
 
 class FakeWebSocket {
@@ -56,7 +57,7 @@ describe('useChatSocket', () => {
     const onReconnected = vi.fn();
     const onConnectionFailed = vi.fn();
     const hook = renderHook(({ token: current, retryKey }) => useChatSocket({
-      chatId: 7, token: current, transport: transport(retryKey), onEvent: () => undefined, onConnectionFailed, onReconnected,
+      chatId: '7', token: current, transport: transport(retryKey), onEvent: () => undefined, onConnectionFailed, onReconnected,
     }), { initialProps: { token, retryKey: 0 } });
     return { ...hook, onReconnected, onConnectionFailed };
   };

@@ -6,6 +6,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ProfileModalState } from './useProfileAccountActions';
 import { useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
+import type { Id } from '@/shared/lib/ids';
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
@@ -117,7 +118,7 @@ export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOpti
     }
   };
 
-  const handleRejectRequest = async (requestId: number) => {
+  const handleRejectRequest = async (requestId: Id) => {
     try {
       await rejectRequest(requestId).unwrap();
       await refetchRequestInbox();

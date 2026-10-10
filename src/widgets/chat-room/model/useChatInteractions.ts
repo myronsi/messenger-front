@@ -2,11 +2,12 @@ import { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
 import { DELETED_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import type { Id } from '@/shared/lib/ids';
 
 interface ChatMenuPosition {
   x: number;
   y: number;
-  messageId: number;
+  messageId: Id;
   isMine: boolean;
 }
 
@@ -20,7 +21,7 @@ interface ChatReactionMenu {
 interface ChatInteractionsOptions {
   chatName: string;
   username: string;
-  userId: number | null;
+  userId: Id | null;
   interlocutorDeleted: boolean;
   interlocutorAvatarUrl?: string;
   messages: Message[];
@@ -30,11 +31,11 @@ interface ChatInteractionsOptions {
   setReactionMenu: (menu: ChatReactionMenu | null) => void;
   setIsClosing: (isClosing: boolean) => void;
   closeMenus: () => void;
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   onOpenUserProfile?: (username: string) => void;
   setIsUserProfileOpen: (open: boolean) => void;
-  scrollToMessage: (messageId: number) => void;
-  setTempHighlightedMessageId: (messageId: number | null) => void;
+  scrollToMessage: (messageId: Id) => void;
+  setTempHighlightedMessageId: (messageId: Id | null) => void;
 }
 
 export const useChatInteractions = ({
@@ -120,7 +121,7 @@ export const useChatInteractions = ({
     ? DELETED_AVATAR
     : normalizeAvatarUrl(interlocutorAvatarUrl || messages.find((message) => !isOwnMessage(message))?.avatar_url);
 
-  const jumpToSearchResult = (messageId: number) => {
+  const jumpToSearchResult = (messageId: Id) => {
     const element = messageRefs.current[messageId];
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });

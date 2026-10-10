@@ -2,11 +2,12 @@ import { useCallback } from 'react';
 import type { Message } from '@/entities/message';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import type { GroupDetails } from './GroupProfileTypes';
+import type { Id } from '@/shared/lib/ids';
 
 interface UseGroupMessageHelpersArgs {
   username: string;
   language: 'en' | 'ru';
-  currentUserId: number;
+  currentUserId: Id;
   groupDetails: Pick<GroupDetails, 'permissions'> | null;
 }
 

@@ -7,6 +7,8 @@ import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, Gro
 import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';
 import GroupProfileDialogShell from './GroupProfileDialogShell';
+import type { Id } from '@/shared/lib/ids';
+import { isServerId } from '@/shared/lib/ids';
 export type { GroupRole, GroupParticipant, GroupPendingInvite, GroupPermissions, GroupDetails, GroupProfileConfirmState } from './GroupProfileTypes';
 
 const emptyParticipants: GroupParticipant[] = [];
@@ -28,14 +30,14 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     isLoading: isLoadingPhotos,
     error: photosQueryError,
   } = useGetChatPhotosQuery(chatId, {
-    skip: !open || chatId <= 0,
+    skip: !open || !isServerId(chatId),
   });
   const {
     data: chatAudiosData,
     isLoading: isLoadingAudios,
     error: audiosQueryError,
   } = useGetChatAudiosQuery(chatId, {
-    skip: !open || chatId <= 0,
+    skip: !open || !isServerId(chatId),
   });
   useEffect(() => {
     if (!open) return;
@@ -143,7 +145,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     }, 340);
   };
 
-  const handleJumpToMessage = (messageId: number) => {
+  const handleJumpToMessage = (messageId: Id) => {
     onOpenChange(false);
     onJumpToMessage(messageId);
   };

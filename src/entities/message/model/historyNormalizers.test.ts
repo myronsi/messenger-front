@@ -7,22 +7,23 @@ import {
   prependUniqueMessages,
   trimNewestMessages,
 } from './historyNormalizers';
+import { nid, tid } from '@/test/ids';
 
-const msg = (id: number, extra: Partial<Message> = {}): Message => ({
-  id, sender: 'alice', content: `m${id}`, timestamp: '2024-01-01T00:00:00Z', type: 'message', read_by: [], ...extra,
+const msg = (n: number, extra: Partial<Message> = {}): Message => ({
+  id: tid(n), sender: 'alice', content: `m${n}`, timestamp: '2024-01-01T00:00:00Z', type: 'message', read_by: [], ...extra,
 });
 
-const ids = (messages: Message[]) => messages.map((message) => message.id);
+const ids = (messages: Message[]) => messages.map((message) => nid(message.id));
 
 describe('normalizeHistoryMessage', () => {
   it('parses JSON columns delivered as strings', () => {
     const result = normalizeHistoryMessage({
       ...msg(1),
-      reactions: '[{"user_id":2,"reaction":"x"}]',
-      read_by: '[{"user_id":3,"read_at":"t"}]',
+      reactions: '[{"user_id":"2","reaction":"x"}]',
+      read_by: '[{"user_id":"3","read_at":"t"}]',
     });
-    expect(result.reactions).toEqual([{ user_id: 2, reaction: 'x' }]);
-    expect(result.read_by).toEqual([{ user_id: 3, read_at: 't' }]);
+    expect(result.reactions).toEqual([{ user_id: '2', reaction: 'x' }]);
+    expect(result.read_by).toEqual([{ user_id: '3', read_at: 't' }]);
   });
 
   it('falls back to empty arrays for invalid JSON or missing columns', () => {
@@ -39,7 +40,7 @@ describe('normalizeHistoryMessage', () => {
   });
 
   it('defaults type and reply_to', () => {
-    const result = normalizeHistoryMessage({ ...msg(1), type: undefined, reply_to: 0 });
+    const result = normalizeHistoryMessage({ ...msg(1), type: undefined, reply_to: '' });
     expect(result.type).toBe('message');
     expect(result.reply_to).toBeNull();
   });
@@ -74,7 +75,7 @@ describe('trimNewestMessages', () => {
   it('drops the newest confirmed messages and keeps unsent ones', () => {
     const result = trimNewestMessages([msg(1), msg(2), msg(3), msg(-1)], 2);
     expect(result && ids(result.messages)).toEqual([1, 2, -1]);
-    expect(result?.newestId).toBe(2);
+    expect(result?.newestId).toBe('2');
   });
 });
 
@@ -89,9 +90,9 @@ describe('mergeFreshHistoryMessages', () => {
   });
 
   it('preserves local flags of messages that were already loaded', () => {
-    const current = msg(5, { is_own: true, client_temp_id: -9 });
+    const current = msg(5, { is_own: true, client_temp_id: 'local-9' });
     const result = mergeFreshHistoryMessages([current], [msg(5)]);
     expect(result[0].is_own).toBe(true);
-    expect(result[0].client_temp_id).toBe(-9);
+    expect(result[0].client_temp_id).toBe('local-9');
   });
 });

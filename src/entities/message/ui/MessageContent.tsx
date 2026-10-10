@@ -6,6 +6,7 @@ import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
 import FileMessage from './FileMessage';
+import type { Id } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -17,7 +18,7 @@ interface MessageContentProps {
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
-  setPlayingMessageId: (id: number | null) => void;
+  setPlayingMessageId: (id: Id | null) => void;
 }
 
 const MessageContent: React.FC<MessageContentProps> = ({

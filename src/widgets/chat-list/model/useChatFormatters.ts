@@ -1,10 +1,11 @@
 import type { ChatLastMessage } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
+import type { Id } from '@/shared/lib/ids';
 
 // Pure presentational helpers for rendering a chat's last-message preview/time
 // and whether the current user authored/has read it.
-export function useChatFormatters(currentUserId?: number) {
+export function useChatFormatters(currentUserId?: Id) {
   const { translations, language } = useLanguage();
 
   const getLastMessagePreview = (lastMessage?: ChatLastMessage | null) => {

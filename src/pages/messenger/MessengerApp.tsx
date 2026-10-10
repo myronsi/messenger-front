@@ -7,6 +7,7 @@ import ProfileComponentRTK from '@/widgets/profile-panel';
 import { UserProfileComponentRTK } from '@/widgets/profile-panel';
 import { useMessengerController } from './model/useMessengerController';
 import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
+import { isServerId } from '@/shared/lib/ids';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -44,16 +45,16 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
 
   const currentUserProfileProps = useMemo(() => ({
     username: profileUsername || currentChat?.name || '',
-    directChatId: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
+    directChatId: currentChat?.type === 'one-on-one' && isServerId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? currentChat.id
       : undefined,
     onClose: closeUserProfile,
     onMessage: openDirectChatFromProfile,
-    onJumpToMessage: currentChat?.id && currentChat.id > 0 && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
+    onJumpToMessage: currentChat?.id && isServerId(currentChat.id) && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
       ? jumpToCurrentChatMessage
       : undefined,
-    hideMessageAction: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name,
-    onDeleteChat: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
+    hideMessageAction: currentChat?.type === 'one-on-one' && isServerId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
+    onDeleteChat: currentChat?.type === 'one-on-one' && isServerId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? handleDeleteCurrentChat
       : undefined,
   }), [

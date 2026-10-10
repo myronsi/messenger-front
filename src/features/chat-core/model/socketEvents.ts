@@ -1,15 +1,16 @@
 import type { FileMessageContent, ForwardedFrom, ReactionInfo, ReadReceiptInfo } from '@/entities/message';
+import type { Id } from '@/shared/lib/ids';
 
 export interface NewMessageEvent {
   type: 'message' | 'file';
   data: {
-    message_id: number;
-    chat_id?: number;
-    client_temp_id?: number | null;
-    reply_to?: number | null;
+    message_id: Id;
+    chat_id?: Id;
+    client_temp_id?: Id | null;
+    reply_to?: Id | null;
     content?: string;
   } & Partial<FileMessageContent>;
-  sender_id?: number;
+  sender_id?: Id;
   username: string;
   sender_username?: string;
   avatar_url?: string | null;
@@ -23,20 +24,20 @@ export interface NewMessageEvent {
 
 export interface EditEvent {
   type: 'edit';
-  message_id: number;
+  message_id: Id;
   new_content: string | FileMessageContent;
   timestamp?: string;
 }
 
 export interface DeleteEvent {
   type: 'delete';
-  message_id: number;
+  message_id: Id;
 }
 
 export interface ReactionAddEvent {
   type: 'reaction_add';
-  message_id: number;
-  user_id: number;
+  message_id: Id;
+  user_id: Id;
   username?: string | null;
   display_name?: string | null;
   avatar_url?: string | null;
@@ -45,8 +46,8 @@ export interface ReactionAddEvent {
 
 export interface ReactionRemoveEvent {
   type: 'reaction_remove';
-  message_id: number;
-  user_id: number;
+  message_id: Id;
+  user_id: Id;
   reaction: string;
 }
 
@@ -54,32 +55,32 @@ interface ReaderFields {
   username?: string;
   display_name?: string;
   avatar_url?: string;
-  user_id?: number;
-  reader_user_id?: number;
+  user_id?: Id;
+  reader_user_id?: Id;
   read_at?: string;
   timestamp?: string;
 }
 
 export interface ReadEvent extends ReaderFields {
   type: 'is_read' | 'chat_list_read';
-  id?: number;
-  message_id?: number;
+  id?: Id;
+  message_id?: Id;
 }
 
 export interface ReadBatchEvent extends ReaderFields {
   type: 'chat_read_batch';
-  message_ids?: number[];
+  message_ids?: Id[];
 }
 
 export interface ErrorEvent {
   type: 'error';
   message?: string;
-  message_id?: number;
+  message_id?: Id;
 }
 
 export interface ChatDeletedEvent {
   type: 'chat_deleted';
-  chat_id?: number;
+  chat_id?: Id;
 }
 
 export interface PresenceUpdateEvent {
@@ -91,13 +92,13 @@ export interface PresenceUpdateEvent {
 
 export interface GroupUpdatedEvent {
   type: 'group_updated';
-  group?: { chat_id?: number; participants?: unknown[] };
+  group?: { chat_id?: Id; participants?: unknown[] };
   removed_username?: string;
 }
 
 export interface GroupInviteEvent {
   type: 'group_invite_rejected' | 'group_invite_approved';
-  chat_id?: number;
+  chat_id?: Id;
 }
 
 // Any event type this client does not handle; keeps the union closed so `switch` narrows properly.

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ProfilePanelTransition, ProfilePanelView } from './ui/UserProfilePanelContent';
+import type { Id } from '@/shared/lib/ids';
 
-export const useProfilePanelTransition = (directChatId: number | undefined, username: string) => {
+export const useProfilePanelTransition = (directChatId: Id | undefined, username: string) => {
   const [activeView, setActiveView] = useState<ProfilePanelView>('details');
   const [panelTransition, setPanelTransition] = useState<ProfilePanelTransition | null>(null);
   const timeoutRef = useRef<number | null>(null);

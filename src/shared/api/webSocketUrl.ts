@@ -1,4 +1,5 @@
 import { authFetch } from '@/shared/auth/session';
+import type { Id } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -30,7 +31,7 @@ const requestWebSocketTicket = async () => {
   return ticket;
 };
 
-export const getChatWebSocketUrl = async (chatId: number) => {
+export const getChatWebSocketUrl = async (chatId: Id) => {
   const url = new URL(`${getWebSocketBaseUrl()}/`);
   url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/chat/${chatId}`;
   url.searchParams.set('ticket', await requestWebSocketTicket());

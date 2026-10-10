@@ -1,3 +1,4 @@
+import type { Id } from '@/shared/lib/ids';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { BlockedUsersResponse, User, UserAvatarHistoryResponse } from '../model/types';
 
@@ -18,7 +19,7 @@ export const userApi = messengerApi.injectEndpoints({
       providesTags: (result, error, username) => [{ type: 'User', id: username }],
     }),
 
-    getUserById: builder.query<User, number>({
+    getUserById: builder.query<User, Id>({
       query: (id) => `/users/${id}`,
       providesTags: (result, error, id) => [{ type: 'User', id }],
     }),

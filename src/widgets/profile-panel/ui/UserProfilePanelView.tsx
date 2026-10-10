@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, ProfileAudioItem, ProfilePhotoItem } from '@/entities/message';
 import type { ProfilePanelView } from './UserProfilePanelContent';
+import type { Id } from '@/shared/lib/ids';
 
 interface UserProfilePanelViewProps {
   view: ProfilePanelView;
@@ -8,8 +9,8 @@ interface UserProfilePanelViewProps {
   canShowSearch: boolean;
   canShowPhotos: boolean;
   canShowAudios: boolean;
-  chatId?: number;
-  onJumpToMessage?: (messageId: number) => void;
+  chatId?: Id;
+  onJumpToMessage?: (messageId: Id) => void;
   photos: ProfilePhotoItem[];
   audios: ProfileAudioItem[];
   isLoadingPhotos: boolean;

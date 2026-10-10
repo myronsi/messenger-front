@@ -1,3 +1,4 @@
+import type { Id } from '@/shared/lib/ids';
 import React, { useRef, useState, useEffect } from 'react';
 import { Message } from '@/entities/message';
 import ChatHeader from './ui/ChatHeader';
@@ -12,6 +13,7 @@ import { ChatProps } from './model/types';
 import ChatOverlays from './ui/ChatOverlays';
 import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useGetBlockedUsersQuery } from '@/entities/user';
+import { isServerId } from '@/shared/lib/ids';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -20,14 +22,14 @@ export type { ChatProps } from './model/types';
 const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interlocutorIsOnline, interlocutorLastSeen, interlocutorAvatarUrl, username, interlocutorDeleted, firstUnreadMessageId, onBack, setIsUserProfileOpen, onOpenUserProfile, searchRequestKey = 0, messageJumpRequest = null, directDraftDisabled = false, directDraftReason = null, initialPendingApprovalRequest = false, initialPendingApprovalMessage = '', onChatCreated }) => {
   const token = useAccessToken() || '';
   const { translations } = useLanguage();
-  const [userId, setUserId] = useState<number | null>(null);
-  const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<Id | null>(null);
+  const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<Id | null>(null);
   const [presence, setPresence] = useState({
     is_online: !!interlocutorIsOnline,
     last_seen: interlocutorLastSeen || null,
   });
 
-  const isPreview = chatId <= 0;
+  const isPreview = !isServerId(chatId);
 
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
   const isBlockedByMe = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username.toLowerCase() === chatName.toLowerCase());
@@ -65,7 +67,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     settleOptimisticUpload, handleDeleteChat, getFormattedDateLabel, getMessageTime,
     renderMessageContent, wsRef,
   } = useChatRoomState({
-    isPreview, chatId, username, token, onBack, userId: userId || 0, firstUnreadMessageId,
+    isPreview, chatId, username, token, onBack, userId: userId || '', firstUnreadMessageId,
     previewModal,
     setPreviewModal,
     onPresenceUpdate: (update) => {
@@ -79,7 +81,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const reactionMenuRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
-  const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const lastSearchRequestKeyRef = useRef(searchRequestKey);
   const [isClosing, setIsClosing] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -187,7 +189,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           renderMessageContent={renderMessageContent}
           messageRefs={messageRefs}
           onReplyClick={scrollToMessage}
-          userId={userId || 0}
+          userId={userId || ''}
           wsRef={wsRef}
           onOpenReactionMenu={onOpenReactionMenu}
           tempHighlightedMessageId={tempHighlightedMessageId}
