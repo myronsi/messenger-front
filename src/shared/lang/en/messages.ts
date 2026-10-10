@@ -19,5 +19,6 @@ export const messages = {
   uploadFileTooLarge: "{name} is too large. The maximum for this kind of file is {size}.",
   uploadFileEmpty: "{name} is empty.",
   cancelUpload: "Cancel upload",
+  mediaUnavailable: "This file is no longer available.",
   uploadUnsupportedType: "This file type is not supported.",
 };

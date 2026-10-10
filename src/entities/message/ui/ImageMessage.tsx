@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Download, ZoomIn, ZoomOut, MessageSquare, X } from 'lucide-react';
+import { Download, ImageOff, ZoomIn, ZoomOut, MessageSquare, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
@@ -27,6 +27,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
   const [dimensions, setDimensions] = useState(() => knownSize ?? getImageDimensions(fileUrl));
   const [isLoaded, setIsLoaded] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  // Neither the thumbnail nor the image can be loaded (no access any more, or deleted).
+  const [isUnavailable, setIsUnavailable] = useState(false);
   const previewUrl = thumbnailUrl && !thumbnailFailed ? thumbnailUrl : fileUrl;
   const modalRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -106,6 +108,20 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
 
   const box = knownSize ?? dimensions ?? PLACEHOLDER;
 
+  if (isUnavailable) {
+    return (
+      <div
+        className="flex max-w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted/60 p-4 text-center text-xs text-muted-foreground"
+        style={{ width: `${Math.min(box.width, MAX_HEIGHT * (box.width / box.height))}px`, aspectRatio: `${box.width} / ${box.height}` }}
+        role="img"
+        aria-label={translations.mediaUnavailable}
+      >
+        <ImageOff className="h-6 w-6" aria-hidden="true" />
+        <span>{translations.mediaUnavailable}</span>
+      </div>
+    );
+  }
+
   return (
     <>
       <div
@@ -132,9 +148,9 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
               setDimensions({ width: naturalWidth, height: naturalHeight });
             }
           }}
-          onError={() => {
+          onUnavailable={() => {
             if (previewUrl !== fileUrl) setThumbnailFailed(true);
-            else setIsLoaded(true);
+            else setIsUnavailable(true);
           }}
           onClick={() => setIsExpanded(true)}
           className={`block h-full w-full select-none rounded-2xl cursor-pointer object-cover transition-opacity duration-150 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}

@@ -2,7 +2,7 @@ import type { ChatRealtime } from '@/shared/api/realtime';
 import React, { forwardRef, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
-import { MessageItem } from '@/entities/message';
+import { MessageItem, fileKindOf } from '@/entities/message';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { Message, ReactionInfo } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
@@ -219,9 +219,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         {messages.map((message, index) => {
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-          const fileConfig = message.type === 'file' && typeof message.content !== 'string'
-            ? getFileTypeConfig(message.content.file_name)
-            : undefined;
+          const isImage = message.type === 'file' && typeof message.content !== 'string' && fileKindOf(message.content) === 'image';
           return (
             <MessageItem
               key={message.client_temp_id ?? message.id}
@@ -231,7 +229,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               replyMessage={message.reply_to ? messagesById.get(message.reply_to) : undefined}
               userId={userId}
               isGroup={isGroup}
-              isImage={fileConfig?.replyText === translations.image}
+              isImage={isImage}
               isMobile={isMobile}
               showNewMessagesMarker={visibleUnreadBoundaryId === message.id && !isOwnMessage(message)}
               nextShowsNewMessagesMarker={!!nextMessage && visibleUnreadBoundaryId === nextMessage.id && !isOwnMessage(nextMessage)}

@@ -6,6 +6,7 @@ import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { uploadAttachmentWithProgress } from '@/shared/api/attachments';
 import { isAbortError } from '@/shared/api/uploadWithProgress';
 import { apiErrorMessage } from '@/shared/lib/apiError';
+import { uploadKindOf } from '@/shared/lib/uploadValidation';
 import type { Id } from '@/shared/lib/ids';
 import { newLocalId } from '@/shared/lib/ids';
 import { getLocalUploadFileType } from './uploadFileType';
@@ -61,6 +62,8 @@ export const useAttachmentUploads = ({
       file_name: fileName,
       file_type: fileType,
       file_size: file.size,
+      // What the server will most likely detect; its own kind replaces this once the message arrives.
+      kind: fileType === 'voice' ? 'voice' : uploadKindOf(file.type),
       ...(caption.trim() ? { caption: caption.trim() } : {}),
     };
     const optimisticMessage: Message = {

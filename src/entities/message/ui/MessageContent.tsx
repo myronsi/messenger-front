@@ -1,6 +1,6 @@
-import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
 import { Message } from '../model/types';
+import { fileKindOf } from '../model/fileKind';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
@@ -12,8 +12,7 @@ import type { Id } from '@/shared/lib/ids';
 interface MessageContentProps {
   message: Message;
   isMobile: boolean;
-  translations: Translations;
-  getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
+  getFileTypeConfig: (fileName: string) => FileTypeConfig;
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
@@ -23,7 +22,6 @@ interface MessageContentProps {
 const MessageContent: React.FC<MessageContentProps> = ({
   message,
   isMobile,
-  translations,
   getFileTypeConfig,
   isOwnMessage,
   renderMessageContent,
@@ -63,8 +61,9 @@ const MessageContent: React.FC<MessageContentProps> = ({
     />
   );
 
-  if (message.content.file_type === 'voice') return withCaption(audioPlayer);
-  if (config?.isSpecial && config.replyText === translations.image) {
+  const kind = fileKindOf(message.content);
+  if (kind === 'voice') return withCaption(audioPlayer);
+  if (kind === 'image') {
     return withCaption(
       <ImageMessage
         fileUrl={fullFileUrl}
@@ -77,9 +76,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
       true
     );
   }
-  if (config?.isSpecial && config.replyText === translations.voiceMessage) return withCaption(audioPlayer);
-  if (config) return withCaption(<FileMessage config={config} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile} />);
-  return null;
+  return withCaption(<FileMessage config={config} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile} />);
 };
 
 export default MessageContent;

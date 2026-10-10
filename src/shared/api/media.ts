@@ -68,26 +68,31 @@ export const loadMediaUrl = (url: string): Promise<string> => {
   return promise;
 };
 
-// useMediaSrc turns a media path or URL into something an element can show: API media as an object URL
-// (the fallback until it is loaded, and if it cannot be), anything else as it is.
-export const useMediaSrc = (src: string | null | undefined, fallback?: string): string | undefined => {
+// useMediaSource turns a media path or URL into something an element can show: API media as an object URL
+// (the fallback until it is loaded, and if it cannot be), anything else as it is. `failed` tells that API
+// media could not be loaded, e.g. an attachment of a chat the user has left (403) or one that was deleted.
+export const useMediaSource = (src: string | null | undefined, fallback?: string): { src: string | undefined; failed: boolean } => {
   const absolute = src ? toAbsoluteMediaUrl(src) : '';
   const protectedUrl = absolute && needsToken(absolute) ? absolute : '';
   const [loaded, setLoaded] = useState<{ url: string; objectUrl: string } | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!protectedUrl || cachedMediaUrl(protectedUrl)) return undefined;
     let active = true;
     loadMediaUrl(protectedUrl)
       .then((objectUrl) => { if (active) setLoaded({ url: protectedUrl, objectUrl }); })
-      .catch(() => { /* the fallback stays */ });
+      .catch(() => { if (active) setFailedUrl(protectedUrl); });
     return () => { active = false; };
   }, [protectedUrl]);
 
-  if (!absolute) return fallback;
-  if (!protectedUrl) return absolute;
-  return cachedMediaUrl(protectedUrl) ?? (loaded?.url === protectedUrl ? loaded.objectUrl : fallback);
+  if (!absolute) return { src: fallback, failed: false };
+  if (!protectedUrl) return { src: absolute, failed: false };
+  const objectUrl = cachedMediaUrl(protectedUrl) ?? (loaded?.url === protectedUrl ? loaded.objectUrl : undefined);
+  return { src: objectUrl ?? fallback, failed: !objectUrl && failedUrl === protectedUrl };
 };
+
+export const useMediaSrc = (src: string | null | undefined, fallback?: string): string | undefined => useMediaSource(src, fallback).src;
 
 // mediaFetch fetches media for code that needs the bytes (downloads, audio analysis): with the access token
 // for the API's media, as a plain request otherwise.

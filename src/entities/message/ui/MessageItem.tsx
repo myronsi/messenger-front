@@ -89,7 +89,7 @@ interface MessageItemProps {
   getFormattedDateLabel: (timestamp: string) => string;
   getMessageTime: (timestamp: string) => string;
   isOwnMessage: (message: Message) => boolean;
-  getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
+  getFileTypeConfig: (fileName: string) => FileTypeConfig;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
   setPlayingMessageId: (id: Id | null) => void;
@@ -228,7 +228,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <MessageContent
                   message={message}
                   isMobile={isMobile}
-                  translations={translations}
                   getFileTypeConfig={getFileTypeConfig}
                   isOwnMessage={isOwnMessage}
                   renderMessageContent={renderMessageContent}
