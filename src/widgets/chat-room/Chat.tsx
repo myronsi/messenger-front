@@ -24,6 +24,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const { translations } = useLanguage();
   const [userId, setUserId] = useState<Id | null>(null);
   const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<Id | null>(null);
+  // Opened from a search result: the first page is the one around that message.
+  const [focusMessageId] = useState(() => (messageJumpRequest?.chatId === chatId ? messageJumpRequest.messageId : null));
   const [presence, setPresence] = useState({
     is_online: !!interlocutorIsOnline,
     last_seen: interlocutorLastSeen || null,
@@ -66,7 +68,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     handleVoiceMessage, handleDeleteChat, getFormattedDateLabel, getMessageTime,
     renderMessageContent, chatRealtime,
   } = useChatRoomState({
-    isPreview, chatId, username, token, onBack, userId: userId || '', firstUnreadMessageId,
+    isPreview, chatId, username, token, onBack, userId: userId || '', firstUnreadMessageId, focusMessageId,
     previewModal,
     setPreviewModal,
     onPresenceUpdate: (update) => {
@@ -101,7 +103,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   }, [chatId, chatName]);
 
   useEffect(() => {
-    if (!messageJumpRequest || isPreview) return;
+    if (!messageJumpRequest || isPreview || messageJumpRequest.chatId !== chatId) return;
     jumpToSearchResult(messageJumpRequest.messageId);
   }, [isPreview, messageJumpRequest?.key]);
 

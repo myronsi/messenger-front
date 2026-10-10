@@ -22,7 +22,8 @@ export const useChat = (
   onBack: () => void,
   currentUserId: Id = '',
   firstUnreadMessageId?: Id | null,
-  onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void
+  onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void,
+  focusMessageId?: Id | null,
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: Id; isMine: boolean } | null>(null);
@@ -48,10 +49,11 @@ export const useChat = (
     loadOlderMessages,
     loadNewerMessages,
     loadLatestMessages,
+    ensureMessageLoaded,
     catchUpAfterReconnect,
     markMessagesRead,
   } = useMessageHistory({
-    chatId, token, username, firstUnreadMessageId, messages, setMessages,
+    chatId, token, username, firstUnreadMessageId, focusMessageId, messages, setMessages,
     currentUserIdRef, onBackRef, translationsRef, setModal,
   });
 
@@ -98,6 +100,7 @@ export const useChat = (
   const scrollToMessage = (messageId: Id) => {
     setHighlightedMessageId(messageId);
     setTimeout(() => setHighlightedMessageId(null), 6000);
+    void ensureMessageLoaded(messageId);
   };
 
   const getFormattedDateLabel = (timestamp: string): string => {

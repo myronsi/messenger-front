@@ -60,9 +60,16 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, autoScrollUntilRef,
   });
   const currentDate = useCurrentDateLabel({ messages, messageRefs, chatContainerRef, getFormattedDateLabel });
+  const stopFollowingBottom = useCallback(() => {
+    shouldStickToBottomRef.current = false;
+    autoScrollUntilRef.current = 0;
+    settleRef.current = null;
+    if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
+    scrollAnimationFrameRef.current = null;
+  }, []);
   useHighlightScroll({
-    targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, hasMoreMessages,
-    isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(),
+    targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, behavior: getScrollBehavior(),
+    onScrollToTarget: stopFollowingBottom,
   });
 
   useLayoutEffect(() => {

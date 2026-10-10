@@ -11,7 +11,7 @@ import type { ChatContextMenuState, ChatListModal, ChatsListComponentProps } fro
 // the WebSocket live-update connection, user-action handlers, and the
 // search-overlay animation into a single object consumed by the view.
 export function useChatListModel(props: ChatsListComponentProps) {
-  const { username, onChatOpen, activeChatId, activeChatName, onActiveChatUpdate, onChatDeleted } = props;
+  const { username, onChatOpen, onJumpToMessage, activeChatId, activeChatName, onActiveChatUpdate, onChatDeleted } = props;
 
   const [modal, setModal] = useState<ChatListModal | null>(null);
   const [chatContextMenu, setChatContextMenu] = useState<ChatContextMenuState | null>(null);
@@ -31,6 +31,7 @@ export function useChatListModel(props: ChatsListComponentProps) {
     username,
     activeChatId,
     onChatOpen,
+    onJumpToMessage,
     createChat,
     setChatPinned,
     markChatRead,

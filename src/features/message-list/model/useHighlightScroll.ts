@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef } from 'react';
+import { MutableRefObject, useLayoutEffect, useRef } from 'react';
 import { Message } from '@/entities/message';
 import type { Id } from '@/shared/lib/ids';
 
@@ -6,36 +6,32 @@ interface HighlightScrollOptions {
   targetId: Id | null;
   messages: Message[];
   messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
-  hasMoreMessages: boolean;
-  isLoadingOlderMessages: boolean;
-  onLoadOlderMessages?: () => Promise<void>;
   behavior: ScrollBehavior;
+  // Called right before the scroll, so the list stops following the bottom.
+  onScrollToTarget: () => void;
 }
 
-// Scrolls to a highlighted message once per request. If the message is not loaded yet, older pages are
-// loaded until it appears or there is nothing left to load.
-export const useHighlightScroll = ({
-  targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior,
-}: HighlightScrollOptions) => {
-  const requestRef = useRef<{ id: Id; done: boolean } | null>(null);
+// Scrolls to a highlighted message once per request, as soon as it is rendered. Loading it is the chat's job
+// (the history around the message, see ensureMessageLoaded). A message that had to be loaded first is shown
+// at once: a smooth scroll from the old position could pass the bottom of the new page and load newer pages.
+export const useHighlightScroll = ({ targetId, messages, messageRefs, behavior, onScrollToTarget }: HighlightScrollOptions) => {
+  const requestRef = useRef<{ id: Id; done: boolean; waited: boolean } | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!targetId) {
       requestRef.current = null;
       return;
     }
-    if (requestRef.current?.id !== targetId) requestRef.current = { id: targetId, done: false };
+    if (requestRef.current?.id !== targetId) requestRef.current = { id: targetId, done: false, waited: false };
     const request = requestRef.current;
-    if (request.done || messages.length === 0) return;
+    if (request.done) return;
     const element = messageRefs.current[targetId];
-    if (element) {
-      request.done = true;
-      element.scrollIntoView({ behavior, block: 'center' });
-    } else if (!hasMoreMessages || !onLoadOlderMessages) {
-      request.done = true;
-    } else if (!isLoadingOlderMessages) {
-      onLoadOlderMessages();
+    if (!element) {
+      request.waited = true;
+      return;
     }
-  }, [targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior]);
+    request.done = true;
+    onScrollToTarget();
+    element.scrollIntoView({ behavior: request.waited ? 'auto' : behavior, block: 'center' });
+  }, [targetId, messages, messageRefs, behavior, onScrollToTarget]);
 };
-

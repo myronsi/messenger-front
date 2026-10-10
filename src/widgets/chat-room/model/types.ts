@@ -1,4 +1,5 @@
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import type { MessageJumpRequest } from '@/entities/message';
 import { ModalState } from '@/entities/message';
 import type { Id } from '@/shared/lib/ids';
 
@@ -27,7 +28,7 @@ export interface ChatProps {
   setIsUserProfileOpen: (isOpen: boolean) => void;
   onOpenUserProfile?: (username: string) => void;
   searchRequestKey?: number;
-  messageJumpRequest?: { messageId: Id; key: number } | null;
+  messageJumpRequest?: MessageJumpRequest | null;
   directDraftDisabled?: boolean;
   directDraftReason?: 'self' | 'blocked' | 'privacy' | null;
   initialPendingApprovalRequest?: boolean;

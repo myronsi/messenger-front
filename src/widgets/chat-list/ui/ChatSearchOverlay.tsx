@@ -1,11 +1,15 @@
+import { useMemo } from 'react';
 import { newLocalId } from '@/shared/lib/ids';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { X } from 'lucide-react';
 import type { OneOnOneChatResponse } from '@/entities/chat';
+import type { Chat, MessageSearchHit } from '@/entities/message';
+import type { User } from '@/entities/user';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import SearchUsers from '../SearchUsers';
+import GlobalSearch from './GlobalSearch';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { ChatsListComponentProps } from '../model/types';
+import type { Id } from '@/shared/lib/ids';
 
 interface ChatSearchOverlayProps {
   visible: boolean;
@@ -15,12 +19,14 @@ interface ChatSearchOverlayProps {
   translations: Translations;
   username: string;
   oneOnOneChats: OneOnOneChatResponse['chats'];
+  chats: Chat[];
   onChatOpen: ChatsListComponentProps['onChatOpen'];
+  onOpenSearchHit: (hit: MessageSearchHit) => void;
   onClose: () => void;
   onCreated: () => void;
 }
 
-// Overlay that reveals the "search / start a chat" panel via an expanding
+// Overlay that reveals the search panel (people and messages) via an expanding
 // circle animation (geometry/state owned by useChatSearchOverlay).
 const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
   visible,
@@ -30,11 +36,40 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
   translations,
   username,
   oneOnOneChats,
+  chats,
   onChatOpen,
+  onOpenSearchHit,
   onClose,
-  onCreated,
 }) => {
+  const chatsById = useMemo(() => Object.fromEntries(chats.map((chat) => [chat.id, chat])) as Record<Id, Chat>, [chats]);
+
   if (!visible) return null;
+
+  // A person opens the chat with them, or a draft chat that is created with the first message.
+  const openUser = (user: User) => {
+    const existing = oneOnOneChats.find((chat) => (chat.interlocutor_name || '').toLowerCase() === user.username.toLowerCase());
+    if (existing) {
+      onChatOpen(
+        existing.id,
+        existing.interlocutor_name,
+        existing.interlocutor_deleted || false,
+        'one-on-one',
+        existing.interlocutor_display_name || existing.interlocutor_name,
+        existing.interlocutor_is_online,
+        existing.interlocutor_last_seen,
+        null,
+        resolveMediaUrl(existing.avatar_url, DEFAULT_AVATAR)
+      );
+    } else {
+      onChatOpen(newLocalId(), user.username, false, 'one-on-one');
+    }
+    onClose();
+  };
+
+  const openHit = (hit: MessageSearchHit) => {
+    onOpenSearchHit(hit);
+    onClose();
+  };
 
   return (
     <div className="absolute inset-0 z-50 pointer-events-auto overflow-hidden">
@@ -48,7 +83,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
             width: circleStyle.size,
             height: circleStyle.size,
           }}
-          className={`absolute rounded-full bg-white/90 transform transition-transform duration-300 ease-out ${
+          className={`absolute rounded-full bg-background/95 transform transition-transform duration-300 ease-out ${
             circleActive ? 'scale-100' : 'scale-0'
           }`}
         />
@@ -73,38 +108,13 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
             </button>
           </div>
         </div>
-        <SearchUsers
-          currentUsername={username}
+        <GlobalSearch
           translations={translations}
-          onCreated={() => { onCreated(); onClose(); }}
-          onClose={() => onClose()}
-          onOpenPreview={(previewUsername: string) => {
-            // If a one-on-one chat with this user already exists, open it instead of creating a preview
-            const existing = oneOnOneChats.find((c) => {
-              const name = (c.interlocutor_name || '').toLowerCase();
-              return name === previewUsername.toLowerCase();
-            });
-            if (existing) {
-              onChatOpen(
-                existing.id,
-                existing.interlocutor_name,
-                existing.interlocutor_deleted || false,
-                'one-on-one',
-                existing.interlocutor_display_name || existing.interlocutor_name,
-                existing.interlocutor_is_online,
-                existing.interlocutor_last_seen,
-                null,
-                resolveMediaUrl(existing.avatar_url, DEFAULT_AVATAR)
-              );
-              onClose();
-              return;
-            }
-
-            // open a temporary (fake) chat — real chat will be created when the first message is sent
-            const tempId = newLocalId();
-            onChatOpen(tempId, previewUsername, false, 'one-on-one');
-            onClose();
-          }}
+          currentUsername={username}
+          chatsById={chatsById}
+          onOpenUser={openUser}
+          onOpenMessage={openHit}
+          onClose={onClose}
         />
       </div>
     </div>

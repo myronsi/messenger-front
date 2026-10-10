@@ -31,6 +31,8 @@ export interface ChatsListComponentProps {
   activeChatName?: string;
   onActiveChatUpdate?: (chat: Chat) => void;
   onChatDeleted?: (chatId: Id) => void;
+  // Shows a message of a chat (a search result); the chat is opened first when it is not the active one.
+  onJumpToMessage?: (chatId: Id, messageId: Id) => void;
 }
 
 // WebSocket message interface

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { MessageJumpRequest } from '@/entities/message';
 import type { Message } from '@/entities/message';
 import type { Id } from '@/shared/lib/ids';
 
@@ -7,11 +8,14 @@ type ReactionMenuState = { message: Message; x: number; y: number; isClosing?: b
 
 interface UseGroupMessageMenusArgs {
   isOwnMessage: (message: Message) => boolean;
-  messageJumpRequest?: { messageId: Id; key: number } | null;
+  chatId: Id;
+  messageJumpRequest?: MessageJumpRequest | null;
+  // Loads the history around a message that is not loaded yet.
+  ensureMessageLoaded: (messageId: Id) => Promise<void>;
 }
 
 // Context/reaction menus plus message highlighting and "jump to message" behaviour of the group chat view.
-export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGroupMessageMenusArgs) => {
+export const useGroupMessageMenus = ({ isOwnMessage, chatId, messageJumpRequest, ensureMessageLoaded }: UseGroupMessageMenusArgs) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [reactionMenu, setReactionMenu] = useState<ReactionMenuState | null>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -56,7 +60,8 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
   const scrollToMessage = useCallback((messageId: Id) => {
     setHighlightedMessageId(messageId);
     setTimeout(() => setHighlightedMessageId(null), 6000);
-  }, []);
+    void ensureMessageLoaded(messageId);
+  }, [ensureMessageLoaded]);
 
   const jumpToSearchResult = useCallback((messageId: Id) => {
     const messageElement = messageRefs.current[messageId];
@@ -74,9 +79,9 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
 
   useEffect(() => {
     const request = messageJumpRequestRef.current;
-    if (!request) return;
+    if (!request || request.chatId !== chatId) return;
     jumpToSearchResult(request.messageId);
-  }, [jumpToSearchResult, messageJumpRequest?.key]);
+  }, [chatId, jumpToSearchResult, messageJumpRequest?.key]);
 
   return {
     contextMenu, setContextMenu, reactionMenu, setReactionMenu, isClosing,

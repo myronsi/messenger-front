@@ -35,6 +35,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     openUserProfile,
     closeUserProfile,
     jumpToCurrentChatMessage,
+    jumpToMessage,
     openDirectChatFromProfile,
     handleDirectChatCreated,
     backToChats,
@@ -154,6 +155,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                 <ChatsListComponentRTK
                   username={username}
                   onChatOpen={openChat}
+                  onJumpToMessage={jumpToMessage}
                   setIsProfileOpen={setIsProfileOpen}
                   activeChatId={currentChat?.id}
                   activeChatName={currentChat?.name}
@@ -189,6 +191,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                 <ChatsListComponentRTK
                   username={username}
                   onChatOpen={openChat}
+                  onJumpToMessage={jumpToMessage}
                   setIsProfileOpen={setIsProfileOpen}
                   activeChatId={currentChat?.id}
                   activeChatName={currentChat?.name}
