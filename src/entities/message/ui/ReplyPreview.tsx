@@ -3,6 +3,7 @@ import { Message } from '../model/types';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface ReplyPreviewProps {
   replyMessage: Message | undefined;
@@ -53,7 +54,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
     >
       {content.isImage && content.imageUrl && (
         <div className="w-8 h-8 flex-shrink-0">
-          <img 
+          <MediaImg 
             src={content.imageUrl} 
             alt="Reply preview" 
             className="w-full h-full object-cover rounded"

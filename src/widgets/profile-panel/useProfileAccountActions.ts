@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useDeleteAccountMutation } from '@/features/profile';
+import { useDeleteAccountMutation, useUpdateUserBioMutation, useUpdateUserMutation, useUploadAvatarMutation } from '@/features/profile';
 import { useLogoutMutation } from '@/features/auth';
-import { authFetch, endSession } from '@/shared/auth/session';
+import { endSession } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { apiErrorMessage } from '@/shared/lib/apiError';
 import type { User } from '@/entities/user';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 const BIO_MAX_LENGTH = 500;
 const normalizeDisplayName = (value: string) => value.trim().replace(/\s+/g, ' ');
 const isValidDisplayName = (value: string) => {
@@ -17,7 +17,7 @@ export interface ProfileModalState {
   type: 'logout' | 'deleteAccount' | 'blockUser' | 'success' | 'error';
   message: string;
   consequences?: string[];
-  onConfirm?: () => void;
+  onConfirm?: (password?: string) => void;
 }
 
 interface ProfileAccountActionsArgs {
@@ -27,21 +27,15 @@ interface ProfileAccountActionsArgs {
   onLogout: () => void;
 }
 
-const errorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null && 'data' in error) {
-    const data = error.data;
-    if (typeof data === 'object' && data !== null && 'detail' in data && typeof data.detail === 'string') {
-      return data.detail;
-    }
-  }
-  return fallback;
-};
+const errorMessage = (error: unknown, fallback: string) => apiErrorMessage(error, fallback);
 
 export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose, onLogout }: ProfileAccountActionsArgs) => {
   const { translations } = useLanguage();
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   const [deleteAccount, { isLoading: isDeletingAccount }] = useDeleteAccountMutation();
+  const [uploadAvatar] = useUploadAvatarMutation();
+  const [updateUserBio] = useUpdateUserBioMutation();
+  const [updateUser] = useUpdateUserMutation();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarCropUrl, setAvatarCropUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -70,10 +64,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     if (!userData) return;
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', croppedAvatarFile);
-      const response = await authFetch(`${BASE_URL}/auth/me/avatar`, { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Failed to upload avatar');
+      await uploadAvatar(croppedAvatarFile).unwrap();
       await refetchCurrentUser();
       setModal({ type: 'success', message: 'Avatar updated successfully' });
       if (avatarCropUrl) URL.revokeObjectURL(avatarCropUrl);
@@ -90,12 +81,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     if (!userData || newBio === bio) return;
     setIsUpdatingBio(true);
     try {
-      const response = await authFetch(`${BASE_URL}/auth/me/bio`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bio: newBio }),
-      });
-      if (!response.ok) throw new Error('Failed to update bio');
+      await updateUserBio({ bio: newBio }).unwrap();
       setBio(newBio);
       setModal({ type: 'success', message: 'Bio updated successfully' });
     } catch (error) {
@@ -114,12 +100,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     }
     setIsUpdatingDisplayName(true);
     try {
-      const response = await authFetch(`${BASE_URL}/auth/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ display_name: normalized }),
-      });
-      if (!response.ok) throw new Error('Failed to update display name');
+      await updateUser({ display_name: normalized }).unwrap();
       setDisplayName(normalized);
       setNewDisplayName(normalized);
       setModal({ type: 'success', message: 'Display name updated successfully' });
@@ -147,9 +128,10 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const handleDeleteAccount = () => setModal({
     type: 'deleteAccount',
     message: translations.deleteAccountConfirm,
-    onConfirm: async () => {
+    onConfirm: async (password?: string) => {
+      if (!password) return;
       try {
-        await deleteAccount().unwrap();
+        await deleteAccount({ password }).unwrap();
         endSession();
         onLogout();
       } catch (error) {

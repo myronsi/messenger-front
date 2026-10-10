@@ -6,6 +6,7 @@ import type { User } from '@/entities/user';
 import type { ProfileSettingsRow } from './ProfileSettingsRows';
 import ProfileSettingsRows from './ProfileSettingsRows';
 import AboutSection from './AboutSection';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface ProfileHomePageProps {
   username: string; userData: Pick<User, 'username' | 'created_at'>; avatarUrl: string; hasCustomAvatar: boolean;
@@ -42,14 +43,14 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
                   className="block rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   aria-label="View profile picture history"
                 >
-                  <img
+                  <MediaImg
                     src={avatarUrl}
                     alt={displayName}
                     className="h-28 w-28 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90"
                   />
                 </button>
               ) : (
-                <img
+                <MediaImg
                   src={avatarUrl}
                   alt={displayName}
                   className="h-28 w-28 rounded-full border border-gray-200 object-cover shadow-sm"
@@ -228,7 +229,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
                             onClick={() => handleBlockUser(contact.username)}
                             className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-white"
                           >
-                            <img src={getAvatarUrl(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
+                            <MediaImg src={getAvatarUrl(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-medium text-gray-900">{contact.display_name || contact.username}</span>
                               <span className="block truncate text-xs text-gray-500">@{contact.username}</span>

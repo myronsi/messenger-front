@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
+import { mediaFetch } from '@/shared/api/media';
 
 interface FileMessageProps {
   config: FileTypeConfig;
@@ -16,11 +17,7 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
   const handleDownload = async () => {
     try {
       const downloadUrl = fileUrl.includes('?') ? `${fileUrl}&download=1` : `${fileUrl}?download=1`;
-      const response = await fetch(downloadUrl, {
-        method: 'GET',
-        credentials: 'include',
-        headers: { Accept: '*/*' },
-      });
+      const response = await mediaFetch(downloadUrl, { headers: { Accept: '*/*' } });
       if (!response.ok) {
         throw new Error(`Failed to fetch file: ${response.statusText}`);
       }

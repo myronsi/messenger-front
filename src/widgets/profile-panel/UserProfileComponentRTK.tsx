@@ -120,10 +120,11 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     if (isCurrentUser || isBlockActionLoading) return;
     setActionError(null);
     try {
+      const target = userData?.id ? { id: userData.id } : { username };
       if (isBlocked) {
-        await unblockUser(username).unwrap();
+        await unblockUser(target).unwrap();
       } else {
-        await blockUser(username).unwrap();
+        await blockUser(target).unwrap();
       }
       setIsBlockConfirmOpen(false);
     } catch (caught) {
@@ -150,8 +151,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     const nextName = customNameInput.trim().replace(/\s+/g, ' ');
     setActionError(null);
     try {
-      const updatedUser = await updateContactDisplayName({ username, displayName: nextName || null }).unwrap();
-      setCustomNameInput(updatedUser.contact_display_name || '');
+      await updateContactDisplayName({ user: userData?.id ? { id: userData.id } : { username }, displayName: nextName || null }).unwrap();
+      setCustomNameInput(nextName);
       setIsEditingContactName(false);
     } catch (caught) {
       const error = asApiError(caught);

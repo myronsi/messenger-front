@@ -5,6 +5,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { UPLOAD_ACCEPT, validateUploadFile } from '@/shared/lib/uploadValidation';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
 import type { Id } from '@/shared/lib/ids';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface MessageInputProps {
   messageInput: string;
@@ -140,7 +141,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
                 const content = (replyTo || editingMessage)?.content;
                 if (typeof content === 'string') return <span className="text-sm text-foreground">{content}</span>;
                 if (content && 'file_type' in content && content.file_type.startsWith('image/')) {
-                  return <img src={content.file_url} alt={content.file_name} className="h-8 w-8 object-cover rounded" />;
+                  return <MediaImg src={content.file_url} alt={content.file_name} className="h-8 w-8 object-cover rounded" />;
                 }
                 if (content && 'file_name' in content) return <span className="text-sm text-foreground">{content.file_name}</span>;
                 return null;
@@ -163,7 +164,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
           <div className="motion-reply-in flex justify-start">
             <div className="flex max-w-[min(100%,24rem)] items-center gap-2 rounded-2xl border border-border/60 bg-background/55 px-2 py-2 shadow-lg shadow-foreground/10 backdrop-blur-2xl">
               {selectedFilePreviewUrl ? (
-                <img src={selectedFilePreviewUrl} alt={selectedFile.name} className="h-11 w-11 rounded-xl object-cover" />
+                <MediaImg src={selectedFilePreviewUrl} alt={selectedFile.name} className="h-11 w-11 rounded-xl object-cover" />
               ) : (
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent">
                   <FileIcon className="h-5 w-5" />

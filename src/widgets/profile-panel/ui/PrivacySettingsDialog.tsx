@@ -25,10 +25,11 @@ type PrivacySettingKey = Exclude<keyof PrivacySettings, 'privacy_exceptions'>;
 
 const exceptionKeys = ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'group_invites'] as const;
 const exceptionKeySet = new Set<PrivacyExceptionKey>(exceptionKeys);
-const avatarProfileVisibilityOptions = ['everyone', 'shared_chats', 'everyone_except', 'nobody_except'] as const;
-const presenceVisibilityOptions = ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except'] as const;
+// "contacts" is the contract's name for people you share a chat with; direct messages call it shared_chats.
+const avatarProfileVisibilityOptions = ['everyone', 'contacts', 'nobody', 'everyone_except', 'nobody_except'] as const;
+const presenceVisibilityOptions = ['everyone', 'contacts', 'nobody', 'everyone_except', 'nobody_except'] as const;
 const directMessageVisibilityOptions = ['everyone', 'shared_chats', 'wait_approval'] as const;
-const groupInviteVisibilityOptions = ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except', 'wait_approval'] as const;
+const groupInviteVisibilityOptions = ['everyone', 'contacts', 'nobody', 'everyone_except', 'nobody_except', 'wait_approval'] as const;
 const searchOptions = ['everyone', 'nobody'] as const;
 
 interface PrivacySettingsPanelProps {

@@ -14,6 +14,7 @@ import { Checkbox } from '@/shared/ui/checkbox';
 import { useGetBlockedUsersQuery } from '@/entities/user';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface ForwardMessageDialogProps {
   open: boolean;
@@ -164,7 +165,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
                       onClick={(event) => event.stopPropagation()}
                       onCheckedChange={() => toggleTarget(target.id)}
                     />
-                    <img src={target.avatarUrl} alt={target.name} className="h-9 w-9 rounded-full object-cover" />
+                    <MediaImg src={target.avatarUrl} alt={target.name} className="h-9 w-9 rounded-full object-cover" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{target.name}</span>
                       <span className="block truncate text-xs text-muted-foreground">{target.subtitle}</span>

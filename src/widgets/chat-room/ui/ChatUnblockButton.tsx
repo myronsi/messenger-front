@@ -15,7 +15,7 @@ const ChatUnblockButton: React.FC<ChatUnblockButtonProps> = ({ username, onError
   const handleUnblock = async () => {
     if (isLoading) return;
     try {
-      await unblockUser(username).unwrap();
+      await unblockUser({ username }).unwrap();
     } catch (caught) {
       const error = asApiError(caught);
       onError(error?.data?.detail || 'Failed to unblock user');

@@ -1,3 +1,4 @@
+import { mediaFetch } from '@/shared/api/media';
 export const formatAudioTime = (time: number | undefined): string => {
   if (!time || !Number.isFinite(time) || time < 0) return '0:00';
   const minutes = Math.floor(time / 60);
@@ -22,7 +23,7 @@ const createAudioContext = () => new (window.AudioContext || window.webkitAudioC
 export const analyzeAudio = async (url: string): Promise<{ duration: number; waveform: number[] }> => {
   const audioContext = createAudioContext();
   try {
-    const response = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'include' });
+    const response = await mediaFetch(url);
     if (!response.ok) throw new Error('Failed to fetch audio');
     const audioBuffer = await audioContext.decodeAudioData(await response.arrayBuffer());
     const channelData = audioBuffer.getChannelData(0);
@@ -61,7 +62,7 @@ export const isValidWaveform = (waveform: unknown): waveform is number[] => (
 export const getAudioDuration = async (url: string): Promise<number> => {
   const audioContext = createAudioContext();
   try {
-    const response = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'include' });
+    const response = await mediaFetch(url);
     if (!response.ok) throw new Error('Failed to fetch audio');
     const audioBuffer = await audioContext.decodeAudioData(await response.arrayBuffer());
     return audioBuffer.duration;

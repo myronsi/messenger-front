@@ -1,8 +1,10 @@
+import type { Id } from '@/shared/lib/ids';
 import React from 'react';
 import { CheckCircle2, ChevronDown, Loader2, Plus, X } from 'lucide-react';
 import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings } from '@/features/profile';
 import type { User } from '@/entities/user';
 import type { useLanguage } from '@/shared/contexts/LanguageContext';
+import MediaImg from '@/shared/ui/MediaImg';
 
 type PrivacyCandidate = Partial<Pick<User, 'id' | 'display_name' | 'avatar_url'>> & { username: string };
 type Translations = ReturnType<typeof useLanguage>['translations'];
@@ -15,7 +17,7 @@ interface Props {
   setActiveExceptionKey: React.Dispatch<React.SetStateAction<PrivacyExceptionKey | null>>;
   collapsedExceptionKeys: Record<PrivacyExceptionKey, boolean>;
   setCollapsedExceptionKeys: React.Dispatch<React.SetStateAction<Record<PrivacyExceptionKey, boolean>>>;
-  handleExceptionListChange: (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, usernames: string[]) => void;
+  handleExceptionListChange: (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, userIds: Id[]) => void;
   handleAddException: (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, username: string) => void;
   isUpdatingExceptions: boolean; isLookingUpUser: boolean; translations: Translations;
   getAvatarSrc: (avatarUrl?: string | null) => string;
@@ -48,7 +50,7 @@ const PrivacyExceptionEditor: React.FC<Props> = (props) => {
         onClick={() => handleAddException(key, effect, candidate.username)}
         className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <img src={getAvatarSrc(candidate.avatar_url)} alt={candidate.username} className="h-8 w-8 rounded-full object-cover" />
+        <MediaImg src={getAvatarSrc(candidate.avatar_url)} alt={candidate.username} className="h-8 w-8 rounded-full object-cover" />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{candidate.display_name || candidate.username}</span>
           <span className="block truncate text-xs text-muted-foreground">@{candidate.username}</span>
@@ -138,7 +140,7 @@ const PrivacyExceptionEditor: React.FC<Props> = (props) => {
                 <div className="flex flex-wrap gap-2">
                   {selectedUsers.map((user) => (
                     <span key={user.username} className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background py-1 pl-1 pr-2 text-xs">
-                      <img src={getAvatarSrc(user.avatar_url)} alt={user.username} className="h-6 w-6 rounded-full object-cover" />
+                      <MediaImg src={getAvatarSrc(user.avatar_url)} alt={user.username} className="h-6 w-6 rounded-full object-cover" />
                       <span className="max-w-36 truncate">@{user.username}</span>
                       <button
                         type="button"
@@ -146,7 +148,7 @@ const PrivacyExceptionEditor: React.FC<Props> = (props) => {
                         onClick={() => handleExceptionListChange(
                           key,
                           effect,
-                          selectedUsers.filter((selectedUser) => selectedUser.username !== user.username).map((selectedUser) => selectedUser.username),
+                          selectedUsers.filter((selectedUser) => selectedUser.id !== user.id).map((selectedUser) => selectedUser.id),
                         )}
                         className="rounded-full p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label={translations.remove || 'Remove'}

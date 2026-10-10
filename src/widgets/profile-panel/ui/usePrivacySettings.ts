@@ -1,3 +1,4 @@
+import type { Id } from '@/shared/lib/ids';
 import { asApiError } from '@/shared/lib/apiError';
 import { useEffect, useMemo, useState } from 'react';
 import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings, useGetCurrentUserQuery, useGetPrivacySettingsQuery, useUpdatePrivacyExceptionsMutation, useUpdatePrivacySettingsMutation } from '@/features/profile';
@@ -83,7 +84,7 @@ export const usePrivacySettings = (isActive: boolean) => {
   }, [currentUsername, dmChatsData?.chats]);
 
   const visibilityLabel = (value: string) => {
-    if (value === 'shared_chats') return translations.sharedChats || 'Shared chats';
+    if (value === 'shared_chats' || value === 'contacts') return translations.sharedChats || 'Shared chats';
     if (value === 'nobody') return translations.nobody || 'Nobody';
     if (value === 'everyone_except') return translations.everyoneExceptSelected || 'Everyone except selected';
     if (value === 'nobody_except') return translations.nobodyExceptSelected || 'Nobody except selected';
@@ -102,10 +103,10 @@ export const usePrivacySettings = (isActive: boolean) => {
     }
   };
 
-  const handleExceptionListChange = async (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, usernames: string[]) => {
+  const handleExceptionListChange = async (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, userIds: Id[]) => {
     setStatus(null);
     try {
-      await updatePrivacyExceptions({ settingKey: key, effect, usernames }).unwrap();
+      await updatePrivacyExceptions({ settingKey: key, effect, userIds }).unwrap();
       setStatus({ type: 'success', text: translations.saved || 'Saved' });
     } catch (caught) {
       const error = asApiError(caught);
@@ -121,8 +122,7 @@ export const usePrivacySettings = (isActive: boolean) => {
 
     try {
       const resolvedUser = await lookupUser(trimmedUsername).unwrap();
-      const nextUsernames = [...currentUsers.map((user) => user.username), resolvedUser.username];
-      await handleExceptionListChange(key, effect, nextUsernames);
+      await handleExceptionListChange(key, effect, [...currentUsers.map((user) => user.id), resolvedUser.id]);
       setExceptionDrafts((drafts) => ({ ...drafts, [key]: '' }));
       setDebouncedSearch('');
     } catch (caught) {

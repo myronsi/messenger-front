@@ -5,6 +5,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import GroupAvatarViewer from './GroupAvatarViewer';
 import type { GroupProfileConfirmState, GroupParticipant } from './GroupProfileTypes';
+import MediaImg from '@/shared/ui/MediaImg';
 
 type GroupProfileView = 'details' | 'participants' | 'search' | 'photos' | 'audios';
 type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };
@@ -92,7 +93,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                   className="mx-auto block rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   aria-label="View group picture"
                 >
-                  <img
+                  <MediaImg
                     src={currentGroupAvatar}
                     alt={currentGroupName}
                     className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"

@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel, roleTone } from './groupProfileHelpers';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface ContactSuggestion { username: string; display_name: string; avatar_url?: string | null; }
 interface Props {
@@ -31,7 +32,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
     return (
       <div key={participant.id} className="flex items-center gap-3 border-b border-gray-200 px-3 py-3 last:border-b-0">
         <button type="button" onClick={() => onOpenUserProfile(participant.username)} className="shrink-0 rounded-full">
-          <img src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-10 w-10 rounded-full object-cover" />
+          <MediaImg src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-10 w-10 rounded-full object-cover" />
         </button>
         <button type="button" onClick={() => onOpenUserProfile(participant.username)} className="min-w-0 flex-1 text-left">
           <div className="flex min-w-0 items-center gap-2">
@@ -109,7 +110,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
   const renderPendingInvite = (invite: GroupPendingInvite) => (
     <div key={`pending-${invite.request_id}`} className="flex items-center gap-3 border-b border-gray-200 bg-amber-50/50 px-3 py-3 last:border-b-0">
       <button type="button" onClick={() => onOpenUserProfile(invite.username)} className="shrink-0 rounded-full">
-        <img src={getAvatarSrc(invite.avatar_url)} alt={invite.username} className="h-10 w-10 rounded-full object-cover opacity-80" />
+        <MediaImg src={getAvatarSrc(invite.avatar_url)} alt={invite.username} className="h-10 w-10 rounded-full object-cover opacity-80" />
       </button>
       <button type="button" onClick={() => onOpenUserProfile(invite.username)} className="min-w-0 flex-1 text-left">
         <div className="truncate text-sm font-medium text-gray-900">{invite.display_name || invite.username}</div>
@@ -175,7 +176,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
                         onClick={() => onAddParticipant(contact.username)}
                         className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-white"
                       >
-                        <img src={getAvatarSrc(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
+                        <MediaImg src={getAvatarSrc(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium text-gray-900">{contact.display_name}</span>
                           <span className="block truncate text-xs text-gray-500">@{contact.username}</span>

@@ -6,6 +6,8 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 import type { Id } from '@/shared/lib/ids';
 import { isServerId } from '@/shared/lib/ids';
+import MediaImg from '@/shared/ui/MediaImg';
+import MediaAudio from '@/shared/ui/MediaAudio';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -173,7 +175,7 @@ export const ProfilePhotosPanel: React.FC<{
         <div className="space-y-3">
           {selectedPhoto && (
             <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-              <img src={selectedPhoto.url} alt={selectedPhoto.name} className="max-h-72 w-full bg-gray-100 object-contain" />
+              <MediaImg src={selectedPhoto.url} alt={selectedPhoto.name} className="max-h-72 w-full bg-gray-100 object-contain" />
             </div>
           )}
           <div className="grid grid-cols-3 gap-2">
@@ -187,7 +189,7 @@ export const ProfilePhotosPanel: React.FC<{
                 }`}
                 title={photo.name}
               >
-                <img src={photo.thumbnailUrl} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
+                <MediaImg src={photo.thumbnailUrl} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
               </button>
             ))}
           </div>
@@ -239,7 +241,7 @@ export const ProfileAudiosPanel: React.FC<{
                   </div>
                 </div>
               </div>
-              <audio controls preload="metadata" src={audio.url} className="h-9 w-full" />
+              <MediaAudio controls preload="metadata" src={audio.url} className="h-9 w-full" />
             </div>
           ))}
         </div>

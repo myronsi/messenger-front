@@ -4,6 +4,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel } from './groupProfileHelpers';
+import MediaImg from '@/shared/ui/MediaImg';
 
 interface Props {
   model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
@@ -22,7 +23,7 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({ model, canEdit, canDeleteGr
       <section className="rounded-lg border border-gray-200 bg-white p-3">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
-            <img src={currentGroupAvatar} alt={currentGroupName} className="h-16 w-16 rounded-full border border-gray-200 object-cover" />
+            <MediaImg src={currentGroupAvatar} alt={currentGroupName} className="h-16 w-16 rounded-full border border-gray-200 object-cover" />
             {canEdit && (
               <button
                 type="button"
