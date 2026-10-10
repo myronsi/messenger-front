@@ -44,7 +44,7 @@ export const useGroupChatScreen = ({
   const onBackRef = useLatest(onBack);
   const translationsRef = useLatest(rawTranslations as Translations);
   const currentUserIdRef = useLatest(currentUserId);
-  const transport = useChatTransport();
+  const transport = useChatTransport(chatId);
 
   const profilePanel = useGroupProfilePanel();
   const { isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime } = useGroupMessageHelpers({ username, language, currentUserId, groupDetails });
@@ -65,9 +65,9 @@ export const useGroupChatScreen = ({
   });
 
   useGroupChatSocket({
-    token, chatId, username, translations, transport, currentUserIdRef, translationsRef, onBackRef,
+    chatId, translations, transport, currentUserIdRef, translationsRef, onBackRef,
     applyGroupDetails, refreshGroupDetails, setMessages, setModal,
-    markMessageFailed: sender.markMessageFailed, markLatestPendingMessageFailed: sender.markLatestPendingMessageFailed,
+    markMessageFailed: sender.markMessageFailed,
     onReconnected: history.catchUpAfterReconnect,
   });
 
@@ -95,7 +95,7 @@ export const useGroupChatScreen = ({
   return {
     chatId, username, token, translations, onBack, firstUnreadMessageId,
     currentUserId, groupDetails, currentGroupAvatar, currentGroupName, getAvatarSrc,
-    messages, wsRef: transport.wsRef, isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime,
+    messages, chatRealtime: transport.realtime, isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime,
     loadOlderMessages: history.loadOlderMessages,
     hasMoreMessages: history.hasMoreMessages,
     isLoadingOlderMessages: history.isLoadingOlderMessages,
@@ -112,6 +112,7 @@ export const useGroupChatScreen = ({
     handleSendMessage: sender.handleSendMessage,
     handleResendMessage: sender.handleResendMessage,
     handleFileUpload: sender.handleFileUpload,
+    handleVoiceMessage: sender.handleVoiceMessage,
     createOptimisticUploadMessage: sender.createOptimisticUploadMessage,
     updateOptimisticUploadProgress: sender.updateOptimisticUploadProgress,
     markOptimisticUploadFailed: sender.markOptimisticUploadFailed,

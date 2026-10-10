@@ -1,6 +1,7 @@
 import type { Schema } from '@/shared/api/contract';
 import type { Id } from '@/shared/lib/ids';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { rememberUser } from '@/shared/lib/userDirectory';
 import type { ChatLastMessage, FileMessageContent, Message, ReactionInfo, ReadReceiptInfo } from './types';
 
 export type ApiMessage = Schema<'Message'>;
@@ -47,6 +48,7 @@ const toReadReceipts = (message: ApiMessage): ReadReceiptInfo[] => message.read_
 // toAppMessage maps the contract's Message to the message the list shows. The type is explicit in the
 // contract: a message is a file only if it has an attachment, never because its text looks like one.
 export const toAppMessage = (message: ApiMessage, currentUserId?: Id | null): Message => {
+  rememberUser(message.sender?.id, message.sender?.username);
   const isFile = (message.type === 'file' || message.type === 'voice') && message.attachment;
   return {
     id: message.id,

@@ -1,5 +1,6 @@
 import type { Schema } from '@/shared/api/contract';
 import { toUser } from '@/entities/user';
+import { rememberUser } from '@/shared/lib/userDirectory';
 import { toChatLastMessage } from '@/entities/message';
 import type { ApprovalRequest, GroupChatResponse, GroupRole, OneOnOneChatResponse, RawGroupDetails } from './types';
 
@@ -13,7 +14,12 @@ export type GroupChatItem = GroupChatResponse['groups'][number];
 const shownName = (user: Schema<'User'>) => user.contact_name?.trim() || user.display_name;
 
 // toDirectChatItem maps a direct chat of the contract to the item the chat list and the pickers use.
-export const toDirectChatItem = (chat: ApiChat): DirectChatItem => ({
+export const toDirectChatItem = (chat: ApiChat): DirectChatItem => {
+  rememberUser(chat.peer?.id, chat.peer?.username);
+  return mapDirectChat(chat);
+};
+
+const mapDirectChat = (chat: ApiChat): DirectChatItem => ({
   id: chat.id,
   interlocutor_id: chat.peer?.id,
   interlocutor_name: chat.peer?.username ?? chat.name,
@@ -45,6 +51,7 @@ const toRole = (role: string | null | undefined): GroupRole => (ROLES.includes(r
 
 // toGroupDetails maps the contract's Group to the details the group screens use.
 export const toGroupDetails = (group: ApiGroup): RawGroupDetails => {
+  group.members.forEach((member) => rememberUser(member.user.id, member.user.username));
   const owner = group.members.find((member) => member.user.id === group.owner_id);
   return {
     chat_id: group.id,

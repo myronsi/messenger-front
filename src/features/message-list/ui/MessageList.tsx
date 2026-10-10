@@ -1,3 +1,4 @@
+import type { ChatRealtime } from '@/shared/api/realtime';
 import React, { forwardRef, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
@@ -25,7 +26,7 @@ interface MessageListProps {
   renderMessageContent: (message: Message) => React.ReactNode;
   messageRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   onReplyClick: (messageId: Id) => void;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  chatRealtime: ChatRealtime;
   onOpenReactionMenu: (message: Message, e: React.MouseEvent) => void;
   tempHighlightedMessageId: Id | null;
   setTempHighlightedMessageId: (id: Id | null) => void;
@@ -64,7 +65,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     renderMessageContent,
     messageRefs,
     onReplyClick,
-    wsRef,
+    chatRealtime,
     tempHighlightedMessageId,
     setTempHighlightedMessageId,
     onLoadOlderMessages,
@@ -250,7 +251,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               onAvatarClick={stableOnAvatarClick}
               onReplyClick={stableOnReplyClick}
               setTempHighlightedMessageId={stableSetTempHighlightedMessageId}
-              wsRef={wsRef}
+              chatRealtime={chatRealtime}
               onOpenReadStatus={stableOnOpenReadStatus}
               onOpenReactionDetails={stableOnOpenReactionDetails}
               onResendMessage={hasResendHandler ? stableOnResendMessage : undefined}

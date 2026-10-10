@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image as ImageIcon, Loader2, Music, Search } from 'lucide-react';
 import type { ChatAudio, ChatPhoto, ChatSearchResult } from '../model/types';
@@ -9,12 +10,7 @@ import { isServerId } from '@/shared/lib/ids';
 import MediaImg from '@/shared/ui/MediaImg';
 import MediaAudio from '@/shared/ui/MediaAudio';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
-export const normalizeProfileMediaUrl = (mediaUrl: string) => {
-  if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://')) return mediaUrl;
-  return `${BASE_URL}${mediaUrl}`;
-};
+export const normalizeProfileMediaUrl = (mediaUrl: string) => resolveMediaUrl(mediaUrl, mediaUrl);
 
 export interface ProfilePhotoItem {
   id: Id;

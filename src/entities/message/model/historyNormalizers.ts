@@ -3,8 +3,6 @@ import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { compareIds, isLocalId, isServerId, type Id } from '@/shared/lib/ids';
 export type { MessageHistoryResponse } from './history';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
 const parseJsonArray = <T>(value: unknown, fallback: T[]): T[] => {
   if (Array.isArray(value)) return value as T[];
   if (typeof value !== 'string' || !value) return fallback;
@@ -27,11 +25,8 @@ const parseFileContent = (content: unknown) => {
   }
 };
 
-const normalizeAvatarUrl = (avatarUrl: unknown) => {
-  if (typeof avatarUrl !== 'string' || !avatarUrl) return DEFAULT_AVATAR;
-  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-  return `${BASE_URL}${avatarUrl}`;
-};
+// Avatars are API paths (MediaImg loads them with the token) or absolute URLs; both are kept as they are.
+const normalizeAvatarUrl = (avatarUrl: unknown) => (typeof avatarUrl === 'string' && avatarUrl ? avatarUrl : DEFAULT_AVATAR);
 
 // A history row as returned by the API: JSON columns may arrive as strings and optional fields may be missing.
 export type RawHistoryMessage = Omit<Message, 'type' | 'content' | 'reactions' | 'read_by' | 'reply_to' | 'avatar_url'> & {

@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { Message, ModalState } from '@/entities/message';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import { useChat } from './useChat';
@@ -30,7 +29,6 @@ export const useChatRoomState = ({
   setPreviewModal,
 }: ChatRoomStateOptions) => {
   const chatState = useChat(chatId, username, token, onBack, userId, firstUnreadMessageId, onPresenceUpdate);
-  const previewWebSocketRef = useRef<WebSocket | null>(null);
   if (!isPreview) return chatState;
 
   return {
@@ -62,6 +60,7 @@ export const useChatRoomState = ({
     handleSendMessage: () => {},
     handleResendMessage: (_message: Message) => {},
     handleFileUpload: async (_file: File) => {},
+    handleVoiceMessage: (_file: Blob, _fileName: string) => {},
     createOptimisticUploadMessage: (_file: Blob, _fileName: string, _fileType?: string, _caption?: string) => null,
     updateOptimisticUploadProgress: (_messageId: Id, _percent: number) => {},
     markOptimisticUploadFailed: (_messageId: Id, _errorMessage?: string) => {},
@@ -70,6 +69,5 @@ export const useChatRoomState = ({
     getFormattedDateLabel: (timestamp: string) => formatDateLabel(timestamp, 'en', new Date(), new Date()),
     getMessageTime: (timestamp: string) => formatTime(timestamp, 'en'),
     renderMessageContent: (message: Message) => typeof message.content === 'string' ? message.content : '',
-    wsRef: previewWebSocketRef,
   };
 };

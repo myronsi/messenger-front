@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import type { Id } from '@/shared/lib/ids';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 const OPUS_AUDIO_BITS_PER_SECOND = 48_000;
 const MIN_RECORDING_MS = 1000;
 const RECORDING_TOO_SHORT_MESSAGE = 'Recording was too short and was not sent. Tap the mic to start, then tap stop when you are done.';
@@ -23,10 +21,8 @@ interface VoiceRecorderOptions {
   chatId: Id;
   isDisabled: boolean;
   disableVoice: boolean;
-  onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => Id | null;
-  onVoiceUploadProgress?: (messageId: Id, percent: number) => void;
-  onVoiceUploadError?: (messageId: Id, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: Id) => void;
+  // Shows the voice message at once and uploads and sends it (the chat's sender).
+  onSendVoice?: (file: Blob, fileName: string) => void;
 }
 
 const getSupportedOpusMimeType = () => {
@@ -42,10 +38,7 @@ export const useVoiceRecorder = ({
   chatId,
   isDisabled,
   disableVoice,
-  onVoiceUploadStart,
-  onVoiceUploadProgress,
-  onVoiceUploadError,
-  onVoiceUploadComplete,
+  onSendVoice,
 }: VoiceRecorderOptions) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -108,29 +101,8 @@ export const useVoiceRecorder = ({
           return;
         }
 
-        const formData = new FormData();
-        const voiceFileName = getVoiceMessageFileName(audioBlob.type);
-        const optimisticMessageId = onVoiceUploadStart?.(audioBlob, voiceFileName, 'voice') ?? null;
-        formData.append('file', audioBlob, voiceFileName);
-        formData.append('chat_id', chatId.toString());
-        try {
-          await uploadWithProgress({
-            url: `${BASE_URL}/messages/vm`,
-            formData,
-            onProgress: (percent) => {
-              if (optimisticMessageId !== null) onVoiceUploadProgress?.(optimisticMessageId, percent);
-            },
-          });
-          if (optimisticMessageId !== null) onVoiceUploadComplete?.(optimisticMessageId);
-        } catch (error) {
-          console.error('Error sending voice message:', error);
-          if (optimisticMessageId !== null) {
-            onVoiceUploadError?.(optimisticMessageId, 'Failed to send voice message. Please try again.');
-          }
-          setErrorMessage('Failed to send voice message. Please try again.');
-        } finally {
-          releaseRecorder();
-        }
+        onSendVoice?.(audioBlob, getVoiceMessageFileName(audioBlob.type));
+        releaseRecorder();
       };
       mediaRecorder.start();
       session.startedAt = performance.now();

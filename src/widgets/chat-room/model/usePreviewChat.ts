@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react';
 import { useDraftState } from '@/shared/hooks/useDraftState';
 import { FileMessageContent, Message, ModalState } from '@/entities/message';
 import { useCreateChatMutation } from '@/entities/chat';
-import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { uploadAttachmentWithProgress } from '@/shared/api/attachments';
+import { bindChat } from '@/shared/api/realtime';
+import { realtime } from '@/shared/api/realtimeSession';
 import { getLocalUploadFileType } from '@/features/chat-core';
 import type { Id } from '@/shared/lib/ids';
 import { newLocalId } from '@/shared/lib/ids';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface PreviewChatOptions {
   chatId: Id;
@@ -186,17 +186,19 @@ export const usePreviewChat = ({
       if (response.approval_required || !response.chat_id) {
         throw new Error(translations.waitingForApproval || 'Waiting for user approval');
       }
-      optimisticMessageId = createPreviewUploadMessage(file, caption);
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('chat_id', response.chat_id.toString());
-      if (caption.trim()) formData.append('caption', caption.trim());
-      await uploadWithProgress({
-        url: `${BASE_URL}/messages/upload`,
-        formData,
-        onProgress: updatePreviewUploadProgress.bind(null, optimisticMessageId),
+      const localId = createPreviewUploadMessage(file, caption);
+      optimisticMessageId = localId;
+      const attachment = await uploadAttachmentWithProgress(file, {
+        purpose: 'message',
+        fileName: file.name,
+        onProgress: (percent) => updatePreviewUploadProgress(localId, percent),
       });
-      updatePreviewUploadProgress(optimisticMessageId, 99);
+      updatePreviewUploadProgress(localId, 99);
+      // The new chat's first message, under the optimistic copy's local id.
+      await bindChat(realtime, response.chat_id).request({
+        type: 'message',
+        data: { type: 'file', attachment_id: attachment.id, content: caption.trim() || null },
+      }, localId);
       onChatCreated?.(response.chat_id, chatName);
     } catch (error) {
       console.error('Failed to create chat/upload file:', error);

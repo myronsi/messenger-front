@@ -1,9 +1,7 @@
-import type { FileMessageContent, Message, ReactionInfo } from '@/entities/message';
-import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { toAppMessage, type ApiMessage, type Message, type ReactionInfo } from '@/entities/message';
 import { unescapeCurlyBraces } from './messageText';
-import type { NewMessageEvent } from './socketEvents';
 import type { Id } from '@/shared/lib/ids';
-import { isLocalId } from '@/shared/lib/ids';
+import { compareIds, isLocalId, isServerId } from '@/shared/lib/ids';
 
 export interface ReaderInfo {
   username?: string;
@@ -13,29 +11,10 @@ export interface ReaderInfo {
 
 const isSameSender = (a: Message, b: Message) => (!!a.sender_id && a.sender_id === b.sender_id) || a.sender === b.sender;
 
-export const buildMessageFromSocketEvent = (
-  event: NewMessageEvent,
-  context: { currentUserId: Id; username: string }
-): Message => ({
-  id: event.data.message_id,
-  client_temp_id: event.data.client_temp_id ?? null,
-  sender_id: event.sender_id,
-  is_own: context.currentUserId
-    ? event.sender_id === context.currentUserId
-    : String(event.sender_username || event.username || '').toLowerCase() === context.username.toLowerCase(),
+// buildIncomingMessage maps a message that arrived over the socket.
+export const buildIncomingMessage = (message: ApiMessage, currentUserId: Id): Message => ({
+  ...toAppMessage(message, currentUserId),
   is_live: true,
-  sender: event.username,
-  sender_username: event.sender_username || event.username,
-  content: event.type === 'file' ? event.data as FileMessageContent : (event.data.content ?? ''),
-  timestamp: event.timestamp,
-  avatar_url: resolveMediaUrl(event.avatar_url),
-  reply_to: event.data.reply_to || null,
-  is_deleted: event.is_deleted || false,
-  delivery_error: event.delivery_error || undefined,
-  forwarded_from: event.forwarded_from || null,
-  type: event.type,
-  reactions: event.reactions || [],
-  read_by: event.read_by || [],
 });
 
 // Inserts a message received from the server, replacing the optimistic copy (pending text or
@@ -48,7 +27,23 @@ export const mergeIncomingMessage = (
   const existingIndex = previous.findIndex((message) => message.id === incoming.id);
   if (existingIndex !== -1) {
     const copy = [...previous];
-    copy[existingIndex] = incoming;
+    const existing = copy[existingIndex];
+    copy[existingIndex] = { ...incoming, client_temp_id: existing.client_temp_id ?? incoming.client_temp_id, is_own: existing.is_own || incoming.is_own };
+    return copy;
+  }
+
+  // The server echoes the sender's client_temp_id: the optimistic copy (text or upload) is replaced in place.
+  const pendingIndex = incoming.client_temp_id
+    ? previous.findIndex((message) => isLocalId(message.id) && message.client_temp_id === incoming.client_temp_id)
+    : -1;
+  if (pendingIndex !== -1) {
+    const copy = [...previous];
+    const pending = copy[pendingIndex];
+    if (pending.local_object_url) {
+      window.setTimeout(() => URL.revokeObjectURL(pending.local_object_url as string), 1000);
+    }
+    onTempIdResolved?.(pending.id);
+    copy[pendingIndex] = { ...incoming, is_own: true };
     return copy;
   }
 
@@ -141,4 +136,25 @@ export const addReadReceipts = (
       }],
     };
   });
+};
+
+// addReadReceiptUpTo records that a user read everything up to and including messageId (the contract's read
+// marker): every message of someone else at or before it gets the receipt once.
+export const addReadReceiptUpTo = (previous: Message[], messageId: Id, readerUserId: Id, readAt: string): Message[] => {
+  if (!readerUserId || !isServerId(messageId)) return previous;
+  const ids = previous
+    .filter((message) => isServerId(message.id) && compareIds(message.id, messageId) <= 0 && message.sender_id !== readerUserId)
+    .map((message) => message.id);
+  return addReadReceipts(previous, ids, readerUserId, readAt);
+};
+
+// confirmSentMessage swaps an optimistic message's local id for the stored one (the ack of a send), unless the
+// message itself already arrived.
+export const confirmSentMessage = (previous: Message[], localId: Id, messageId: Id, createdAt: string): Message[] => {
+  if (previous.some((message) => message.id === messageId)) {
+    return previous.filter((message) => message.id !== localId);
+  }
+  return previous.map((message) => (message.id === localId
+    ? { ...message, id: messageId, timestamp: createdAt, upload_status: undefined, upload_progress: undefined, delivery_error: undefined }
+    : message));
 };

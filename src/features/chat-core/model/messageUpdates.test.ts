@@ -1,40 +1,56 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Message } from '@/entities/message';
+import type { ApiMessage, Message } from '@/entities/message';
 import {
+  addReadReceiptUpTo,
   addReadReceipts,
   addReaction,
   applyMessageEdit,
-  buildMessageFromSocketEvent,
+  buildIncomingMessage,
+  confirmSentMessage,
   mergeIncomingMessage,
   removeReaction,
 } from './messageUpdates';
-import type { NewMessageEvent } from './socketEvents';
 import { nid, tid } from '@/test/ids';
 
 const msg = (n: number, extra: Partial<Message> = {}): Message => ({
   id: tid(n), sender: 'alice', sender_id: '1', content: `m${n}`, timestamp: 't', type: 'message', read_by: [], ...extra,
 });
 
-const event = (extra: Partial<NewMessageEvent> = {}): NewMessageEvent => ({
-  type: 'message', data: { message_id: '10', content: 'hello' }, username: 'Alice', sender_id: '1', timestamp: 't', ...extra,
+const apiMessage = (extra: Partial<ApiMessage> = {}): ApiMessage => ({
+  id: '10', chat_id: '5', type: 'text', content: 'hello', attachment: null, reply_to: null, forwarded_from: null,
+  sender: { id: '1', username: 'alice', display_name: 'Alice', avatar_url: null, bio: null, is_online: true, last_seen: null, is_deleted: false },
+  reactions: [], read_by: [], created_at: 't', edited_at: null, is_deleted: false, ...extra,
 });
 
-describe('buildMessageFromSocketEvent', () => {
-  it('maps a text event and marks it own by user id', () => {
-    const result = buildMessageFromSocketEvent(event(), { currentUserId: '1', username: 'alice' });
-    expect(result).toMatchObject({ id: '10', content: 'hello', is_own: true, is_live: true, reply_to: null, type: 'message' });
+describe('buildIncomingMessage', () => {
+  it('maps a message from the socket and marks it own by user id', () => {
+    expect(buildIncomingMessage(apiMessage(), '1')).toMatchObject({ id: '10', content: 'hello', is_own: true, is_live: true, type: 'message' });
+    expect(buildIncomingMessage(apiMessage(), '2').is_own).toBe(false);
+  });
+});
+
+describe('replacing the optimistic copy', () => {
+  it('matches the echoed client_temp_id first', () => {
+    const onResolved = vi.fn();
+    const pending = msg(-5, { content: 'different text', client_temp_id: 'local-5' });
+    const result = mergeIncomingMessage([pending], msg(10, { content: 'hello', client_temp_id: 'local-5' }), onResolved);
+    expect(result.map((m) => nid(m.id))).toEqual([10]);
+    expect(onResolved).toHaveBeenCalledWith('local-5');
   });
 
-  it('falls back to comparing usernames without a user id', () => {
-    const result = buildMessageFromSocketEvent(event({ sender_id: undefined }), { currentUserId: '', username: 'ALICE' });
-    expect(result.is_own).toBe(true);
+  it('confirms a sent message by its ack, or drops the copy when the message arrived first', () => {
+    const pending = msg(-5);
+    expect(confirmSentMessage([pending], 'local-5', '99', 'later')[0]).toMatchObject({ id: '99', timestamp: 'later' });
+    expect(confirmSentMessage([msg(99), pending], 'local-5', '99', 'later').map((m) => m.id)).toEqual(['99']);
   });
+});
 
-  it('uses the whole data payload as content for file events', () => {
-    const data = { message_id: '11', file_url: '/f.png', file_name: 'f.png', file_type: 'image/png', file_size: 3 };
-    const result = buildMessageFromSocketEvent(event({ type: 'file', data }), { currentUserId: '2', username: 'bob' });
-    expect(result.content).toBe(data);
-    expect(result.is_own).toBe(false);
+describe('addReadReceiptUpTo', () => {
+  it('marks every message of others at or before the read message', () => {
+    const messages = [msg(1), msg(2), msg(3), msg(-4)];
+    const result = addReadReceiptUpTo(messages, '2', '7', 'at');
+    expect(result.map((m) => m.read_by.length)).toEqual([1, 1, 0, 0]);
+    expect(addReadReceiptUpTo(messages, '3', '1', 'at')).toEqual(messages);
   });
 });
 

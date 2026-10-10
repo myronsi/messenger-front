@@ -1,9 +1,9 @@
 import type { MessageHistoryResponse } from '@/entities/message';
 import { reconnectDelay } from '@/shared/api/reconnect';
+import { historyPath, toHistoryResponse } from '@/entities/message';
+import { apiUrl } from '@/shared/api/apiUrl';
 import { authFetch } from '@/shared/auth/session';
 import type { Id } from '@/shared/lib/ids';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL;
 const ATTEMPTS = 3;
 
 // Fetches the page after `afterId`, retrying a failed request with backoff.
@@ -17,9 +17,8 @@ export const fetchMissedMessages = async (
   for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
     if (!isCurrent()) return null;
     try {
-      const params = new URLSearchParams({ limit: String(limit), after_id: String(afterId) });
-      const response = await authFetch(`${BASE_URL}/messages/history/${chatId}?${params.toString()}`);
-      if (response.ok) return isCurrent() ? await response.json() : null;
+      const response = await authFetch(apiUrl(historyPath(chatId, { limit, after: afterId })));
+      if (response.ok) return isCurrent() ? toHistoryResponse(await response.json(), 'after') : null;
     } catch (error) {
       console.error('Error catching up on missed messages:', error);
     }

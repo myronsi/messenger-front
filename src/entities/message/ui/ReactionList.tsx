@@ -1,3 +1,4 @@
+import type { ChatRealtime } from '@/shared/api/realtime';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ReactionInfo } from '../model/types';
@@ -11,7 +12,7 @@ interface ReactionListProps {
   isMine: boolean;
   /** Image bubbles keep their time badge inside the image, so the strip overlaps the bubble less. */
   isImage?: boolean;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  chatRealtime: ChatRealtime;
   onOpenReactionDetails?: (reaction: string, reactions: ReactionInfo[]) => void;
 }
 
@@ -30,7 +31,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
   userId,
   isMine,
   isImage = false,
-  wsRef,
+  chatRealtime,
   onOpenReactionDetails,
 }) => {
   // Same ordering for one-on-one and group chats: count desc, then most recently added first.
@@ -121,17 +122,10 @@ const ReactionList: React.FC<ReactionListProps> = ({
     };
   }, [overflowOpen, closeOverflow]);
 
+  // Sent (or queued while reconnecting); the server's reaction event updates the list.
   const toggleReaction = (reaction: string) => {
-    const socket = wsRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
     const hasReaction = reactions.some((item) => item.user_id === userId && item.reaction === reaction);
-    socket.send(
-      JSON.stringify({
-        type: hasReaction ? 'reaction_remove' : 'reaction_add',
-        message_id: messageId,
-        reaction,
-      })
-    );
+    chatRealtime.send({ type: hasReaction ? 'reaction_remove' : 'reaction_add', data: { message_id: messageId, emoji: reaction } });
   };
 
   const detailHandlers = (group: ReactionGroup) => ({

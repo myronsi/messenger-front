@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Message, ModalState } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useDraftState } from '@/shared/hooks/useDraftState';
@@ -9,8 +9,9 @@ import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
 import {
   unescapeCurlyBraces, useChatSocket, useChatTransport, useLatest, useMessageEvents, useMessageHistory, useMessageSender,
-  type ServerEvent,
 } from '@/features/chat-core';
+import { useRealtimeEvents } from '@/shared/api/realtimeSession';
+import { usernameOf } from '@/shared/lib/userDirectory';
 import { createDeleteChatAction } from './useChatActions';
 import type { Id } from '@/shared/lib/ids';
 
@@ -36,8 +37,7 @@ export const useChat = (
   const translationsRef = useLatest(translations);
   const currentUserIdRef = useLatest(currentUserId);
   const presenceUpdateRef = useLatest(onPresenceUpdate);
-  const transport = useChatTransport();
-  const { wsRef } = transport;
+  const transport = useChatTransport(chatId);
 
   const {
     isLoadingInitialMessages,
@@ -57,7 +57,6 @@ export const useChat = (
 
   const {
     markMessageFailed,
-    markLatestPendingMessageFailed,
     createOptimisticUploadMessage,
     updateOptimisticUploadProgress,
     markOptimisticUploadFailed,
@@ -65,6 +64,7 @@ export const useChat = (
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,
+    handleVoiceMessage,
   } = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport,
     setMessages, setModal, messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
@@ -72,23 +72,25 @@ export const useChat = (
 
   const handleDeleteChat = createDeleteChatAction({ chatId, translations, onBack, setModal });
 
-  const handleExtraEvent = useCallback((event: ServerEvent) => {
-    if (event.type === 'presence_update' && event.username) {
-      presenceUpdateRef.current?.({
-        username: event.username,
-        is_online: !!event.is_online,
-        last_seen: event.last_seen || null,
-      });
-    }
-  }, [presenceUpdateRef]);
+  // Presence is connection-wide and names users by id.
+  useRealtimeEvents((event) => {
+    if (event.type !== 'presence') return;
+    const presenceUsername = usernameOf(event.data.user_id);
+    if (!presenceUsername) return;
+    presenceUpdateRef.current?.({
+      username: presenceUsername,
+      is_online: event.data.is_online,
+      last_seen: event.data.last_seen,
+    });
+  });
 
   const handleSocketEvent = useMessageEvents({
-    chatId, username, transport, currentUserIdRef, translationsRef, onBackRef, setMessages, setModal,
-    markMessageFailed, markLatestPendingMessageFailed, chatDeletedKey: 'chatDeleted', onExtraEvent: handleExtraEvent,
+    chatId, transport, currentUserIdRef, translationsRef, onBackRef, setMessages, setModal,
+    markMessageFailed, chatDeletedKey: 'chatDeleted',
   });
 
   useChatSocket({
-    chatId, token, transport, onEvent: handleSocketEvent,
+    chatId, onEvent: handleSocketEvent,
     onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
     onReconnected: catchUpAfterReconnect,
   });
@@ -144,6 +146,7 @@ export const useChat = (
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,
+    handleVoiceMessage,
     createOptimisticUploadMessage,
     updateOptimisticUploadProgress,
     markOptimisticUploadFailed,
@@ -152,6 +155,6 @@ export const useChat = (
     getFormattedDateLabel,
     getMessageTime,
     renderMessageContent,
-    wsRef,
+    chatRealtime: transport.realtime,
   };
 };

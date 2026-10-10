@@ -63,9 +63,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     highlightedMessageId, isLoadingInitialMessages, isLoadingOlderMessages, isLoadingNewerMessages,
     hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages,
     markMessagesRead, handleSendMessage, handleResendMessage, handleFileUpload,
-    createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
-    settleOptimisticUpload, handleDeleteChat, getFormattedDateLabel, getMessageTime,
-    renderMessageContent, wsRef,
+    handleVoiceMessage, handleDeleteChat, getFormattedDateLabel, getMessageTime,
+    renderMessageContent, chatRealtime,
   } = useChatRoomState({
     isPreview, chatId, username, token, onBack, userId: userId || '', firstUnreadMessageId,
     previewModal,
@@ -190,7 +189,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           messageRefs={messageRefs}
           onReplyClick={scrollToMessage}
           userId={userId || ''}
-          wsRef={wsRef}
+          chatRealtime={chatRealtime}
           onOpenReactionMenu={onOpenReactionMenu}
           tempHighlightedMessageId={tempHighlightedMessageId}
           setTempHighlightedMessageId={setTempHighlightedMessageId}
@@ -231,10 +230,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
             disableVoice={isPreview}
             isSending={isPreview && isCreatingPreviewChat}
             disabled={isPreview && hasPendingApprovalRequest}
-            onVoiceUploadStart={createOptimisticUploadMessage}
-            onVoiceUploadProgress={updateOptimisticUploadProgress}
-            onVoiceUploadError={markOptimisticUploadFailed}
-            onVoiceUploadComplete={settleOptimisticUpload}
+            onSendVoice={handleVoiceMessage}
           />
         </div>
       )}
@@ -259,7 +255,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         chatId={chatId}
         userId={userId}
         isClosing={isClosing}
-        wsRef={wsRef}
+        chatRealtime={chatRealtime}
         setContextMenu={setContextMenu}
         setReactionMenu={setReactionMenu}
         setEditingMessage={setEditingMessage}

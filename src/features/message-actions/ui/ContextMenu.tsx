@@ -1,6 +1,7 @@
+import type { ChatRealtime } from '@/shared/api/realtime';
 import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
-import { useDeleteMessageForMeMutation } from '@/entities/message';
+import { useDeleteMessageMutation } from '@/entities/message';
 import { notifyMessageDeletedLocally } from '@/entities/message';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -17,7 +18,7 @@ interface ContextMenuProps {
   setMessageInput: (value: string) => void;
   setReplyTo: (message: Message | null) => void;
   setModal: (modal: ModalState | null) => void;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  chatRealtime: ChatRealtime;
   isClosing: boolean;
   onClose: () => void;
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean } | null;
@@ -37,7 +38,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     setMessageInput,
     setReplyTo,
     setModal,
-    wsRef,
+    chatRealtime,
     isClosing,
     onClose,
     reactionMenu,
@@ -47,7 +48,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     onForward,
   }, ref) => {
     const { translations } = useLanguage();
-    const [deleteMessageForMe] = useDeleteMessageForMeMutation();
+    const [deleteMessage] = useDeleteMessageMutation();
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (ref && 'current' in ref && ref.current && !ref.current.contains(event.target as Node)) {
@@ -122,7 +123,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         messageId,
         onDeleteForMe: async () => {
           try {
-            await deleteMessageForMe(messageId).unwrap();
+            await deleteMessage({ id: messageId, scope: 'me' }).unwrap();
             notifyMessageDeletedLocally(chatId, messageId);
           } catch (error) {
             console.error('Failed to delete message for me:', error);
@@ -131,14 +132,9 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
           }
           finish();
         },
-        onDeleteForAll: () => {
-          const socket = wsRef.current;
-          if (!socket || socket.readyState !== WebSocket.OPEN) {
-            showError();
-            return;
-          }
+        onDeleteForAll: async () => {
           try {
-            socket.send(JSON.stringify({ type: 'delete', message_id: messageId }));
+            await chatRealtime.request({ type: 'delete', data: { message_id: messageId, scope: 'everyone' } });
           } catch (error) {
             console.error('Failed to delete message for everyone:', error);
             showError();

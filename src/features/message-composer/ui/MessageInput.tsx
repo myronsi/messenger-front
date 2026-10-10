@@ -20,10 +20,7 @@ interface MessageInputProps {
   disableVoice?: boolean;
   isSending?: boolean;
   disabled?: boolean;
-  onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => Id | null;
-  onVoiceUploadProgress?: (messageId: Id, percent: number) => void;
-  onVoiceUploadError?: (messageId: Id, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: Id) => void;
+  onSendVoice?: (file: Blob, fileName: string) => void;
 }
 
 const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
@@ -38,10 +35,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
   disableVoice = false,
   isSending = false,
   disabled = false,
-  onVoiceUploadStart,
-  onVoiceUploadProgress,
-  onVoiceUploadError,
-  onVoiceUploadComplete,
+  onSendVoice,
 }, ref) => {
   const { translations } = useLanguage();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -63,10 +57,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
     chatId,
     isDisabled,
     disableVoice,
-    onVoiceUploadStart,
-    onVoiceUploadProgress,
-    onVoiceUploadError,
-    onVoiceUploadComplete,
+    onSendVoice,
   });
 
   const setInputNode = (node: HTMLInputElement | null) => {
