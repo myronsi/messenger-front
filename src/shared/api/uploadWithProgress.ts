@@ -6,11 +6,24 @@ interface UploadWithProgressOptions {
   url: string;
   formData: FormData;
   onProgress?: (percent: number) => void;
+  // Aborting cancels the upload; the promise rejects with an AbortError.
+  signal?: AbortSignal;
 }
 
-const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithProgressOptions, token: string | null): Promise<T> => (
+const abortError = () => new DOMException('Upload cancelled', 'AbortError');
+
+export const isAbortError = (error: unknown) => error instanceof DOMException && error.name === 'AbortError';
+
+const sendUploadRequest = async <T>({ url, formData, onProgress, signal }: UploadWithProgressOptions, token: string | null): Promise<T> => (
   new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError());
+      return;
+    }
     const xhr = new XMLHttpRequest();
+    const onAbort = () => xhr.abort();
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const settle = () => signal?.removeEventListener('abort', onAbort);
 
     xhr.open('POST', url);
     applyClientVersionToXhr(xhr);
@@ -25,6 +38,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithPro
     };
 
     xhr.onload = () => {
+      settle();
       const body = xhr.responseText;
       let parsedBody: unknown = body;
       if (body) {
@@ -45,8 +59,14 @@ const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithPro
       reject({ status: xhr.status, body: parsedBody });
     };
 
-    xhr.onerror = () => reject(new Error('Upload failed'));
-    xhr.onabort = () => reject(new Error('Upload cancelled'));
+    xhr.onerror = () => {
+      settle();
+      reject(new Error('Upload failed'));
+    };
+    xhr.onabort = () => {
+      settle();
+      reject(abortError());
+    };
     xhr.send(formData);
   })
 );

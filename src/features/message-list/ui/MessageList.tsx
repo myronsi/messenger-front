@@ -43,6 +43,7 @@ interface MessageListProps {
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
   onResendMessage?: (message: Message) => void;
+  onCancelUpload?: (messageId: Id) => void;
   scrollToBottomKey?: string | number;
   onScrollStart?: () => void;
 }
@@ -84,6 +85,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const onOpenReadStatus = props.onOpenReadStatus;
   const onOpenReactionDetails = props.onOpenReactionDetails;
   const onResendMessage = props.onResendMessage;
+  const onCancelUpload = props.onCancelUpload;
   const scrollToBottomKey = props.scrollToBottomKey;
   const onScrollStart = props.onScrollStart;
   const onMarkMessagesRead = props.onMarkMessagesRead;
@@ -166,6 +168,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   );
   const stableOnResendMessage = useStableCallback((message: Message) => onResendMessage?.(message));
   const hasResendHandler = !!onResendMessage;
+  const stableOnCancelUpload = useStableCallback((messageId: Id) => onCancelUpload?.(messageId));
 
   const messagesById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
 
@@ -255,6 +258,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               onOpenReadStatus={stableOnOpenReadStatus}
               onOpenReactionDetails={stableOnOpenReactionDetails}
               onResendMessage={hasResendHandler ? stableOnResendMessage : undefined}
+              onCancelUpload={onCancelUpload ? stableOnCancelUpload : undefined}
             />
           );
         })}

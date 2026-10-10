@@ -1,11 +1,9 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { MutableRefObject } from 'react';
-import type { FileMessageContent, Message } from '@/entities/message';
+import type { Message } from '@/entities/message';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import { uploadAttachmentWithProgress } from '@/shared/api/attachments';
 import { RealtimeError } from '@/shared/api/realtime';
-import { apiErrorCode } from '@/shared/lib/apiError';
-import { getLocalUploadFileType } from './uploadFileType';
+import { useAttachmentUploads } from './useAttachmentUploads';
 import { confirmSentMessage } from './messageUpdates';
 import type { ChatTransport, SetMessages, ShowError } from './types';
 import type { Id } from '@/shared/lib/ids';
@@ -38,7 +36,7 @@ const isPrivacy = (code: string) => code === 'forbidden' || code === 'approval_r
 // itself arriving) swaps it for the stored id; an error marks it failed, and resending repeats the same
 // client_temp_id, so the server never stores it twice.
 export const useMessageSender = ({
-  username, currentUserId, currentUserIdRef, translations, translationsRef, transport, setMessages, setModal,
+  username, currentUserId, currentUserIdRef, translationsRef, transport, setMessages, setModal,
   messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
 }: MessageSenderOptions) => {
   const { realtime, pendingMessageIdsRef } = transport;
@@ -69,7 +67,7 @@ export const useMessageSender = ({
   };
 
   // Sends a message event under its local id and settles the optimistic copy with the answer.
-  const sendMessageEvent = (localId: Id, data: Parameters<typeof realtime.request>[0] & { type: 'message' }) => {
+  const sendMessageEvent = (localId: Id, data: Parameters<typeof realtime.request>[0] & { type: 'message' }, onDelivered?: () => void) => {
     if (!pendingMessageIdsRef.current.includes(localId)) pendingMessageIdsRef.current.push(localId);
     realtime.request(data, localId)
       .then((ack) => {
@@ -78,6 +76,7 @@ export const useMessageSender = ({
           const { message_id: messageId, created_at: createdAt } = ack;
           setMessages((previous) => confirmSentMessage(previous, localId, messageId, createdAt));
         }
+        onDelivered?.();
       })
       .catch((error: unknown) => {
         pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => id !== localId);
@@ -85,84 +84,9 @@ export const useMessageSender = ({
       });
   };
 
-  const createOptimisticUploadMessage = (
-    file: Blob,
-    fileName: string,
-    fileType = getLocalUploadFileType(fileName, file.type),
-    caption = ''
-  ) => {
-    const tempId = newLocalId();
-    const objectUrl = URL.createObjectURL(file);
-    const content: FileMessageContent = {
-      file_url: objectUrl,
-      file_name: fileName,
-      file_type: fileType,
-      file_size: file.size,
-      ...(caption.trim() ? { caption: caption.trim() } : {}),
-    };
-    const optimisticMessage: Message = {
-      id: tempId,
-      client_temp_id: tempId,
-      local_object_url: objectUrl,
-      upload_status: 'uploading',
-      upload_progress: 1,
-      sender_id: currentUserIdRef.current || currentUserId || undefined,
-      is_own: true,
-      sender: username,
-      sender_username: username,
-      content,
-      timestamp: new Date().toISOString(),
-      avatar_url: DEFAULT_AVATAR,
-      reply_to: null,
-      is_deleted: false,
-      type: 'file',
-      reactions: [],
-      read_by: [],
-    };
-    setMessages((previous) => [...previous, optimisticMessage]);
-    return tempId;
-  };
-
-  const updateOptimisticUploadProgress = (messageId: Id, percent: number) => {
-    setMessages((previous) => previous.map((message) => message.id === messageId
-      ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
-      : message));
-  };
-
-  const markOptimisticUploadFailed = (messageId: Id, errorMessage?: string) => {
-    setMessages((previous) => previous.map((message) => message.id === messageId
-      ? { ...message, upload_status: 'failed', delivery_error: errorMessage || translationsRef.current.errorLoading || 'Upload failed' }
-      : message));
-  };
-
-  const settleOptimisticUpload = (messageId: Id) => updateOptimisticUploadProgress(messageId, 99);
-
-  // Uploads a file as a message attachment and sends the message that references it. Voice messages are
-  // uploaded with kind "voice", so the server measures them.
-  const sendAttachment = async (localId: Id, file: Blob, fileName: string, options: { voice?: boolean; caption?: string } = {}) => {
-    try {
-      const attachment = await uploadAttachmentWithProgress(file, {
-        purpose: 'message',
-        kind: options.voice ? 'voice' : undefined,
-        fileName,
-        onProgress: (percent) => updateOptimisticUploadProgress(localId, percent),
-      });
-      settleOptimisticUpload(localId);
-      sendMessageEvent(localId, {
-        type: 'message',
-        data: {
-          type: options.voice ? 'voice' : 'file',
-          attachment_id: attachment.id,
-          content: options.caption?.trim() || null,
-        },
-      });
-      return true;
-    } catch (error) {
-      console.error('Upload failed:', apiErrorCode(error) ?? error);
-      markOptimisticUploadFailed(localId, translationsRef.current.errorLoading || 'Upload failed');
-      return false;
-    }
-  };
+  const uploads = useAttachmentUploads({
+    username, currentUserId, currentUserIdRef, translationsRef, setMessages, sendMessageEvent,
+  });
 
   const handleSendMessage = () => {
     if (!messageInput.trim()) return;
@@ -219,36 +143,18 @@ export const useMessageSender = ({
       return;
     }
     if (message.type === 'file') {
-      // An upload that failed has nothing to resend; the file must be chosen again.
-      markMessageFailed(message.id, translationsRef.current.errorLoading);
+      // The file is kept while its message is not stored; after a reload it must be chosen again.
+      if (!uploads.retryUpload(message.id)) markMessageFailed(message.id, translationsRef.current.errorLoading);
       return;
     }
     const content = typeof message.content === 'string' ? message.content : '';
     sendMessageEvent(message.id, { type: 'message', data: { type: 'text', content, reply_to: message.reply_to ?? null } });
   };
 
-  const handleVoiceMessage = (file: Blob, fileName: string) => {
-    const localId = createOptimisticUploadMessage(file, fileName, 'voice');
-    void sendAttachment(localId, file, fileName, { voice: true });
-  };
-
-  const handleFileUpload = async (file: File, caption = '') => {
-    if (!file) return;
-    const localId = createOptimisticUploadMessage(file, file.name, undefined, caption);
-    const sent = await sendAttachment(localId, file, file.name, { caption });
-    if (!sent) setModal({ type: 'error', message: translations.errorLoading });
-  };
-
   return {
+    ...uploads,
     markMessageFailed,
-    createOptimisticUploadMessage,
-    updateOptimisticUploadProgress,
-    markOptimisticUploadFailed,
-    settleOptimisticUpload,
-    sendAttachment,
     handleSendMessage,
     handleResendMessage,
-    handleFileUpload,
-    handleVoiceMessage,
   };
 };

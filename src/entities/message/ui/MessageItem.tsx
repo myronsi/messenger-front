@@ -6,11 +6,12 @@ import { isValidTimestamp } from '../model/messageListScrollUtils';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
 import MessageContent from './MessageContent';
+import MessageDeliveryActions from './MessageDeliveryActions';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import {
-  AlertCircle, Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
+  Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
   Clock7, Clock8, Clock9, Clock10, Clock11, Clock12,
 } from 'lucide-react';
 import type { Id } from '@/shared/lib/ids';
@@ -101,6 +102,7 @@ interface MessageItemProps {
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
   onResendMessage?: (message: Message) => void;
+  onCancelUpload?: (messageId: Id) => void;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -110,6 +112,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   renderMessageContent, isAudioPlaying, setPlayingMessageId,
   onMessageClick, onClick, onAvatarClick, onReplyClick,
   setTempHighlightedMessageId, chatRealtime, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
+  onCancelUpload,
 }) => {
   const isMine = isOwnMessage(message);
   const reducedMotion = prefersReducedMotion();
@@ -275,16 +278,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   )}
                 </div>
               )}
-              {message.delivery_error && (
-                <div className={`mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-snug ${isMine ? 'text-red-100' : 'text-red-600'}`}>
-                  <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                  <span>{message.delivery_error}</span>
-                  {isMine && onResendMessage && <button type="button" className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline" onClick={(event) => {
-                    event.stopPropagation();
-                    onResendMessage(message);
-                  }}>{translations.resend || 'Resend'}</button>}
-                </div>
-              )}
+              <MessageDeliveryActions
+                message={message} isMine={isMine} translations={translations} onResendMessage={onResendMessage} onCancelUpload={onCancelUpload}
+              />
             </div>
           </div>
         </div>

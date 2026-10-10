@@ -1,24 +1,45 @@
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+// Checks a file before it is uploaded, with the limits of the backend (media.DefaultLimits of
+// messenger-back), so a file that cannot be stored fails at once with a clear reason. The server still
+// decides: it detects the type from the content and answers 413 or 415 with its own reason.
 
-// Mirrors the extensions the backend accepts for the file picker (messenger-back /messages/upload).
-const ALLOWED_EXTENSIONS = [
-  'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif',
-  'mp4', 'mov', 'ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac',
-  'pdf', 'doc', 'docx', 'txt', 'pptx', 'zip',
-  'js', 'ts', 'py', 'java', 'cpp', 'html', 'css',
-] as const;
+const MB = 1024 * 1024;
 
-export const UPLOAD_ACCEPT = ALLOWED_EXTENSIONS.map((extension) => `.${extension}`).join(',');
+export type UploadKind = 'image' | 'audio' | 'video' | 'file';
 
-export type UploadValidationError = 'tooLarge' | 'unsupportedType';
-
-const getExtension = (fileName: string) => {
-  const dot = fileName.lastIndexOf('.');
-  return dot < 0 ? '' : fileName.slice(dot + 1).toLowerCase();
+export const UPLOAD_LIMITS: Record<UploadKind | 'avatar', number> = {
+  image: 20 * MB,
+  audio: 25 * MB,
+  video: 100 * MB,
+  file: 100 * MB,
+  avatar: 10 * MB,
 };
 
-export const validateUploadFile = (file: Pick<File, 'name' | 'size'>): UploadValidationError | null => {
-  if (!(ALLOWED_EXTENSIONS as readonly string[]).includes(getExtension(file.name))) return 'unsupportedType';
-  if (file.size > MAX_UPLOAD_BYTES) return 'tooLarge';
-  return null;
+// Avatars must be images the server can decode and resize.
+export const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
+export const AVATAR_ACCEPT = AVATAR_TYPES.join(',');
+
+export type UploadValidationError =
+  | { reason: 'empty' }
+  | { reason: 'tooLarge'; limitBytes: number }
+  | { reason: 'unsupportedType' };
+
+// The kind the server will most likely detect; any other file is stored as a plain file.
+export const uploadKindOf = (contentType: string): UploadKind => {
+  if (contentType.startsWith('image/')) return 'image';
+  if (contentType.startsWith('audio/')) return 'audio';
+  if (contentType.startsWith('video/')) return 'video';
+  return 'file';
 };
+
+export const validateUploadFile = (
+  file: Pick<File, 'size' | 'type'>,
+  purpose: 'message' | 'avatar' = 'message',
+): UploadValidationError | null => {
+  if (file.size === 0) return { reason: 'empty' };
+  if (purpose === 'avatar' && !(AVATAR_TYPES as readonly string[]).includes(file.type)) return { reason: 'unsupportedType' };
+  const limitBytes = purpose === 'avatar' ? UPLOAD_LIMITS.avatar : UPLOAD_LIMITS[uploadKindOf(file.type)];
+  return file.size > limitBytes ? { reason: 'tooLarge', limitBytes } : null;
+};
+
+// "20 MB", for messages about a limit.
+export const formatMegabytes = (bytes: number) => `${Math.round(bytes / MB)} MB`;

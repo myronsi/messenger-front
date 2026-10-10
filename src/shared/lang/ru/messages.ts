@@ -17,5 +17,7 @@ export const messages = {
   editing: "Редактирование",
   edited: "изменено",
   uploadUnsupportedType: "Этот тип файла не поддерживается.",
-  uploadFileTooLarge: "Файл слишком большой. Максимальный размер — 10 МБ.",
+  uploadFileTooLarge: "Файл {name} слишком большой. Максимум для такого файла — {size}.",
+  uploadFileEmpty: "Файл {name} пустой.",
+  cancelUpload: "Отменить загрузку",
 };

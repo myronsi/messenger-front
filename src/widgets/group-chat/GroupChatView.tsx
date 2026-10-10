@@ -26,7 +26,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      isLoadingInitialMessages, loadNewerMessages, loadLatestMessages, hasMoreNewerMessages,
      isLoadingNewerMessages, markMessagesRead, isOwnMessage, setReadStatusMessage, setReactionDetails, chatId,
      closeMenus, reactionMenu, messageInputRef, messageInput, setMessageInput, replyTo, editingMessage,
-     handleSendMessage, handleFileUpload, handleResendMessage, setReplyTo, setEditingMessage, token,
+     handleSendMessage, handleFilesUpload, cancelUpload, handleResendMessage, setReplyTo, setEditingMessage, token,
      handleVoiceMessage, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage,
      reactionMenuRef, setReactionMenu, renderGroupProfile, isGroupProfileClosing, requestCloseGroupProfile,
      groupForm, setGroupForm, participantInput, setParticipantInput, isSavingGroup, groupAvatarInputRef,
@@ -100,6 +100,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         isLoadingNewerMessages={isLoadingNewerMessages}
         onMarkMessagesRead={markMessagesRead}
         onResendMessage={handleResendMessage}
+        onCancelUpload={cancelUpload}
         hasMoreMessages={hasMoreMessages}
         isLoadingOlderMessages={isLoadingOlderMessages}
         isLoadingInitialMessages={isLoadingInitialMessages}
@@ -123,7 +124,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           replyTo={replyTo}
           editingMessage={editingMessage}
           onSendMessage={handleSendMessage}
-          onFileUpload={handleFileUpload}
+          onFilesUpload={handleFilesUpload}
           onCancelReplyOrEdit={() => {
             setReplyTo(null);
             setEditingMessage(null);

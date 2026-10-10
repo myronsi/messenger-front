@@ -66,7 +66,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     editingMessage, setEditingMessage, setSelectedUser, modal, setModal,
     highlightedMessageId, isLoadingInitialMessages, isLoadingOlderMessages, isLoadingNewerMessages,
     hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages,
-    markMessagesRead, handleSendMessage, handleResendMessage, handleFileUpload,
+    markMessagesRead, handleSendMessage, handleResendMessage, handleFilesUpload, cancelUpload,
     handleVoiceMessage, handleDeleteChat, getFormattedDateLabel, getMessageTime,
     renderMessageContent, chatRealtime,
   } = useChatRoomState({
@@ -221,6 +221,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           isLoadingNewerMessages={isLoadingNewerMessages}
           onMarkMessagesRead={markMessagesRead}
           onResendMessage={!isPreview ? handleResendMessage : undefined}
+          onCancelUpload={!isPreview ? cancelUpload : undefined}
           scrollToBottomKey={chatId}
           onScrollStart={onScrollStart}
         />
@@ -233,7 +234,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
             replyTo={replyTo}
             editingMessage={editingMessage}
             onSendMessage={isPreview ? handleSendMessagePreview : handleSendMessage}
-            onFileUpload={isPreview ? handleFileUploadPreview : handleFileUpload}
+            onFilesUpload={isPreview ? (files, caption) => { void handleFileUploadPreview(files[0], caption); } : handleFilesUpload}
+            multipleFiles={!isPreview}
             onCancelReplyOrEdit={() => {
               if (isPreview) {
                 setPreviewMessageInput('');
