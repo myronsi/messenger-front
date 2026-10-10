@@ -32,7 +32,7 @@ esac
 # The stack, its scripts and the migrations of that backend version.
 rm -rf "$DIR/src"
 mkdir -p "$DIR/src" "$APP"
-curl --fail --silent --show-error --location --retry 3 "https://codeload.github.com/${REPO}/tar.gz/${REF}" \
+curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location --retry 3 "https://codeload.github.com/${REPO}/tar.gz/${REF}" \
   | tar -xz -C "$DIR/src" --strip-components=1
 (cd "$DIR/src" && bash deploy/go/bundle.sh "$APP")
 
