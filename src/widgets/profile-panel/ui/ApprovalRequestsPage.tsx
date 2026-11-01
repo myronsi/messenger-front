@@ -1,3 +1,5 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import type { EntityId } from '@/shared/api/entityId';
 import React from 'react';
 import { Check, Inbox, MessageSquare, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -11,7 +13,7 @@ interface ApprovalRequestsPageProps {
   isApproving: boolean;
   isRejecting: boolean;
   onApprove: (request: ApprovalRequest) => void;
-  onReject: (requestId: number) => void;
+  onReject: (requestId: EntityId) => void;
   onBack: () => void;
   getMediaUrl: (path?: string | null, fallback?: string) => string;
 }
@@ -55,7 +57,7 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
               return (
                 <div key={request.id} className="rounded-lg border border-border bg-white p-3 shadow-sm">
                   <div className="flex gap-3">
-                    <img src={avatar} alt={subject} className="h-11 w-11 rounded-full object-cover" />
+                    <AuthenticatedImage src={avatar} alt={subject} className="h-11 w-11 rounded-full object-cover" />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium uppercase text-muted-foreground">{title}</div>
                       <div className="truncate text-sm font-semibold text-foreground">{subject}</div>

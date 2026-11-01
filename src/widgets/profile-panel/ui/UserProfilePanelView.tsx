@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import React from 'react';
 import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, ProfileAudioItem, ProfilePhotoItem } from '@/entities/message';
 import type { ProfilePanelView } from './UserProfilePanelContent';
@@ -8,8 +9,8 @@ interface UserProfilePanelViewProps {
   canShowSearch: boolean;
   canShowPhotos: boolean;
   canShowAudios: boolean;
-  chatId?: number;
-  onJumpToMessage?: (messageId: number) => void;
+  chatId?: EntityId;
+  onJumpToMessage?: (messageId: EntityId) => void;
   photos: ProfilePhotoItem[];
   audios: ProfileAudioItem[];
   isLoadingPhotos: boolean;

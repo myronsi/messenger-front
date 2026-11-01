@@ -1,14 +1,16 @@
+import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
-import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform } from '../model/audioMessageHelpers';
+import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform, normalizeWaveform } from '../model/audioMessageHelpers';
 
 interface AudioMessageProps {
   fileUrl: string;
-  messageId: number;
+  messageId: EntityId;
   duration?: number;
   waveform?: number[];
   isPlaying: boolean;
-  setPlayingMessageId: (id: number | null) => void;
+  setPlayingMessageId: (id: EntityId | null) => void;
 }
 
 const isUsableDuration = (value: number | undefined): value is number => !!value && Number.isFinite(value) && value > 0;
@@ -17,13 +19,15 @@ const isUsableDuration = (value: number | undefined): value is number => !!value
 // only knows which message is playing. Duration and waveform come from the API when present;
 // the audio file is fetched on first play (or just its metadata when the API has no duration).
 const AudioMessage: React.FC<AudioMessageProps> = ({
-  fileUrl,
+  fileUrl: sourceFileUrl,
   messageId,
   duration: metadataDuration,
   waveform: metadataWaveform,
   isPlaying,
   setPlayingMessageId,
 }) => {
+  const [mediaRequested, setMediaRequested] = useState(false);
+  const fileUrl = useAuthenticatedMedia(sourceFileUrl, undefined, mediaRequested) || '';
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(isUsableDuration(metadataDuration) ? metadataDuration : 0);
@@ -32,7 +36,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   const hasMetadataWaveform = isValidWaveform(metadataWaveform);
   const [analyzedWaveform, setAnalyzedWaveform] = useState<number[] | null>(null);
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
-  const waveform = hasMetadataWaveform ? metadataWaveform : analyzedWaveform ?? FALLBACK_WAVEFORM;
+  const waveform = normalizeWaveform(hasMetadataWaveform ? metadataWaveform : analyzedWaveform ?? FALLBACK_WAVEFORM);
   const isWaveformReady = hasMetadataWaveform || analyzedWaveform !== null;
   const isAnalyzingWaveform = !hasMetadataWaveform && hasStartedPlaying && analyzedWaveform === null;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -45,9 +49,14 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     const audio = audioRef.current;
     if (loadError || !audio) return;
     setHasStartedPlaying(true);
-    audio.play().catch(() => setPlayingMessageId(null));
+    setMediaRequested(true);
+    if (fileUrl) audio.play().catch(() => setPlayingMessageId(null));
     setPlayingMessageId(messageId);
   };
+
+  useEffect(() => {
+    if (fileUrl && isPlaying) void audioRef.current?.play().catch(() => setPlayingMessageId(null));
+  }, [fileUrl, isPlaying, setPlayingMessageId]);
 
   const pauseMessage = () => {
     audioRef.current?.pause();
@@ -112,7 +121,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   // Fallback only: without a stored waveform the file has to be downloaded and decoded,
   // so it is deferred until the user actually plays the message.
   useEffect(() => {
-    if (hasMetadataWaveform || !hasStartedPlaying) return;
+    if (hasMetadataWaveform || !hasStartedPlaying || !fileUrl) return;
     let isMounted = true;
     analyzeAudio(fileUrl)
       .then(({ duration: analyzedDuration, waveform: bars }) => {
@@ -143,7 +152,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
 
   return (
     <div
-      className="voice-message-player flex min-w-[220px] items-center gap-2"
+      className="voice-message-player flex w-[220px] max-w-full min-w-0 items-center gap-2"
       onClick={stopVoicePlayerPropagation}
       onContextMenu={stopVoicePlayerPropagation}
     >
@@ -162,7 +171,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
           onClick={stopVoicePlayerPropagation}
           disabled={loadError || !duration}
           aria-label="Seek voice message"
-          className="group flex h-9 w-full items-center gap-[2px] rounded-full px-0.5 disabled:cursor-default"
+          className="group flex h-9 w-full min-w-0 items-center gap-[2px] overflow-hidden rounded-full px-0.5 disabled:cursor-default"
         >
           {waveform.map((barHeight, index) => {
             const barProgress = ((index + 0.5) / waveform.length) * 100;
@@ -171,10 +180,11 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
             return (
               <span
                 key={`${messageId}-waveform-${index}`}
+                data-testid="waveform-bar"
                 className={`block flex-1 rounded-full transition-all duration-150 ${
                   isPlayed ? 'bg-current opacity-95' : 'bg-current opacity-35'
                 } ${isAnalyzingWaveform && !isWaveformReady ? 'animate-pulse' : ''}`}
-                style={{ height: `${Math.round(8 + barHeight * 24)}px` }}
+                style={{ height: `${Math.round(4 + barHeight * 24)}px` }}
               />
             );
           })}

@@ -1,5 +1,9 @@
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef } from 'react';
 import { trackWebSocket } from '@/shared/api/socketRegistry';
+import { adaptSocketSender, goServerEvent, isGoApi } from '@/shared/api/goSocket';
+import type { ServerEvent as GoServerEvent } from '@myronsi/messenger-api';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/shared/api/reconnect';
 import { handleHelloEvent } from '@/shared/api/serverHello';
@@ -10,7 +14,7 @@ import { parseServerEvent, type ServerEvent } from './socketEvents';
 export const RECONNECT_ATTEMPTS_BEFORE_ERROR = 5;
 
 interface ChatSocketOptions {
-  chatId: number;
+  chatId: EntityId;
   token: string;
   transport: ChatTransport;
   onEvent: (event: ServerEvent, socket: WebSocket) => void;
@@ -29,7 +33,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
   onConnectionFailedRef.current = onConnectionFailed;
   const onReconnectedRef = useRef(onReconnected);
   onReconnectedRef.current = onReconnected;
-  const openedChatIdRef = useRef<number | null>(null);
+  const openedChatIdRef = useRef<EntityId | null>(null);
   // Survives the effect re-runs caused by requestReconnect(), so a socket the server rejected stays closed.
   const rejectedRef = useRef(false);
   const isSignedIn = Boolean(token);
@@ -39,7 +43,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
   }, [chatId, isSignedIn]);
 
   useEffect(() => {
-    if (!isSignedIn || chatId <= 0 || rejectedRef.current) return undefined;
+    if (!isSignedIn || !isPersistedId(chatId) || rejectedRef.current) return undefined;
     let isMounted = true;
     let reconnectAttempts = 0;
     let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -86,7 +90,7 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
       try {
         const url = await getChatWebSocketUrl(chatId);
         if (!isMounted) return;
-        socket = trackWebSocket(new WebSocket(url));
+        socket = trackWebSocket(adaptSocketSender(new WebSocket(url), chatId));
       } catch (error) {
         console.error('Error creating WebSocket:', error);
         if (isMounted) scheduleReconnect();
@@ -107,7 +111,8 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
         reconnectAttempts = 0;
         flushQueue(socket);
         openedChatIdRef.current = chatId;
-        if (isReconnect) onReconnectedRef.current?.();
+        // Also close the gap between the initial history snapshot and subscription.
+        if (isReconnect || isGoApi()) onReconnectedRef.current?.();
       };
 
       socket.onmessage = (event) => {
@@ -120,6 +125,8 @@ export const useChatSocket = ({ chatId, token, transport, onEvent, onConnectionF
           return;
         }
         if (handleHelloEvent(raw)) return;
+        if (isGoApi()) raw = goServerEvent(raw as GoServerEvent, chatId);
+        if (!raw) return;
         const parsed = parseServerEvent(raw);
         if (!parsed) {
           console.error('Ignoring malformed chat event');

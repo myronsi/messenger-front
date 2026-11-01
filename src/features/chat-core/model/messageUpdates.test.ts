@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '@/entities/message';
 import {
@@ -10,7 +11,7 @@ import {
 } from './messageUpdates';
 import type { NewMessageEvent } from './socketEvents';
 
-const msg = (id: number, extra: Partial<Message> = {}): Message => ({
+const msg = (id: EntityId, extra: Partial<Message> = {}): Message => ({
   id, sender: 'alice', sender_id: 1, content: `m${id}`, timestamp: 't', type: 'message', read_by: [], ...extra,
 });
 

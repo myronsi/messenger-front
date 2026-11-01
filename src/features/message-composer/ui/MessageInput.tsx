@@ -1,3 +1,5 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import { File as FileIcon, Paperclip, Send, X, Mic, Square } from 'lucide-react';
 import { Message } from '@/entities/message';
@@ -13,15 +15,15 @@ interface MessageInputProps {
   onSendMessage: () => void;
   onFileUpload: (file: File, caption?: string) => void;
   onCancelReplyOrEdit: () => void;
-  chatId: number;
+  chatId: EntityId;
   token: string;
   disableVoice?: boolean;
   isSending?: boolean;
   disabled?: boolean;
   onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => number | null;
-  onVoiceUploadProgress?: (messageId: number, percent: number) => void;
-  onVoiceUploadError?: (messageId: number, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: number) => void;
+  onVoiceUploadProgress?: (messageId: EntityId, percent: number) => void;
+  onVoiceUploadError?: (messageId: EntityId, errorMessage?: string) => void;
+  onVoiceUploadComplete?: (messageId: EntityId) => void;
 }
 
 const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
@@ -139,7 +141,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
                 const content = (replyTo || editingMessage)?.content;
                 if (typeof content === 'string') return <span className="text-sm text-foreground">{content}</span>;
                 if (content && 'file_type' in content && content.file_type.startsWith('image/')) {
-                  return <img src={content.file_url} alt={content.file_name} className="h-8 w-8 object-cover rounded" />;
+                  return <AuthenticatedImage src={content.file_url} alt={content.file_name} className="h-8 w-8 object-cover rounded" />;
                 }
                 if (content && 'file_name' in content) return <span className="text-sm text-foreground">{content.file_name}</span>;
                 return null;
@@ -162,7 +164,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
           <div className="motion-reply-in flex justify-start">
             <div className="flex max-w-[min(100%,24rem)] items-center gap-2 rounded-2xl border border-border/60 bg-background/55 px-2 py-2 shadow-lg shadow-foreground/10 backdrop-blur-2xl">
               {selectedFilePreviewUrl ? (
-                <img src={selectedFilePreviewUrl} alt={selectedFile.name} className="h-11 w-11 rounded-xl object-cover" />
+                <AuthenticatedImage src={selectedFilePreviewUrl} alt={selectedFile.name} className="h-11 w-11 rounded-xl object-cover" />
               ) : (
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent">
                   <FileIcon className="h-5 w-5" />

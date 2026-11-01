@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { CheckCheck, Pin, PinOff } from 'lucide-react';
 import type { ChatContextMenuState } from '../model/types';
@@ -6,8 +7,8 @@ interface ChatContextMenuProps {
   menu: ChatContextMenuState | null;
   unreadCount: number;
   translations: Translations;
-  onMarkAsRead: (chatId: number) => void;
-  onTogglePinned: (chatId: number) => void;
+  onMarkAsRead: (chatId: EntityId) => void;
+  onTogglePinned: (chatId: EntityId) => void;
 }
 
 const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, translations, onMarkAsRead, onTogglePinned }) => {

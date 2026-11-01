@@ -1,3 +1,5 @@
+import { RecoveryKeySettings } from './RecoveryKeySettings';
+import { isGoApi } from '@/shared/api/goSocket';
 import React from 'react';
 import { AlertCircle, CheckCircle2, Loader2, Shield, Smartphone, Trash2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -22,6 +24,7 @@ interface SecuritySettingsPanelProps {
   isActive: boolean;
   onBack: () => void;
   onLoggedOut: () => void;
+  onDismissSafetyChange: (blocked: boolean) => void;
 }
 
 const shortDeviceLabel = (userAgent: string) => {
@@ -56,14 +59,14 @@ const sessionDurationOptions = [
   { value: 365, label: '1 year' },
 ];
 
-const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, onBack, onLoggedOut }) => {
+const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, onBack, onLoggedOut, onDismissSafetyChange }) => {
   const {
     translations, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions, isRevokingOthers,
     isChangingPassword, isSettingUp2fa, isConfirming2fa, isDisabling2fa, status, passwordForm,
     setPasswordForm, twoFactorSetup, twoFactorCode, setTwoFactorCode, recoveryCodes, disableForm,
     setDisableForm, isSessionDurationOpen, setIsSessionDurationOpen, handleChangePassword,
     handleStartTwoFactor, handleConfirmTwoFactor, handleDisableTwoFactor, handleRevokeSession,
-    handleUpdateSessionDuration, handleRevokeOtherSessions,
+    handleUpdateSessionDuration, handleRevokeOtherSessions, setupPassword, setSetupPassword,
   } = useSecuritySettings(isActive, onLoggedOut);
 
   return (
@@ -112,6 +115,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
       )}
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+        {isGoApi() && <RecoveryKeySettings onDismissSafetyChange={onDismissSafetyChange} />}
           <section className="rounded-lg border border-border p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium">
               <Shield className="h-4 w-4 text-muted-foreground" />
@@ -214,7 +218,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
 
           <section className="rounded-lg border border-border p-4">
             <div className="mb-3 text-sm font-medium">{translations.twoFactorAuthentication || 'Two-factor authentication'}</div>
-            {securitySettings?.two_factor_enabled ? (
+            {isLoadingSecurity ? <Loader2 className="h-4 w-4 animate-spin" /> : securitySettings?.two_factor_enabled ? (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{translations.twoFactorEnabled || 'Two-factor authentication is enabled.'}</p>
                 <input type="password" value={disableForm.password} onChange={(event) => setDisableForm((form) => ({ ...form, password: event.target.value }))} placeholder={translations.password || 'Password'} className="w-full rounded-md border border-input px-3 py-2 text-sm" />
@@ -235,9 +239,14 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
                 </button>
               </div>
             ) : (
-              <button type="button" onClick={handleStartTwoFactor} disabled={isSettingUp2fa} className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              <div className="space-y-2">
+              <input type="password" autoComplete="current-password" aria-label="Password for two-factor setup"
+                value={setupPassword} onChange={event => setSetupPassword(event.target.value)}
+                placeholder={translations.password || 'Password'} className="w-full rounded-md border border-input px-3 py-2 text-sm" />
+              <button type="button" onClick={handleStartTwoFactor} disabled={isSettingUp2fa || !setupPassword} className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
                 {isSettingUp2fa ? translations.loading || 'Loading...' : translations.enable || 'Enable'}
               </button>
+              </div>
             )}
 
             {recoveryCodes.length > 0 && (

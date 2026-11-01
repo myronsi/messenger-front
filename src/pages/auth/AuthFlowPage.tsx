@@ -1,3 +1,5 @@
+import { RecoveryKeyComponent } from '@/features/auth';
+import { isGoApi } from '@/shared/api/goSocket';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import {
   LoginComponent,
@@ -53,7 +55,7 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
               }
             />
             <Route path="/register" element={<RegisterComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin} />} />
-            <Route path="/recover-username" element={<UsernameRecoveryComponent onBackToLogin={handleBackToLogin} />} />
+            <Route path="/recover-username" element={isGoApi() ? <RecoveryKeyComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin} /> : <UsernameRecoveryComponent onBackToLogin={handleBackToLogin} />} />
             <Route path="/recover-parts" element={<PartsRecoveryComponent onBackToLogin={handleBackToLogin} />} />
             <Route path="/reset-password" element={<PasswordResetComponent onBackToLogin={handleBackToLogin} />} />
             <Route path="/" element={<Navigate to="/login" replace />} />

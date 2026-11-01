@@ -1,3 +1,7 @@
+import { compareIds } from '@/shared/api/entityId';
+const maxId = (a: EntityId, b: EntityId) => compareIds(a, b) > 0 ? a : b;
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import { getMediaSrc } from './types';
@@ -5,12 +9,12 @@ import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceM
 
 export interface ChatListWebSocketContext {
   usernameRef: MutableRefObject<string>;
-  activeChatIdRef: MutableRefObject<number | undefined>;
+  activeChatIdRef: MutableRefObject<EntityId | undefined>;
   activeChatNameRef: MutableRefObject<string | undefined>;
   onChatOpenRef: MutableRefObject<ChatsListComponentProps['onChatOpen']>;
-  onChatDeletedRef: MutableRefObject<((chatId: number) => void) | undefined>;
-  currentUserIdRef: MutableRefObject<number | undefined>;
-  chatsByIdRef: MutableRefObject<Record<number, Chat>>;
+  onChatDeletedRef: MutableRefObject<((chatId: EntityId) => void) | undefined>;
+  currentUserIdRef: MutableRefObject<EntityId | undefined>;
+  chatsByIdRef: MutableRefObject<Record<EntityId, Chat>>;
   refetchRef: MutableRefObject<() => void>;
   refetchRequestInboxRef: MutableRefObject<() => void>;
   setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>>;
@@ -48,7 +52,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
 
         if (
           typeof activeId === 'number' &&
-          activeId <= 0 &&
+          !isPersistedId(activeId) &&
           otherUsername &&
           activeName === otherUsername.toLowerCase()
         ) {
@@ -87,11 +91,11 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
           const existing = prev[chatId] || {};
           const baseChat = chatsByIdRef.current[chatId];
           const messageId = parsedData.last_message?.id;
-          const knownMessageId = Math.max(
+          const knownMessageId = maxId(
             existing.last_counted_message_id ?? 0,
             existing.last_message?.id ?? baseChat?.last_message?.id ?? 0,
           );
-          if (typeof messageId === 'number' && messageId <= knownMessageId) return prev;
+          if (messageId !== undefined && compareIds(messageId, knownMessageId) <= 0) return prev;
           const existingUnreadCount = existing.unread_count ?? baseChat?.unread_count ?? 0;
           const existingFirstUnreadId = existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null;
           const isOwnMessage = parsedData.sender_id === currentUserIdRef.current;
@@ -102,7 +106,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
             [chatId]: {
               ...existing,
               last_message: parsedData.last_message || null,
-              last_counted_message_id: typeof messageId === 'number' ? messageId : existing.last_counted_message_id,
+              last_counted_message_id: messageId !== undefined ? messageId : existing.last_counted_message_id,
               unread_count: isOwnMessage || parsedData.chat_id === activeChatIdRef.current ? existingUnreadCount : nextUnreadCount,
               first_unread_message_id: shouldCountUnread
                 ? existingFirstUnreadId || parsedData.last_message?.id || null
@@ -204,7 +208,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
     case 'edit':
       if (parsedData.message_id) {
         setChatOverrides((prev) => {
-          const updateLastMessage = (chatId: number, existing: ChatOverrideMap[number]) => {
+          const updateLastMessage = (chatId: EntityId, existing: ChatOverrideMap[number]) => {
             const baseChat = chatsByIdRef.current[chatId];
             const lastMessage = existing.last_message ?? baseChat?.last_message ?? null;
             if (!lastMessage || lastMessage.id !== parsedData.message_id) return existing;
@@ -232,7 +236,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
 
           const next = { ...prev };
           let changed = false;
-          const chatIds = new Set<number>([
+          const chatIds = new Set<EntityId>([
             ...Object.keys(chatsByIdRef.current).map(Number),
             ...Object.keys(prev).map(Number),
           ]);

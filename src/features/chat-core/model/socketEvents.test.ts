@@ -11,10 +11,15 @@ describe('parseServerEvent', () => {
     expect(parseServerEvent(raw)).toBe(raw);
   });
 
-  it.each(['message', 'file'])('rejects %s events without a numeric message_id', (type) => {
+  it.each(['message', 'file'])('rejects %s events without a valid message_id', (type) => {
     expect(parseServerEvent({ type, data: {} })).toBeNull();
-    expect(parseServerEvent({ type, data: { message_id: '7' } })).toBeNull();
+    expect(parseServerEvent({ type, data: { message_id: 'invalid' } })).toBeNull();
     expect(parseServerEvent({ type })).toBeNull();
+  });
+
+  it('accepts decimal string IDs without rounding', () => {
+    const raw = { type: 'message', data: { message_id: '9007199254740993' } };
+    expect(parseServerEvent(raw)).toBe(raw);
   });
 
   it('passes other known events through', () => {

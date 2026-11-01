@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useCallback, useRef, useState } from 'react';
 import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
@@ -23,6 +23,13 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   onClose, 
   onLogout 
 }, ref) => {
+  const dismissBlockedRef = useRef(false);
+  const [dismissBlocked, setDismissBlocked] = useState(false);
+  const onDismissSafetyChange = useCallback((blocked: boolean) => {
+    dismissBlockedRef.current = blocked;
+    setDismissBlocked(blocked);
+  }, []);
+  const safeClose = () => { if (!dismissBlockedRef.current) onClose(); };
   // RTK Query hooks
   const { 
     data: userData, 
@@ -39,7 +46,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleUpdateBio,
     handleUpdateDisplayName, handleLogout, handleDeleteAccount, handleClose, displayNameChanged,
     displayNameInvalid,
-  } = useProfileAccountActions({ userData, refetchCurrentUser, onClose, onLogout });
+  } = useProfileAccountActions({ userData, refetchCurrentUser, onClose: safeClose, onLogout });
   const handleCreateGroup = useCreateGroupFromProfile({ setIsGroupModalOpen, setModal });
   const panelData = useProfilePanelData({ username: userData?.username || username, setModal });
   const {
@@ -118,7 +125,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   return (
     <div
       onPointerDown={(e) => {
-        if (e.target === e.currentTarget) handleClose();
+        if (e.target === e.currentTarget && !dismissBlockedRef.current) handleClose();
       }}
       className={`fixed inset-0 z-[1000] flex items-stretch justify-stretch bg-white p-0 transition-opacity duration-200 sm:items-center sm:justify-center sm:bg-black/40 sm:px-4 sm:py-6 ${isVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
@@ -133,7 +140,8 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
             <h2 className="text-base font-semibold">{translations.profile}</h2>
           </div>
           <button
-            onClick={handleClose}
+            onClick={() => { if (!dismissBlockedRef.current) handleClose(); }}
+            disabled={dismissBlocked}
             className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
             aria-label="Close"
           >
@@ -192,8 +200,9 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
           >
             <SecuritySettingsPanel
               isActive={activeProfilePage === 'security'}
-              onBack={() => setActiveProfilePage('profile')}
+              onBack={() => { if (!dismissBlockedRef.current) setActiveProfilePage('profile'); }}
               onLoggedOut={onLogout}
+              onDismissSafetyChange={onDismissSafetyChange}
             />
           </div>
         </div>

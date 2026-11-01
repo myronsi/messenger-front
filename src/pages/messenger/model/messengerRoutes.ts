@@ -1,7 +1,8 @@
+import type { EntityId } from '@/shared/api/entityId';
 export const dmPath = (username: string) => `/dm/@${encodeURIComponent(username.replace(/^@/, ''))}`;
-export const dmChatPath = (chatId: number) => `/dm/${chatId}`;
+export const dmChatPath = (chatId: EntityId) => `/dm/${chatId}`;
 
-export const directChatPath = (chatId: number, username: string, interlocutorDeleted?: boolean) => (
+export const directChatPath = (chatId: EntityId, username: string, interlocutorDeleted?: boolean) => (
   interlocutorDeleted ? dmChatPath(chatId) : dmPath(username)
 );
 
@@ -11,7 +12,7 @@ export const parseDmIdentifier = (pathname: string) => {
   const decoded = decodeURIComponent(match[1]).trim();
   const normalized = decoded.replace(/^@/, '');
   if (/^\d+$/.test(normalized)) {
-    return { type: 'chatId' as const, value: Number(normalized) };
+    return { type: 'chatId' as const, value: normalized };
   }
   return { type: 'username' as const, value: normalized };
 };
@@ -23,7 +24,7 @@ export const parseProfileUsername = (pathname: string) => {
 };
 
 export interface CurrentChat {
-  id: number;
+  id: EntityId;
   name: string;
   displayName?: string;
   isOnline?: boolean;
@@ -31,7 +32,7 @@ export interface CurrentChat {
   avatarUrl?: string;
   interlocutorDeleted: boolean;
   type: 'one-on-one' | 'group';
-  firstUnreadMessageId?: number | null;
+  firstUnreadMessageId?: EntityId | null;
   directDraftDisabled?: boolean;
   directDraftReason?: 'self' | 'blocked' | 'privacy' | null;
   pendingApprovalRequest?: boolean;

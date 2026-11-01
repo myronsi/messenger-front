@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { Check, Loader2, Pencil, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -37,14 +38,14 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
               className="mx-auto block rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               aria-label="View profile picture history"
             >
-              <img
+              <AuthenticatedImage
                 src={avatarUrl}
                 alt={displayName}
                 className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
               />
             </button>
           ) : (
-            <img
+            <AuthenticatedImage
               src={avatarUrl}
               alt={displayName}
               className="mx-auto h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm md:h-20 md:w-20"

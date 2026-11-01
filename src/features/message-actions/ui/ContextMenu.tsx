@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
@@ -9,8 +10,8 @@ interface ContextMenuProps {
   contextMenu: ContextMenuState;
   messages: Message[];
   token: string;
-  chatId: number;
-  userId: number;
+  chatId: EntityId;
+  userId: EntityId;
   setContextMenu: (value: ContextMenuState | null) => void;
   setEditingMessage: (message: Message | null) => void;
   setMessageInput: (value: string) => void;

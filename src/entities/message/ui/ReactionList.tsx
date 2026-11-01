@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ReactionInfo } from '../model/types';
@@ -5,8 +6,8 @@ import { ReactionGroup, groupAndSortReactions, splitVisibleReactions } from '../
 
 interface ReactionListProps {
   reactions: ReactionInfo[];
-  messageId: number;
-  userId: number;
+  messageId: EntityId;
+  userId: EntityId;
   isMine: boolean;
   /** Image bubbles keep their time badge inside the image, so the strip overlaps the bubble less. */
   isImage?: boolean;

@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { asApiError } from '@/shared/lib/apiError';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useState } from 'react';
@@ -7,15 +8,15 @@ import type { ChatContextMenuState, ChatListModal, ChatOverrideMap, ChatsListCom
 
 interface UseChatListActionsParams {
   username: string;
-  activeChatId?: number;
+  activeChatId?: EntityId;
   onChatOpen: ChatsListComponentProps['onChatOpen'];
   createChat: (args: { user1: string; user2: string }) => { unwrap: () => Promise<unknown> };
-  setChatPinned: (args: { chatId: number; pinned: boolean }) => { unwrap: () => Promise<unknown> };
-  markChatRead: (args: { chatId: number; markAll: boolean }) => {
-    unwrap: () => Promise<{ unread_count: number; first_unread_message_id: number | null }>;
+  setChatPinned: (args: { chatId: EntityId; pinned: boolean }) => { unwrap: () => Promise<unknown> };
+  markChatRead: (args: { chatId: EntityId; markAll: boolean }) => {
+    unwrap: () => Promise<{ unread_count: number; first_unread_message_id: EntityId | null }>;
   };
   refetch: () => void;
-  chatsByIdRef: React.MutableRefObject<Record<number, Chat>>;
+  chatsByIdRef: React.MutableRefObject<Record<EntityId, Chat>>;
   setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>>;
   setChatContextMenu: Dispatch<SetStateAction<ChatContextMenuState | null>>;
   setModal: (modal: ChatListModal | null) => void;
@@ -110,7 +111,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     });
   };
 
-  const handleTogglePinnedChat = async (chatId: number) => {
+  const handleTogglePinnedChat = async (chatId: EntityId) => {
     const chat = chatsByIdRef.current[chatId];
     const nextPinned = !chat?.is_pinned;
     setChatContextMenu(null);
@@ -141,7 +142,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     }
   };
 
-  const handleMarkChatRead = async (chatId: number) => {
+  const handleMarkChatRead = async (chatId: EntityId) => {
     const chat = chatsByIdRef.current[chatId];
     const previousUnreadCount = chat?.unread_count ?? 0;
     const previousFirstUnreadId = chat?.first_unread_message_id ?? null;

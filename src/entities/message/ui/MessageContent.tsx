@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
 import { Message } from '../model/types';
@@ -7,7 +8,7 @@ import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
 import FileMessage from './FileMessage';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+
 
 interface MessageContentProps {
   message: Message;
@@ -17,7 +18,7 @@ interface MessageContentProps {
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
-  setPlayingMessageId: (id: number | null) => void;
+  setPlayingMessageId: (id: EntityId | null) => void;
 }
 
 const MessageContent: React.FC<MessageContentProps> = ({
@@ -37,10 +38,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
 
   const fileName = message.content.file_name || '';
   const fileUrl = message.content.file_url || '';
-  const fullFileUrl = fileUrl.startsWith('blob:') || fileUrl.startsWith('data:') ||
-    fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
-    ? fileUrl
-    : `${BASE_URL}${fileUrl}`;
+  const fullFileUrl = resolveMediaUrl(fileUrl);
   const config = getFileTypeConfig(fileName);
   const audioMetadata = message.content.audio_metadata;
   const caption = message.content.caption?.trim();

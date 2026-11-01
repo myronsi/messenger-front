@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import type { ChangeEvent } from 'react';
 import { Camera, Loader2, X } from 'lucide-react';
 import type { en } from '@/shared/lang/en';
@@ -53,7 +54,7 @@ export const RegisterProfileSetup = ({
       </div>
       <div className="flex flex-col items-center gap-3">
         <div className="relative">
-          <img
+          <AuthenticatedImage
             src={profileAvatarPreview || DEFAULT_AVATAR}
             alt="Profile avatar preview"
             className="h-24 w-24 rounded-full border border-gray-200 object-cover"

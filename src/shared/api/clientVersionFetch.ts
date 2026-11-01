@@ -1,5 +1,6 @@
 import { clientVersionHeaders } from './clientVersion';
 import { reportClientOutdated } from './updateGate';
+import { withGoTransport } from './goTransport';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -60,7 +61,8 @@ export const withClientVersion = (fetchFn: typeof fetch): typeof fetch => async 
 export const installClientVersionFetch = () => {
   const current = window.fetch as typeof fetch & { clientVersionInstalled?: boolean };
   if (current.clientVersionInstalled) return;
-  const wrapped = withClientVersion(current.bind(window)) as typeof fetch & { clientVersionInstalled?: boolean };
+  const versioned = withClientVersion(current.bind(window));
+  const wrapped = withGoTransport(versioned, BASE_URL || window.location.origin) as typeof fetch & { clientVersionInstalled?: boolean };
   wrapped.clientVersionInstalled = true;
   window.fetch = wrapped;
 };

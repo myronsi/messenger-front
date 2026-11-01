@@ -53,6 +53,13 @@ test('creates a direct chat, delivers a realtime message, and uploads a file', a
     });
 
     await expect(pageB.locator('[data-message-id]').filter({ hasText: fileName }).last()).toBeVisible();
+    if (process.env.GO_API_TESTS === '1') {
+      const downloadPromise = pageB.waitForEvent('download');
+      await pageB.getByRole('button', { name: `Download: ${fileName}`, exact: true }).click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe(fileName);
+      expect(await download.failure()).toBeNull();
+    }
   } finally {
     await Promise.all([contextA.close(), contextB.close()]);
   }

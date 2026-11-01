@@ -1,3 +1,5 @@
+import { fetchMedia as authFetch } from '@/shared/api/fetchMedia';
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Download, ImageOff, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -21,7 +23,7 @@ const GroupAvatarViewer: React.FC<GroupAvatarViewerProps> = ({ avatarUrl, groupN
     const filename = `${safeName}-avatar.${extension}`;
 
     try {
-      const response = await fetch(avatarUrl, { credentials: 'include' });
+      const response = await authFetch(avatarUrl, { credentials: 'include' });
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -89,7 +91,7 @@ const GroupAvatarViewer: React.FC<GroupAvatarViewerProps> = ({ avatarUrl, groupN
               <span className="text-sm">{translations.failedToLoadImage || 'Failed to load image'}</span>
             </div>
           ) : (
-            <img
+            <AuthenticatedImage
               src={avatarUrl}
               alt={`${groupName} avatar`}
               className="motion-avatar-viewer-image max-h-[62vh] max-w-full rounded-lg object-contain"

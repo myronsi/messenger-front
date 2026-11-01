@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { describe, expect, it, vi } from 'vitest';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { handleChatListWebSocketMessage } from './chatListWebSocketHandlers';
@@ -6,7 +7,7 @@ import type { ChatOverrideMap, WebSocketMessage } from './types';
 
 const ref = <T,>(current: T) => ({ current }) as MutableRefObject<T>;
 
-const setup = (overrides: Partial<{ userId: number; activeChatId: number }> = {}) => {
+const setup = (overrides: Partial<{ userId: EntityId; activeChatId: EntityId }> = {}) => {
   let state: ChatOverrideMap = {};
   const refetch = vi.fn();
   const onChatDeleted = vi.fn();
@@ -15,11 +16,11 @@ const setup = (overrides: Partial<{ userId: number; activeChatId: number }> = {}
   }) as Dispatch<SetStateAction<ChatOverrideMap>>;
   const ctx = {
     usernameRef: ref('me'),
-    activeChatIdRef: ref<number | undefined>(overrides.activeChatId),
+    activeChatIdRef: ref<EntityId | undefined>(overrides.activeChatId),
     activeChatNameRef: ref<string | undefined>(undefined),
     onChatOpenRef: ref(vi.fn()),
-    onChatDeletedRef: ref<((chatId: number) => void) | undefined>(onChatDeleted),
-    currentUserIdRef: ref<number | undefined>(overrides.userId ?? 1),
+    onChatDeletedRef: ref<((chatId: EntityId) => void) | undefined>(onChatDeleted),
+    currentUserIdRef: ref<EntityId | undefined>(overrides.userId ?? 1),
     chatsByIdRef: ref({}),
     refetchRef: ref(refetch),
     refetchRequestInboxRef: ref(vi.fn()),

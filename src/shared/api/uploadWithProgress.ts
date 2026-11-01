@@ -1,5 +1,7 @@
 import { asApiError } from '@/shared/lib/apiError';
-import { ensureAccessToken, refreshAccessToken } from '@/shared/auth/session';
+import { authFetch, ensureAccessToken, refreshAccessToken } from '@/shared/auth/session';
+import { isGoApi } from './goSocket';
+import type { components } from './generated/schema';
 import { applyClientVersionToXhr, reportIfClientOutdated } from '@/shared/api/clientVersionFetch';
 
 interface UploadWithProgressOptions {
@@ -52,6 +54,26 @@ const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithPro
 );
 
 export const uploadWithProgress = async <T = unknown>(options: UploadWithProgressOptions): Promise<T> => {
+  if (isGoApi() && /\/messages\/(upload|vm)$/.test(options.url)) {
+    const voice = options.url.endsWith('/vm');
+    const base = String(import.meta.env.VITE_BASE_URL).replace(/\/$/, '');
+    const form = new FormData();
+    form.set('file', options.formData.get('file')!);
+    form.set('purpose', 'message');
+    if (voice) form.set('kind', 'voice');
+    const attachment = await uploadWithProgress<components['schemas']['Attachment']>({
+      ...options, url: `${base}/attachments`, formData: form,
+      onProgress: percent => options.onProgress?.(Math.min(percent, 95)),
+    });
+    const response = await authFetch(`${base}/chats/${options.formData.get('chat_id')}/messages`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_temp_id: crypto.randomUUID(), type: voice ? 'voice' : 'file',
+        attachment_id: attachment.id, content: options.formData.get('caption') || null }),
+    });
+    if (!response.ok) throw { status: response.status, body: await response.json() };
+    options.onProgress?.(100);
+    return await response.json() as T;
+  }
   const token = await ensureAccessToken();
 
   try {

@@ -65,7 +65,9 @@ const PartsRecoveryComponent: React.FC<PartsRecoveryComponentProps> = () => {
         
         navigate('/reset-password');
       } else {
-        setMessage(data.detail || translations.recoveryFailed);
+        setMessage(response.status === 501
+          ? 'Account recovery is not available on this server yet.'
+          : data.detail || translations.recoveryFailed);
       }
     } catch (err) {
       setMessage(translations.networkError);

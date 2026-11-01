@@ -1,3 +1,6 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { MutableRefObject, memo } from 'react';
 import { Message, ReactionInfo } from '../model/types';
@@ -68,7 +71,7 @@ interface MessageItemProps {
   prevMessage: Message | null;
   nextMessage: Message | null;
   replyMessage?: Message;
-  userId: number;
+  userId: EntityId;
   isGroup: boolean;
   isImage: boolean;
   isMobile: boolean;
@@ -78,7 +81,7 @@ interface MessageItemProps {
   interlocutorDeleted: boolean;
   isHighlighted: boolean;
   isContextHighlighted: boolean;
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   observerRef: MutableRefObject<IntersectionObserver | null>;
   firstUnreadMarkerRef: MutableRefObject<HTMLDivElement | null>;
   getFormattedDateLabel: (timestamp: string) => string;
@@ -87,12 +90,12 @@ interface MessageItemProps {
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
-  setPlayingMessageId: (id: number | null) => void;
+  setPlayingMessageId: (id: EntityId | null) => void;
   onMessageClick: (event: React.MouseEvent, message: Message) => void;
   onClick: (event: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
-  onReplyClick: (messageId: number) => void;
-  setTempHighlightedMessageId: (id: number | null) => void;
+  onReplyClick: (messageId: EntityId) => void;
+  setTempHighlightedMessageId: (id: EntityId | null) => void;
   wsRef: MutableRefObject<WebSocket | null>;
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
@@ -109,7 +112,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const isMine = isOwnMessage(message);
   const reducedMotion = prefersReducedMotion();
-  const isOutgoingSend = isMine && (message.id < 0 || !!message.client_temp_id);
+  const isOutgoingSend = isMine && (!isPersistedId(message.id) || !!message.client_temp_id);
   const isUploadingMessage = isMine && message.upload_status === 'uploading';
   const hasReactions = !!message.reactions?.length;
   const showDateSeparator = !prevMessage || (
@@ -196,7 +199,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               event.stopPropagation();
               onAvatarClick(message.sender_username || message.sender);
             }}>
-              <img src={resolveMediaUrl(message.avatar_url)} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
+              <AuthenticatedImage src={resolveMediaUrl(message.avatar_url)} alt={message.sender} className="motion-avatar h-8 w-8 rounded-full object-cover transition-opacity hover:opacity-80" />
             </button>
           )}
           {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}

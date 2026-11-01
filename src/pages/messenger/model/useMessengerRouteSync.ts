@@ -1,3 +1,5 @@
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, type NavigateFunction } from 'react-router-dom';
 import { CurrentChat, directChatPath, parseDmIdentifier, parseProfileUsername } from './messengerRoutes';
@@ -6,7 +8,7 @@ import { authFetch } from '@/shared/auth/session';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface MessengerRouteState {
-  chatId?: number;
+  chatId?: EntityId;
   chatName?: string;
   chatDisplayName?: string;
   isOnline?: boolean;
@@ -14,24 +16,24 @@ interface MessengerRouteState {
   avatarUrl?: string;
   interlocutorDeleted?: boolean;
   type?: 'one-on-one' | 'group';
-  firstUnreadMessageId?: number | null;
+  firstUnreadMessageId?: EntityId | null;
   pendingApprovalRequest?: boolean;
   pendingApprovalMessage?: string;
 }
 
 interface DirectChatSummary {
-  id: number;
+  id: EntityId;
   interlocutor_name: string;
   interlocutor_display_name?: string;
   interlocutor_is_online?: boolean;
   interlocutor_last_seen?: string | null;
   avatar_url?: string;
   interlocutor_deleted: boolean;
-  first_unread_message_id?: number | null;
+  first_unread_message_id?: EntityId | null;
 }
 
 interface DirectUserProfile {
-  direct_chat_id?: number;
+  direct_chat_id?: EntityId;
   username?: string;
   display_name?: string;
   is_online?: boolean;
@@ -71,12 +73,12 @@ export const useMessengerRouteSync = ({
   useEffect(() => {
     const match = location.pathname.match(/^\/chat\/(\d+)$/);
     if (match) {
-      const id = Number(match[1]);
-      if (id <= 0) {
+      const id = match[1];
+      if (!isPersistedId(id)) {
         navigate('/');
         return;
       }
-      if (currentChat && currentChat.id === id) return;
+      if (currentChat && String(currentChat.id) === id) return;
 
       const state = (location.state as MessengerRouteState | null) ?? {};
       const name = state.chatName || String(id);
@@ -134,7 +136,7 @@ export const useMessengerRouteSync = ({
           })
           .then((data) => {
             if (isCancelled) return;
-            const chat = (data.chats || []).find((item) => item.id === targetChatId);
+            const chat = (data.chats || []).find((item) => String(item.id) === targetChatId);
             if (!chat) {
               navigate('/', { replace: true });
               return;

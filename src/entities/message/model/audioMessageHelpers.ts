@@ -58,6 +58,18 @@ export const isValidWaveform = (waveform: unknown): waveform is number[] => (
   waveform.every((value) => typeof value === 'number' && Number.isFinite(value))
 );
 
+// v2 stores byte amplitudes (0..255); older clients and local analysis use 0..1.
+export const normalizeWaveform = (samples: unknown): number[] => {
+  if (!isValidWaveform(samples)) return FALLBACK_WAVEFORM;
+  const scale = Math.max(...samples) > 1 ? 255 : 1;
+  const values = samples.map(value => Math.min(1, Math.max(0, value / scale)));
+  return Array.from({ length: WAVEFORM_BAR_COUNT }, (_, index) => {
+    const start = Math.floor(index * values.length / WAVEFORM_BAR_COUNT);
+    const end = Math.max(start + 1, Math.floor((index + 1) * values.length / WAVEFORM_BAR_COUNT));
+    return Math.max(...values.slice(start, end));
+  });
+};
+
 export const getAudioDuration = async (url: string): Promise<number> => {
   const audioContext = createAudioContext();
   try {

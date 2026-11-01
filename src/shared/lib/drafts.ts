@@ -1,9 +1,11 @@
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 const DRAFT_PREFIX = 'draft:';
 
 // Drafts live in sessionStorage so they survive the reload that follows "A new version is available",
 // but not a closed tab, and they are never shared with another tab. A draft belongs to one account:
 // the id is `<account>:<conversation>`, and everything is dropped when the tokens are cleared.
-export const chatDraftKey = (chatId: number) => (chatId > 0 ? `chat:${chatId}` : null);
+export const chatDraftKey = (chatId: EntityId) => (isPersistedId(chatId) ? `chat:${chatId}` : null);
 
 export const draftId = (account: string | null, key: string | null) => (account && key ? `${account}:${key}` : null);
 

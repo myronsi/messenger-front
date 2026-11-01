@@ -1,8 +1,11 @@
+import { isPersistedId, compareIds } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import type { Message } from './types';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 export type { MessageHistoryResponse } from './history';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+
 
 const parseJsonArray = <T>(value: unknown, fallback: T[]): T[] => {
   if (Array.isArray(value)) return value as T[];
@@ -29,7 +32,7 @@ const parseFileContent = (content: unknown) => {
 const normalizeAvatarUrl = (avatarUrl: unknown) => {
   if (typeof avatarUrl !== 'string' || !avatarUrl) return DEFAULT_AVATAR;
   if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-  return `${BASE_URL}${avatarUrl}`;
+  return resolveMediaUrl(avatarUrl);
 };
 
 // A history row as returned by the API: JSON columns may arrive as strings and optional fields may be missing.
@@ -38,7 +41,7 @@ export type RawHistoryMessage = Omit<Message, 'type' | 'content' | 'reactions' |
   content: unknown;
   reactions?: unknown;
   read_by?: unknown;
-  reply_to?: number | null;
+  reply_to?: EntityId | null;
   avatar_url?: unknown;
 };
 
@@ -77,41 +80,44 @@ export const appendUniqueMessages = (currentMessages: Message[], newerMessages: 
     ...currentMessages,
     ...newerMessages.filter((message) => !existingIds.has(message.id)),
   ];
-  const confirmed = merged.filter((message) => message.id > 0);
-  const isOrdered = confirmed.every((message, index) => index === 0 || confirmed[index - 1].id < message.id);
+  const confirmed = merged.filter((message) => isPersistedId(message.id));
+  const isOrdered = confirmed.every((message, index) => index === 0 || compareIds(confirmed[index - 1].id, message.id) < 0);
   if (isOrdered) return merged;
-  return [...confirmed.sort((a, b) => a.id - b.id), ...merged.filter((message) => message.id <= 0)];
+  return [...confirmed.sort((a, b) => compareIds(a.id, b.id)), ...merged.filter((message) => !isPersistedId(message.id))];
 };
 
 // Drops the newest confirmed messages beyond `limit`; unsent (negative id) messages are kept.
 export const trimNewestMessages = (messages: Message[], limit: number) => {
-  const confirmedCount = messages.filter((message) => message.id > 0).length;
+  const confirmedCount = messages.filter((message) => isPersistedId(message.id)).length;
   if (confirmedCount <= limit) return null;
   let toDrop = confirmedCount - limit;
   const kept: Message[] = [];
   for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (toDrop > 0 && messages[index].id > 0) toDrop -= 1;
+    if (toDrop > 0 && isPersistedId(messages[index].id)) toDrop -= 1;
     else kept.push(messages[index]);
   }
   kept.reverse();
-  const newest = [...kept].reverse().find((message) => message.id > 0);
+  const newest = [...kept].reverse().find((message) => isPersistedId(message.id));
   return { messages: kept, newestId: newest?.id ?? null };
 };
 
 export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {
   if (freshMessages.length === 0) {
-    return currentMessages.filter((message) => message.id < 0);
+    return currentMessages.filter((message) => !isPersistedId(message.id) || message.is_live);
   }
 
   const freshIds = new Set(freshMessages.map((message) => message.id));
   const currentById = new Map(currentMessages.map((message) => [message.id, message]));
   const oldestFreshId = freshMessages[0].id;
   const olderMessages = currentMessages.filter((message) => (
-    message.id > 0 &&
-    message.id < oldestFreshId &&
+    isPersistedId(message.id) &&
+    compareIds(message.id, oldestFreshId) < 0 &&
     !freshIds.has(message.id)
   ));
-  const pendingMessages = currentMessages.filter((message) => message.id < 0);
+  const pendingMessages = currentMessages.filter((message) => !isPersistedId(message.id));
+  const newestFreshId = freshMessages[freshMessages.length - 1].id;
+  const liveNewerMessages = currentMessages.filter(message => message.is_live &&
+    isPersistedId(message.id) && compareIds(message.id, newestFreshId) > 0 && !freshIds.has(message.id));
   const mergedFreshMessages = freshMessages.map((message) => {
     const current = currentById.get(message.id);
     return current
@@ -128,6 +134,7 @@ export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessa
   return [
     ...olderMessages,
     ...mergedFreshMessages,
+    ...liveNewerMessages,
     ...pendingMessages,
   ];
 };

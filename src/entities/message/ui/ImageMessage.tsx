@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Download, ZoomIn, ZoomOut, MessageSquare, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -114,7 +115,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
           aspectRatio: `${box.width} / ${box.height}`,
         }}
       >
-        <img
+        <AuthenticatedImage
           ref={imageRef}
           src={previewUrl}
           alt={fileName}
@@ -158,14 +159,14 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
           </div>
         )}
       </div>
-      
+
       {isExpanded && createPortal(
-        <div 
+        <div
           ref={modalRef}
           className="fixed inset-0 z-[9999] bg-black/70 flex flex-col"
           onClick={handleModalClick}
           onContextMenu={e => e.preventDefault()}
-          style={{ 
+          style={{
             isolation: 'isolate',
             touchAction: 'none'
           }}
@@ -204,16 +205,16 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div 
+          <div
             className="flex-1 flex items-center justify-center p-8"
             onWheel={handleWheel}
             onContextMenu={e => e.preventDefault()}
           >
-            <img
+            <AuthenticatedImage
               src={fileUrl}
               alt={fileName}
               className="max-h-[80vh] max-w-[80vw] select-none object-contain rounded-lg"
-              style={{ 
+              style={{
                 transform: `scale(${scale})`,
                 transition: 'transform 0.2s',
                 userSelect: 'none',

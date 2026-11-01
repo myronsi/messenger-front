@@ -1,3 +1,4 @@
+import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
 import type { FC } from 'react';
 import { Button } from '@/shared/ui/button';
 import {
@@ -42,6 +43,8 @@ const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackT
             onPasswordVisibilityChange={flow.setShowPassword}
             onSubmit={flow.handleSubmit}
           />
+        ) : flow.showQr && flow.recoveryKey ? (
+          <RecoveryKeyReceipt recoveryKey={flow.recoveryKey} onContinue={flow.handleContinue} />
         ) : flow.showQr ? (
           <RegisterQrStep
             qrPart={flow.qrPart}

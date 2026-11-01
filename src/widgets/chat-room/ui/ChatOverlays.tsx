@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import React, { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
 import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal } from '@/features/message-actions';
@@ -15,8 +16,8 @@ interface ChatOverlaysProps {
   messageInputRef: MutableRefObject<HTMLInputElement | null>;
   messages: Message[];
   token: string;
-  chatId: number;
-  userId: number | null;
+  chatId: EntityId;
+  userId: EntityId | null;
   isClosing: boolean;
   wsRef: MutableRefObject<WebSocket | null>;
   setContextMenu: (menu: ContextMenuState | null) => void;
@@ -30,7 +31,7 @@ interface ChatOverlaysProps {
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
   getMessageTime: (timestamp: string) => string;
-  jumpToSearchResult: (messageId: number) => void;
+  jumpToSearchResult: (messageId: EntityId) => void;
   forwardMessage: Message | null;
   username: string;
   onForwarded: () => void;

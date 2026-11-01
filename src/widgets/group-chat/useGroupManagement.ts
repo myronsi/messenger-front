@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import React from 'react';
 import type { GroupDetails, GroupProfileConfirmState, GroupRole } from './GroupProfileTypes';
 import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
@@ -6,7 +7,7 @@ import { authFetch } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface Args {
-  chatId: number; token: string; groupForm: { name: string; description: string };
+  chatId: EntityId; token: string; groupForm: { name: string; description: string };
   setModal: React.Dispatch<React.SetStateAction<ModalState | null>>; translations: GroupTranslations;
   setIsSavingGroup: React.Dispatch<React.SetStateAction<boolean>>;
   applyGroupDetails: (details: RawGroupDetails) => void; participantInput: string;

@@ -1,3 +1,6 @@
+import { RecoverySetupPrompt } from '@/widgets/profile-panel';
+import { isGoApi } from '@/shared/api/goSocket';
+import { isPersistedId } from '@/shared/api/entityId';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
 import ChatsListComponentRTK from '@/widgets/chat-list';
@@ -44,16 +47,16 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
 
   const currentUserProfileProps = useMemo(() => ({
     username: profileUsername || currentChat?.name || '',
-    directChatId: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
+    directChatId: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? currentChat.id
       : undefined,
     onClose: closeUserProfile,
     onMessage: openDirectChatFromProfile,
-    onJumpToMessage: currentChat?.id && currentChat.id > 0 && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
+    onJumpToMessage: currentChat?.id && isPersistedId(currentChat.id) && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
       ? jumpToCurrentChatMessage
       : undefined,
-    hideMessageAction: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name,
-    onDeleteChat: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
+    hideMessageAction: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
+    onDeleteChat: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? handleDeleteCurrentChat
       : undefined,
   }), [
@@ -142,6 +145,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white">
       <Toaster />
+      {isLoggedIn && isGoApi() && <RecoverySetupPrompt key={username} />}
 
       {!isLoggedIn ? (
         renderAuthPage({ onLoginSuccess: handleLoginSuccess })
@@ -230,7 +234,11 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
             <ProfileComponentRTK
               username={username}
               onClose={() => setIsProfileOpen(false)}
-              onLogout={() => setIsLoggedIn(false)}
+              onLogout={() => {
+                setIsProfileOpen(false);
+                setIsUserProfileOpen(false);
+                setIsLoggedIn(false);
+              }}
             />
           )}
         </div>

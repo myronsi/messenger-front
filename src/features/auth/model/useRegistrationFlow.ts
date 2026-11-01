@@ -20,6 +20,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [qrPart, setQrPart] = useState('');
+  const [recoveryKey, setRecoveryKey] = useState('');
   const [showQr, setShowQr] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
@@ -69,17 +70,23 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
       if (response.ok) {
         if (!data.access_token) throw new Error(translations.registerFailed || 'Registration failed');
         setAccessToken(data.access_token);
-        const existingDeviceParts = JSON.parse(localStorage.getItem('device_parts') || '{}');
-        existingDeviceParts[normalizedUsername] = data.device_part;
         setUsername(normalizedUsername);
-        localStorage.setItem('device_parts', JSON.stringify(existingDeviceParts));
-        localStorage.setItem('device_part', data.device_part);
-        setQrPart(data.qr_part);
-        setShowQr(true);
-        setShowProfileSetup(false);
-        setMessage(`${translations.registerSuccess} ${translations.saveQrPart}`);
+        if (typeof data.device_part === 'string' && data.device_part) {
+          const existingDeviceParts = JSON.parse(localStorage.getItem('device_parts') || '{}');
+          existingDeviceParts[normalizedUsername] = data.device_part;
+          localStorage.setItem('device_parts', JSON.stringify(existingDeviceParts));
+          localStorage.setItem('device_part', data.device_part);
+        } else {
+          localStorage.removeItem('device_part');
+        }
+        const hasRecoveryQr = typeof data.qr_part === 'string' && Boolean(data.qr_part);
+        setRecoveryKey(typeof data.recovery_key === 'string' ? data.recovery_key : '');
+        setQrPart(hasRecoveryQr ? data.qr_part : '');
+        setShowQr(hasRecoveryQr || Boolean(data.recovery_key));
+        setShowProfileSetup(!hasRecoveryQr && !data.recovery_key);
+        setMessage(hasRecoveryQr ? `${translations.registerSuccess} ${translations.saveQrPart}` : '');
       } else {
-        setMessage(data.detail || translations.registerFailed);
+        setMessage(response.status === 429 ? 'Too many registration attempts. Please try again later.' : data.detail || translations.registerFailed);
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -89,6 +96,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
 
   const handleContinue = useCallback(() => {
     setShowQr(false);
+    setRecoveryKey('');
     setShowProfileSetup(true);
     setMessage('');
   }, []);
@@ -243,7 +251,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
     handleProfileAvatarChange, handleRegister, handleSaveProfileSetup, handleSubmit,
     inputsFilled, isDisplayNameValid: isValidDisplayName(displayName),
     isSavingProfile, message, password, profileAvatarFile,
-    profileAvatarPreview, profileBio, qrPart, removeProfileAvatar, setDisplayName,
+    profileAvatarPreview, profileBio, qrPart, recoveryKey, removeProfileAvatar, setDisplayName,
     setPassword, setProfileBio, setShowPassword, setUsername, showPassword,
     showProfileSetup, showQr, translations, username,
   };

@@ -1,7 +1,10 @@
+import { endSession } from '@/shared/auth/session';
+import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import { trackWebSocket } from '@/shared/api/socketRegistry';
+import { isGoApi } from '@/shared/api/goSocket';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/shared/api/reconnect';
 import { handleHelloEvent } from '@/shared/api/serverHello';
@@ -11,14 +14,14 @@ import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceM
 interface UseChatListWebSocketParams {
   token: string | null | undefined;
   username: string;
-  activeChatId?: number;
+  activeChatId?: EntityId;
   activeChatName?: string;
   onChatOpen: ChatsListComponentProps['onChatOpen'];
-  onChatDeleted?: (chatId: number) => void;
-  currentUserId?: number;
+  onChatDeleted?: (chatId: EntityId) => void;
+  currentUserId?: EntityId;
   refetch: () => void;
   refetchRequestInbox: () => void;
-  chatsByIdRef: React.MutableRefObject<Record<number, Chat>>;
+  chatsByIdRef: React.MutableRefObject<Record<EntityId, Chat>>;
   setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>>;
   setPresenceByUsername: Dispatch<SetStateAction<PresenceMap>>;
   setModal: (modal: ChatListModal | null) => void;
@@ -38,7 +41,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   const activeChatNameRef = useRef(activeChatName);
   const usernameRef = useRef(username);
   const onChatOpenRef = useRef(onChatOpen);
-  const currentUserIdRef = useRef<number | undefined>(currentUserId);
+  const currentUserIdRef = useRef<EntityId | undefined>(currentUserId);
   const onChatDeletedRef = useRef(onChatDeleted);
   const refetchRef = useRef(refetch);
   const refetchRequestInboxRef = useRef(refetchRequestInbox);
@@ -118,7 +121,18 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
           return;
         }
 
+        if (isGoApi() && parsedData.type === 'security_notice') {
+          sessionStorage.setItem('security_notice', 'Your password was reset using account recovery. Please sign in again.');
+          endSession(); window.location.assign('/login'); return;
+        }
         if (handleHelloEvent(parsedData)) return;
+        if (isGoApi()) {
+          // Go broadcasts a global stream. Refresh authoritative list entries after updates.
+          if (['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence'].includes(parsedData.type)) refetchRef.current();
+          if (parsedData.type === 'approval_request_created') refetchRequestInboxRef.current();
+          if (parsedData.type === 'chat_deleted' && parsedData.chat_id) onChatDeletedRef.current?.(parsedData.chat_id);
+          return;
+        }
 
         handleChatListWebSocketMessage(parsedData, {
           usernameRef,

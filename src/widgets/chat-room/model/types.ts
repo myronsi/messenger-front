@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { ModalState } from '@/entities/message';
 
@@ -8,12 +9,12 @@ export type ChatModal = ModalState;
 export interface ChatContextMenu {
   x: number;
   y: number;
-  messageId: number;
+  messageId: EntityId;
   isMine: boolean;
 }
 
 export interface ChatProps {
-  chatId: number;
+  chatId: EntityId;
   chatName: string;
   chatDisplayName?: string;
   interlocutorIsOnline?: boolean;
@@ -21,15 +22,15 @@ export interface ChatProps {
   interlocutorAvatarUrl?: string;
   username: string;
   interlocutorDeleted: boolean;
-  firstUnreadMessageId?: number | null;
+  firstUnreadMessageId?: EntityId | null;
   onBack: () => void;
   setIsUserProfileOpen: (isOpen: boolean) => void;
   onOpenUserProfile?: (username: string) => void;
   searchRequestKey?: number;
-  messageJumpRequest?: { messageId: number; key: number } | null;
+  messageJumpRequest?: { messageId: EntityId; key: number } | null;
   directDraftDisabled?: boolean;
   directDraftReason?: 'self' | 'blocked' | 'privacy' | null;
   initialPendingApprovalRequest?: boolean;
   initialPendingApprovalMessage?: string;
-  onChatCreated?: (newId: number, newName: string) => void;
+  onChatCreated?: (newId: EntityId, newName: string) => void;
 }

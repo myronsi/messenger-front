@@ -1,8 +1,9 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { describe, expect, it } from 'vitest';
 import type { Message } from './types';
 import { getAppendedMessages, isValidTimestamp } from './messageListScrollUtils';
 
-const msg = (id: number): Message => ({
+const msg = (id: EntityId): Message => ({
   id, sender: 'a', content: '', timestamp: 't', type: 'message', read_by: [],
 });
 

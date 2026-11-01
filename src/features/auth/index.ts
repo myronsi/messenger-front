@@ -1,4 +1,5 @@
 export * from './model/types';
+export { RecoveryKeyComponent } from './RecoveryKeyComponent';
 export * from './api/authApi';
 export { default as LoginComponent } from './LoginComponent';
 export { default as RegisterComponent } from './RegisterComponent';

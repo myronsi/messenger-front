@@ -21,6 +21,7 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string; otpauth_uri: string } | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [setupPassword, setSetupPassword] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [disableForm, setDisableForm] = useState({ password: '', code: '' });
   const [isSessionDurationOpen, setIsSessionDurationOpen] = useState(false);
@@ -59,7 +60,8 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
   const handleStartTwoFactor = async () => {
     try {
       setRecoveryCodes([]);
-      setTwoFactorSetup(await setupTwoFactor().unwrap());
+      setTwoFactorSetup(await setupTwoFactor(setupPassword).unwrap());
+      setSetupPassword('');
       setStatus(null);
     } catch (caught) {
       const error = asApiError(caught);
@@ -129,7 +131,7 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
     translations, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions,
     isRevokingOthers, isChangingPassword, isSettingUp2fa, isConfirming2fa, isDisabling2fa,
     status, passwordForm, setPasswordForm, twoFactorSetup, twoFactorCode, setTwoFactorCode,
-    recoveryCodes, disableForm, setDisableForm, isSessionDurationOpen, setIsSessionDurationOpen,
+    recoveryCodes, disableForm, setDisableForm, setupPassword, setSetupPassword, isSessionDurationOpen, setIsSessionDurationOpen,
     handleChangePassword, handleStartTwoFactor, handleConfirmTwoFactor, handleDisableTwoFactor,
     handleRevokeSession, handleUpdateSessionDuration, handleRevokeOtherSessions,
   };

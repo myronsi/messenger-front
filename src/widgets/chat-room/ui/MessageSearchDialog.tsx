@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Message } from '@/entities/message';
@@ -9,7 +10,7 @@ interface MessageSearchDialogProps {
   onOpenChange: (open: boolean) => void;
   messages: Message[];
   getMessageTime: (timestamp: string) => string;
-  onJumpToMessage: (messageId: number) => void;
+  onJumpToMessage: (messageId: EntityId) => void;
 }
 
 const getSearchText = (message: Message) => {

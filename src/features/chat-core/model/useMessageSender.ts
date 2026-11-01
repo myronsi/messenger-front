@@ -1,8 +1,10 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { MutableRefObject } from 'react';
 import type { FileMessageContent, Message } from '@/entities/message';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { getLocalUploadFileType } from './uploadFileType';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
@@ -12,10 +14,10 @@ const SOCKET_CONNECT_WAIT_ATTEMPTS = 30;
 const SOCKET_CONNECT_WAIT_MS = 100;
 
 interface MessageSenderOptions {
-  chatId: number;
+  chatId: EntityId;
   username: string;
-  currentUserId: number;
-  currentUserIdRef: MutableRefObject<number>;
+  currentUserId: EntityId;
+  currentUserIdRef: MutableRefObject<EntityId>;
   translations: Translations;
   translationsRef: MutableRefObject<Translations>;
   transport: ChatTransport;
@@ -47,8 +49,8 @@ export const useMessageSender = ({
     return message || translationsRef.current.messageNotDeliveredPrivacy || 'This message cannot be received due to the user privacy settings.';
   };
 
-  const markMessageFailed = (messageId: number, message?: string) => {
-    setMessages((previous) => previous.map((item) => item.id === messageId
+  const markMessageFailed = (messageId: EntityId, message?: string) => {
+    setMessages((previous) => previous.map((item) => String(item.id) === String(messageId)
       ? { ...item, delivery_error: getDeliveryErrorMessage(message) }
       : item));
     return true;
@@ -61,7 +63,7 @@ export const useMessageSender = ({
     return true;
   };
 
-  const clearMessageDeliveryError = (messageId: number) => {
+  const clearMessageDeliveryError = (messageId: EntityId) => {
     setMessages((previous) => previous.map((item) => item.id === messageId
       ? { ...item, delivery_error: undefined }
       : item));
@@ -105,19 +107,19 @@ export const useMessageSender = ({
     return tempId;
   };
 
-  const updateOptimisticUploadProgress = (messageId: number, percent: number) => {
+  const updateOptimisticUploadProgress = (messageId: EntityId, percent: number) => {
     setMessages((previous) => previous.map((message) => message.id === messageId
       ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
       : message));
   };
 
-  const markOptimisticUploadFailed = (messageId: number, errorMessage?: string) => {
+  const markOptimisticUploadFailed = (messageId: EntityId, errorMessage?: string) => {
     setMessages((previous) => previous.map((message) => message.id === messageId
       ? { ...message, upload_status: 'failed', delivery_error: errorMessage || translationsRef.current.errorLoading || 'Upload failed' }
       : message));
   };
 
-  const settleOptimisticUpload = (messageId: number) => updateOptimisticUploadProgress(messageId, 99);
+  const settleOptimisticUpload = (messageId: EntityId) => updateOptimisticUploadProgress(messageId, 99);
 
   // Sends now when the socket is open, otherwise queues the payload for the next successful connection.
   const sendOrQueue = (payload: OutgoingPayload) => {
@@ -155,11 +157,11 @@ export const useMessageSender = ({
   const handleSendMessage = () => {
     if (!messageInput.trim()) return;
     const contentToSend = messageInput.trim();
-    const escapedMessage = escapeCurlyBraces(contentToSend);
+    const escapedMessage = isGoApi() ? contentToSend : escapeCurlyBraces(contentToSend);
     let payload: OutgoingPayload;
 
     if (editingMessage) {
-      setMessages((previous) => previous.map((message) => message.id === editingMessage.id
+      if (!isGoApi()) setMessages((previous) => previous.map((message) => message.id === editingMessage.id
         ? { ...message, content: contentToSend, edited_at: new Date().toISOString() }
         : message));
       payload = { type: 'edit', message_id: editingMessage.id, content: escapedMessage };

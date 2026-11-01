@@ -1,3 +1,4 @@
+import { fetchMedia as authFetch } from '@/shared/api/fetchMedia';
 import React, { useState } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
@@ -16,7 +17,7 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
   const handleDownload = async () => {
     try {
       const downloadUrl = fileUrl.includes('?') ? `${fileUrl}&download=1` : `${fileUrl}?download=1`;
-      const response = await fetch(downloadUrl, {
+      const response = await authFetch(downloadUrl, {
         method: 'GET',
         credentials: 'include',
         headers: { Accept: '*/*' },

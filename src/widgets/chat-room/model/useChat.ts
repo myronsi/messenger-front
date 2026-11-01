@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useState } from 'react';
 import { Message, ModalState } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -14,22 +15,22 @@ import {
 import { createDeleteChatAction } from './useChatActions';
 
 export const useChat = (
-  chatId: number,
+  chatId: EntityId,
   username: string,
   token: string,
   onBack: () => void,
-  currentUserId = 0,
-  firstUnreadMessageId?: number | null,
+  currentUserId: EntityId = 0,
+  firstUnreadMessageId?: EntityId | null,
   onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number; isMine: boolean } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: EntityId; isMine: boolean } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [messageInput, setMessageInput] = useDraftState(chatDraftKey(chatId), editingMessage === null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<EntityId | null>(null);
   const { translations, language } = useLanguage();
   const onBackRef = useLatest(onBack);
   const translationsRef = useLatest(translations);
@@ -92,7 +93,7 @@ export const useChat = (
     onReconnected: catchUpAfterReconnect,
   });
 
-  const scrollToMessage = (messageId: number) => {
+  const scrollToMessage = (messageId: EntityId) => {
     setHighlightedMessageId(messageId);
     setTimeout(() => setHighlightedMessageId(null), 6000);
   };

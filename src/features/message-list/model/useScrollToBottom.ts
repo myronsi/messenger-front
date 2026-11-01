@@ -1,10 +1,11 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 
 interface ScrollToBottomOptions {
   chatContainerRef: RefObject<HTMLDivElement | null>;
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   messages: Message[];
   isPositioned: boolean;
   hasMoreNewerMessages: boolean;
@@ -28,9 +29,9 @@ export const useScrollToBottom = ({
   chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
   scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, autoScrollUntilRef,
 }: ScrollToBottomOptions) => {
-  const [unseenIds, setUnseenIds] = useState<number[]>([]);
+  const [unseenIds, setUnseenIds] = useState<EntityId[]>([]);
   const [isFarFromBottom, setIsFarFromBottom] = useState(false);
-  const countedIdsRef = useRef<Set<number>>(new Set());
+  const countedIdsRef = useRef<Set<EntityId>>(new Set());
   const hasMoreNewerMessagesRef = useLatestRef(hasMoreNewerMessages);
   const onLoadLatestMessagesRef = useLatestRef(onLoadLatestMessages);
   const isOwnMessageRef = useLatestRef(isOwnMessage);
@@ -64,9 +65,9 @@ export const useScrollToBottom = ({
   useEffect(() => {
     const container = chatContainerRef.current;
     if (!container || unseenIds.length === 0 || typeof IntersectionObserver === 'undefined') return;
-    const elementIds = new Map<Element, number>();
+    const elementIds = new Map<Element, EntityId>();
     const observer = new IntersectionObserver((entries) => {
-      const seen = new Set<number>();
+      const seen = new Set<EntityId>();
       entries.forEach((entry) => {
         const id = elementIds.get(entry.target);
         if (entry.isIntersecting && id !== undefined) seen.add(id);
@@ -113,4 +114,3 @@ export const useScrollToBottom = ({
     updateDistance,
   };
 };
-
