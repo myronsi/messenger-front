@@ -56,6 +56,6 @@ Run lint, typecheck, Vitest, contract pin validation and the production build. N
 privacy/suppression, replay, account changes and background worker actions. Real delivery needs configured
 providers and a deployed HTTPS origin; these unit tests do not exercise Google or Apple delivery.
 
-The backend OpenAPI document includes the new routes. Notification DTOs are currently isolated in the notification
-module; publish the backend contract and pin/regenerate frontend contract types during the coordinated release.
-The existing generated schema remains unchanged so ordinary contract regeneration continues to match its pin.
+The frontend pins the released contract `2.1.0-alpha.2` and uses its generated notification types. The smoke stack
+pins backend `v1.2.0-alpha.1`, whose matching deployment bundle and migrations are started by `backend-up.sh`.
+Deploy and verify that backend before releasing this frontend. Android native and Apple push remain unconfigured.

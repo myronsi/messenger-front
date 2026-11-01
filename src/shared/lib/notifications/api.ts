@@ -1,14 +1,8 @@
 import { authFetch } from '@/shared/auth/session';
+import type { components } from '@/shared/api/generated/schema';
 
-export interface NotificationPreferences { enabled: boolean; sound: boolean; previews: boolean }
-export interface NotificationSettings {
-  preferences: NotificationPreferences;
-  mutes: { chat_id: string; until: string }[];
-  web_push: boolean;
-  android_push: boolean;
-  ios_push: boolean;
-  vapid_public_key: string;
-}
+export type NotificationPreferences = components['schemas']['NotificationPreferences'];
+export type NotificationSettings = components['schemas']['NotificationSettings'];
 const base = `${import.meta.env.VITE_BASE_URL}`;
 let current: NotificationSettings | null = null;
 let account = '';
