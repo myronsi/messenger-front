@@ -9,6 +9,18 @@ const user = { id, username: 'alice', display_name: 'Alice', contact_name: 'My A
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 describe('Go migration transport', () => {
+  it('preserves Request bodies when passing through Python and unrelated endpoints', async () => {
+    for (const [configuredBase, target] of [['https://legacy.example.test', 'https://legacy.example.test/auth/login'], [base, 'https://other.example.test/upload']]) {
+      const native = vi.fn(async (input: RequestInfo | URL) => {
+        expect(await (input as Request).json()).toEqual({ username: 'alice', password: 'test-password' });
+        return json({ ok: true });
+      });
+      const request = new Request(target, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'alice', password: 'test-password' }) });
+      const response = await withGoTransport(native as typeof fetch, configuredBase)(request);
+      expect(response.ok).toBe(true);
+      expect(native).toHaveBeenCalledOnce();
+    }
+  });
   it('keeps IDs exact in links, sorting, and outgoing WebSocket frames', () => {
     expect(compareIds(id, '9007199254740992')).toBe(1);
     expect(compareIds('10', '9')).toBe(1);

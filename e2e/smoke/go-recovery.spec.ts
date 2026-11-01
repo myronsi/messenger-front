@@ -1,10 +1,37 @@
 import { expect, test } from '@playwright/test';
-import { createEnglishContext, createSmokeUser, logoutUser, waitForMessenger } from './helpers';
+import { createEnglishContext, createSmokeUser, loginUser, logoutUser, waitForMessenger } from './helpers';
+
+test('an existing Go user can enroll a recovery key after signing in', async ({ browser }) => {
+  test.skip(process.env.GO_API_TESTS !== '1' || !process.env.GO_LEGACY_USERNAME || !process.env.GO_LEGACY_PASSWORD, 'Requires a synthetic account without a recovery key');
+  const context = await createEnglishContext(browser);
+  const page = await context.newPage();
+  try {
+    await page.goto('/login');
+    await page.getByLabel('Username').fill(process.env.GO_LEGACY_USERNAME!);
+    await page.getByLabel('Password', { exact: true }).fill(process.env.GO_LEGACY_PASSWORD!);
+    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: 'Protect access to your account' })).toBeVisible();
+    await dialog.getByLabel('Current password').fill(process.env.GO_LEGACY_PASSWORD!);
+    await dialog.getByRole('button', { name: 'Create recovery key', exact: true }).click();
+    await expect(dialog.getByTestId('recovery-key')).toBeVisible();
+    await dialog.getByLabel('I saved my recovery key').check();
+    await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(dialog.getByText('A recovery key is set up.', { exact: false })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+    await waitForMessenger(page);
+    await page.reload();
+    await waitForMessenger(page);
+    await expect(page.getByRole('heading', { name: 'Protect access to your account' })).not.toBeVisible();
+  } finally { await context.close(); }
+});
 
 test('Go recovery saves a single-use key, resets the password and shows its replacement', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires Go staging');
   const context = await createEnglishContext(browser);
+  const otherContext = await createEnglishContext(browser);
   const page = await context.newPage();
+  const otherPage = await otherContext.newPage();
   const user = createSmokeUser('recovery');
   try {
     await page.goto('/register');
@@ -19,7 +46,8 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('button', { name: 'Skip for now', exact: true }).click();
     await waitForMessenger(page);
-    const oldToken = await page.evaluate(() => localStorage.getItem('access_token'));
+    await loginUser(otherPage, user);
+    const oldToken = await otherPage.evaluate(() => localStorage.getItem('access_token'));
     await logoutUser(page);
     await page.goto('/recover-username');
     await page.getByLabel('Username', { exact: true }).fill(user.username);
@@ -30,6 +58,8 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await page.getByRole('button', { name: 'Reset password', exact: true }).click();
     const response = await resetResponse;
     expect(response.status()).toBe(200);
+    await expect(otherPage).toHaveURL(/\/login$/);
+    await expect(otherPage.getByText('Your password was reset using account recovery. Please sign in again.', { exact: true })).toBeVisible();
     const replacement = await page.getByTestId('recovery-key').innerText();
     expect(replacement).not.toBe(key);
     await page.getByLabel('I saved my recovery key').check();
@@ -47,5 +77,5 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await page.getByRole('button', { name: 'Open profile', exact: true }).click();
     await page.getByRole('button', { name: /Security & devices/ }).click();
     await expect(page.getByText(/Security changes are locked until/)).toBeVisible();
-  } finally { await context.close(); }
+  } finally { await context.close(); await otherContext.close(); }
 });

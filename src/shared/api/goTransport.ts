@@ -26,13 +26,13 @@ const mediaScreenModel = (items: Array<S['Message'] | S['SearchHit']>, kind: str
 // Migration boundary: existing screen models are retained while the wire protocol is v2.
 // The supplied fetch is the versioned native fetch, never this adapter (no recursion).
 export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typeof fetch => async (input, init) => {
-  const request = new Request(input, init);
-  const url = new URL(request.url);
-  const base = new URL(baseUrl, request.url);
+  const url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
+  const base = new URL(baseUrl, url);
   const prefix = base.pathname.replace(/\/$/, '');
   if (!prefix.endsWith('/api/v2') || url.origin !== base.origin || !url.pathname.startsWith(`${prefix}/`)) {
     return nativeFetch(input, init);
   }
+  const request = new Request(input, init);
   const originalPath = url.pathname.slice(prefix.length);
   let path = originalPath;
   let method = request.method;
