@@ -17,7 +17,7 @@ export interface ProfileModalState {
   type: 'logout' | 'deleteAccount' | 'blockUser' | 'success' | 'error';
   message: string;
   consequences?: string[];
-  onConfirm?: () => void;
+  onConfirm?: (password?: string) => void;
 }
 
 interface ProfileAccountActionsArgs {
@@ -147,9 +147,9 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const handleDeleteAccount = () => setModal({
     type: 'deleteAccount',
     message: translations.deleteAccountConfirm,
-    onConfirm: async () => {
+    onConfirm: async (password) => {
       try {
-        await deleteAccount().unwrap();
+        await deleteAccount(password || '').unwrap();
         endSession();
         onLogout();
       } catch (error) {

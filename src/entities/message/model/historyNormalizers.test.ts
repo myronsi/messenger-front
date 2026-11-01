@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { describe, expect, it } from 'vitest';
 import type { Message } from '@/entities/message';
 import {
@@ -8,7 +9,7 @@ import {
   trimNewestMessages,
 } from './historyNormalizers';
 
-const msg = (id: number, extra: Partial<Message> = {}): Message => ({
+const msg = (id: EntityId, extra: Partial<Message> = {}): Message => ({
   id, sender: 'alice', content: `m${id}`, timestamp: '2024-01-01T00:00:00Z', type: 'message', read_by: [], ...extra,
 });
 
@@ -79,6 +80,11 @@ describe('trimNewestMessages', () => {
 });
 
 describe('mergeFreshHistoryMessages', () => {
+  it('retains live messages that arrived after the history snapshot', () => {
+    const live = msg('9007199254740993', { is_live: true });
+    expect(ids(mergeFreshHistoryMessages([live], [msg('9007199254740992')]))).toEqual(['9007199254740992', '9007199254740993']);
+    expect(ids(mergeFreshHistoryMessages([live], []))).toEqual(['9007199254740993']);
+  });
   it('keeps only unsent messages when the fresh page is empty', () => {
     expect(ids(mergeFreshHistoryMessages([msg(1), msg(-1)], []))).toEqual([-1]);
   });

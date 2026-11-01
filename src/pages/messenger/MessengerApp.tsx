@@ -1,3 +1,4 @@
+import { isPersistedId } from '@/shared/api/entityId';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
 import ChatsListComponentRTK from '@/widgets/chat-list';
@@ -44,16 +45,16 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
 
   const currentUserProfileProps = useMemo(() => ({
     username: profileUsername || currentChat?.name || '',
-    directChatId: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
+    directChatId: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? currentChat.id
       : undefined,
     onClose: closeUserProfile,
     onMessage: openDirectChatFromProfile,
-    onJumpToMessage: currentChat?.id && currentChat.id > 0 && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
+    onJumpToMessage: currentChat?.id && isPersistedId(currentChat.id) && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
       ? jumpToCurrentChatMessage
       : undefined,
-    hideMessageAction: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name,
-    onDeleteChat: currentChat?.type === 'one-on-one' && currentChat.id > 0 && (profileUsername || currentChat.name) === currentChat.name
+    hideMessageAction: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
+    onDeleteChat: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? handleDeleteCurrentChat
       : undefined,
   }), [

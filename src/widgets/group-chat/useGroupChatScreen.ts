@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useRef, useState } from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
@@ -32,7 +33,7 @@ export const useGroupChatScreen = ({
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [readStatusMessage, setReadStatusMessage] = useState<Message | null>(null);
   const [reactionDetails, setReactionDetails] = useState<{ message: Message; reaction: string; reactions: ReactionInfo[] } | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<number>(0);
+  const [currentUserId, setCurrentUserId] = useState<EntityId>(0);
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [groupForm, setGroupForm] = useState({ name: groupName, description: '' });
   const [participantInput, setParticipantInput] = useState('');

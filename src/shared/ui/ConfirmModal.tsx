@@ -7,7 +7,8 @@ interface ConfirmModalProps {
   title: string;
   message: string;
   consequences?: string[];
-  onConfirm: () => void;
+  onConfirm: (password?: string) => void;
+  requirePassword?: boolean;
   onCancel: () => void;
   confirmText?: string;
   cancelText?: string;
@@ -27,8 +28,10 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isError = false,
   isDestructive = false,
   contained = false,
+  requirePassword = false,
 }) => {
   const { translations } = useLanguage();
+  const [password, setPassword] = React.useState('');
 
   return (
     <div className={`${contained ? 'absolute' : 'fixed'} inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4`}>
@@ -53,6 +56,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </ul>
         )}
         {!consequences?.length && <div className="mb-4" />}
+        {requirePassword && (
+          <label className="mb-4 block text-sm">
+            {translations.password}
+            <input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2" />
+          </label>
+        )}
         <div className="flex justify-end space-x-2">
           {!isError && (
             <button
@@ -63,7 +72,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </button>
           )}
           <button
-            onClick={isError ? onCancel : onConfirm}
+            onClick={isError ? onCancel : () => onConfirm(password)}
+            disabled={requirePassword && !password}
             className={`motion-press px-4 py-2 rounded-md transition-colors ${
               isError || isDestructive
                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'

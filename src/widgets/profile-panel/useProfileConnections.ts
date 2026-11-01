@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { asApiError } from '@/shared/lib/apiError';
 import { useMemo, useState } from 'react';
 import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
@@ -109,7 +110,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
     }
   };
 
-  const handleRejectRequest = async (requestId: number) => {
+  const handleRejectRequest = async (requestId: EntityId) => {
     try {
       await rejectRequest(requestId).unwrap();
       refetchRequestInbox();

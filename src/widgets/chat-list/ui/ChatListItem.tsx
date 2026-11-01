@@ -1,10 +1,12 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Check, CheckCheck, Pin } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 
 interface ChatListItemProps {
   chat: Chat;
-  activeChatId?: number;
+  activeChatId?: EntityId;
   translations: Translations;
   getLastMessagePreview: (lastMessage?: ChatLastMessage | null) => string;
   getLastMessageTime: (lastMessage?: ChatLastMessage | null) => string;
@@ -42,7 +44,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       }`}
     >
       <div className="relative mr-3">
-        <img
+        <AuthenticatedImage
           src={chat.avatar_url}
           alt={chat.display_name || chat.name}
           className={`motion-avatar w-10 h-10 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}

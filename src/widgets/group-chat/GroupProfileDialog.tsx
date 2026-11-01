@@ -1,3 +1,5 @@
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
 import { useGetOneOnOneChatsQuery } from '@/entities/chat';
@@ -28,14 +30,14 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     isLoading: isLoadingPhotos,
     error: photosQueryError,
   } = useGetChatPhotosQuery(chatId, {
-    skip: !open || chatId <= 0,
+    skip: !open || !isPersistedId(chatId),
   });
   const {
     data: chatAudiosData,
     isLoading: isLoadingAudios,
     error: audiosQueryError,
   } = useGetChatAudiosQuery(chatId, {
-    skip: !open || chatId <= 0,
+    skip: !open || !isPersistedId(chatId),
   });
   useEffect(() => {
     if (!open) return;
@@ -143,7 +145,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     }, 340);
   };
 
-  const handleJumpToMessage = (messageId: number) => {
+  const handleJumpToMessage = (messageId: EntityId) => {
     onOpenChange(false);
     onJumpToMessage(messageId);
   };

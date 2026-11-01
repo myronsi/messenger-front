@@ -1,3 +1,8 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { AuthenticatedAudio } from '@/shared/ui/AuthenticatedAudio';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image as ImageIcon, Loader2, Music, Search } from 'lucide-react';
 import type { ChatAudio, ChatPhoto, ChatSearchResult } from '../model/types';
@@ -5,15 +10,15 @@ import { useSearchChatMessagesQuery } from '../api/messageApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+
 
 export const normalizeProfileMediaUrl = (mediaUrl: string) => {
   if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://')) return mediaUrl;
-  return `${BASE_URL}${mediaUrl}`;
+  return resolveMediaUrl(mediaUrl);
 };
 
 export interface ProfilePhotoItem {
-  id: number;
+  id: EntityId;
   url: string;
   thumbnailUrl: string;
   name: string;
@@ -21,7 +26,7 @@ export interface ProfilePhotoItem {
 }
 
 export interface ProfileAudioItem {
-  id: number;
+  id: EntityId;
   url: string;
   name: string;
   kind: 'voice' | 'file';
@@ -66,8 +71,8 @@ const getSearchText = (result: ChatSearchResult) => {
 };
 
 export const ProfileSearchPanel: React.FC<{
-  chatId: number;
-  onJumpToMessage: (messageId: number) => void;
+  chatId: EntityId;
+  onJumpToMessage: (messageId: EntityId) => void;
   autoFocus?: boolean;
 }> = ({ chatId, onJumpToMessage, autoFocus = true }) => {
   const { translations, language } = useLanguage();
@@ -76,7 +81,7 @@ export const ProfileSearchPanel: React.FC<{
   const normalizedQuery = query.trim();
   const { data, isFetching, error } = useSearchChatMessagesQuery(
     { chatId, query: normalizedQuery },
-    { skip: chatId <= 0 || normalizedQuery.length === 0 }
+    { skip: !isPersistedId(chatId) || normalizedQuery.length === 0 }
   );
   const results = data?.results || [];
 
@@ -171,7 +176,7 @@ export const ProfilePhotosPanel: React.FC<{
         <div className="space-y-3">
           {selectedPhoto && (
             <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-              <img src={selectedPhoto.url} alt={selectedPhoto.name} className="max-h-72 w-full bg-gray-100 object-contain" />
+              <AuthenticatedImage src={selectedPhoto.url} alt={selectedPhoto.name} className="max-h-72 w-full bg-gray-100 object-contain" />
             </div>
           )}
           <div className="grid grid-cols-3 gap-2">
@@ -185,7 +190,7 @@ export const ProfilePhotosPanel: React.FC<{
                 }`}
                 title={photo.name}
               >
-                <img src={photo.thumbnailUrl} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
+                <AuthenticatedImage src={photo.thumbnailUrl} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
               </button>
             ))}
           </div>
@@ -237,7 +242,7 @@ export const ProfileAudiosPanel: React.FC<{
                   </div>
                 </div>
               </div>
-              <audio controls preload="metadata" src={audio.url} className="h-9 w-full" />
+              <AuthenticatedAudio controls preload="metadata" src={audio.url} className="h-9 w-full" />
             </div>
           ))}
         </div>

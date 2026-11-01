@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { User } from '@/entities/user';
 import type {
@@ -17,7 +18,7 @@ export const profileApi = messengerApi.injectEndpoints({
       providesTags: ['Auth'],
     }),
 
-    updateUser: builder.mutation<User, Partial<User> & { id: number }>({
+    updateUser: builder.mutation<User, Partial<User> & { id: EntityId }>({
       query: ({ id, ...patch }) => ({
         url: '/auth/me',
         method: 'PUT',
@@ -44,10 +45,11 @@ export const profileApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Auth'],
     }),
 
-    deleteAccount: builder.mutation<{ message: string }, void>({
-      query: () => ({
+    deleteAccount: builder.mutation<{ message: string }, string>({
+      query: (password) => ({
         url: '/auth/me',
         method: 'DELETE',
+        body: { password },
       }),
       invalidatesTags: ['Auth', 'User', 'Chat', 'Message'],
     }),

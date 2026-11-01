@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -176,7 +177,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
               dragStartRef.current = null;
             }}
           >
-            <img
+            <AuthenticatedImage
               src={imageUrl}
               alt="Avatar crop preview"
               className="absolute max-w-none select-none object-cover"

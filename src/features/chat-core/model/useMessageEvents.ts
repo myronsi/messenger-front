@@ -1,3 +1,6 @@
+import type { EntityId } from '@/shared/api/entityId';
+import { compareIds, isPersistedId } from '@/shared/api/entityId';
+import { isGoApi } from '@/shared/api/goSocket';
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
 import { useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
@@ -10,15 +13,15 @@ import type { ReadBatchEvent, ReadEvent, ServerEvent } from './socketEvents';
 import type { ChatTransport, SetMessages, ShowError } from './types';
 
 interface MessageEventsOptions {
-  chatId: number;
+  chatId: EntityId;
   username: string;
   transport: ChatTransport;
-  currentUserIdRef: MutableRefObject<number>;
+  currentUserIdRef: MutableRefObject<EntityId>;
   translationsRef: MutableRefObject<Translations>;
   onBackRef: MutableRefObject<() => void>;
   setMessages: SetMessages;
   setModal: ShowError;
-  markMessageFailed: (messageId: number, message?: string) => boolean;
+  markMessageFailed: (messageId: EntityId, message?: string) => boolean;
   markLatestPendingMessageFailed: (message?: string) => boolean;
   // Translation key shown when the whole chat is deleted (differs for one-to-one and group chats).
   chatDeletedKey: 'chatDeleted' | 'groupDeleted';
@@ -73,7 +76,9 @@ export const useMessageEvents = ({
       case 'chat_list_read':
         setMessages((previous) => addReadReceipts(
           previous,
-          event.message_id ? [event.message_id] : [],
+          event.message_id ? (isGoApi()
+            ? previous.filter(message => isPersistedId(message.id) && compareIds(message.id, event.message_id!) <= 0).map(message => message.id)
+            : [event.message_id]) : [],
           event.user_id || event.reader_user_id || (event.type === 'is_read' ? event.id : undefined) || 0,
           event.read_at || event.timestamp || new Date().toISOString(),
           readerFrom(event)

@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { useCallback } from 'react';
 import type { Message } from '@/entities/message';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
@@ -6,7 +7,7 @@ import type { GroupDetails } from './GroupProfileTypes';
 interface UseGroupMessageHelpersArgs {
   username: string;
   language: 'en' | 'ru';
-  currentUserId: number;
+  currentUserId: EntityId;
   groupDetails: Pick<GroupDetails, 'permissions'> | null;
 }
 

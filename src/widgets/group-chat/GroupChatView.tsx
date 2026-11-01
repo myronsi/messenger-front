@@ -1,3 +1,5 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { isPersistedId } from '@/shared/api/entityId';
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { Message } from '@/entities/message';
@@ -44,7 +46,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
             onClick={openGroupProfile}
             className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 text-left outline-none focus:outline-none"
           >
-            <img src={currentGroupAvatar} alt={currentGroupName} className="motion-avatar h-9 w-9 rounded-full border border-gray-200 object-cover" />
+            <AuthenticatedImage src={currentGroupAvatar} alt={currentGroupName} className="motion-avatar h-9 w-9 rounded-full border border-gray-200 object-cover" />
             <span className="flex min-w-0 flex-col items-start">
               <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{currentGroupName}</span>
               <span className="max-w-[52vw] truncate text-xs font-normal text-muted-foreground sm:max-w-none">
@@ -120,7 +122,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         />
       </div>
 
-      {contextMenu && currentUserId > 0 && (
+      {contextMenu && isPersistedId(currentUserId) && (
         <ContextMenu
           ref={contextMenuRef}
           contextMenu={contextMenu}
@@ -144,7 +146,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         />
       )}
 
-      {reactionMenu && currentUserId > 0 && (
+      {reactionMenu && isPersistedId(currentUserId) && (
         <ReactionMenu
           ref={reactionMenuRef}
           reactionMenu={reactionMenu}
@@ -209,7 +211,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
                 <div className="space-y-2">
                   {readStatusMessage?.read_by.map((read) => (
                     <button key={read.user_id} type="button" onClick={() => read.username && handleOpenUserProfile(read.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
-                      <img src={getAvatarSrc(read.avatar_url)} alt={read.display_name || read.username || ''} className="h-8 w-8 rounded-full object-cover" />
+                      <AuthenticatedImage src={getAvatarSrc(read.avatar_url)} alt={read.display_name || read.username || ''} className="h-8 w-8 rounded-full object-cover" />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{read.display_name || read.username}</div>
                         {read.username && <div className="truncate text-xs text-muted-foreground">@{read.username}</div>}
@@ -227,7 +229,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
                 <div className="space-y-2">
                   {unreadParticipants.map((participant) => (
                     <button key={participant.id} type="button" onClick={() => handleOpenUserProfile(participant.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
-                      <img src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-8 w-8 rounded-full object-cover" />
+                      <AuthenticatedImage src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-8 w-8 rounded-full object-cover" />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{participant.display_name || participant.username}</div>
                         <div className="truncate text-xs text-muted-foreground">@{participant.username}</div>
@@ -251,7 +253,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           <div className="max-h-[50vh] space-y-2 overflow-y-auto">
             {reactionDetails?.reactions.map((reaction) => (
               <button key={`${reaction.user_id}-${reaction.reaction}`} type="button" onClick={() => reaction.username && handleOpenUserProfile(reaction.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
-                <img src={getAvatarSrc(reaction.avatar_url)} alt={reaction.display_name || reaction.username || ''} className="h-8 w-8 rounded-full object-cover" />
+                <AuthenticatedImage src={getAvatarSrc(reaction.avatar_url)} alt={reaction.display_name || reaction.username || ''} className="h-8 w-8 rounded-full object-cover" />
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{reaction.display_name || reaction.username}</div>
                   {reaction.username && <div className="truncate text-xs text-muted-foreground">@{reaction.username}</div>}

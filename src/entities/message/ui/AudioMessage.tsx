@@ -1,14 +1,16 @@
+import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform } from '../model/audioMessageHelpers';
 
 interface AudioMessageProps {
   fileUrl: string;
-  messageId: number;
+  messageId: EntityId;
   duration?: number;
   waveform?: number[];
   isPlaying: boolean;
-  setPlayingMessageId: (id: number | null) => void;
+  setPlayingMessageId: (id: EntityId | null) => void;
 }
 
 const isUsableDuration = (value: number | undefined): value is number => !!value && Number.isFinite(value) && value > 0;
@@ -17,13 +19,14 @@ const isUsableDuration = (value: number | undefined): value is number => !!value
 // only knows which message is playing. Duration and waveform come from the API when present;
 // the audio file is fetched on first play (or just its metadata when the API has no duration).
 const AudioMessage: React.FC<AudioMessageProps> = ({
-  fileUrl,
+  fileUrl: sourceFileUrl,
   messageId,
   duration: metadataDuration,
   waveform: metadataWaveform,
   isPlaying,
   setPlayingMessageId,
 }) => {
+  const fileUrl = useAuthenticatedMedia(sourceFileUrl) || '';
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(isUsableDuration(metadataDuration) ? metadataDuration : 0);

@@ -1,5 +1,6 @@
+import type { EntityId } from '@/shared/api/entityId';
 export interface User {
-  id: number;
+  id: EntityId;
   username: string;
   display_name: string;
   account_display_name?: string;
@@ -11,12 +12,12 @@ export interface User {
   is_online?: boolean;
   last_seen?: string | null;
   can_message?: boolean;
-  direct_chat_id?: number | null;
+  direct_chat_id?: EntityId | null;
   direct_message_reason?: 'self' | 'blocked' | 'privacy' | null;
 }
 
 export interface UserAvatarHistoryItem {
-  id: number;
+  id: EntityId;
   avatar_url: string;
   created_at: string;
   is_current: boolean;

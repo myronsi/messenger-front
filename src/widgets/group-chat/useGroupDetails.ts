@@ -1,3 +1,5 @@
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect } from 'react';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { authFetch } from '@/shared/auth/session';
@@ -9,12 +11,12 @@ import { useAppDispatch } from '@/shared/hooks/redux';
 import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 interface Args {
-  chatId: number; username: string; groupName: string; token: string;
+  chatId: EntityId; username: string; groupName: string; token: string;
   dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null;
   groupForm: { name: string; description: string };
   setGroupDetails: React.Dispatch<React.SetStateAction<GroupDetails | null>>;
   setGroupForm: React.Dispatch<React.SetStateAction<{ name: string; description: string }>>;
-  setCurrentUserId: React.Dispatch<React.SetStateAction<number>>;
+  setCurrentUserId: React.Dispatch<React.SetStateAction<EntityId>>;
 }
 export const useGroupDetails = ({
   chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
@@ -68,13 +70,13 @@ export const useGroupDetails = ({
     setGroupDetails(data);
     setGroupForm({ name: data.name || groupName, description: data.description || '' });
 
-    if (syncCache && chatId > 0) {
+    if (syncCache && isPersistedId(chatId)) {
       dispatch(Reflect.apply(messengerApi.util.upsertQueryData, messengerApi.util, ['getGroupDetails', chatId, rawDetails]));
     }
   }, [chatId, dispatch, groupName, normalizeGroupDetails, setGroupDetails, setGroupForm]);
 
   const refreshGroupDetails = useCallback(async () => {
-    if (!token || chatId <= 0) return;
+    if (!token || !isPersistedId(chatId)) return;
     try {
       const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -90,7 +92,7 @@ export const useGroupDetails = ({
     data: latestGroupDetails,
     error: groupDetailsError,
   } = useGetGroupDetailsQuery(chatId, {
-    skip: !token || chatId <= 0,
+    skip: !token || !isPersistedId(chatId),
     refetchOnMountOrArgChange: true,
   });
 

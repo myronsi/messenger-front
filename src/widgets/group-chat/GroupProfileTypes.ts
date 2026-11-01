@@ -1,10 +1,11 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type * as React from 'react';
 
 import type { GroupRole } from '@/entities/chat';
 export type { GroupRole };
 
 export interface GroupParticipant {
-  id: number;
+  id: EntityId;
   username: string;
   display_name?: string;
   avatar_url: string;
@@ -14,8 +15,8 @@ export interface GroupParticipant {
 }
 
 export interface GroupPendingInvite {
-  request_id: number;
-  id: number;
+  request_id: EntityId;
+  id: EntityId;
   username: string;
   display_name?: string;
   avatar_url: string;
@@ -32,13 +33,13 @@ export interface GroupPermissions {
 }
 
 export interface GroupDetails {
-  chat_id: number;
+  chat_id: EntityId;
   name: string;
   description: string;
   avatar_url: string;
-  owner_id: number;
+  owner_id: EntityId;
   owner_username: string;
-  admin_id?: number;
+  admin_id?: EntityId;
   admin_username?: string;
   current_user_role?: GroupRole | null;
   permissions: GroupPermissions;
@@ -61,7 +62,7 @@ export interface GroupProfileDialogProps {
   open: boolean;
   isClosing: boolean;
   onOpenChange: (open: boolean) => void;
-  chatId: number;
+  chatId: EntityId;
   groupDetails: GroupDetails | null;
   currentGroupName: string;
   currentGroupAvatar: string;
@@ -82,7 +83,7 @@ export interface GroupProfileDialogProps {
   onLeaveGroup: () => void;
   onDeleteGroup: () => void;
   onOpenUserProfile: (username: string) => void;
-  onJumpToMessage: (messageId: number) => void;
+  onJumpToMessage: (messageId: EntityId) => void;
   groupConfirm: GroupProfileConfirmState | null;
   onCloseGroupConfirm: () => void;
 }

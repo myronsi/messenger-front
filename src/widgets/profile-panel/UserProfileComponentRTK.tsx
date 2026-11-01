@@ -1,3 +1,5 @@
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -19,7 +21,7 @@ import { toProfileAudios, toProfilePhotos } from '@/entities/message';
 
 interface UserProfileComponentRTKProps {
   username: string;
-  directChatId?: number;
+  directChatId?: EntityId;
   onClose: () => void;
   onMessage?: (user: {
     username: string;
@@ -27,13 +29,13 @@ interface UserProfileComponentRTKProps {
     isOnline?: boolean;
     lastSeen?: string | null;
   }) => void;
-  onJumpToMessage?: (messageId: number) => void;
+  onJumpToMessage?: (messageId: EntityId) => void;
   onDeleteChat?: () => void;
   hideMessageAction?: boolean;
 }
 
-const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({ 
-  username, 
+const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
+  username,
   directChatId,
   onClose,
   onMessage,
@@ -49,12 +51,12 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const [isEditingContactName, setIsEditingContactName] = useState(false);
   const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
   const [isDeleteChatConfirmOpen, setIsDeleteChatConfirmOpen] = useState(false);
-  
+
   // Use username-based query instead of user ID
-  const { 
-    data: userData, 
-    error, 
-    isLoading 
+  const {
+    data: userData,
+    error,
+    isLoading
   } = useGetUserByUsernameQuery(username);
   const { data: currentUser } = useGetCurrentUserQuery();
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
@@ -66,14 +68,14 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     isLoading: isLoadingDmPhotos,
     error: dmPhotosQueryError,
   } = useGetChatPhotosQuery(directChatId || 0, {
-    skip: !directChatId || directChatId <= 0,
+    skip: !directChatId || !isPersistedId(directChatId),
   });
   const {
     data: chatAudiosData,
     isLoading: isLoadingDmAudios,
     error: dmAudiosQueryError,
   } = useGetChatAudiosQuery(directChatId || 0, {
-    skip: !directChatId || directChatId <= 0,
+    skip: !directChatId || !isPersistedId(directChatId),
   });
   const profileDisplayName = userData?.display_name || username;
   const accountDisplayName = userData?.account_display_name || username;
@@ -173,10 +175,10 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const hasBlockedRelationship = isBlocked || userData.direct_message_reason === 'blocked';
   const canShowCreatedAt = !!userData.created_at && !hasBlockedRelationship;
   const canShowMessageAction = !hideMessageAction && !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
-  const canShowSearchAction = !!directChatId && directChatId > 0 && !isCurrentUser && !!onJumpToMessage;
-  const canShowPhotosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmPhotos.length > 0;
-  const canShowAudiosAction = !!directChatId && directChatId > 0 && !isCurrentUser && dmAudios.length > 0;
-  const canShowDmSections = !!directChatId && directChatId > 0 && !isCurrentUser;
+  const canShowSearchAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && !!onJumpToMessage;
+  const canShowPhotosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmPhotos.length > 0;
+  const canShowAudiosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmAudios.length > 0;
+  const canShowDmSections = !!directChatId && isPersistedId(directChatId) && !isCurrentUser;
   const actionCount = [canShowMessageAction, canShowDmSections, canShowSearchAction, canShowPhotosAction, canShowAudiosAction]
     .filter(Boolean).length;
   const actionColumns = Math.min(Math.max(actionCount, 1), 4);

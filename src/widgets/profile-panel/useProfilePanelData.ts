@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
@@ -117,7 +118,7 @@ export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOpti
     }
   };
 
-  const handleRejectRequest = async (requestId: number) => {
+  const handleRejectRequest = async (requestId: EntityId) => {
     try {
       await rejectRequest(requestId).unwrap();
       await refetchRequestInbox();

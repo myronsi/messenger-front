@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { useDraftState } from '@/shared/hooks/useDraftState';
@@ -9,16 +10,16 @@ import { getLocalUploadFileType } from '@/features/chat-core';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface PreviewChatOptions {
-  chatId: number;
+  chatId: EntityId;
   chatName: string;
   username: string;
-  userId: number | null;
+  userId: EntityId | null;
   directDraftDisabled: boolean;
   directDraftReason: 'self' | 'blocked' | 'privacy' | null;
   translations: Translations;
   initialPendingApprovalRequest: boolean;
   initialPendingApprovalMessage: string;
-  onChatCreated?: (newId: number, newName: string) => void;
+  onChatCreated?: (newId: EntityId, newName: string) => void;
 }
 
 export const usePreviewChat = ({
@@ -120,7 +121,7 @@ export const usePreviewChat = ({
     return tempId;
   };
 
-  const updatePreviewUploadProgress = (messageId: number, percent: number) => {
+  const updatePreviewUploadProgress = (messageId: EntityId, percent: number) => {
     setPreviewFailedMessages((current) => current.map((message) => (
       message.id === messageId
         ? { ...message, upload_progress: Math.max(1, Math.min(99, Math.round(percent))) }
@@ -128,7 +129,7 @@ export const usePreviewChat = ({
     )));
   };
 
-  const markPreviewUploadFailed = (messageId: number, errorMessage?: string) => {
+  const markPreviewUploadFailed = (messageId: EntityId, errorMessage?: string) => {
     setPreviewFailedMessages((current) => current.map((message) => (
       message.id === messageId
         ? { ...message, upload_status: 'failed', delivery_error: errorMessage || translations.errorLoading || 'Upload failed' }
@@ -178,7 +179,7 @@ export const usePreviewChat = ({
       return;
     }
     setIsCreatingPreviewChat(true);
-    let optimisticMessageId: number | null = null;
+    let optimisticMessageId: EntityId | null = null;
     try {
       const response = await createChat({ user1: username, user2: chatName }).unwrap();
       if (response.approval_required || !response.chat_id) {

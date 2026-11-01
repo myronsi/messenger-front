@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
@@ -5,7 +6,7 @@ import { authFetch } from '@/shared/auth/session';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface DeleteChatActionOptions {
-  chatId: number;
+  chatId: EntityId;
   translations: Translations;
   onBack: () => void;
   setModal: (modal: ModalState | null) => void;

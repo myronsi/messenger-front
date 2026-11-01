@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { Message } from '../model/types';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
@@ -16,7 +17,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
 
   const getReplyContent = (message: Message | undefined) => {
     if (!message) return { text: translations.messageDeleted };
-    
+
     if (message.type === 'file' && typeof message.content !== 'string') {
       const fileName = message.content.file_name || '';
       const config = getFileTypeConfig(fileName);
@@ -24,7 +25,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
       if (message.content.file_type === 'voice') {
         return { text: translations.voiceMessage };
       }
-      
+
       // Check if it's an image
       if (message.content.file_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
         return {
@@ -33,7 +34,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
           isImage: true
         };
       }
-      
+
       if (config) {
         return { text: config.replyText };
       }
@@ -53,9 +54,9 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onCli
     >
       {content.isImage && content.imageUrl && (
         <div className="w-8 h-8 flex-shrink-0">
-          <img 
-            src={content.imageUrl} 
-            alt="Reply preview" 
+          <AuthenticatedImage
+            src={content.imageUrl}
+            alt="Reply preview"
             className="w-full h-full object-cover rounded"
             draggable={false}
           />

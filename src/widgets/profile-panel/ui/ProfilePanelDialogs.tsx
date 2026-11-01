@@ -1,4 +1,5 @@
 import AvatarCropModal from '@/shared/ui/AvatarCropModal';
+import { isGoApi } from '@/shared/api/goSocket';
 import AvatarHistoryViewer from './AvatarHistoryViewer';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { GroupCreateModal, type GroupCreatePayload } from '@/features/groups';
@@ -75,6 +76,7 @@ const ProfilePanelDialogs = ({
                   : translations.error
         }
         message={modal.message}
+        requirePassword={modal.type === 'deleteAccount' && isGoApi()}
         consequences={modal.consequences}
         onConfirm={modal.type === 'blockUser' ? onConfirmBlock : modal.onConfirm || (() => setModal(null))}
         onCancel={onCancel}

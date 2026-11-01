@@ -1,3 +1,6 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Send } from 'lucide-react';
@@ -22,7 +25,7 @@ interface ForwardMessageDialogProps {
 }
 
 interface ForwardTarget {
-  id: number;
+  id: EntityId;
   name: string;
   subtitle: string;
   avatarUrl: string;
@@ -38,7 +41,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
 }) => {
   const { translations } = useLanguage();
   const [query, setQuery] = useState('');
-  const [selectedChatIds, setSelectedChatIds] = useState<number[]>([]);
+  const [selectedChatIds, setSelectedChatIds] = useState<EntityId[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [forwardMessage, { isLoading }] = useForwardMessageMutation();
   const { data: directChatsData, isLoading: isLoadingDirect } = useGetOneOnOneChatsQuery(username, { skip: !open || !username });
@@ -57,7 +60,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     const blockedUsernameSet = new Set((blockedUsersData?.users || []).map((user) => user.username.toLowerCase()));
     const directTargets = (directChatsData?.chats || [])
       .filter((chat) => (
-        chat.id > 0 &&
+        isPersistedId(chat.id) &&
         !chat.pending_approval_request &&
         !chat.interlocutor_deleted &&
         !blockedUsernameSet.has(chat.interlocutor_name.toLowerCase())
@@ -86,7 +89,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     ));
   }, [blockedUsersData?.users, directChatsData?.chats, groupChatsData?.groups, query, translations.group]);
 
-  const toggleTarget = (chatId: number) => {
+  const toggleTarget = (chatId: EntityId) => {
     setSelectedChatIds((current) => (
       current.includes(chatId)
         ? current.filter((id) => id !== chatId)
@@ -162,7 +165,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
                       onClick={(event) => event.stopPropagation()}
                       onCheckedChange={() => toggleTarget(target.id)}
                     />
-                    <img src={target.avatarUrl} alt={target.name} className="h-9 w-9 rounded-full object-cover" />
+                    <AuthenticatedImage src={target.avatarUrl} alt={target.name} className="h-9 w-9 rounded-full object-cover" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{target.name}</span>
                       <span className="block truncate text-xs text-muted-foreground">{target.subtitle}</span>

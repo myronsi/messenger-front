@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { CheckCircle2, ChevronDown, Loader2, Plus, X } from 'lucide-react';
 import { PrivacyExceptionEffect, PrivacyExceptionKey, PrivacySettings } from '@/features/profile';
@@ -48,7 +49,7 @@ const PrivacyExceptionEditor: React.FC<Props> = (props) => {
         onClick={() => handleAddException(key, effect, candidate.username)}
         className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <img src={getAvatarSrc(candidate.avatar_url)} alt={candidate.username} className="h-8 w-8 rounded-full object-cover" />
+        <AuthenticatedImage src={getAvatarSrc(candidate.avatar_url)} alt={candidate.username} className="h-8 w-8 rounded-full object-cover" />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{candidate.display_name || candidate.username}</span>
           <span className="block truncate text-xs text-muted-foreground">@{candidate.username}</span>
@@ -138,7 +139,7 @@ const PrivacyExceptionEditor: React.FC<Props> = (props) => {
                 <div className="flex flex-wrap gap-2">
                   {selectedUsers.map((user) => (
                     <span key={user.username} className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background py-1 pl-1 pr-2 text-xs">
-                      <img src={getAvatarSrc(user.avatar_url)} alt={user.username} className="h-6 w-6 rounded-full object-cover" />
+                      <AuthenticatedImage src={getAvatarSrc(user.avatar_url)} alt={user.username} className="h-6 w-6 rounded-full object-cover" />
                       <span className="max-w-36 truncate">@{user.username}</span>
                       <button
                         type="button"

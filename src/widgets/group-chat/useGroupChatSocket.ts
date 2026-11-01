@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useCallback } from 'react';
 import { closeForGood } from '@/shared/api/reconnect';
@@ -8,18 +9,18 @@ import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
 
 interface UseGroupChatSocketArgs {
   token: string;
-  chatId: number;
+  chatId: EntityId;
   username: string;
   translations: GroupTranslations;
   transport: ChatTransport;
-  currentUserIdRef: MutableRefObject<number>;
+  currentUserIdRef: MutableRefObject<EntityId>;
   translationsRef: MutableRefObject<Translations>;
   onBackRef: MutableRefObject<() => void>;
   applyGroupDetails: (raw: RawGroupDetails, syncCache?: boolean) => void;
   refreshGroupDetails: () => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setModal: React.Dispatch<React.SetStateAction<ModalState | null>>;
-  markMessageFailed: (messageId: number, message?: string) => boolean;
+  markMessageFailed: (messageId: EntityId, message?: string) => boolean;
   markLatestPendingMessageFailed: (message?: string) => boolean;
   onReconnected: () => void;
 }

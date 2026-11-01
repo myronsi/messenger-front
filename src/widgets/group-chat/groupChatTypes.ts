@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type * as React from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import type { GroupRole } from '@/entities/chat';
@@ -6,24 +7,24 @@ import type { GroupDetails, GroupParticipant, GroupProfileConfirmState } from '.
 export type { RawGroupDetails, RawGroupParticipant, RawGroupPendingInvite } from '@/entities/chat';
 
 export interface GroupComponentProps {
-  chatId: number;
+  chatId: EntityId;
   groupName: string;
   username: string;
-  firstUnreadMessageId?: number | null;
+  firstUnreadMessageId?: EntityId | null;
   onBack: () => void;
   onOpenUserProfile?: (username: string) => void;
-  messageJumpRequest?: { messageId: number; key: number } | null;
+  messageJumpRequest?: { messageId: EntityId; key: number } | null;
 }
 
 export type GroupTranslations = Record<string, string> & { leaveGroupConsequences?: string[]; deleteGroupConsequences?: string[] };
 
 type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
-type ContextMenuState = { x: number; y: number; messageId: number; isMine: boolean; isClosing?: boolean } | null;
+type ContextMenuState = { x: number; y: number; messageId: EntityId; isMine: boolean; isClosing?: boolean } | null;
 type ReactionMenuState = { message: Message; x: number; y: number; isClosing?: boolean } | null;
 type ReactionDetailsState = { message: Message; reaction: string; reactions: ReactionInfo[] } | null;
 
 export interface GroupChatViewModel {
-  chatId: number;
+  chatId: EntityId;
   username: string;
   messages: Message[];
   onBack: () => void;
@@ -32,23 +33,23 @@ export interface GroupChatViewModel {
   currentGroupName: string;
   groupDetails: GroupDetails | null;
   translations: GroupTranslations;
-  currentUserId: number;
-  firstUnreadMessageId?: number | null;
+  currentUserId: EntityId;
+  firstUnreadMessageId?: EntityId | null;
   handleMessageClick: (event: React.MouseEvent, message: Message) => void;
   handleOpenUserProfile: (username: string) => void;
-  highlightedMessageId: number | null;
+  highlightedMessageId: EntityId | null;
   contextMenu: ContextMenuState;
   getFormattedDateLabel: (timestamp: string) => string;
   getMessageTime: (timestamp: string) => string;
   canDeleteMessage: (message: Message) => boolean;
-  jumpToSearchResult: (messageId: number) => void;
-  setHighlightedMessageId: Setter<number | null>;
-  messageRefs: React.MutableRefObject<Record<number, HTMLDivElement | null>>;
-  scrollToMessage: (messageId: number) => void;
+  jumpToSearchResult: (messageId: EntityId) => void;
+  setHighlightedMessageId: Setter<EntityId | null>;
+  messageRefs: React.MutableRefObject<Record<EntityId, HTMLDivElement | null>>;
+  scrollToMessage: (messageId: EntityId) => void;
   wsRef: React.MutableRefObject<WebSocket | null>;
   openMenus: (message: Message, event: React.MouseEvent) => void;
-  tempHighlightedMessageId: number | null;
-  setTempHighlightedMessageId: Setter<number | null>;
+  tempHighlightedMessageId: EntityId | null;
+  setTempHighlightedMessageId: Setter<EntityId | null>;
   loadOlderMessages: () => Promise<void>;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
@@ -57,7 +58,7 @@ export interface GroupChatViewModel {
   loadLatestMessages: () => Promise<void>;
   hasMoreNewerMessages: boolean;
   isLoadingNewerMessages: boolean;
-  markMessagesRead: (messageIds: number[]) => Promise<void>;
+  markMessagesRead: (messageIds: EntityId[]) => Promise<void>;
   isOwnMessage: (message: Message) => boolean;
   setReadStatusMessage: Setter<Message | null>;
   setReactionDetails: Setter<ReactionDetailsState>;
@@ -75,9 +76,9 @@ export interface GroupChatViewModel {
   setEditingMessage: Setter<Message | null>;
   token: string;
   createOptimisticUploadMessage: (file: Blob, fileName: string, fileType?: string, caption?: string) => number;
-  updateOptimisticUploadProgress: (messageId: number, percent: number) => void;
-  markOptimisticUploadFailed: (messageId: number, errorMessage?: string) => void;
-  settleOptimisticUpload: (messageId: number) => void;
+  updateOptimisticUploadProgress: (messageId: EntityId, percent: number) => void;
+  markOptimisticUploadFailed: (messageId: EntityId, errorMessage?: string) => void;
+  settleOptimisticUpload: (messageId: EntityId) => void;
   contextMenuRef: React.RefObject<HTMLDivElement | null>;
   setContextMenu: Setter<ContextMenuState>;
   setModal: Setter<ModalState | null>;

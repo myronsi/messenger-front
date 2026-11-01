@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { useEffect, useState } from 'react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
@@ -58,7 +59,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
                       aria-disabled={isSelf}
                       className={`flex items-center p-3 rounded-lg transition-all ${isSelf ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'}`}
                     >
-                      <img
+                      <AuthenticatedImage
                         src={resolveMediaUrl(u.avatar_url, DEFAULT_AVATAR)}
                         alt={u.username}
                         className={`w-10 h-10 rounded-full mr-3 object-cover ${isSelf ? 'opacity-50' : ''}`}

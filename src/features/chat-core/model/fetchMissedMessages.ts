@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import type { MessageHistoryResponse } from '@/entities/message';
 import { reconnectDelay } from '@/shared/api/reconnect';
 import { authFetch } from '@/shared/auth/session';
@@ -8,8 +9,8 @@ const ATTEMPTS = 3;
 // Fetches the page after `afterId`, retrying a failed request with backoff.
 // Returns null when every attempt failed or `isCurrent()` turned false (the user left the chat).
 export const fetchMissedMessages = async (
-  chatId: number,
-  afterId: number,
+  chatId: EntityId,
+  afterId: EntityId,
   limit: number,
   isCurrent: () => boolean,
 ): Promise<MessageHistoryResponse | null> => {

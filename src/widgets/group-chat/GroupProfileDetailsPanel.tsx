@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { Camera, Check, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -22,7 +23,7 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({ model, canEdit, canDeleteGr
       <section className="rounded-lg border border-gray-200 bg-white p-3">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
-            <img src={currentGroupAvatar} alt={currentGroupName} className="h-16 w-16 rounded-full border border-gray-200 object-cover" />
+            <AuthenticatedImage src={currentGroupAvatar} alt={currentGroupName} className="h-16 w-16 rounded-full border border-gray-200 object-cover" />
             {canEdit && (
               <button
                 type="button"

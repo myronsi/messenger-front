@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef, useState } from 'react';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 
@@ -19,13 +20,13 @@ interface RecordingSession {
 }
 
 interface VoiceRecorderOptions {
-  chatId: number;
+  chatId: EntityId;
   isDisabled: boolean;
   disableVoice: boolean;
   onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => number | null;
-  onVoiceUploadProgress?: (messageId: number, percent: number) => void;
-  onVoiceUploadError?: (messageId: number, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: number) => void;
+  onVoiceUploadProgress?: (messageId: EntityId, percent: number) => void;
+  onVoiceUploadError?: (messageId: EntityId, errorMessage?: string) => void;
+  onVoiceUploadComplete?: (messageId: EntityId) => void;
 }
 
 const getSupportedOpusMimeType = () => {

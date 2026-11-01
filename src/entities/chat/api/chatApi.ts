@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
 
@@ -13,13 +14,13 @@ export const chatApi = messengerApi.injectEndpoints({
       providesTags: ['Chat'],
     }),
 
-    getGroupDetails: builder.query<RawGroupDetails, number>({
+    getGroupDetails: builder.query<RawGroupDetails, EntityId>({
       query: (chatId) => `/groups/${chatId}`,
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-details-${chatId}` }],
     }),
 
-    getChatById: builder.query<ApiChat, number>({
+    getChatById: builder.query<ApiChat, EntityId>({
       query: (id) => `/chats/${id}`,
       providesTags: (result, error, id) => [{ type: 'Chat', id }],
     }),
@@ -38,7 +39,7 @@ export const chatApi = messengerApi.injectEndpoints({
       providesTags: ['Request'],
     }),
 
-    approveApprovalRequest: builder.mutation<{ message: string; chat_id?: number }, number>({
+    approveApprovalRequest: builder.mutation<{ message: string; chat_id?: EntityId }, EntityId>({
       query: (requestId) => ({
         url: `/requests/${requestId}/approve`,
         method: 'POST',
@@ -46,7 +47,7 @@ export const chatApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Request', 'Chat', 'Message'],
     }),
 
-    rejectApprovalRequest: builder.mutation<{ message: string }, number>({
+    rejectApprovalRequest: builder.mutation<{ message: string }, EntityId>({
       query: (requestId) => ({
         url: `/requests/${requestId}/reject`,
         method: 'POST',
@@ -54,7 +55,7 @@ export const chatApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Request'],
     }),
 
-    updateChat: builder.mutation<ApiChat, { id: number; name?: string; description?: string }>({
+    updateChat: builder.mutation<ApiChat, { id: EntityId; name?: string; description?: string }>({
       query: ({ id, ...patch }) => ({
         url: `/chats/${id}`,
         method: 'PATCH',
@@ -63,7 +64,7 @@ export const chatApi = messengerApi.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [{ type: 'Chat', id }],
     }),
 
-    deleteChat: builder.mutation<void, number>({
+    deleteChat: builder.mutation<void, EntityId>({
       query: (id) => ({
         url: `/chats/${id}`,
         method: 'DELETE',
@@ -71,7 +72,7 @@ export const chatApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Chat'],
     }),
 
-    setChatPinned: builder.mutation<{ chat_id: number; is_pinned: boolean }, { chatId: number; pinned: boolean }>({
+    setChatPinned: builder.mutation<{ chat_id: EntityId; is_pinned: boolean }, { chatId: EntityId; pinned: boolean }>({
       query: ({ chatId, pinned }) => ({
         url: `/chats/${chatId}/pin`,
         method: pinned ? 'PUT' : 'DELETE',

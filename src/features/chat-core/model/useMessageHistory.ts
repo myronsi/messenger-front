@@ -1,3 +1,5 @@
+import { isPersistedId, compareIds } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { Message, MessageHistoryResponse, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages } from '@/entities/message';
@@ -14,13 +16,13 @@ const MESSAGE_PAGE_SIZE = 50;
 const MAX_LOADED_MESSAGES = 500;
 
 interface MessageHistoryOptions {
-  chatId: number;
+  chatId: EntityId;
   token: string;
   username: string;
-  firstUnreadMessageId?: number | null;
+  firstUnreadMessageId?: EntityId | null;
   messages: Message[];
   setMessages: Dispatch<SetStateAction<Message[]>>;
-  currentUserIdRef: MutableRefObject<number>;
+  currentUserIdRef: MutableRefObject<EntityId>;
   onBackRef: MutableRefObject<() => void>;
   translationsRef: MutableRefObject<Translations>;
   setModal: ShowError;
@@ -43,8 +45,8 @@ export const useMessageHistory = ({
   const [isLoadingNewerMessages, setIsLoadingNewerMessages] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [hasMoreNewerMessages, setHasMoreNewerMessages] = useState(false);
-  const [oldestMessageId, setOldestMessageId] = useState<number | null>(null);
-  const [newestMessageId, setNewestMessageId] = useState<number | null>(null);
+  const [oldestMessageId, setOldestMessageId] = useState<EntityId | null>(null);
+  const [newestMessageId, setNewestMessageId] = useState<EntityId | null>(null);
   const isLoadingOlderMessagesRef = useRef(false);
   const isLoadingNewerMessagesRef = useRef(false);
   const trimNewestPendingRef = useRef(false);
@@ -55,7 +57,7 @@ export const useMessageHistory = ({
     error: latestHistoryError,
   } = useGetMessageHistoryQuery(
     { chatId, limit: MESSAGE_PAGE_SIZE, aroundId: firstUnreadMessageId || undefined },
-    { skip: !token || chatId <= 0, refetchOnMountOrArgChange: true }
+    { skip: !token || !isPersistedId(chatId), refetchOnMountOrArgChange: true }
   );
 
   useEffect(() => () => {
@@ -173,7 +175,7 @@ export const useMessageHistory = ({
 
   // Replaces the loaded window with the newest page; used when the newest messages were never loaded.
   const loadLatestMessages = useCallback(async () => {
-    if (!token || chatId <= 0 || isLoadingNewerMessagesRef.current) return;
+    if (!token || !isPersistedId(chatId) || isLoadingNewerMessagesRef.current) return;
     isLoadingNewerMessagesRef.current = true;
     setIsLoadingNewerMessages(true);
     try {
@@ -182,7 +184,7 @@ export const useMessageHistory = ({
       if (response.ok) {
         const data: MessageHistoryResponse = await response.json();
         const latestMessages = normalizeHistoryMessages(data.history);
-        setMessages((previous) => [...latestMessages, ...previous.filter((message) => message.id < 0)]);
+        setMessages((previous) => [...latestMessages, ...previous.filter((message) => !isPersistedId(message.id))]);
         setOldestMessageId(latestMessages[0]?.id || null);
         setNewestMessageId(latestMessages[latestMessages.length - 1]?.id || null);
         setHasMoreMessages(data.has_more_before ?? data.has_more);
@@ -215,9 +217,9 @@ export const useMessageHistory = ({
   // load on scroll anyway; otherwise fetch everything after the newest loaded message. If that keeps
   // failing, the missed messages are left to the normal load-newer-on-scroll path.
   const catchUpAfterReconnect = useCallback(async () => {
-    if (!token || chatId <= 0 || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
-    const newestLoadedId = messagesRef.current.reduce((newest, message) => Math.max(newest, message.id), 0);
-    if (newestLoadedId <= 0) return;
+    if (!token || !isPersistedId(chatId) || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
+    const newestLoadedId = messagesRef.current.reduce<EntityId>((newest, message) => compareIds(newest, message.id) > 0 ? newest : message.id, 0);
+    if (!isPersistedId(newestLoadedId)) { await loadLatestMessages(); return; }
     const isCurrent = () => chatIdRef.current === chatId;
     isLoadingNewerMessagesRef.current = true;
     try {
@@ -235,11 +237,11 @@ export const useMessageHistory = ({
     } finally {
       isLoadingNewerMessagesRef.current = false;
     }
-  }, [chatId, setMessages, token]);
+  }, [chatId, setMessages, token, loadLatestMessages]);
 
   const applyReadReceiptBatch = useCallback((
-    messageIds: number[],
-    readerUserId: number,
+    messageIds: EntityId[],
+    readerUserId: EntityId,
     readAt: string,
     reader?: { username?: string; display_name?: string; avatar_url?: string }
   ) => {
@@ -262,9 +264,9 @@ export const useMessageHistory = ({
     }));
   }, [setMessages]);
 
-  const markMessagesRead = useCallback(async (messageIds: number[]) => {
-    const uniqueMessageIds = Array.from(new Set(messageIds.filter((messageId) => messageId > 0)));
-    if (!uniqueMessageIds.length || currentUserIdRef.current <= 0) return;
+  const markMessagesRead = useCallback(async (messageIds: EntityId[]) => {
+    const uniqueMessageIds = Array.from(new Set(messageIds.filter((messageId) => isPersistedId(messageId))));
+    if (!uniqueMessageIds.length || !isPersistedId(currentUserIdRef.current)) return;
     const result = await markChatRead({ chatId, messageIds: uniqueMessageIds }).unwrap();
     applyReadReceiptBatch(
       result.read_message_ids || uniqueMessageIds,

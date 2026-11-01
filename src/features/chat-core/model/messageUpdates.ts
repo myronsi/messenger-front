@@ -1,3 +1,5 @@
+import { isPersistedId } from '@/shared/api/entityId';
+import type { EntityId } from '@/shared/api/entityId';
 import type { FileMessageContent, Message, ReactionInfo } from '@/entities/message';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { unescapeCurlyBraces } from './messageText';
@@ -13,7 +15,7 @@ const isSameSender = (a: Message, b: Message) => (!!a.sender_id && a.sender_id =
 
 export const buildMessageFromSocketEvent = (
   event: NewMessageEvent,
-  context: { currentUserId: number; username: string }
+  context: { currentUserId: EntityId; username: string }
 ): Message => ({
   id: event.data.message_id,
   client_temp_id: event.data.client_temp_id ?? null,
@@ -41,7 +43,7 @@ export const buildMessageFromSocketEvent = (
 export const mergeIncomingMessage = (
   previous: Message[],
   incoming: Message,
-  onTempIdResolved?: (tempId: number) => void
+  onTempIdResolved?: (tempId: EntityId) => void
 ): Message[] => {
   const existingIndex = previous.findIndex((message) => message.id === incoming.id);
   if (existingIndex !== -1) {
@@ -72,8 +74,9 @@ export const mergeIncomingMessage = (
   }
 
   const pendingTextIndex = previous.findIndex((message) =>
-    message.id < 0 &&
+    !isPersistedId(message.id) &&
     isSameSender(message, incoming) &&
+    (incoming.client_temp_id == null || String(message.client_temp_id ?? message.id) === String(incoming.client_temp_id)) &&
     typeof message.content === 'string' &&
     typeof incoming.content === 'string' &&
     (message.content === incoming.content || message.content === unescapeCurlyBraces(incoming.content))
@@ -93,14 +96,14 @@ export const mergeIncomingMessage = (
   return [...previous, incoming];
 };
 
-export const applyMessageEdit = (previous: Message[], messageId: number, content: Message['content'], editedAt?: string): Message[] =>
+export const applyMessageEdit = (previous: Message[], messageId: EntityId, content: Message['content'], editedAt?: string): Message[] =>
   previous.map((message) => (
     message.id === messageId
       ? { ...message, content, edited_at: editedAt || new Date().toISOString() }
       : message
   ));
 
-export const addReaction = (previous: Message[], messageId: number, reaction: ReactionInfo): Message[] =>
+export const addReaction = (previous: Message[], messageId: EntityId, reaction: ReactionInfo): Message[] =>
   previous.map((message) => {
     if (message.id !== messageId) return message;
     const reactions = message.reactions || [];
@@ -108,7 +111,7 @@ export const addReaction = (previous: Message[], messageId: number, reaction: Re
     return { ...message, reactions: [...reactions, reaction] };
   });
 
-export const removeReaction = (previous: Message[], messageId: number, userId: number, reaction: string): Message[] =>
+export const removeReaction = (previous: Message[], messageId: EntityId, userId: EntityId, reaction: string): Message[] =>
   previous.map((message) => (
     message.id === messageId
       ? { ...message, reactions: (message.reactions || []).filter((item) => !(item.user_id === userId && item.reaction === reaction)) }
@@ -117,8 +120,8 @@ export const removeReaction = (previous: Message[], messageId: number, userId: n
 
 export const addReadReceipts = (
   previous: Message[],
-  messageIds: number[],
-  readerUserId: number,
+  messageIds: EntityId[],
+  readerUserId: EntityId,
   readAt: string,
   reader?: ReaderInfo
 ): Message[] => {

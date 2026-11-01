@@ -1,3 +1,5 @@
+import { fetchMedia as authFetch } from '@/shared/api/fetchMedia';
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, X } from 'lucide-react';
 import { useGetUserAvatarHistoryQuery } from '@/entities/user';
@@ -79,7 +81,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
     const filename = `${username}-avatar-${selectedIndex + 1}.${extension}`;
 
     try {
-      const response = await fetch(selectedUrl, { credentials: 'include' });
+      const response = await authFetch(selectedUrl, { credentials: 'include' });
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -180,7 +182,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({
               <span className="text-sm">{translations.failedToLoadImage || 'Failed to load image'}</span>
             </div>
           ) : (
-            <img
+            <AuthenticatedImage
               key={selectedUrl}
               src={selectedUrl}
               alt={`${displayName} avatar`}

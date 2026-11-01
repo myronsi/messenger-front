@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { authFetch } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupCreatePayload } from '@/features/groups';
@@ -6,7 +7,7 @@ import type { ProfileModalState } from './useProfileAccountActions';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 interface CreateGroupResponse {
-  chat_id?: number;
+  chat_id?: EntityId;
   detail?: string;
 }
 

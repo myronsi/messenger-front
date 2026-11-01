@@ -1,3 +1,4 @@
+import type { EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
@@ -8,10 +9,10 @@ import { getScrollBehavior, useScrollToBottom } from './useScrollToBottom';
 
 interface MessageListScrollOptions {
   messages: Message[];
-  messageRefs: MutableRefObject<{ [key: number]: HTMLDivElement | null }>;
-  firstUnreadMessageId?: number | null;
-  highlightedMessageId: number | null;
-  tempHighlightedMessageId: number | null;
+  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
+  firstUnreadMessageId?: EntityId | null;
+  highlightedMessageId: EntityId | null;
+  tempHighlightedMessageId: EntityId | null;
   getFormattedDateLabel: (timestamp: string) => string;
   hasMoreMessages: boolean;
   hasMoreNewerMessages: boolean;
@@ -34,7 +35,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages, isLoadingOlderMessages,
     onLoadOlderMessages, onLoadLatestMessages, scrollToBottomKey, isOwnMessage,
   } = options;
-  const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<number | null>(firstUnreadMessageId ?? null);
+  const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<EntityId | null>(firstUnreadMessageId ?? null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isPositioned, setIsPositioned] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,7 +47,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const hasScrolledToFirstUnreadRef = useRef(false);
   const isSeekingFirstUnreadRef = useRef(false);
   const shouldStickToBottomRef = useRef(true);
-  const lastMessageIdRef = useRef<number | null>(null);
+  const lastMessageIdRef = useRef<EntityId | null>(null);
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const positionedFrameRef = useRef(0);
   const autoScrollUntilRef = useRef(0);
@@ -263,4 +264,3 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     isPositioned, unseenCount, showScrollToBottom, scrollToBottom,
   };
 };
-

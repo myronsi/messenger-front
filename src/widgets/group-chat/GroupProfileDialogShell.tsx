@@ -1,3 +1,4 @@
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { Image as ImageIcon, Music, Search, UserPlus, Users, X } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
@@ -92,7 +93,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                   className="mx-auto block rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   aria-label="View group picture"
                 >
-                  <img
+                  <AuthenticatedImage
                     src={currentGroupAvatar}
                     alt={currentGroupName}
                     className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"

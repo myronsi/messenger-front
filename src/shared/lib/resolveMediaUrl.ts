@@ -8,5 +8,6 @@ const ABSOLUTE_URL = /^(?:https?:|blob:|data:)/i;
 export const resolveMediaUrl = (path?: string | null, fallback: string = DEFAULT_AVATAR): string => {
   if (!path) return fallback;
   if (ABSOLUTE_URL.test(path)) return path;
+  if (path.startsWith('/api/v2/')) return new URL(path, BASE_URL || window.location.origin).href;
   return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 };
