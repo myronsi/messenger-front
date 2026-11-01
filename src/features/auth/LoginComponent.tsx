@@ -25,7 +25,7 @@ interface LoginComponentProps {
 const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegisterClick, onRecoverClick }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(() => { const notice = sessionStorage.getItem('security_notice') || ''; sessionStorage.removeItem('security_notice'); return notice; });
   const [showPassword, setShowPassword] = useState(false);
   const [loginChallenge, setLoginChallenge] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');

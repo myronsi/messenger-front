@@ -20,6 +20,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [qrPart, setQrPart] = useState('');
+  const [recoveryKey, setRecoveryKey] = useState('');
   const [showQr, setShowQr] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
@@ -79,9 +80,10 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
           localStorage.removeItem('device_part');
         }
         const hasRecoveryQr = typeof data.qr_part === 'string' && Boolean(data.qr_part);
+        setRecoveryKey(typeof data.recovery_key === 'string' ? data.recovery_key : '');
         setQrPart(hasRecoveryQr ? data.qr_part : '');
-        setShowQr(hasRecoveryQr);
-        setShowProfileSetup(!hasRecoveryQr);
+        setShowQr(hasRecoveryQr || Boolean(data.recovery_key));
+        setShowProfileSetup(!hasRecoveryQr && !data.recovery_key);
         setMessage(hasRecoveryQr ? `${translations.registerSuccess} ${translations.saveQrPart}` : '');
       } else {
         setMessage(response.status === 429 ? 'Too many registration attempts. Please try again later.' : data.detail || translations.registerFailed);
@@ -94,6 +96,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
 
   const handleContinue = useCallback(() => {
     setShowQr(false);
+    setRecoveryKey('');
     setShowProfileSetup(true);
     setMessage('');
   }, []);
@@ -248,7 +251,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
     handleProfileAvatarChange, handleRegister, handleSaveProfileSetup, handleSubmit,
     inputsFilled, isDisplayNameValid: isValidDisplayName(displayName),
     isSavingProfile, message, password, profileAvatarFile,
-    profileAvatarPreview, profileBio, qrPart, removeProfileAvatar, setDisplayName,
+    profileAvatarPreview, profileBio, qrPart, recoveryKey, removeProfileAvatar, setDisplayName,
     setPassword, setProfileBio, setShowPassword, setUsername, showPassword,
     showProfileSetup, showQr, translations, username,
   };

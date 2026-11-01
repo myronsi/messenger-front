@@ -36,7 +36,7 @@ export interface ChatsListComponentProps {
 
 // WebSocket message interface
 export interface WebSocketMessage {
-  type: 'approval_request_created' | 'chat_created' | 'chat_deleted' | 'group_created' | 'group_updated' | 'presence_update' | 'chat_list_message' | 'chat_list_read' | 'chat_read_batch' | 'chat_list_delete' | 'edit' | 'error';
+  type: 'security_notice' | 'approval_request_created' | 'chat_created' | 'chat_deleted' | 'group_created' | 'group_updated' | 'presence_update' | 'chat_list_message' | 'chat_list_read' | 'chat_read_batch' | 'chat_list_delete' | 'edit' | 'error';
   message?: string;
   request_id?: EntityId;
   request_type?: 'direct_message' | 'group_invite';

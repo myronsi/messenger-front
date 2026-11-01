@@ -1,3 +1,5 @@
+import { RecoveryKeySettings } from './RecoveryKeySettings';
+import { isGoApi } from '@/shared/api/goSocket';
 import React from 'react';
 import { AlertCircle, CheckCircle2, Loader2, Shield, Smartphone, Trash2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -112,6 +114,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
       )}
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+        {isGoApi() && <RecoveryKeySettings />}
           <section className="rounded-lg border border-border p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium">
               <Shield className="h-4 w-4 text-muted-foreground" />

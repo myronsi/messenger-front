@@ -1,3 +1,5 @@
+import { RecoverySetupPrompt } from '@/widgets/profile-panel';
+import { isGoApi } from '@/shared/api/goSocket';
 import { isPersistedId } from '@/shared/api/entityId';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
@@ -143,6 +145,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white">
       <Toaster />
+      {isLoggedIn && isGoApi() && <RecoverySetupPrompt key={username} />}
 
       {!isLoggedIn ? (
         renderAuthPage({ onLoginSuccess: handleLoginSuccess })

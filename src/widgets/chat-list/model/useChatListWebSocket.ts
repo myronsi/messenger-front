@@ -1,3 +1,4 @@
+import { endSession } from '@/shared/auth/session';
 import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -120,6 +121,10 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
           return;
         }
 
+        if (isGoApi() && parsedData.type === 'security_notice') {
+          sessionStorage.setItem('security_notice', 'Your password was reset using account recovery. Please sign in again.');
+          endSession(); window.location.assign('/login'); return;
+        }
         if (handleHelloEvent(parsedData)) return;
         if (isGoApi()) {
           // Go broadcasts a global stream. Refresh authoritative list entries after updates.

@@ -6,6 +6,7 @@ export interface AuthResponse {
   user?: User;
   device_part?: string;
   qr_part?: string;
+  recovery_key?: string;
   two_factor_required?: boolean;
   login_challenge?: string;
 }

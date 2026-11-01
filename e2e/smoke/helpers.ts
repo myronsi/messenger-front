@@ -59,6 +59,8 @@ export const registerUser = async (page: Page, user: SmokeUser) => {
   const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
   const skipButton = page.getByRole('button', { name: 'Skip for now', exact: true });
   await expect(continueButton.or(skipButton)).toBeVisible();
+  const savedKey = page.getByLabel('I saved my recovery key');
+  if (await savedKey.isVisible()) await savedKey.check();
   if (await continueButton.isVisible()) await continueButton.click();
   await page.getByRole('button', { name: 'Skip for now' }).click();
 
