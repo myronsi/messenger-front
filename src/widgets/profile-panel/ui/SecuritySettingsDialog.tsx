@@ -24,6 +24,7 @@ interface SecuritySettingsPanelProps {
   isActive: boolean;
   onBack: () => void;
   onLoggedOut: () => void;
+  onDismissSafetyChange: (blocked: boolean) => void;
 }
 
 const shortDeviceLabel = (userAgent: string) => {
@@ -58,7 +59,7 @@ const sessionDurationOptions = [
   { value: 365, label: '1 year' },
 ];
 
-const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, onBack, onLoggedOut }) => {
+const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, onBack, onLoggedOut, onDismissSafetyChange }) => {
   const {
     translations, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions, isRevokingOthers,
     isChangingPassword, isSettingUp2fa, isConfirming2fa, isDisabling2fa, status, passwordForm,
@@ -114,7 +115,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
       )}
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
-        {isGoApi() && <RecoveryKeySettings />}
+        {isGoApi() && <RecoveryKeySettings onDismissSafetyChange={onDismissSafetyChange} />}
           <section className="rounded-lg border border-border p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium">
               <Shield className="h-4 w-4 text-muted-foreground" />
