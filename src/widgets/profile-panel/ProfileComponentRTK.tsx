@@ -1,5 +1,6 @@
 import React, { forwardRef, useCallback, useRef, useState } from 'react';
 import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
+import NotificationSettingsPanel from './ui/NotificationSettingsPanel';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
 import PersonalInfoPage from './ui/PersonalInfoPage';
@@ -118,10 +119,10 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
       indicatorCount: 0,
       onClick: () => setActiveProfilePage('security'),
     },
+    { label: translations.notifications, description: language === 'ru' ? 'Звук, уведомления и чаты без звука' : 'Sound, alerts, and muted conversations',
+      icon: Bell, indicatorCount: 0, onClick: () => setActiveProfilePage('notifications') },
   ];
-  const futureSettingsRows = [
-    { label: translations.notifications || 'Notifications', description: translations.comingSoon || 'Coming soon', icon: Bell },
-  ];
+  const futureSettingsRows: [] = [];
   return (
     <div
       onPointerDown={(e) => {
@@ -150,6 +151,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-hidden">
+          {activeProfilePage === 'notifications' && <NotificationSettingsPanel isActive onBack={() => setActiveProfilePage('profile')} />}
           <div
             aria-hidden={activeProfilePage !== 'profile'}
             inert={activeProfilePage !== 'profile' ? true : undefined}

@@ -91,6 +91,7 @@ export default defineConfig(({ command, mode }) => {
           ],
         },
         workbox: {
+          importScripts: ['/notification-worker.js'],
           // Only the app shell is precached; API, WebSocket and media requests always go to the network.
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
           globIgnores: ["static/**"],

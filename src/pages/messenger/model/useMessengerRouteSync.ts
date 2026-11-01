@@ -4,6 +4,7 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, type NavigateFunction } from 'react-router-dom';
 import { CurrentChat, directChatPath, parseDmIdentifier, parseProfileUsername } from './messengerRoutes';
 import { authFetch } from '@/shared/auth/session';
+import { resolveNotificationChat } from './resolveNotificationChat';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -77,6 +78,14 @@ export const useMessengerRouteSync = ({
       if (!isPersistedId(id)) {
         navigate('/');
         return;
+      }
+      if (location.search === '?notification=1') {
+        if (!username) return;
+        let cancelled = false;
+        void resolveNotificationChat(id).then((state) => {
+          if (!cancelled) navigate(`/chat/${id}`, { replace: true, state });
+        }).catch(() => { if (!cancelled) navigate('/', { replace: true }); });
+        return () => { cancelled = true; };
       }
       if (currentChat && String(currentChat.id) === id) return;
 
@@ -253,5 +262,5 @@ export const useMessengerRouteSync = ({
       if (isUserProfileOpen) closeUserProfile();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, username]);
+  }, [location.pathname, location.search, username]);
 };
