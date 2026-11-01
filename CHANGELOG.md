@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/myronsi/messenger-front/compare/v0.6.2...v0.6.3) (2026-11-01)
+
+
+### Features
+
+* connect frontend to Go v2 API for staging migration ([#122](https://github.com/myronsi/messenger-front/issues/122)) ([f97a0b7](https://github.com/myronsi/messenger-front/commit/f97a0b7064513c20994998fab64c7286caf8e894))
+
 ## [0.6.2](https://github.com/myronsi/messenger-front/compare/v0.6.1...v0.6.2) (2026-10-09)
 
 
