@@ -10,7 +10,8 @@ interface OutgoingEvent {
   content?: string; reaction?: string; emoji?: string; is_typing?: boolean;
 }
 export const goClientEvent = (raw: OutgoingEvent, chatId: EntityId): ClientEvent => {
-  const envelope = { type: raw.type, chat_id: String(chatId), client_temp_id: String(raw.client_temp_id ?? crypto.randomUUID()) };
+  const generatedId = raw.type === 'message' ? crypto.randomUUID() : `op:${crypto.randomUUID()}`;
+  const envelope = { type: raw.type, chat_id: String(chatId), client_temp_id: String(raw.client_temp_id ?? generatedId) };
   const messageId = raw.message_id === undefined ? undefined : String(raw.message_id);
   let data: Record<string, unknown>;
   switch (raw.type) {
@@ -48,7 +49,9 @@ export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => 
     case 'delete': return { type: 'delete', message_id: event.data.message_id };
     case 'reaction_add': case 'reaction_remove': return { type: event.type, message_id: event.data.message_id, user_id: event.data.reaction.user_id, reaction: event.data.reaction.emoji };
     case 'read': return { type: 'is_read', message_id: event.data.message_id, user_id: event.data.user_id, read_at: event.data.read_at };
-    case 'error': return { type: 'error', message: event.data.message || event.data.code, message_id: event.client_temp_id };
+    case 'error': return event.client_temp_id?.startsWith('op:')
+      ? { type: 'error', message: event.data.message || event.data.code, operation_error: true }
+      : { type: 'error', message: event.data.message || event.data.code, message_id: event.client_temp_id };
     case 'group_updated': return { type: 'group_updated', group: groupModel(event.data.group) };
     case 'chat_deleted': return { type: 'chat_deleted', chat_id: event.chat_id };
     default: return null;

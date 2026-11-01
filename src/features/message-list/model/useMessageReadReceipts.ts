@@ -79,9 +79,9 @@ export const useMessageReadReceipts = ({
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         const messageId = entry.target.getAttribute('data-message-id') || '0';
-        const message = messages.find((item) => item.id === messageId);
+        const message = messages.find((item) => String(item.id) === messageId);
         if (message && !isOwnMessage(message) && !message.read_by?.some((reader) => reader.user_id === userId)) {
-          queueReadReceipt(messageId);
+		  queueReadReceipt(message.id);
         }
       });
     }, { threshold: 0.5, root: chatContainerRef.current });

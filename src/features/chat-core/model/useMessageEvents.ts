@@ -47,7 +47,7 @@ export const useMessageEvents = ({
     switch (event.type) {
       case 'message':
       case 'file': {
-        if (event.data?.chat_id != null && event.data.chat_id !== chatId) return;
+        if (event.data?.chat_id != null && String(event.data.chat_id) !== String(chatId)) return;
         const incoming = buildMessageFromSocketEvent(event, { currentUserId: currentUserIdRef.current, username });
         setMessages((previous) => mergeIncomingMessage(previous, incoming, (tempId) => {
           pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => id !== tempId);
@@ -94,11 +94,12 @@ export const useMessageEvents = ({
         ));
         return;
       case 'error':
-        if (event.message_id) markMessageFailed(event.message_id, event.message);
+        if (event.operation_error) setModal({ type: 'error', message: event.message ?? '' });
+        else if (event.message_id) markMessageFailed(event.message_id, event.message);
         else if (!markLatestPendingMessageFailed(event.message)) setModal({ type: 'error', message: event.message ?? '' });
         return;
       case 'chat_deleted':
-        if (event.chat_id != null && event.chat_id !== chatId) return;
+        if (event.chat_id != null && String(event.chat_id) !== String(chatId)) return;
         setModal({ type: 'error', message: translationsRef.current[chatDeletedKey] });
         closeForGood(socket, 'Chat deleted');
         setTimeout(() => onBackRef.current(), 1000);

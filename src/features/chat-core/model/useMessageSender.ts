@@ -161,7 +161,7 @@ export const useMessageSender = ({
     let payload: OutgoingPayload;
 
     if (editingMessage) {
-      setMessages((previous) => previous.map((message) => message.id === editingMessage.id
+      if (!isGoApi()) setMessages((previous) => previous.map((message) => message.id === editingMessage.id
         ? { ...message, content: contentToSend, edited_at: new Date().toISOString() }
         : message));
       payload = { type: 'edit', message_id: editingMessage.id, content: escapedMessage };

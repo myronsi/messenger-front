@@ -78,7 +78,7 @@ export const useMessengerRouteSync = ({
         navigate('/');
         return;
       }
-      if (currentChat && currentChat.id === id) return;
+      if (currentChat && String(currentChat.id) === id) return;
 
       const state = (location.state as MessengerRouteState | null) ?? {};
       const name = state.chatName || String(id);
@@ -136,7 +136,7 @@ export const useMessengerRouteSync = ({
           })
           .then((data) => {
             if (isCancelled) return;
-            const chat = (data.chats || []).find((item) => item.id === targetChatId);
+            const chat = (data.chats || []).find((item) => String(item.id) === targetChatId);
             if (!chat) {
               navigate('/', { replace: true });
               return;

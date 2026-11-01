@@ -6,13 +6,14 @@ import { Label } from '@/shared/ui/label';
 import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
 
 interface KeyStatus { exists: boolean; created_at: string | null; locked_until: string | null }
-export const RecoveryKeySettings = () => {
+export const RecoveryKeySettings = ({ onDismissSafetyChange }: { onDismissSafetyChange?: (blocked: boolean) => void }) => {
   const [status, setStatus] = useState<KeyStatus | null>(null);
   const [key, setKey] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  useEffect(() => { onDismissSafetyChange?.(busy || Boolean(key)); }, [busy, key, onDismissSafetyChange]);
   const load = async () => {
     try { const r = await authFetch(`${import.meta.env.VITE_BASE_URL}/me/recovery-key`); if (!r.ok) throw new Error(); setStatus(await r.json()); }
     catch { setError('Unable to load recovery key settings.'); }
@@ -20,6 +21,7 @@ export const RecoveryKeySettings = () => {
   useEffect(() => { void load(); }, []);
   const locked = Boolean(status?.locked_until && new Date(status.locked_until).getTime() > Date.now());
   const create = async () => {
+    onDismissSafetyChange?.(true);
     setBusy(true); setError('');
     try {
       const r = await authFetch(`${import.meta.env.VITE_BASE_URL}/me/recovery-key`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, code: code.trim() }) });

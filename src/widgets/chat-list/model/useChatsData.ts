@@ -71,7 +71,7 @@ export function useChatsData(username: string) {
   // request started (it already reflects them). Newer ones are live events and are kept.
   const dropOverridesOlderThan = useCallback((chatIds: EntityId[], startedAt: number | undefined) => {
     if (!startedAt || chatIds.length === 0) return;
-    const ids = new Set(chatIds);
+    const ids = new Set(chatIds.map(String));
     setRawChatOverrides((prev) => {
       let changed = false;
       const next: ChatOverrideMap = {};

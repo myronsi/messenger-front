@@ -26,7 +26,8 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   isPlaying,
   setPlayingMessageId,
 }) => {
-  const fileUrl = useAuthenticatedMedia(sourceFileUrl) || '';
+  const [mediaRequested, setMediaRequested] = useState(false);
+  const fileUrl = useAuthenticatedMedia(sourceFileUrl, undefined, mediaRequested) || '';
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(isUsableDuration(metadataDuration) ? metadataDuration : 0);
@@ -48,9 +49,14 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     const audio = audioRef.current;
     if (loadError || !audio) return;
     setHasStartedPlaying(true);
-    audio.play().catch(() => setPlayingMessageId(null));
+    setMediaRequested(true);
+    if (fileUrl) audio.play().catch(() => setPlayingMessageId(null));
     setPlayingMessageId(messageId);
   };
+
+  useEffect(() => {
+    if (fileUrl && isPlaying) void audioRef.current?.play().catch(() => setPlayingMessageId(null));
+  }, [fileUrl, isPlaying, setPlayingMessageId]);
 
   const pauseMessage = () => {
     audioRef.current?.pause();
@@ -115,7 +121,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   // Fallback only: without a stored waveform the file has to be downloaded and decoded,
   // so it is deferred until the user actually plays the message.
   useEffect(() => {
-    if (hasMetadataWaveform || !hasStartedPlaying) return;
+    if (hasMetadataWaveform || !hasStartedPlaying || !fileUrl) return;
     let isMounted = true;
     analyzeAudio(fileUrl)
       .then(({ duration: analyzedDuration, waveform: bars }) => {

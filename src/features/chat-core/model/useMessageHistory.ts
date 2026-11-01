@@ -184,7 +184,7 @@ export const useMessageHistory = ({
       if (response.ok) {
         const data: MessageHistoryResponse = await response.json();
         const latestMessages = normalizeHistoryMessages(data.history);
-        setMessages((previous) => [...latestMessages, ...previous.filter((message) => !isPersistedId(message.id))]);
+        setMessages((previous) => mergeFreshHistoryMessages(previous, latestMessages));
         setOldestMessageId(latestMessages[0]?.id || null);
         setNewestMessageId(latestMessages[latestMessages.length - 1]?.id || null);
         setHasMoreMessages(data.has_more_before ?? data.has_more);
