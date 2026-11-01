@@ -52,9 +52,14 @@ export const registerUser = async (page: Page, user: SmokeUser) => {
   await page.getByLabel('Username').fill(user.username);
   await page.getByLabel('Display Name').fill(user.displayName);
   await page.getByLabel('Password').fill(user.password);
+  const responsePromise = page.waitForResponse(response => response.url().endsWith('/auth/register') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Register' }).click();
-
-  await page.getByRole('button', { name: 'Continue' }).click();
+  const response = await responsePromise;
+  expect(response.ok(), `Registration returned HTTP ${response.status()}`).toBe(true);
+  const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
+  const skipButton = page.getByRole('button', { name: 'Skip for now', exact: true });
+  await expect(continueButton.or(skipButton)).toBeVisible();
+  if (await continueButton.isVisible()) await continueButton.click();
   await page.getByRole('button', { name: 'Skip for now' }).click();
 
   await waitForMessenger(page);

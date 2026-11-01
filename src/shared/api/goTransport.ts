@@ -13,6 +13,16 @@ const jsonResponse = (data: unknown, source?: Response) => new Response(JSON.str
   headers: { 'Content-Type': 'application/json' },
 });
 
+const mediaScreenModel = (items: Array<S['Message'] | S['SearchHit']>, kind: string) => {
+  const messages = items.map(item => messageModel('message' in item ? item.message : item));
+  return kind === 'search' ? { results: messages } : {
+    [kind]: messages.map(message => ({ id: message.id, timestamp: message.timestamp,
+      ...(typeof message.content === 'string' ? {} : message.content),
+      audio_kind: message.attachment?.kind === 'voice' ? 'voice' : 'file',
+    })),
+  };
+};
+
 // Migration boundary: existing screen models are retained while the wire protocol is v2.
 // The supplied fetch is the versioned native fetch, never this adapter (no recursion).
 export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typeof fetch => async (input, init) => {
@@ -152,6 +162,8 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     if (media) {
       path = `/chats/${media[2]}/${media[1] === 'search' ? 'messages/search' : 'media'}`;
       if (media[1] !== 'search') url.searchParams.set('kind', media[1] === 'photos' ? 'image' : 'audio');
+      const items = await allPages<S['Message'] | S['SearchHit']>(path + url.search);
+      return jsonResponse(mediaScreenModel(items, media[1]));
     }
     const read = path.match(/^\/chats\/(\d+)\/read$/);
     let readIds: string[] = [];
@@ -211,16 +223,6 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
         has_more_after: !!(after ? result.next_cursor : result.prev_cursor),
         next_before_id: after ? result.prev_cursor : result.next_cursor,
         next_after_id: after ? result.next_cursor : result.prev_cursor,
-      }, response);
-    }
-    if (media) {
-      const items: Array<S['Message'] | S['SearchHit']> = result.items || [];
-      const messages = items.map(item => messageModel('message' in item ? item.message : item));
-      return jsonResponse(media[1] === 'search' ? { results: messages } : {
-        [media[1]]: messages.map(message => ({ id: message.id, timestamp: message.timestamp,
-          ...(typeof message.content === 'string' ? {} : message.content),
-          audio_kind: message.attachment?.kind === 'voice' ? 'voice' : 'file',
-        })),
       }, response);
     }
     if (/^\/messages\/\d+$/.test(path) && method === 'PATCH') return jsonResponse(messageModel(result), response);

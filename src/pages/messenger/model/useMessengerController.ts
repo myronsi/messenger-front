@@ -68,6 +68,11 @@ export const useMessengerController = () => {
   }, []);
 
   const handleLoginSuccess = (user: string) => {
+    setIsProfileOpen(false);
+    setIsUserProfileOpen(false);
+    setProfileUsername(null);
+    setCurrentChat(null);
+    setMessageJumpRequest(null);
     setIsLoggedIn(true);
     setUsername(user);
     setIsLoading(false);

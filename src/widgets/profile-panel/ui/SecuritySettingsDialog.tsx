@@ -63,7 +63,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
     setPasswordForm, twoFactorSetup, twoFactorCode, setTwoFactorCode, recoveryCodes, disableForm,
     setDisableForm, isSessionDurationOpen, setIsSessionDurationOpen, handleChangePassword,
     handleStartTwoFactor, handleConfirmTwoFactor, handleDisableTwoFactor, handleRevokeSession,
-    handleUpdateSessionDuration, handleRevokeOtherSessions,
+    handleUpdateSessionDuration, handleRevokeOtherSessions, setupPassword, setSetupPassword,
   } = useSecuritySettings(isActive, onLoggedOut);
 
   return (
@@ -214,7 +214,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
 
           <section className="rounded-lg border border-border p-4">
             <div className="mb-3 text-sm font-medium">{translations.twoFactorAuthentication || 'Two-factor authentication'}</div>
-            {securitySettings?.two_factor_enabled ? (
+            {isLoadingSecurity ? <Loader2 className="h-4 w-4 animate-spin" /> : securitySettings?.two_factor_enabled ? (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{translations.twoFactorEnabled || 'Two-factor authentication is enabled.'}</p>
                 <input type="password" value={disableForm.password} onChange={(event) => setDisableForm((form) => ({ ...form, password: event.target.value }))} placeholder={translations.password || 'Password'} className="w-full rounded-md border border-input px-3 py-2 text-sm" />
@@ -235,9 +235,14 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
                 </button>
               </div>
             ) : (
-              <button type="button" onClick={handleStartTwoFactor} disabled={isSettingUp2fa} className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              <div className="space-y-2">
+              <input type="password" autoComplete="current-password" aria-label="Password for two-factor setup"
+                value={setupPassword} onChange={event => setSetupPassword(event.target.value)}
+                placeholder={translations.password || 'Password'} className="w-full rounded-md border border-input px-3 py-2 text-sm" />
+              <button type="button" onClick={handleStartTwoFactor} disabled={isSettingUp2fa || !setupPassword} className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
                 {isSettingUp2fa ? translations.loading || 'Loading...' : translations.enable || 'Enable'}
               </button>
+              </div>
             )}
 
             {recoveryCodes.length > 0 && (

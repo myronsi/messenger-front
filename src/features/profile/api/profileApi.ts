@@ -98,10 +98,11 @@ export const profileApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Auth'],
     }),
 
-    setupTwoFactor: builder.mutation<TwoFactorSetupResponse, void>({
-      query: () => ({
+    setupTwoFactor: builder.mutation<TwoFactorSetupResponse, string>({
+      query: (password) => ({
         url: '/auth/me/2fa/setup',
         method: 'POST',
+        body: { password },
       }),
       invalidatesTags: ['Auth'],
     }),

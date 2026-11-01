@@ -231,7 +231,11 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
             <ProfileComponentRTK
               username={username}
               onClose={() => setIsProfileOpen(false)}
-              onLogout={() => setIsLoggedIn(false)}
+              onLogout={() => {
+                setIsProfileOpen(false);
+                setIsUserProfileOpen(false);
+                setIsLoggedIn(false);
+              }}
             />
           )}
         </div>
