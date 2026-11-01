@@ -9,5 +9,9 @@ export const resolveMediaUrl = (path?: string | null, fallback: string = DEFAULT
   if (!path) return fallback;
   if (ABSOLUTE_URL.test(path)) return path;
   if (path.startsWith('/api/v2/')) return new URL(path, BASE_URL || window.location.origin).href;
+  // Bundled defaults live on the frontend, including when used as a group's avatar.
+  if (/^\/static\/avatars\/(default\.jpg|group\.png|deleted\.jpg)$/.test(path)) {
+    return new URL(path, window.location.origin).href;
+  }
   return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 };

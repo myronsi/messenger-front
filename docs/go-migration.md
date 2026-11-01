@@ -39,6 +39,10 @@ logout/login, direct-chat creation, realtime delivery, upload/download, profile
 and avatar updates, privacy settings, sessions, groups and blocking. Do not point
 this suite at production.
 
+For repeated settings checks, existing synthetic fixtures can be supplied with
+`GO_TEST_USER_A`, `GO_TEST_PASSWORD_A`, `GO_TEST_USER_B`, and `GO_TEST_PASSWORD_B`.
+This avoids exhausting registration limits. Keep those values outside the repo.
+
 The production database rehearsal was validated separately. Production still
 needs a fresh consistent migration snapshot at cutover because Python continues
 accepting writes. Two-factor login/recovery, all group-role transitions and long

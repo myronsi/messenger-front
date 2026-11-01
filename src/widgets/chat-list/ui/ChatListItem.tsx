@@ -1,4 +1,5 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Check, CheckCheck, Pin } from 'lucide-react';
@@ -46,6 +47,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       <div className="relative mr-3">
         <AuthenticatedImage
           src={chat.avatar_url}
+          fallbackSrc={chat.type === 'group' ? DEFAULT_GROUP_AVATAR : DEFAULT_AVATAR}
           alt={chat.display_name || chat.name}
           className={`motion-avatar w-10 h-10 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}
         />

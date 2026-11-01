@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { authFetch, useAccessToken } from '@/shared/auth/session';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 
-export const useAuthenticatedMedia = (source?: string) => {
+export const useAuthenticatedMedia = (source?: string, fallback?: string) => {
   const token = useAccessToken();
   const [loaded, setLoaded] = useState<{ source: string; token: string | null; url: string } | null>(null);
   const url = source ? resolveMediaUrl(source) : undefined;
@@ -19,9 +19,11 @@ export const useAuthenticatedMedia = (source?: string) => {
       if (controller.signal.aborted) return;
       objectUrl = URL.createObjectURL(blob);
       setLoaded({ source: url, token, url: objectUrl });
-    }).catch(() => { /* The image/player keeps its existing fallback. */ });
+    }).catch(() => {
+      if (!controller.signal.aborted) setLoaded({ source: url, token, url: '' });
+    });
     return () => { controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [url, token, protectedMedia]);
   if (!protectedMedia) return source;
-  return loaded && loaded.source === url && loaded.token === token ? loaded.url : undefined;
+  return loaded && loaded.source === url && loaded.token === token ? loaded.url || fallback : undefined;
 };
