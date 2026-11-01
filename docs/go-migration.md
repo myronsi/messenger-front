@@ -66,9 +66,26 @@ Browser checks also passed for two-factor setup, backup-code login, disabling
 2FA, and member/admin/owner changes plus bidirectional history through the screen
 transport. Typecheck, lint (existing warnings), build and 168 unit tests passed.
 
-**Production blocker:** account recovery currently returns HTTP 501. Go's
-`docs/auth.md` explicitly leaves it unavailable until the recovery redesign and
-Shamir port are implemented. Registration currently supplies no recovery shares,
-so the frontend skips the nonexistent recovery QR instead of pretending one was
-created. Finish and verify backend recovery before production cutover. The Go
-contract currently has no moderator role; the Go UI offers member and admin roles.
+## Recovery keys
+
+The recovery backend is implemented in messenger-back PR #131 (API 2.1.0-alpha.1).
+New registrations show a one-time recovery key with an explicit save acknowledgement.
+Existing accounts without a key get a setup prompt and can enroll in Security & devices
+using their current password and 2FA when enabled. The forgot-password screen uses the
+key plus an authenticator/backup code when required and shows a replacement key after
+success. Recovery signs out other sessions and delays security-method changes for 24 hours.
+Keys stay in component memory and are never written to browser storage.
+
+`go-recovery.spec.ts` verifies registration, saving the key, password reset, a second
+live browser receiving the security notice and being signed out, key replay and old
+password/session rejection, and the security-delay display. Its optional enrollment
+case requires GO_LEGACY_USERNAME and GO_LEGACY_PASSWORD for an existing synthetic
+account that has not enrolled yet. The fixture is enrolled by the test; use a fresh
+unenrolled fixture when repeating that case. Never run these tests against production.
+
+The old Shamir shares are retained in the database but are not accepted by the new
+key endpoint; the old recovery endpoint remains 501. Agree on and communicate the
+existing-user recovery transition before production cutover. Publish/review the new
+API contract, finish review of both draft PRs, and take a fresh consistent production
+snapshot with a rollback window. The Go UI offers member and admin roles; the contract
+has no moderator role. Production continues to run Python.

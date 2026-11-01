@@ -100,7 +100,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
       }
     }
     if (path === '/users/search') path = '/users';
-    const userPath = path.match(/^\/users\/users\/([^/]+)(.*)$/);
+    const userPath = path.match(/^\/users\/users\/([^/]+)(\/.*)?$/);
     if (userPath) {
       const user = await lookupUser(userPath[1]);
       if (!userPath[2]) {
@@ -174,7 +174,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
         readIds = page.items.map(item => item.id);
       }
       if (!readIds.length) return jsonResponse({ chat_id: read[1], read_message_ids: [], unread_count: 0 });
-      data = { message_id: readIds.reduce((a, b) => BigInt(a) > BigInt(b) ? a : b) };
+      data = { message_id: readIds.reduce((a, b) => BigInt(a) > BigInt(b) ? a : b, readIds[0]) };
     }
     if (path === '/messages/forward') {
       path = `/messages/${data.source_message_id}/forward`; data = { chat_ids: (data.target_chat_ids || []).map(String) };

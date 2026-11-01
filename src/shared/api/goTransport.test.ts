@@ -9,6 +9,18 @@ const user = { id, username: 'alice', display_name: 'Alice', contact_name: 'My A
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 describe('Go migration transport', () => {
+  it('does not send an empty read receipt', async () => {
+    const native = vi.fn();
+    const response = await withGoTransport(native, base)(`${base}/chats/1/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message_ids: [] }) });
+    expect(native).not.toHaveBeenCalled();
+    expect(await response.json()).toMatchObject({ read_message_ids: [] });
+  });
+
+  it('selects the largest read ID without losing Snowflake precision', async () => {
+    const native = vi.fn().mockResolvedValue(json({}));
+    await withGoTransport(native, base)(`${base}/chats/1/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message_ids: ['9007199254740992', id, '9'] }) });
+    expect(JSON.parse(native.mock.calls[0][1].body)).toEqual({ message_id: id });
+  });
   it('preserves Request bodies when passing through Python and unrelated endpoints', async () => {
     for (const [configuredBase, target] of [['https://legacy.example.test', 'https://legacy.example.test/auth/login'], [base, 'https://other.example.test/upload']]) {
       const native = vi.fn(async (input: RequestInfo | URL) => {
