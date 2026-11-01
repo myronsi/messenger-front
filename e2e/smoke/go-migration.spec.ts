@@ -59,5 +59,3 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
     await Promise.all([context.close(), otherContext.close()]);
   }
 });
-
-
