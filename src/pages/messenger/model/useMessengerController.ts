@@ -77,7 +77,7 @@ export const useMessengerController = () => {
     setIsLoggedIn(true);
     setUsername(user);
     setIsLoading(false);
-    navigate(notificationReturnPath(location.pathname, location.search));
+    navigate(notificationReturnPath(location.pathname, location.search, location.state));
   };
 
   const openChat = (chatId: EntityId, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: EntityId | null, avatarUrl?: string, pendingApprovalRequest?: boolean, pendingApprovalMessage?: string) => {

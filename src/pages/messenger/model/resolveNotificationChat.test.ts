@@ -7,6 +7,8 @@ it('keeps a notification destination through login and excludes arbitrary redire
   expect(notificationReturnPath('/chat/7', '?notification=1')).toBe('/chat/7?notification=1');
   expect(notificationReturnPath('//outside.test', '?notification=1')).toBe('/');
   expect(notificationReturnPath('/chat/7', '')).toBe('/');
+  expect(notificationReturnPath('/login', '', { notificationReturnPath: '/chat/7?notification=1' })).toBe('/chat/7?notification=1');
+  expect(notificationReturnPath('/login', '', { notificationReturnPath: 'https://outside.test?notification=1' })).toBe('/');
 });
 it('resolves groups and direct conversations using authenticated data', async () => {
   vi.mocked(authFetch).mockResolvedValueOnce(new Response(JSON.stringify({ type: 'group', name: 'Project' })));

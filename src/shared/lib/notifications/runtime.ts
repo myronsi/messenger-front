@@ -1,7 +1,7 @@
 import { loadNotifications, resetNotifications } from './api';
 import { cleanupNotificationDevice, reportNotificationActivity, restoreNotificationDevice } from './device';
 import { resumeNotificationNavigation, startNativeNotifications } from './device';
-import { prepareNotificationSound } from './alerts';
+import { clearMessageAlerts, prepareNotificationSound } from './alerts';
 let live = false;
 const foreground = () => document.visibilityState === 'visible' && document.hasFocus();
 export const setNotificationLive = (value: boolean) => {
@@ -9,6 +9,7 @@ export const setNotificationLive = (value: boolean) => {
 };
 
 export function startNotifications(userId: string) {
+  clearMessageAlerts();
   const device = localStorage.getItem('messenger:notification-device');
   if (device) {
     try { if (JSON.parse(device).user !== userId) cleanupNotificationDevice(); } catch { cleanupNotificationDevice(); }
@@ -24,11 +25,12 @@ export function startNotifications(userId: string) {
   window.addEventListener('focus', activity);
   window.addEventListener('blur', activity);
   window.addEventListener('messenger:notification-device', activity);
-  const logout = () => { cleanupNotificationDevice(); resetNotifications(); };
+  const logout = () => { clearMessageAlerts(); cleanupNotificationDevice(); resetNotifications(); };
   window.addEventListener('messenger:logout', logout);
   window.addEventListener('focus', refresh);
   window.addEventListener('pointerdown', prepareNotificationSound);
   return () => {
+    clearMessageAlerts();
     window.removeEventListener('messenger:logout', logout);
     window.removeEventListener('focus', refresh);
     window.removeEventListener('pointerdown', prepareNotificationSound);

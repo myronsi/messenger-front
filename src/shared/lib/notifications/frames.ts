@@ -1,10 +1,12 @@
 import { alertIncomingMessage } from './alerts';
+import { notificationAccount } from './api';
 
 const record = (value: unknown): Record<string, unknown> => typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
 export function notifyMessageFrame(frame: unknown, activeChatId?: string | number) {
   const event = record(frame);
   if (event.type !== 'message' && event.type !== 'chat_list_message') return;
   const message = record(event.type === 'message' ? record(event.data).message : event.last_message);
+  if (Array.isArray(message.read_by) && message.read_by.some((item) => String(record(item).user_id) === notificationAccount())) return;
   const sender = record(message.sender);
   if (!sender.id && !message.sender_id) return;
   const timestamp = String(message.created_at || message.timestamp || '');

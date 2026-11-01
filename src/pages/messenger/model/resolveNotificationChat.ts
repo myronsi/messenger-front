@@ -1,9 +1,6 @@
 import { authFetch } from '@/shared/auth/session';
 
-export const notificationReturnPath = (pathname: string, search: string) => (
-  /^\/chat\/[1-9]\d*$/.test(pathname) && new URLSearchParams(search).get('notification') === '1'
-    ? `${pathname}?notification=1` : '/'
-);
+export { notificationReturnPath } from '@/shared/lib/notifications/navigation';
 
 export async function resolveNotificationChat(id: string) {
   const response = await authFetch(`${import.meta.env.VITE_BASE_URL}/chats/${encodeURIComponent(id)}`);

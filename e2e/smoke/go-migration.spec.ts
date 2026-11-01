@@ -69,12 +69,12 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
     await page.getByRole('button', { name: 'Open profile', exact: true }).click();
     await expect(page.getByText('Updated smoke profile').first()).toBeVisible();
     await expect.poll(async () => page.locator('img').evaluateAll(images => images.some(image => image instanceof HTMLImageElement && image.src.startsWith('blob:') && image.complete && image.naturalWidth > 0))).toBe(true);
-    await page.evaluate(async groupId => {
-      const response = await fetch(`${location.origin}/api/v2/groups/delete/${groupId}`, {
+    await page.evaluate(async ({ groupId, api }) => {
+      const response = await fetch(`${api || `${location.origin}/api/v2`}/groups/delete/${groupId}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
       if (!response.ok) throw new Error(`Test group cleanup failed: ${response.status}`);
-    }, result.groupId);
+    }, { groupId: result.groupId, api: process.env.E2E_API_URL });
   } finally {
     await Promise.all([context.close(), otherContext.close()]);
   }

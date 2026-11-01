@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { createEnglishContext, createSmokeUser, openProfile, registerUser } from './helpers';
+import { closeProfile, createEnglishContext, createSmokeUser, logoutUser, openProfile, registerUser } from './helpers';
 
 test('notification preferences persist and conversations can be muted', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the Go notification API');
   const context = await createEnglishContext(browser);
   const page = await context.newPage();
+  const user = createSmokeUser('notify');
   try {
-    await registerUser(page, createSmokeUser('notify'));
+    await registerUser(page, user);
     const base = process.env.E2E_API_URL!;
     const chatId = await page.evaluate(async (api) => {
       const response = await fetch(`${api}/groups`, {
@@ -32,6 +33,13 @@ test('notification preferences persist and conversations can be muted', async ({
     await settings.getByRole('button', { name: 'Apply', exact: true }).click();
     expect((await muted).status()).toBe(204);
     await expect(settings.getByRole('button', { name: 'Unmute', exact: true })).toBeVisible();
+    await closeProfile(page); await logoutUser(page);
+    await page.goto(`/chat/${chatId}?notification=1`);
+    await expect(page).toHaveURL(/\/login$/);
+    await page.getByLabel('Username').fill(user.username);
+    await page.getByLabel('Password', { exact: true }).fill(user.password);
+    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/chat/${chatId}$`));
     await page.reload();
     await openProfile(page);
     await page.getByRole('button', { name: /Notifications/ }).click();

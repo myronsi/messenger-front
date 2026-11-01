@@ -9,8 +9,12 @@ self.addEventListener('message', (event) => {
   if (event.data?.type !== 'notification-account') return;
   event.waitUntil((async () => {
     const cache = await caches.open(notificationCache);
-    await cache.put(accountKey, new Response(String(event.data.user || '')));
-    for (const notification of await self.registration.getNotifications()) notification.close();
+    const previous = await notificationAccount();
+    const next = String(event.data.user || '');
+    await cache.put(accountKey, new Response(next));
+    if (!next || previous !== next) {
+      for (const notification of await self.registration.getNotifications()) notification.close();
+    }
   })());
 });
 self.addEventListener('push', (event) => {

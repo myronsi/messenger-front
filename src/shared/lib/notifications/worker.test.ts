@@ -33,6 +33,11 @@ function worker() {
   return { registration, close, navigate, focus, openWindow, dispatch, push, account };
 }
 describe('background notification worker', () => {
+  it('retains unread system notifications when the same account reconnects', async () => {
+    const w = worker(); await w.account('1'); w.close.mockClear();
+    await w.account('1'); expect(w.close).not.toHaveBeenCalled();
+    await w.account('2'); expect(w.close).toHaveBeenCalledTimes(1);
+  });
   it('only displays unexpired pushes for the signed-in account', async () => {
     const w = worker(); await w.account('1');
     await w.push({ user_id: '2' }); await w.push({ expires_at: 1 });
