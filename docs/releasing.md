@@ -22,6 +22,13 @@ Add a `Release-As: X.Y.0` footer to a commit on `main` so `MAJOR.MINOR` matches 
 
 ## CI/CD setup
 
+The CI `build` job installs dependencies once, validates and regenerates the
+contract, then runs lint, type checking, unit tests and the build concurrently.
+It waits for all four commands and fails if any command fails. The existing
+`lint`, `typecheck`, `test` and `contract` jobs remain as compatibility checks
+for branch protection and require the combined job to succeed. Browser smoke
+tests keep their own job and installation, including on the nightly schedule.
+
 Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-only until existing errors are fixed), `pr-title.yml`, `release-please.yml` (release, `dist` archive, then promote to `edge` and deploy) and `deploy.yml` (SSH deploy, also runnable manually for rollbacks).
 
 One-time setup:

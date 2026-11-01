@@ -26,66 +26,75 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --legacy-peer-deps
-      - run: npm run build
-        env:
-          VITE_BASE_URL: https://example.invalid/api
-
-  lint:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci --legacy-peer-deps
-      - run: npm run lint
-
-  typecheck:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci --legacy-peer-deps
-      - run: npm run typecheck
-
-  test:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci --legacy-peer-deps
-      - run: npm test
-
-  contract:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci --legacy-peer-deps --ignore-scripts
       - name: Pin is exact and matches the lockfile
         run: npm run check:contract
       - name: main only uses a stable contract
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npm run check:contract -- --stable
-      - name: Regenerate the API layer
-        run: npm run generate:api
       - name: Generated types are up to date
-        run: git diff --exit-code -- src/shared/api/generated
-      - run: npm run typecheck
+        run: |
+          npm run generate:api
+          git diff --exit-code -- src/shared/api/generated
+      - name: Lint, typecheck, test and build
+        env:
+          VITE_BASE_URL: https://example.invalid/api
+        run: |
+          # Share one install, but wait for every check and preserve any failure.
+          npm run lint > lint.log 2>&1 & lint_pid=$!
+          npm run typecheck > typecheck.log 2>&1 & typecheck_pid=$!
+          npm test > test.log 2>&1 & test_pid=$!
+          npm run build > build.log 2>&1 & build_pid=$!
+          status=0
+          for pid in "$lint_pid" "$typecheck_pid" "$test_pid" "$build_pid"; do
+            wait "$pid" || status=1
+          done
+          for check in lint typecheck test build; do
+            echo "::group::$check"
+            cat "$check.log"
+            echo "::endgroup::"
+          done
+          exit "$status"
+
+  # Preserve existing required-check names while the work shares one installation.
+  lint:
+    needs: build
+    if: always() && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify combined checks passed
+        env:
+          RESULT: ${{ needs.build.result }}
+        run: test "$RESULT" = success
+
+  typecheck:
+    needs: build
+    if: always() && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify combined checks passed
+        env:
+          RESULT: ${{ needs.build.result }}
+        run: test "$RESULT" = success
+
+  test:
+    needs: build
+    if: always() && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify combined checks passed
+        env:
+          RESULT: ${{ needs.build.result }}
+        run: test "$RESULT" = success
+
+  contract:
+    needs: build
+    if: always() && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify combined checks passed
+        env:
+          RESULT: ${{ needs.build.result }}
+        run: test "$RESULT" = success
 
   # Real backend from Docker images: the version in scripts/backend-version on pull requests and
   # pushes, backend master nightly.
