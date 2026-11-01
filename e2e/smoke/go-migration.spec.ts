@@ -21,12 +21,13 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
   try {
     await (reuse ? loginUser : registerUser)(page, user);
     await (reuse ? loginUser : registerUser)(other, peer);
-    const result = await page.evaluate(async ({ peer, image }) => {
-      const base = `${location.origin}/api/v2`;
+    const result = await page.evaluate(async ({ peer, image, api }) => {
+      const base = api || `${location.origin}/api/v2`;
       const headers = { Authorization: `Bearer ${localStorage.getItem('access_token')}` };
       const request = async (path: string, method = 'GET', body?: unknown) => {
         const response = await fetch(`${base}${path}`, { method, headers: { ...headers, ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}) }, body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined });
-        const result = await response.json();
+        const text = await response.text();
+        const result = text ? JSON.parse(text) : null;
         if (!response.ok) throw new Error(`${method} ${path}: ${response.status} ${JSON.stringify(result)}`);
         return result;
       };
@@ -50,7 +51,7 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
       const blockedNames = blocked.users.map((item: {username: string}) => item.username);
       return { me, avatars, security, sessions, privacy, groupId: group.chat_id,
         memberCount: details.participants.length, blocked: blockedNames };
-    }, { peer: peer.username, image });
+    }, { peer: peer.username, image, api: process.env.E2E_API_URL });
     expect(result.me.display_name).toBe('Updated smoke profile');
     expect(result.me.bio).toBe('Go migration test');
     expect(result.avatars.avatars.length).toBeGreaterThan(0);

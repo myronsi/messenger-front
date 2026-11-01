@@ -22,8 +22,9 @@ test('notification preferences persist and conversations can be muted', async ({
     await expect(settings.getByLabel('Message notifications')).toBeChecked();
     await expect(settings.getByLabel('Show sender and message previews')).not.toBeChecked();
     const saved = page.waitForResponse((response) => response.url().endsWith('/me/notifications') && response.request().method() === 'PUT');
-    await settings.getByLabel('Show sender and message previews').check();
+    await settings.getByLabel('Show sender and message previews').click();
     expect((await saved).status()).toBe(204);
+    await expect(settings.getByLabel('Show sender and message previews')).toBeChecked();
     await expect(settings.getByLabel('Show sender and message previews')).toBeEnabled();
     await settings.getByLabel('Conversation').selectOption(chatId);
     await settings.getByLabel('Duration').selectOption('8h');
