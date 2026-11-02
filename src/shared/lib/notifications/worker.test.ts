@@ -143,4 +143,19 @@ describe('background notification worker', () => {
     expect(w.registration.showNotification).toHaveBeenCalledTimes(1);
     expect(w.registration.showNotification.mock.lastCall?.[1].body).toBe('newer');
   });
+  it('names each sender when a group stack has messages from several people', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Mai', body: 'hi', message_id: '1', avatar_token: 'a.mai' });
+    await w.push({ title: 'Bob', body: 'yo', message_id: '2', avatar_token: 'a.bob' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Mai: hi\nBob: yo', icon: '/pwa-192x192.png' })]);
+  });
+  it('drops a queued push when the account logs out before it is shown', async () => {
+    const w = worker(); await w.account('1');
+    const first = w.push({ title: 'Mai', body: 'one', message_id: '1' });
+    const second = w.push({ title: 'Mai', body: 'secret', message_id: '2' });
+    await first;
+    await w.account('');
+    await second;
+    expect(w.registration.showNotification.mock.calls.map(([, options]) => options.body)).not.toContain('one\nsecret');
+  });
 });

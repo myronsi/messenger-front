@@ -5,8 +5,8 @@ const settingsKey = new URL('/__notification_settings', self.location.origin).hr
 const MAX_LINES = 5;
 const MAX_IDS = 50;
 const ACTION_TITLES = {
-  en: { reply: 'Reply', read: 'Mark as read' },
-  ru: { reply: 'Ответить', read: 'Прочитано' },
+  en: { reply: 'Reply', read: 'Mark as read', many: (n) => `${n} new messages` },
+  ru: { reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}` },
 };
 const chatQueues = new Map();
 async function notificationAccount() {
@@ -65,10 +65,15 @@ self.addEventListener('message', (event) => {
     }
   })());
 });
+function stackedLine(entry, fallback) {
+  if (entry && typeof entry === 'object') return { from: String(entry.from || ''), text: String(entry.text || '') };
+  return { from: fallback, text: String(entry || '') };
+}
 async function showChatNotification(data) {
   const tag = `chat-${data.chat_id}`;
+  const user = String(data.user_id);
   const settings = await notificationSettings();
-  const previous = (await self.registration.getNotifications({ tag })).find((n) => n.data?.user_id === String(data.user_id));
+  const previous = (await self.registration.getNotifications({ tag })).find((n) => n.data?.user_id === user);
   const before = previous?.data || {};
   const messageId = /^\d+$/.test(String(data.message_id)) ? String(data.message_id) : '';
   const ids = Array.isArray(before.ids) ? before.ids : [];
@@ -76,24 +81,29 @@ async function showChatNotification(data) {
   const preview = data.preview !== false;
   const keepLines = preview && before.preview !== false;
   const count = repeated ? Number(before.count) || 1 : (Number(before.count) || 0) + 1;
-  const line = String(data.body || 'New message');
-  const earlier = keepLines && Array.isArray(before.lines) ? before.lines : [];
+  const from = String(data.title || 'Messenger');
+  const line = { from, text: String(data.body || 'New message') };
+  const earlier = keepLines && Array.isArray(before.lines) ? before.lines.map((entry) => stackedLine(entry, String(before.from || from))) : [];
   const lines = repeated ? earlier : [...earlier, line].slice(-MAX_LINES);
-  const title = String(data.title || 'Messenger');
-  const avatar = preview && typeof data.avatar_token === 'string' && settings.api
+  const shown = lines.length ? lines : [line];
+  const oneSender = shown.every((entry) => entry.from === from);
+  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+  const title = oneSender ? (count > 1 ? `${from} (${count})` : from) : titles.many(count);
+  const body = shown.map((entry) => (oneSender ? entry.text : `${entry.from}: ${entry.text}`)).join('\n');
+  const avatar = oneSender && preview && typeof data.avatar_token === 'string' && settings.api
     ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
   const incomingToken = !repeated && typeof data.read_token === 'string' ? data.read_token : '';
   const takeToken = !!incomingToken && (!before.read_token || newerId(messageId, String(before.read_message_id || '')));
   const readToken = takeToken ? incomingToken : before.read_token || '';
   const readMessageId = takeToken ? messageId : String(before.read_message_id || '');
-  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
   const actions = [{ action: 'reply', title: titles.reply }];
   if (readToken && settings.api) actions.push({ action: 'read', title: titles.read });
-  await self.registration.showNotification(count > 1 ? `${title} (${count})` : title, {
-    body: (lines.length ? lines : [line]).join('\n'), icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png',
+  if (user !== await notificationAccount()) return;
+  await self.registration.showNotification(title, {
+    body, icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png',
     tag, renotify: false, silent: repeated || !data.sound, actions,
     data: {
-      chat_id: String(data.chat_id), user_id: String(data.user_id), read_token: readToken, read_message_id: readMessageId, lines, count, preview,
+      chat_id: String(data.chat_id), user_id: user, read_token: readToken, read_message_id: readMessageId, lines, count, preview, from,
       ids: repeated || !messageId ? ids : [...ids, messageId].slice(-MAX_IDS),
     },
   });
