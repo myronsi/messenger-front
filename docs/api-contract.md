@@ -25,6 +25,9 @@ The frontend is built against the released contract package
   (`npm i -E @myronsi/messenger-api@next`). Replace it with a stable version before merging.
 - After changing the pin, update `scripts/backend-version` to the backend release that
   implements it. The smoke tests in CI start that backend version.
+- `scripts/backend-up.sh` starts Go release tags from their matching deployment bundle, including stores and
+  migrations. It exports the v2 URL and pinned client contract to GitHub smoke jobs. Legacy tags and nightly
+  `master` continue to exercise Python compatibility. No production credentials are used by these test stacks.
 
 ## Mock backend
 

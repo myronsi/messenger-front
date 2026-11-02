@@ -30,7 +30,7 @@ interface ProfilePanelDataOptions {
 
 export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOptions) => {
   const { translations } = useLanguage();
-  const [activeProfilePage, setActiveProfilePage] = useState<'profile' | 'requests' | 'personal' | 'privacy' | 'security'>('profile');
+  const [activeProfilePage, setActiveProfilePage] = useState<'profile' | 'requests' | 'personal' | 'privacy' | 'security' | 'notifications'>('profile');
   const [blockUsername, setBlockUsername] = useState('');
   const [pendingBlockUsername, setPendingBlockUsername] = useState('');
   const [isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed] = useState(true);

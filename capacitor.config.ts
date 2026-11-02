@@ -10,6 +10,9 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
   },
+  plugins: {
+    PushNotifications: { presentationOptions: ['banner', 'list', 'sound'] },
+  },
 };
 
 export default config;

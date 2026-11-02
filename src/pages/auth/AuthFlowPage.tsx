@@ -1,6 +1,7 @@
 import { RecoveryKeyComponent } from '@/features/auth';
 import { isGoApi } from '@/shared/api/goSocket';
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { notificationReturnPath } from '@/shared/lib/notifications/navigation';
 import {
   LoginComponent,
   PartsRecoveryComponent,
@@ -18,8 +19,10 @@ interface AuthFlowPageProps {
 
 const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const authState = { notificationReturnPath: notificationReturnPath(location.pathname, location.search, location.state) };
   const { language, setLanguage, translations } = useLanguage();
-  const handleBackToLogin = () => navigate('/login');
+  const handleBackToLogin = () => navigate('/login', { state: authState });
 
   return (
     <>
@@ -49,8 +52,8 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
               element={
                 <LoginComponent
                   onLoginSuccess={onLoginSuccess}
-                  onRegisterClick={() => navigate('/register')}
-                  onRecoverClick={() => navigate('/recover-username')}
+                  onRegisterClick={() => navigate('/register', { state: authState })}
+                  onRecoverClick={() => navigate('/recover-username', { state: authState })}
                 />
               }
             />
@@ -58,8 +61,8 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
             <Route path="/recover-username" element={isGoApi() ? <RecoveryKeyComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin} /> : <UsernameRecoveryComponent onBackToLogin={handleBackToLogin} />} />
             <Route path="/recover-parts" element={<PartsRecoveryComponent onBackToLogin={handleBackToLogin} />} />
             <Route path="/reset-password" element={<PasswordResetComponent onBackToLogin={handleBackToLogin} />} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate to="/login" state={authState} replace />} />
+            <Route path="*" element={<Navigate to="/login" state={authState} replace />} />
           </Routes>
           <p className="text-center text-sm">
             <Link to="/docs" className="text-blue-600 hover:underline">{translations.docsLink}</Link>

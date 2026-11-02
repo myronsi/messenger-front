@@ -65,14 +65,14 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await page.getByLabel('I saved my recovery key').check();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await waitForMessenger(page);
-    const checks = await page.evaluate(async ({ oldToken, username, key, password }) => {
+    const checks = await page.evaluate(async ({ oldToken, username, key, password, api }) => {
       const headers = { 'Content-Type': 'application/json', 'X-Client-Version': 'recovery-e2e', 'X-Client-Api-Version': '2.0.0-alpha.1' };
-      const base = `${location.origin}/api/v2`;
+      const base = api || `${location.origin}/api/v2`;
       const old = await fetch(`${base}/me`, { headers: { ...headers, Authorization: `Bearer ${oldToken}` } });
       const replay = await fetch(`${base}/auth/recover/key`, { method: 'POST', headers, body: JSON.stringify({ username, recovery_key: key, new_password: password }) });
       const oldPassword = await fetch(`${base}/auth/login`, { method: 'POST', headers, body: JSON.stringify({ username, password }) });
       return { old: old.status, replay: replay.status, oldPassword: oldPassword.status };
-    }, { oldToken, username: user.username, key, password: user.password });
+    }, { oldToken, username: user.username, key, password: user.password, api: process.env.E2E_API_URL });
     expect(checks).toEqual({ old: 401, replay: 400, oldPassword: 401 });
     await page.getByRole('button', { name: 'Open profile', exact: true }).click();
     await page.getByRole('button', { name: /Security & devices/ }).click();

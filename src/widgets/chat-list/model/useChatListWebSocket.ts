@@ -1,4 +1,6 @@
 import { endSession } from '@/shared/auth/session';
+import { startNotifications, setNotificationLive } from '@/shared/lib/notifications/runtime';
+import { notifyMessageFrame } from '@/shared/lib/notifications/frames';
 import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -46,6 +48,9 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   const refetchRef = useRef(refetch);
   const refetchRequestInboxRef = useRef(refetchRequestInbox);
   const isSignedIn = Boolean(token);
+  useEffect(() => {
+    if (isSignedIn && currentUserId) return startNotifications(String(currentUserId));
+  }, [isSignedIn, currentUserId]);
 
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
   useEffect(() => { activeChatNameRef.current = activeChatName; }, [activeChatName]);
@@ -103,6 +108,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
 
       socket.onopen = () => {
         if (!isMounted) return;
+        setNotificationLive(true);
         // Last messages and unread counts may have changed while the socket was down,
         // including during failed attempts before the first open.
         if (hasOpened || reconnectAttempts > 0) refetchRef.current();
@@ -126,6 +132,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
           endSession(); window.location.assign('/login'); return;
         }
         if (handleHelloEvent(parsedData)) return;
+        notifyMessageFrame(parsedData, activeChatIdRef.current);
         if (isGoApi()) {
           // Go broadcasts a global stream. Refresh authoritative list entries after updates.
           if (['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence'].includes(parsedData.type)) refetchRef.current();
@@ -151,6 +158,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
       };
 
       socket.onclose = (event) => {
+        setNotificationLive(false);
         if (wsRef.current === socket) wsRef.current = null;
         if (!isMounted) return;
         if (shouldReconnect(socket, event.code)) scheduleReconnect();
@@ -168,6 +176,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
     const stopWatchingConnectivity = onConnectivityRestored(reconnectNow);
 
     return () => {
+      setNotificationLive(false);
       isMounted = false;
       stopWatchingConnectivity();
       if (reconnectTimeoutId) {

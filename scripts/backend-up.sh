@@ -27,6 +27,11 @@ TAG="${1:-$(tr -d '[:space:]' < "$ROOT/scripts/backend-version")}"
 RELEASE_TAG="$TAG"
 case "$TAG" in [0-9]*) RELEASE_TAG="v$TAG" ;; esac
 
+if [[ "$RELEASE_TAG" =~ ^v[1-9][0-9]*\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
+  bash "$ROOT/scripts/backend-go-up.sh" "$RELEASE_TAG" "$DIR" "$PORT"
+  exit 0
+fi
+
 mkdir -p "$DIR"
 RAW="https://raw.githubusercontent.com/${REPO}"
 

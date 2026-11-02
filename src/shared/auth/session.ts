@@ -35,6 +35,7 @@ export const setAccessToken = (token: string | null) => {
 };
 
 export const clearAuthTokens = () => {
+  window.dispatchEvent(new Event('messenger:logout'));
   clearDrafts();
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);

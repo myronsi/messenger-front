@@ -8,6 +8,7 @@ import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { authFetch, dropInvalidSession } from '@/shared/auth/session';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
+import { notificationReturnPath } from './resolveNotificationChat';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -76,7 +77,7 @@ export const useMessengerController = () => {
     setIsLoggedIn(true);
     setUsername(user);
     setIsLoading(false);
-    navigate('/');
+    navigate(notificationReturnPath(location.pathname, location.search, location.state));
   };
 
   const openChat = (chatId: EntityId, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: EntityId | null, avatarUrl?: string, pendingApprovalRequest?: boolean, pendingApprovalMessage?: string) => {
