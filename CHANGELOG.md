@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/myronsi/messenger-front/compare/v0.6.4...v0.6.5) (2026-11-02)
+
+
+### Features
+
+* **chat:** polish chat, menus, media viewer and profiles ([#127](https://github.com/myronsi/messenger-front/issues/127)) ([820d891](https://github.com/myronsi/messenger-front/commit/820d89120dcf5c234ab11c8c2b3d825cb1a05e37))
+
 ## [0.6.4](https://github.com/myronsi/messenger-front/compare/v0.6.3...v0.6.4) (2026-11-02)
 
 
