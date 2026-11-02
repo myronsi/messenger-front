@@ -53,7 +53,7 @@ export const useMessengerController = () => {
     if (hasFetchedUser.current) return;
     hasFetchedUser.current = true;
 
-    watchCurrentUser({
+    const stop = watchCurrentUser({
       fetchMe: () => authFetch(`${BASE_URL}/auth/me`),
       onUser: (user) => {
         setIsLoggedIn(true);
@@ -66,6 +66,10 @@ export const useMessengerController = () => {
         setIsLoading(false);
       },
     });
+    return () => {
+      stop();
+      hasFetchedUser.current = false;
+    };
   }, []);
 
   const handleLoginSuccess = (user: string) => {

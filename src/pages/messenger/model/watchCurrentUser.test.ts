@@ -38,4 +38,17 @@ describe('watchCurrentUser', () => {
     expect(onSignedOut).toHaveBeenCalledTimes(1);
     expect(getAccessToken()).toBeNull();
   });
+
+  it('stops checking after it is stopped', async () => {
+    vi.useFakeTimers();
+    setAccessToken('saved');
+    const fetchMe = vi.fn().mockRejectedValue(new TypeError('offline'));
+    const stop = watchCurrentUser({ fetchMe, onUser: vi.fn(), onSignedOut: vi.fn() });
+    await flush();
+    stop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    window.dispatchEvent(new Event('online'));
+    await flush();
+    expect(fetchMe).toHaveBeenCalledTimes(1);
+  });
 });
