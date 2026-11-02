@@ -1,6 +1,5 @@
 import React from 'react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
-import DeleteMessageChoiceModal from '@/shared/ui/DeleteMessageChoiceModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { ModalState } from '@/entities/message';
 
@@ -12,18 +11,6 @@ interface ModalProps {
 const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
   const { translations } = useLanguage();
   if (!modal) return null;
-
-  // Handle delete message choice modal
-  if (modal.type === 'deleteMessageChoice') {
-    return (
-      <DeleteMessageChoiceModal
-        isMessageSender={modal.isMessageSender || false}
-        onDeleteForMe={modal.onDeleteForMe || onClose}
-        onDeleteForAll={modal.onDeleteForAll || onClose}
-        onCancel={onClose}
-      />
-    );
-  }
 
   const title =
     modal.type === 'deleteMessage'

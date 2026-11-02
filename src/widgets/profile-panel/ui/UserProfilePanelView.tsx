@@ -1,16 +1,11 @@
-import type { EntityId } from '@/shared/api/entityId';
 import React from 'react';
-import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, ProfileAudioItem, ProfilePhotoItem } from '@/entities/message';
+import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileAudioItem, ProfilePhotoItem } from '@/entities/message';
 import type { ProfilePanelView } from './UserProfilePanelContent';
 
 interface UserProfilePanelViewProps {
   view: ProfilePanelView;
-  autoFocusSearch: boolean;
-  canShowSearch: boolean;
   canShowPhotos: boolean;
   canShowAudios: boolean;
-  chatId?: EntityId;
-  onJumpToMessage?: (messageId: EntityId) => void;
   photos: ProfilePhotoItem[];
   audios: ProfileAudioItem[];
   isLoadingPhotos: boolean;
@@ -21,12 +16,9 @@ interface UserProfilePanelViewProps {
 }
 
 const UserProfilePanelView: React.FC<UserProfilePanelViewProps> = ({
-  view, autoFocusSearch, canShowSearch, canShowPhotos, canShowAudios, chatId, onJumpToMessage,
+  view, canShowPhotos, canShowAudios,
   photos, audios, isLoadingPhotos, isLoadingAudios, photosError, audiosError, infoPanel,
 }) => {
-  if (view === 'search' && canShowSearch && chatId && onJumpToMessage) {
-    return <ProfileSearchPanel chatId={chatId} onJumpToMessage={onJumpToMessage} autoFocus={autoFocusSearch} />;
-  }
   if (view === 'photos' && canShowPhotos) return <ProfilePhotosPanel photos={photos} isLoading={isLoadingPhotos} error={photosError} />;
   if (view === 'audios' && canShowAudios) return <ProfileAudiosPanel audios={audios} isLoading={isLoadingAudios} error={audiosError} />;
   return <>{infoPanel}</>;

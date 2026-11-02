@@ -7,7 +7,10 @@ import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
-import { useGetUserByUsernameQuery, useUpdateContactDisplayNameMutation, useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
+import {
+  useGetUserByUsernameQuery, useUpdateContactDisplayNameMutation, useDeleteContactDisplayNameMutation,
+  useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation,
+} from '@/entities/user';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import UserProfileInfoPanel from './ui/UserProfileInfoPanel';
 import UserProfileHeader from './ui/UserProfileHeader';
@@ -29,7 +32,6 @@ interface UserProfileComponentRTKProps {
     isOnline?: boolean;
     lastSeen?: string | null;
   }) => void;
-  onJumpToMessage?: (messageId: EntityId) => void;
   onDeleteChat?: () => void;
   hideMessageAction?: boolean;
 }
@@ -39,7 +41,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   directChatId,
   onClose,
   onMessage,
-  onJumpToMessage,
   onDeleteChat,
   hideMessageAction = false,
 }) => {
@@ -62,7 +63,9 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
   const [blockUser, { isLoading: isBlockingUser }] = useBlockUserMutation();
   const [unblockUser, { isLoading: isUnblockingUser }] = useUnblockUserMutation();
-  const [updateContactDisplayName, { isLoading: isSavingContactName }] = useUpdateContactDisplayNameMutation();
+  const [updateContactDisplayName, { isLoading: isUpdatingContactName }] = useUpdateContactDisplayNameMutation();
+  const [deleteContactDisplayName, { isLoading: isDeletingContactName }] = useDeleteContactDisplayNameMutation();
+  const isSavingContactName = isUpdatingContactName || isDeletingContactName;
   const {
     data: chatPhotosData,
     isLoading: isLoadingDmPhotos,
@@ -150,7 +153,13 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     const nextName = customNameInput.trim().replace(/\s+/g, ' ');
     setActionError(null);
     try {
-      const updatedUser = await updateContactDisplayName({ username, displayName: nextName || null }).unwrap();
+      if (!nextName) {
+        if (contactDisplayName) await deleteContactDisplayName(username).unwrap();
+        setCustomNameInput('');
+        setIsEditingContactName(false);
+        return;
+      }
+      const updatedUser = await updateContactDisplayName({ username, displayName: nextName }).unwrap();
       setCustomNameInput(updatedUser.contact_display_name || '');
       setIsEditingContactName(false);
     } catch (caught) {
@@ -175,18 +184,16 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const hasBlockedRelationship = isBlocked || userData.direct_message_reason === 'blocked';
   const canShowCreatedAt = !!userData.created_at && !hasBlockedRelationship;
   const canShowMessageAction = !hideMessageAction && !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
-  const canShowSearchAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && !!onJumpToMessage;
   const canShowPhotosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmPhotos.length > 0;
   const canShowAudiosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmAudios.length > 0;
   const canShowDmSections = !!directChatId && isPersistedId(directChatId) && !isCurrentUser;
-  const actionCount = [canShowMessageAction, canShowDmSections, canShowSearchAction, canShowPhotosAction, canShowAudiosAction]
+  const actionCount = [canShowMessageAction, canShowDmSections, canShowPhotosAction, canShowAudiosAction, canShowDmSections]
     .filter(Boolean).length;
   const actionColumns = Math.min(Math.max(actionCount, 1), 4);
   const visiblePanelOrder: ProfilePanelView[] = [
     'details',
     ...(canShowPhotosAction ? (['photos'] as const) : []),
     ...(canShowAudiosAction ? (['audios'] as const) : []),
-    ...(canShowSearchAction ? (['search'] as const) : []),
   ];
   const selectView = (view: ProfilePanelView) => transitionToView(view, visiblePanelOrder);
 
@@ -201,8 +208,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
       isBlockActionLoading={isBlockActionLoading}
       canShowCreatedAt={canShowCreatedAt}
       createdAt={userData.created_at ?? undefined}
-      isOnline={!!userData.is_online}
-      lastSeen={userData.last_seen}
       canDeleteChat={!!onDeleteChat}
       onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
       onBlockToggle={handleBlockToggle}
@@ -210,11 +215,10 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     />
   );
 
-  const renderPanelContent = (view: ProfilePanelView, options: { autoFocusSearch?: boolean } = {}) => (
+  const renderPanelContent = (view: ProfilePanelView) => (
     <UserProfilePanelView
-      view={view} autoFocusSearch={options.autoFocusSearch !== false}
-      canShowSearch={canShowSearchAction} canShowPhotos={canShowPhotosAction} canShowAudios={canShowAudiosAction}
-      chatId={directChatId} onJumpToMessage={onJumpToMessage} photos={dmPhotos} audios={dmAudios}
+      view={view} canShowPhotos={canShowPhotosAction} canShowAudios={canShowAudiosAction}
+      photos={dmPhotos} audios={dmAudios}
       isLoadingPhotos={isLoadingDmPhotos} isLoadingAudios={isLoadingDmAudios}
       photosError={dmPhotosError} audiosError={dmAudiosError} infoPanel={infoPanel}
     />
@@ -224,7 +228,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     <UserProfileShell onClose={onClose}>
       <div className="flex h-full min-h-0 flex-col">
         <UserProfileHeader
-          avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName} username={username}
+          avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName}
           isCurrentUser={isCurrentUser} isEditingContactName={isEditingContactName} customNameInput={customNameInput}
           setCustomNameInput={setCustomNameInput} onSaveContactName={handleSaveContactName}
           onCancelContactNameEdit={handleCancelContactNameEdit}
@@ -237,7 +241,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           actionCount={actionCount} actionColumns={actionColumns}
           showDetails={canShowDmSections} showMessage={canShowMessageAction}
           showPhotos={canShowPhotosAction} showAudios={canShowAudiosAction}
-          showSearch={canShowSearchAction} activeView={activeView}
+          muteChatId={canShowDmSections ? directChatId : undefined} activeView={activeView}
           onSelectView={selectView} onMessage={handleMessage}
         />
 

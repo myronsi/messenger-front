@@ -39,6 +39,13 @@ describe('incoming message alerts', () => {
     alertIncomingMessage(incoming());
     expect(toast).not.toHaveBeenCalled();
   });
+  it('stays quiet for the open conversation even when the window has no keyboard focus', () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    alertIncomingMessage(incoming(), '7');
+    expect(toast).not.toHaveBeenCalled();
+    alertIncomingMessage(incoming(), '8');
+    expect(toast).toHaveBeenCalledTimes(1);
+  });
   it('respects global disable and timed chat mutes', async () => {
     await configure(settings({ preferences: { enabled: false } })); alertIncomingMessage(incoming());
     await configure(settings({ mutes: [{ chat_id: '7', until: new Date(Date.now() + 3600_000).toISOString() }] }));

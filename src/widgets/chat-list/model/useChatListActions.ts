@@ -102,13 +102,14 @@ export function useChatListActions(params: UseChatListActionsParams) {
     event.preventDefault();
     event.stopPropagation();
     if (chat.pending_approval_request) return;
-    setChatContextMenu({
-      x: event.clientX,
-      y: event.clientY,
+    const { clientX, clientY } = event;
+    setChatContextMenu((current) => (current?.chatId === chat.id ? null : {
+      x: clientX,
+      y: clientY,
       chatId: chat.id,
       isPinned: !!chat.is_pinned,
       unreadCount: chat.unread_count || 0,
-    });
+    }));
   };
 
   const handleTogglePinnedChat = async (chatId: EntityId) => {

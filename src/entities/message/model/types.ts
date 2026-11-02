@@ -160,12 +160,8 @@ export interface ContextMenuState {
 }
 
 export interface ModalState {
-  type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser' | 'deleteMessageChoice';
+  type: 'deleteMessage' | 'deleteChat' | 'error' | 'copy' | 'deletedUser';
   message?: string;
   consequences?: string[];
   onConfirm?: () => void;
-  isMessageSender?: boolean;
-  messageId?: EntityId;
-  onDeleteForMe?: () => void | Promise<void>;
-  onDeleteForAll?: () => void;
 }

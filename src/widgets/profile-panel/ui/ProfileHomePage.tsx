@@ -40,7 +40,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
                 <button
                   type="button"
                   onClick={() => setIsAvatarViewerOpen(true)}
-                  className="block rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   aria-label="View profile picture history"
                 >
                   <AuthenticatedImage

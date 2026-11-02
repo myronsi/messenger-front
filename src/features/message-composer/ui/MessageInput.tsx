@@ -1,11 +1,14 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import type { EntityId } from '@/shared/api/entityId';
-import React, { useRef, forwardRef, useState, useEffect } from 'react';
-import { File as FileIcon, Paperclip, Send, X, Mic, Square } from 'lucide-react';
+import React, { useRef, forwardRef, useState, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { File as FileIcon, Paperclip, Send, X, Mic, Square, Upload } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { UPLOAD_ACCEPT, validateUploadFile } from '@/shared/lib/uploadValidation';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
+import ReplyEditBar from './ReplyEditBar';
+import { useFileDrop } from '../model/useFileDrop';
 
 interface MessageInputProps {
   messageInput: string;
@@ -26,7 +29,9 @@ interface MessageInputProps {
   onVoiceUploadComplete?: (messageId: EntityId) => void;
 }
 
-const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
+const sendsOnEnter = () => !window.matchMedia?.('(pointer: coarse)').matches;
+
+const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   messageInput,
   setMessageInput,
   replyTo,
@@ -44,12 +49,14 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
   onVoiceUploadComplete,
 }, ref) => {
   const { translations } = useLanguage();
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFilePreviewUrl, setSelectedFilePreviewUrl] = useState<string | null>(null);
   const isDisabled = disabled || isSending;
-  const hasSelectedFile = !!selectedFile;
+  const isEditing = !!editingMessage;
+  const hasSelectedFile = !!selectedFile && !isEditing;
   const hasDraft = messageInput.trim().length > 0 || hasSelectedFile;
   const {
     isRecording,
@@ -69,7 +76,25 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
     onVoiceUploadComplete,
   });
 
-  const setInputNode = (node: HTMLInputElement | null) => {
+  useLayoutEffect(() => {
+    const field = inputRef.current;
+    if (!field) return;
+    const fit = () => {
+      field.style.height = 'auto';
+      field.style.height = `${field.scrollHeight}px`;
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [messageInput, isRecording]);
+
+  const handleFieldKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing || !sendsOnEnter()) return;
+    event.preventDefault();
+    sendAndKeepFocus();
+  };
+
+  const setInputNode = (node: HTMLTextAreaElement | null) => {
     inputRef.current = node;
     if (typeof ref === 'function') ref(node);
     else if (ref) ref.current = node;
@@ -77,7 +102,7 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
 
   const sendAndKeepFocus = () => {
     if (!hasDraft || isDisabled) return;
-    if (selectedFile) {
+    if (selectedFile && !isEditing) {
       onFileUpload(selectedFile, messageInput);
       setSelectedFile(null);
       setMessageInput('');
@@ -88,25 +113,44 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
     requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   };
 
-  const handleSelectedFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
+  const selectFile = (file: File | null) => {
     const validationError = file ? validateUploadFile(file) : null;
     if (file && validationError) {
       setErrorMessage(validationError === 'tooLarge'
         ? translations.uploadFileTooLarge || 'File is too large. The maximum size is 10 MB.'
         : translations.uploadUnsupportedType || 'This file type is not supported.');
       setSelectedFile(null);
-      event.target.value = '';
-      return;
+      return false;
     }
     setErrorMessage(null);
     setSelectedFile(file);
+    return true;
   };
+
+  const handleSelectedFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectFile(event.target.files?.[0] || null)) event.target.value = '';
+  };
+
+  const { zone: dropZone, isDragging } = useFileDrop(rootRef, (file) => {
+    if (isEditing) {
+      setErrorMessage(translations.attachDisabledWhileEditing);
+      return;
+    }
+    if (isDisabled || isRecording || isStarting) return;
+    selectFile(file);
+    requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
+  });
 
   const clearSelectedFile = () => {
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  useEffect(() => {
+    if (!isEditing) return;
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [isEditing]);
 
   useEffect(() => {
     if (!selectedFile || !selectedFile.type.startsWith('image/')) {
@@ -129,28 +173,24 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
   };
 
   return (
-    <div className="pointer-events-auto px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 md:px-0">
-      <div className="mx-auto flex w-full flex-col gap-2 md:w-2/3">
-        {(replyTo || editingMessage) && (
-          <div className="motion-reply-in flex items-center rounded-2xl border border-border/60 bg-background/55 p-2 shadow-lg shadow-foreground/10 backdrop-blur-2xl">
-            <div className="flex-1 flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {replyTo ? 'Replying to: ' : 'Editing: '}
-              </span>
-              {(() => {
-                const content = (replyTo || editingMessage)?.content;
-                if (typeof content === 'string') return <span className="text-sm text-foreground">{content}</span>;
-                if (content && 'file_type' in content && content.file_type.startsWith('image/')) {
-                  return <AuthenticatedImage src={content.file_url} alt={content.file_name} className="h-8 w-8 object-cover rounded" />;
-                }
-                if (content && 'file_name' in content) return <span className="text-sm text-foreground">{content.file_name}</span>;
-                return null;
-              })()}
-            </div>
-            <button onClick={onCancelReplyOrEdit} aria-label={translations.cancel || 'Cancel'} className="motion-press rounded-full p-1 transition-colors hover:bg-accent">
-              <X className="w-4 h-4" />
-            </button>
+    <div ref={rootRef} className="pointer-events-auto px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 md:px-0">
+      {isDragging && dropZone && createPortal(
+        <div data-testid="file-drop-overlay" className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/70 p-6 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-primary px-8 py-6 text-primary">
+            <Upload className="h-8 w-8" />
+            <span className="text-sm font-medium">{isEditing ? translations.attachDisabledWhileEditing : translations.dropFileToAttach}</span>
           </div>
+        </div>,
+        dropZone,
+      )}
+      <div className="mx-auto flex w-full flex-col gap-2 md:w-2/3">
+        {(editingMessage || replyTo) && (
+          <ReplyEditBar
+            message={(editingMessage || replyTo) as Message}
+            mode={editingMessage ? 'edit' : 'reply'}
+            translations={translations}
+            onCancel={onCancelReplyOrEdit}
+          />
         )}
         {errorMessage && (
           <div className="motion-error-in rounded-2xl bg-red-100 p-2 text-sm text-red-700 shadow-sm">
@@ -180,13 +220,14 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">
+        <div className="flex items-end gap-2">
+          <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               aria-label={translations.attachFile || 'Attach file'}
-              disabled={isDisabled || isRecording || isStarting}
+              title={isEditing ? translations.attachDisabledWhileEditing : undefined}
+              disabled={isDisabled || isRecording || isStarting || isEditing}
               className="motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50"
             >
               <Paperclip className="w-5 h-5" />
@@ -208,15 +249,15 @@ const MessageInput = forwardRef<HTMLInputElement, MessageInputProps>(({
                 </button>
               </div>
             ) : (
-              <input
-                type="text"
+              <textarea
+                rows={1}
                 ref={setInputNode}
                 data-testid="message-input-field"
                 value={messageInput}
                 onChange={(event) => setMessageInput(event.target.value)}
                 placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : selectedFile ? (translations.addCaption || 'Add a caption') : translations.writeMessage}
-                className="min-h-10 min-w-0 flex-1 bg-transparent px-1 text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none"
-                onKeyDown={(event) => event.key === 'Enter' && sendAndKeepFocus()}
+                className="block max-h-[min(10rem,35vh)] min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 leading-6 text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none"
+                onKeyDown={handleFieldKeyDown}
                 disabled={isDisabled}
               />
             )}

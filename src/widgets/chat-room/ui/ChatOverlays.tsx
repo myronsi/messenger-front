@@ -1,8 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import React, { MutableRefObject } from 'react';
-import { Message } from '@/entities/message';
+import { ChatSearchDialog, Message } from '@/entities/message';
 import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal } from '@/features/message-actions';
-import MessageSearchDialog from './MessageSearchDialog';
 
 type ContextMenuState = NonNullable<React.ComponentProps<typeof ContextMenu>['contextMenu']>;
 type ReactionMenuState = NonNullable<React.ComponentProps<typeof ReactionMenu>['reactionMenu']>;
@@ -13,7 +12,7 @@ interface ChatOverlaysProps {
   reactionMenu: ReactionMenuState | null;
   contextMenuRef: MutableRefObject<HTMLDivElement | null>;
   reactionMenuRef: MutableRefObject<HTMLDivElement | null>;
-  messageInputRef: MutableRefObject<HTMLInputElement | null>;
+  messageInputRef: MutableRefObject<HTMLTextAreaElement | null>;
   messages: Message[];
   token: string;
   chatId: EntityId;
@@ -30,7 +29,6 @@ interface ChatOverlaysProps {
   onForward: (message: Message | null) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
-  getMessageTime: (timestamp: string) => string;
   jumpToSearchResult: (messageId: EntityId) => void;
   forwardMessage: Message | null;
   username: string;
@@ -42,7 +40,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
   token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, setModal, closeMenus, onForward,
-  isSearchOpen, setIsSearchOpen, getMessageTime, jumpToSearchResult,
+  isSearchOpen, setIsSearchOpen, jumpToSearchResult,
   forwardMessage, username, onForwarded, modal,
 }) => (
   <>
@@ -83,11 +81,10 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         contextMenuRef={contextMenuRef}
       />
     )}
-    <MessageSearchDialog
+    <ChatSearchDialog
       open={isSearchOpen}
       onOpenChange={setIsSearchOpen}
-      messages={messages}
-      getMessageTime={getMessageTime}
+      chatId={chatId}
       onJumpToMessage={jumpToSearchResult}
     />
     <ForwardMessageDialog

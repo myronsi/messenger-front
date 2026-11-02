@@ -1,7 +1,6 @@
 import React from 'react';
 import { Ban, Info, Loader2, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
 import { formatDateOnly } from '@/shared/utils/dateFormatters';
 
 interface UserProfileInfoPanelProps {
@@ -14,8 +13,6 @@ interface UserProfileInfoPanelProps {
   isBlockActionLoading: boolean;
   canShowCreatedAt: boolean;
   createdAt?: string;
-  isOnline: boolean;
-  lastSeen?: string | null;
   canDeleteChat: boolean;
   onDeleteChat: () => void;
   onBlockToggle: () => void;
@@ -24,7 +21,7 @@ interface UserProfileInfoPanelProps {
 
 const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
   username, language, bio, actionError, isCurrentUser, isBlocked, isBlockActionLoading,
-  canShowCreatedAt, createdAt, isOnline, lastSeen, canDeleteChat, onDeleteChat,
+  canShowCreatedAt, createdAt, canDeleteChat, onDeleteChat,
   onBlockToggle, onConfirmBlock,
 }) => {
   const { translations } = useLanguage();
@@ -53,10 +50,6 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
               <span className="min-w-0 truncate font-medium text-gray-900">{formatDateOnly(createdAt, language)}</span>
             </div>
           )}
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-gray-500">{translations.status || 'Status'}</span>
-            <span className="min-w-0 truncate font-medium text-gray-900">{getPresenceLabel(isOnline, lastSeen)}</span>
-          </div>
         </div>
       </section>
       {canDeleteChat && (

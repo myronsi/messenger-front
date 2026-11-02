@@ -18,4 +18,6 @@ export const messages = {
   edited: "изменено",
   uploadUnsupportedType: "Этот тип файла не поддерживается.",
   uploadFileTooLarge: "Файл слишком большой. Максимальный размер — 10 МБ.",
+  deleteForMeShort: "Для меня",
+  deleteForEveryoneShort: "Для всех",
 };

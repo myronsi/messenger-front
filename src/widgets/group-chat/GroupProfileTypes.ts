@@ -83,11 +83,10 @@ export interface GroupProfileDialogProps {
   onLeaveGroup: () => void;
   onDeleteGroup: () => void;
   onOpenUserProfile: (username: string) => void;
-  onJumpToMessage: (messageId: EntityId) => void;
   groupConfirm: GroupProfileConfirmState | null;
   onCloseGroupConfirm: () => void;
 }
 
 
-export type GroupProfileView = 'details' | 'participants' | 'search' | 'photos' | 'audios';
+export type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios';
 export type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };

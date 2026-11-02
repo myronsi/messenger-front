@@ -58,11 +58,16 @@ export const groupChatModel = (chat: Schema['Chat']) => ({
   chat_id: chat.id,
 });
 
-export const groupModel = (group: Schema['Group']) => ({
-  ...group,
-  chat_id: group.id,
-  description: group.description || undefined,
-  avatar_url: group.avatar_url || undefined,
-  current_user_role: group.my_role,
-  participants: group.members.map(({ user, role }) => ({ ...userModel(user), role })),
-});
+export const groupModel = (group: Schema['Group']) => {
+  const owner = group.members.find(({ user }) => user.id === group.owner_id)?.user;
+  return {
+    ...group,
+    chat_id: group.id,
+    owner_username: owner?.username,
+    owner_display_name: owner?.display_name,
+    description: group.description || undefined,
+    avatar_url: group.avatar_url || undefined,
+    current_user_role: group.my_role,
+    participants: group.members.map(({ user, role }) => ({ ...userModel(user), role })),
+  };
+};

@@ -24,7 +24,7 @@ export function alertIncomingMessage(message: IncomingMessage, activeChatId?: st
   if (seen.has(key)) return;
   seen.add(key);
   if (seen.size > 1000) seen.delete(seen.values().next().value!);
-  if (document.visibilityState !== 'visible' || String(activeChatId) === message.chatId && document.hasFocus()) return;
+  if (document.visibilityState !== 'visible' || String(activeChatId) === message.chatId) return;
   // A Web Lock elects one visible tab; the persisted marker also handles later replay in another tab.
   const show = () => {
     if (user !== notificationAccount() || scheduledGeneration !== generation || document.visibilityState !== 'visible') return;

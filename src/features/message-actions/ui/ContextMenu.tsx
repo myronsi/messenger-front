@@ -22,7 +22,7 @@ interface ContextMenuProps {
   onClose: () => void;
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean } | null;
   setReactionMenu: (value: { message: Message; x: number; y: number; isClosing?: boolean } | null) => void;
-  messageInputRef: React.RefObject<HTMLInputElement | null>;
+  messageInputRef: React.RefObject<HTMLTextAreaElement | null>;
   canDeleteMessage?: (message: Message) => boolean;
   onForward?: (message: Message) => void;
 }
@@ -50,7 +50,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const [deleteMessageForMe] = useDeleteMessageForMeMutation();
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (ref && 'current' in ref && ref.current && !ref.current.contains(event.target as Node)) {
+        if (ref && 'current' in ref && ref.current && !event.composedPath().includes(ref.current)) {
           setContextMenu({ ...contextMenu, isClosing: true });
           setTimeout(() => onClose(), 200);
         }
@@ -92,12 +92,14 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
 
     const message = messages.find((m) => m.id === contextMenu.messageId);
     const isFile = message?.type === 'file';
+    const fileContent = message && typeof message.content !== 'string' ? message.content : null;
+    const canEdit = !!message && !message.forwarded_from && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
 
     const handleEdit = () => {
-      if (message && message.type === 'message') {
+      if (message && canEdit) {
         setEditingMessage(message);
-        setMessageInput(typeof message.content === 'string' ? message.content : '');
+        setMessageInput(typeof message.content === 'string' ? message.content : fileContent?.caption || '');
         setReplyTo(null);
         if (messageInputRef.current) {
           messageInputRef.current.focus();
@@ -108,48 +110,38 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       setTimeout(() => onClose(), 200);
     };
 
-    const handleDelete = () => {
-      const messageId = contextMenu.messageId;
-      const finish = () => {
-        setContextMenu(null);
-        setReactionMenu(null);
-        setModal(null);
-      };
-      const showError = () => setModal({ type: 'error', message: translations.webSocketError });
-      setModal({
-        type: 'deleteMessageChoice',
-        isMessageSender: canDelete,
-        messageId,
-        onDeleteForMe: async () => {
-          try {
-            await deleteMessageForMe(messageId).unwrap();
-            notifyMessageDeletedLocally(chatId, messageId);
-          } catch (error) {
-            console.error('Failed to delete message for me:', error);
-            showError();
-            return;
-          }
-          finish();
-        },
-        onDeleteForAll: () => {
-          const socket = wsRef.current;
-          if (!socket || socket.readyState !== WebSocket.OPEN) {
-            showError();
-            return;
-          }
-          try {
-            socket.send(JSON.stringify({ type: 'delete', message_id: messageId }));
-          } catch (error) {
-            console.error('Failed to delete message for everyone:', error);
-            showError();
-            return;
-          }
-          finish();
-        },
-      });
+    const closeMenu = () => {
       setContextMenu({ ...contextMenu, isClosing: true });
       setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
       setTimeout(() => onClose(), 200);
+    };
+    const showDeleteError = () => setModal({ type: 'error', message: translations.webSocketError });
+
+    const handleDeleteForMe = async () => {
+      const messageId = contextMenu.messageId;
+      closeMenu();
+      try {
+        await deleteMessageForMe(messageId).unwrap();
+        notifyMessageDeletedLocally(chatId, messageId);
+      } catch (error) {
+        console.error('Failed to delete message for me:', error);
+        showDeleteError();
+      }
+    };
+
+    const handleDeleteForEveryone = () => {
+      const socket = wsRef.current;
+      closeMenu();
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        showDeleteError();
+        return;
+      }
+      try {
+        socket.send(JSON.stringify({ type: 'delete', message_id: contextMenu.messageId }));
+      } catch (error) {
+        console.error('Failed to delete message for everyone:', error);
+        showDeleteError();
+      }
     };
     const handleCopy = async () => {
       if (message) {
@@ -190,8 +182,9 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         x={contextMenu.x}
         y={contextMenu.y}
         isMine={contextMenu.isMine}
-        {...(!isFile && { onEdit: handleEdit })}
-        onDelete={handleDelete}
+        {...(canEdit && { onEdit: handleEdit })}
+        onDeleteForMe={() => void handleDeleteForMe()}
+        onDeleteForEveryone={canDelete ? handleDeleteForEveryone : undefined}
         {...(!isFile && { onCopy: handleCopy })}
         onReply={handleReply}
         onForward={onForward && message ? handleForward : undefined}

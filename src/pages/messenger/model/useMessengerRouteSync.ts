@@ -2,7 +2,8 @@ import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, type NavigateFunction } from 'react-router-dom';
-import { CurrentChat, directChatPath, parseDmIdentifier, parseProfileUsername } from './messengerRoutes';
+import { CurrentChat, directChatPath, parseDmIdentifier } from './messengerRoutes';
+import { joinOverlayPath, splitOverlayPath } from '@/shared/lib/urlOverlay';
 import { authFetch } from '@/shared/auth/session';
 import { resolveNotificationChat } from './resolveNotificationChat';
 
@@ -50,29 +51,24 @@ interface DirectChatListResponse {
 
 interface MessengerRouteSyncOptions {
   currentChat: CurrentChat | null;
-  isUserProfileOpen: boolean;
   location: ReturnType<typeof useLocation>;
   navigate: NavigateFunction;
   username: string;
   setCurrentChat: Dispatch<SetStateAction<CurrentChat | null>>;
-  setIsUserProfileOpen: Dispatch<SetStateAction<boolean>>;
-  setProfileUsername: Dispatch<SetStateAction<string | null>>;
-  closeUserProfile: () => void;
 }
 
 export const useMessengerRouteSync = ({
   currentChat,
-  isUserProfileOpen,
   location,
   navigate,
   username,
   setCurrentChat,
-  setIsUserProfileOpen,
-  setProfileUsername,
-  closeUserProfile,
 }: MessengerRouteSyncOptions) => {
+  const routeBase = splitOverlayPath(location.pathname).base;
   useEffect(() => {
-    const match = location.pathname.match(/^\/chat\/(\d+)$/);
+    const { overlay } = splitOverlayPath(location.pathname);
+    const withOverlay = (path: string) => joinOverlayPath(path, overlay);
+    const match = routeBase.match(/^\/chat\/(\d+)$/);
     if (match) {
       const id = match[1];
       if (!isPersistedId(id)) {
@@ -83,7 +79,7 @@ export const useMessengerRouteSync = ({
         if (!username) return;
         let cancelled = false;
         void resolveNotificationChat(id).then((state) => {
-          if (!cancelled) navigate(`/chat/${id}`, { replace: true, state });
+          if (!cancelled) navigate(withOverlay(`/chat/${id}`), { replace: true, state });
         }).catch(() => { if (!cancelled) navigate('/', { replace: true }); });
         return () => { cancelled = true; };
       }
@@ -99,7 +95,7 @@ export const useMessengerRouteSync = ({
       const type = state.type || 'one-on-one';
       const firstUnreadMessageId = state.firstUnreadMessageId ?? null;
       if (type === 'one-on-one' && state.chatName) {
-        navigate(directChatPath(id, state.chatName, interlocutorDeleted), {
+        navigate(withOverlay(directChatPath(id, state.chatName, interlocutorDeleted)), {
           replace: true,
           state: { ...state, chatId: id },
         });
@@ -109,7 +105,7 @@ export const useMessengerRouteSync = ({
       return;
     }
 
-    const directIdentifier = parseDmIdentifier(location.pathname);
+    const directIdentifier = parseDmIdentifier(routeBase);
     if (directIdentifier !== null) {
       if (!username) return;
 
@@ -151,8 +147,8 @@ export const useMessengerRouteSync = ({
               return;
             }
             const canonicalPath = directChatPath(chat.id, chat.interlocutor_name, chat.interlocutor_deleted);
-            if (location.pathname !== canonicalPath) {
-              navigate(canonicalPath, {
+            if (routeBase !== canonicalPath) {
+              navigate(withOverlay(canonicalPath), {
                 replace: true,
                 state: {
                   chatId: chat.id,
@@ -204,8 +200,8 @@ export const useMessengerRouteSync = ({
         .then((user: DirectUserProfile) => {
           if (isCancelled) return;
           const canonicalPath = directChatPath(user.direct_chat_id || state.chatId || 0, user.username || targetUsername, false);
-          if (location.pathname !== canonicalPath) {
-            navigate(canonicalPath, {
+          if (routeBase !== canonicalPath) {
+            navigate(withOverlay(canonicalPath), {
               replace: true,
               state: {
                 ...state,
@@ -246,21 +242,7 @@ export const useMessengerRouteSync = ({
       };
     }
 
-    const profileRouteUsername = parseProfileUsername(location.pathname);
-    if (profileRouteUsername !== null) {
-      if (!username) return;
-      if (!profileRouteUsername) {
-        navigate('/', { replace: true });
-        return;
-      }
-      setCurrentChat(null);
-      setProfileUsername(profileRouteUsername);
-      setIsUserProfileOpen(true);
-      return;
-    } else {
-      if (currentChat) setCurrentChat(null);
-      if (isUserProfileOpen) closeUserProfile();
-    }
+    if (currentChat) setCurrentChat(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, location.search, username]);
+  }, [routeBase, location.search, username]);
 };

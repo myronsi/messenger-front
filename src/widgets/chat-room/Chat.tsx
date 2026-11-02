@@ -13,6 +13,7 @@ import { useChatInteractions } from './model/useChatInteractions';
 import { ChatProps } from './model/types';
 import ChatOverlays from './ui/ChatOverlays';
 import ChatUnblockButton from './ui/ChatUnblockButton';
+import { useElementHeight } from '@/shared/lib/useElementHeight';
 import { useGetBlockedUsersQuery } from '@/entities/user';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -80,7 +81,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const reactionMenuRef = useRef<HTMLDivElement>(null);
-  const messageInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const [composerRef, composerHeight] = useElementHeight<HTMLDivElement>();
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const lastSearchRequestKeyRef = useRef(searchRequestKey);
   const [isClosing, setIsClosing] = useState(false);
@@ -156,7 +158,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const displayedMessages = isPreview ? previewFailedMessages : messages;
 
   const content = (
-    <div className="relative flex h-full flex-col overflow-hidden">
+    <div data-chat-drop-zone className="relative flex h-full flex-col overflow-hidden">
       <ChatHeader
         chatName={chatName}
         chatDisplayName={chatDisplayName}
@@ -166,6 +168,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         onBack={onBack}
         onDeleteChat={handleDeleteChat}
         onOpenProfile={onOpenProfile}
+        onOpenSearch={!isPreview && !interlocutorDeleted ? () => setIsSearchOpen(true) : undefined}
         interlocutorAvatar={interlocutorAvatar}
       />
       <MessageList
@@ -184,6 +187,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           }}
           highlightedMessageId={highlightedMessageId}
           contextMenuMessageId={contextMenu?.messageId}
+          composerTargetMessageId={(editingMessage || replyTo)?.id}
+          bottomInset={composerHeight}
           getFormattedDateLabel={getFormattedDateLabel}
           getMessageTime={getMessageTime}
           renderMessageContent={renderMessageContent}
@@ -208,7 +213,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           onScrollStart={onScrollStart}
         />
       {!interlocutorDeleted && !isBlockedByMe && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+        <div ref={composerRef} className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
           <MessageInput
             ref={messageInputRef}
             messageInput={isPreview ? previewMessageInput : messageInput}
@@ -270,7 +275,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         onForward={setForwardMessage}
         isSearchOpen={isSearchOpen}
         setIsSearchOpen={setIsSearchOpen}
-        getMessageTime={getMessageTime}
         jumpToSearchResult={jumpToSearchResult}
         forwardMessage={forwardMessage}
         username={username}

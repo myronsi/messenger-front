@@ -37,6 +37,7 @@ export interface GroupChatViewModel {
   firstUnreadMessageId?: EntityId | null;
   handleMessageClick: (event: React.MouseEvent, message: Message) => void;
   handleOpenUserProfile: (username: string) => void;
+  handleOpenMemberProfile: (username: string) => void;
   highlightedMessageId: EntityId | null;
   contextMenu: ContextMenuState;
   getFormattedDateLabel: (timestamp: string) => string;
@@ -64,7 +65,7 @@ export interface GroupChatViewModel {
   setReactionDetails: Setter<ReactionDetailsState>;
   closeMenus: () => void;
   reactionMenu: ReactionMenuState;
-  messageInputRef: React.RefObject<HTMLInputElement | null>;
+  messageInputRef: React.RefObject<HTMLTextAreaElement | null>;
   messageInput: string;
   setMessageInput: Setter<string>;
   replyTo: Message | null;

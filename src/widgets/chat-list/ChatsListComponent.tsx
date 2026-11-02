@@ -69,6 +69,8 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         translations={model.translations}
         onMarkAsRead={model.handleMarkChatRead}
         onTogglePinned={model.handleTogglePinnedChat}
+        onClose={model.closeChatContextMenu}
+        onError={(message) => model.setModal({ type: 'error', message })}
       />
 
       {/* Modals */}

@@ -2,7 +2,8 @@ import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CurrentChat, directChatPath, dmPath, parseProfileUsername } from './messengerRoutes';
+import { CurrentChat, directChatPath, dmPath, parseDmIdentifier } from './messengerRoutes';
+import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { authFetch, dropInvalidSession } from '@/shared/auth/session';
@@ -16,17 +17,25 @@ export const useMessengerController = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
-  const [profileUsername, setProfileUsername] = useState<string | null>(null);
-  const [chatSearchRequestKey, setChatSearchRequestKey] = useState(0);
-  const [messageJumpRequest, setMessageJumpRequest] = useState<{ messageId: EntityId; key: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const hasFetchedUser = useRef(false);
   const isMobile = useIsMobile();
   const { translations } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const urlOverlay = useUrlOverlay();
+  const { overlay, open: openOverlay, close: closeOverlay } = urlOverlay;
+  const routeDirect = parseDmIdentifier(urlOverlay.base);
+  const routeChatUsername = routeDirect?.type === 'username' ? routeDirect.value : currentChat?.type === 'one-on-one' ? currentChat.name : null;
+  const isProfileOpen = overlay?.kind === 'settings';
+  const profileUsername = overlay?.kind === 'user'
+    ? overlay.username
+    : overlay?.kind === 'profile' && routeDirect ? routeChatUsername : null;
+  const isUserProfileOpen = !!profileUsername;
+  const setIsProfileOpen = useCallback((open: boolean) => {
+    if (open) openOverlay({ kind: 'settings', page: 'profile' });
+    else if (isProfileOpen) closeOverlay();
+  }, [closeOverlay, isProfileOpen, openOverlay]);
   const {
     backToChats,
     mobileChatPanelClass,
@@ -37,8 +46,6 @@ export const useMessengerController = () => {
     isMobile,
     navigate,
     setCurrentChat,
-    setIsUserProfileOpen,
-    setProfileUsername,
   });
 
   useEffect(() => {
@@ -69,11 +76,7 @@ export const useMessengerController = () => {
   }, []);
 
   const handleLoginSuccess = (user: string) => {
-    setIsProfileOpen(false);
-    setIsUserProfileOpen(false);
-    setProfileUsername(null);
     setCurrentChat(null);
-    setMessageJumpRequest(null);
     setIsLoggedIn(true);
     setUsername(user);
     setIsLoading(false);
@@ -141,34 +144,19 @@ export const useMessengerController = () => {
   }, []);
 
   const openUserProfile = (targetUsername: string) => {
-    setProfileUsername(targetUsername);
-    setIsUserProfileOpen(true);
+    const target = targetUsername.replace(/^@/, '');
+    const isChatPartner = !!routeDirect && !!routeChatUsername && target.toLowerCase() === routeChatUsername.toLowerCase();
+    openOverlay(isChatPartner ? { kind: 'profile' } : { kind: 'user', username: target });
   };
 
   const closeUserProfile = () => {
-    setIsUserProfileOpen(false);
-    setProfileUsername(null);
-    if (parseProfileUsername(location.pathname) !== null) {
-      navigate('/');
-    }
+    if (overlay?.kind === 'user' || overlay?.kind === 'profile') closeOverlay();
   };
 
-  const openCurrentChatSearch = () => {
-    setChatSearchRequestKey((key) => key + 1);
-    closeUserProfile();
+  const setIsUserProfileOpen = (open: boolean) => {
+    if (!open) closeUserProfile();
+    else if (routeChatUsername) openUserProfile(routeChatUsername);
   };
-
-  const jumpToCurrentChatMessage = (messageId: EntityId) => {
-    if (!currentChat || !isPersistedId(currentChat.id)) return;
-    setMessageJumpRequest({ messageId, key: Date.now() });
-    closeUserProfile();
-  };
-
-  const canSearchCurrentDirectChat = () => (
-    currentChat?.type === 'one-on-one' &&
-    isPersistedId(currentChat.id) &&
-    (profileUsername || currentChat.name) === currentChat.name
-  );
 
   const openDirectChatFromProfile = async (target: {
     username: string;
@@ -221,10 +209,7 @@ export const useMessengerController = () => {
     });
   };
 
-  useMessengerRouteSync({
-    currentChat, isUserProfileOpen, location, navigate, username, setCurrentChat, setIsUserProfileOpen,
-    setProfileUsername, closeUserProfile,
-  });
+  useMessengerRouteSync({ currentChat, location, navigate, username, setCurrentChat });
 
   const handleChatDeleted = (chatId: EntityId) => {
     if (currentChat && currentChat.id === chatId) {
@@ -240,7 +225,6 @@ export const useMessengerController = () => {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error(await response.text());
-      setIsUserProfileOpen(false);
       setCurrentChat(null);
       navigate('/');
     } catch (err) {
@@ -258,8 +242,6 @@ export const useMessengerController = () => {
     isUserProfileOpen,
     setIsUserProfileOpen,
     profileUsername,
-    chatSearchRequestKey,
-    messageJumpRequest,
     isLoading,
     isMobile,
     translations,
@@ -268,9 +250,6 @@ export const useMessengerController = () => {
     updateActiveChatFromList,
     openUserProfile,
     closeUserProfile,
-    openCurrentChatSearch,
-    jumpToCurrentChatMessage,
-    canSearchCurrentDirectChat,
     openDirectChatFromProfile,
     handleDirectChatCreated,
     backToChats,

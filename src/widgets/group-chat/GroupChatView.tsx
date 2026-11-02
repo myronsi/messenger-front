@@ -1,8 +1,8 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
-import React from 'react';
-import { ArrowLeft } from 'lucide-react';
-import type { Message } from '@/entities/message';
+import React, { useState } from 'react';
+import { ArrowLeft, Search } from 'lucide-react';
+import { ChatSearchDialog, type Message } from '@/entities/message';
 import { unescapeCurlyBraces } from '@/features/chat-core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { MessageList } from '@/features/message-list';
@@ -11,14 +11,17 @@ import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog } from '@/featur
 import GroupProfileDialog from './GroupProfileDialog';
 
 import type { GroupChatViewModel } from './groupChatTypes';
+import { useElementHeight } from '@/shared/lib/useElementHeight';
 
 const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
+  const [composerRef, composerHeight] = useElementHeight<HTMLDivElement>();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const renderMessageContent = (message: Message) => message.type === 'message' && typeof message.content === 'string'
-    ? <div className="whitespace-pre-wrap break-words">{unescapeCurlyBraces(message.content)}</div>
-    : <div />;
+    ? unescapeCurlyBraces(message.content)
+    : undefined;
   const {
      onBack, openGroupProfile, currentGroupAvatar, currentGroupName, groupDetails, translations, messages,
-     username, currentUserId, firstUnreadMessageId, handleMessageClick, handleOpenUserProfile,
+     username, currentUserId, firstUnreadMessageId, handleMessageClick, handleOpenUserProfile, handleOpenMemberProfile,
      highlightedMessageId, contextMenu, getFormattedDateLabel, getMessageTime, messageRefs, canDeleteMessage,
      jumpToSearchResult, scrollToMessage, wsRef, openMenus, tempHighlightedMessageId,
      setTempHighlightedMessageId, loadOlderMessages, hasMoreMessages, isLoadingOlderMessages,
@@ -35,7 +38,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
   return (
-    <div className="relative flex h-full flex-col overflow-hidden">
+    <div data-chat-drop-zone className="relative flex h-full flex-col overflow-hidden">
       <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex min-w-0 items-center space-x-4">
           <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press rounded-full p-2 transition-colors hover:bg-accent">
@@ -56,6 +59,18 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
             </span>
           </button>
         </div>
+        {isPersistedId(chatId) && (
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen(true)}
+            aria-label={translations.search || 'Search'}
+            title={translations.search || 'Search'}
+            className="motion-press shrink-0 rounded-full p-2 transition-colors hover:bg-accent"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+        )}
+        <ChatSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} chatId={chatId} onJumpToMessage={jumpToSearchResult} />
       </div>
 
       <MessageList
@@ -68,6 +83,8 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         onAvatarClick={handleOpenUserProfile}
         highlightedMessageId={highlightedMessageId}
         contextMenuMessageId={contextMenu?.messageId}
+        composerTargetMessageId={(editingMessage || replyTo)?.id}
+        bottomInset={composerHeight}
         getFormattedDateLabel={getFormattedDateLabel}
         getMessageTime={getMessageTime}
         renderMessageContent={renderMessageContent}
@@ -99,7 +116,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         }}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+      <div ref={composerRef} className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
         <MessageInput
           ref={messageInputRef}
           messageInput={messageInput}
@@ -190,11 +207,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         onTransferOwner={handleTransferOwner}
         onLeaveGroup={handleLeaveGroup}
         onDeleteGroup={handleDeleteGroup}
-        onOpenUserProfile={handleOpenUserProfile}
-        onJumpToMessage={(messageId) => {
-          requestCloseGroupProfile();
-          jumpToSearchResult(messageId);
-        }}
+        onOpenUserProfile={handleOpenMemberProfile}
         groupConfirm={groupConfirm}
         onCloseGroupConfirm={() => setGroupConfirm(null)}
       />

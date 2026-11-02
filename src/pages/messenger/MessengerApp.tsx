@@ -10,6 +10,7 @@ import ProfileComponentRTK from '@/widgets/profile-panel';
 import { UserProfileComponentRTK } from '@/widgets/profile-panel';
 import { useMessengerController } from './model/useMessengerController';
 import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
+import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -26,8 +27,6 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     isUserProfileOpen,
     setIsUserProfileOpen,
     profileUsername,
-    chatSearchRequestKey,
-    messageJumpRequest,
     isLoading,
     isMobile,
     translations,
@@ -36,7 +35,6 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     updateActiveChatFromList,
     openUserProfile,
     closeUserProfile,
-    jumpToCurrentChatMessage,
     openDirectChatFromProfile,
     handleDirectChatCreated,
     backToChats,
@@ -52,9 +50,6 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
       : undefined,
     onClose: closeUserProfile,
     onMessage: openDirectChatFromProfile,
-    onJumpToMessage: currentChat?.id && isPersistedId(currentChat.id) && currentChat.type === 'one-on-one' && (profileUsername || currentChat.name) === currentChat.name
-      ? jumpToCurrentChatMessage
-      : undefined,
     hideMessageAction: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
     onDeleteChat: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? handleDeleteCurrentChat
@@ -66,6 +61,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   const [renderUserProfile, setRenderUserProfile] = useState(isUserProfileOpen);
   const [isUserProfileClosing, setIsUserProfileClosing] = useState(false);
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
+  useVisualViewport(isMobile && isLoggedIn);
 
   useEffect(() => {
     if (isUserProfileOpen && (currentChat || profileUsername)) {
@@ -109,7 +105,6 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
           firstUnreadMessageId={currentChat.firstUnreadMessageId}
           onBack={backToChats}
           onOpenUserProfile={openUserProfile}
-          messageJumpRequest={messageJumpRequest}
         />
       )
       : (
@@ -127,8 +122,6 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
           onBack={backToChats}
           setIsUserProfileOpen={setIsUserProfileOpen}
           onOpenUserProfile={openUserProfile}
-          searchRequestKey={chatSearchRequestKey}
-          messageJumpRequest={messageJumpRequest}
           directDraftDisabled={currentChat.directDraftDisabled}
           directDraftReason={currentChat.directDraftReason}
           initialPendingApprovalRequest={currentChat.pendingApprovalRequest}
@@ -152,7 +145,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
       ) : (
         <div className="mx-0 min-h-screen min-w-screen px-0">
           {isMobile ? (
-            <div className="relative h-[calc(100vh)] overflow-hidden">
+            <div className="fixed inset-x-0 overflow-hidden" style={visualViewportStyle}>
               <div className="absolute inset-0 overflow-hidden bg-white">
                 <ChatsListComponentRTK
                   username={username}

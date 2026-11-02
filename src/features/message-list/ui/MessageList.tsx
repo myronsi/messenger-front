@@ -20,6 +20,8 @@ interface MessageListProps {
   onAvatarClick: (username: string) => void;
   highlightedMessageId: EntityId | null;
   contextMenuMessageId?: EntityId;
+  composerTargetMessageId?: EntityId;
+  bottomInset?: number;
   getFormattedDateLabel: (timestamp: string) => string;
   getMessageTime: (timestamp: string) => string;
   renderMessageContent: (message: Message) => React.ReactNode;
@@ -47,6 +49,7 @@ interface MessageListProps {
 }
 
 const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
+const COMPOSER_GAP = 16;
 
 const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) => {
   const {
@@ -59,6 +62,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     onAvatarClick,
     highlightedMessageId,
     contextMenuMessageId,
+    composerTargetMessageId,
+    bottomInset,
     getFormattedDateLabel,
     getMessageTime,
     renderMessageContent,
@@ -76,6 +81,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     isLoadingNewerMessages = false,
     isLoadingInitialMessages = false,
   } = props;
+  const bottomSpaceClass = bottomInset === undefined ? MESSAGE_LIST_BOTTOM_SPACE : '';
+  const bottomSpaceStyle = bottomInset === undefined ? undefined : { paddingBottom: bottomInset + COMPOSER_GAP };
 
   const { getFileTypeConfig } = useFileTypes();
   const { translations } = useLanguage();
@@ -189,9 +196,9 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     <div className="relative min-h-0 flex-1">
     <div className="absolute inset-0 overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
-        <div className="sticky pt-0.5 top-0 z-50 flex justify-center pointer-events-none md:w-2/3 md:mx-auto md:px-0">
+        <div data-testid="sticky-date" className="sticky top-0 z-50 flex h-0 justify-center overflow-visible pointer-events-none md:w-2/3 md:mx-auto md:px-0">
           <div
-            className={`px-3 py-1 bg-accent rounded-full text-sm text-accent-foreground transition-opacity duration-300 ${
+            className={`mt-0.5 h-fit px-3 py-1 bg-accent rounded-full text-sm text-accent-foreground transition-opacity duration-300 ${
               isScrolling ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -199,7 +206,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         </div>
       )}
-      <div ref={setContentRef} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-4 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
+      <div ref={setContentRef} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-4 ${bottomSpaceClass}`} style={bottomSpaceStyle}>
         {isLoadingOlderMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
@@ -234,7 +241,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               translations={translations}
               interlocutorDeleted={interlocutorDeleted}
               isHighlighted={highlightedMessageId === message.id}
-              isContextHighlighted={contextMenuMessageId === message.id || tempHighlightedMessageId === message.id}
+              isContextHighlighted={contextMenuMessageId === message.id || tempHighlightedMessageId === message.id || composerTargetMessageId === message.id}
               messageRefs={messageRefs}
               observerRef={observerRef}
               firstUnreadMarkerRef={firstUnreadMarkerRef}
@@ -266,7 +273,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
         )}
       </div>
     </div>
-    <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-40 ${MESSAGE_LIST_BOTTOM_SPACE}`}>
+    <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-40 ${bottomSpaceClass}`} style={bottomSpaceStyle}>
       <div className="flex justify-end px-4 md:mx-auto md:w-2/3 md:px-0">
         <ScrollToBottomButton
           visible={showScrollToBottom}

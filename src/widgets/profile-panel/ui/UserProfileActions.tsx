@@ -1,8 +1,10 @@
 import React from 'react';
-import { Image as ImageIcon, Info, MessageCircle, Music, Search } from 'lucide-react';
+import { Image as ImageIcon, Info, MessageCircle, Music } from 'lucide-react';
+import type { EntityId } from '@/shared/api/entityId';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { ChatMuteAction } from '@/features/chat-mute';
 
-type ProfilePanelView = 'details' | 'search' | 'photos' | 'audios';
+type ProfilePanelView = 'details' | 'photos' | 'audios';
 
 interface UserProfileActionsProps {
   actionCount: number;
@@ -11,7 +13,7 @@ interface UserProfileActionsProps {
   showMessage: boolean;
   showPhotos: boolean;
   showAudios: boolean;
-  showSearch: boolean;
+  muteChatId?: EntityId;
   activeView: ProfilePanelView;
   onSelectView: (view: ProfilePanelView) => void;
   onMessage: () => void;
@@ -19,7 +21,7 @@ interface UserProfileActionsProps {
 
 const UserProfileActions: React.FC<UserProfileActionsProps> = ({
   actionCount, actionColumns, showDetails, showMessage, showPhotos, showAudios,
-  showSearch, activeView, onSelectView, onMessage,
+  muteChatId, activeView, onSelectView, onMessage,
 }) => {
   const { translations } = useLanguage();
   if (actionCount <= 0) return null;
@@ -32,7 +34,7 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({
       {showMessage && <button onClick={onMessage} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-primary transition-colors hover:bg-gray-100"><MessageCircle className="h-5 w-5" /><span className="text-xs font-medium">{translations.message || 'Message'}</span></button>}
       {showPhotos && <button onClick={() => onSelectView('photos')} className={buttonClass('photos')}><ImageIcon className="h-5 w-5" /><span className="text-xs font-medium">{translations.photos || 'Photos'}</span></button>}
       {showAudios && <button onClick={() => onSelectView('audios')} className={buttonClass('audios')}><Music className="h-5 w-5" /><span className="text-xs font-medium">{translations.audios || 'Audios'}</span></button>}
-      {showSearch && <button onClick={() => onSelectView('search')} className={buttonClass('search')}><Search className="h-5 w-5" /><span className="text-xs font-medium">{translations.search || 'Search'}</span></button>}
+      {muteChatId && <ChatMuteAction chatId={muteChatId} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors hover:bg-gray-100 disabled:opacity-50" />}
     </div>
   );
 };

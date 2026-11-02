@@ -8,13 +8,12 @@ import { isValidTimestamp } from '../model/messageListScrollUtils';
 import ReplyPreview from './ReplyPreview';
 import ReactionList from './ReactionList';
 import MessageContent from './MessageContent';
+import ForwardedLabel from './ForwardedLabel';
+import MessageTime from './MessageTime';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
-import {
-  AlertCircle, Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
-  Clock7, Clock8, Clock9, Clock10, Clock11, Clock12,
-} from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 const PARTICLE_COUNT = 36;
 
@@ -47,22 +46,6 @@ const DissolveParticles: React.FC = () => {
   );
 };
 
-const clockIcons = [Clock1, Clock2, Clock3, Clock4, Clock5, Clock6, Clock7, Clock8, Clock9, Clock10, Clock11, Clock12];
-
-const UploadClockStatus: React.FC<{ progress?: number }> = ({ progress }) => {
-  const [clockIndex, setClockIndex] = React.useState(0);
-  React.useEffect(() => {
-    const interval = window.setInterval(() => setClockIndex((current) => (current + 1) % clockIcons.length), 95);
-    return () => window.clearInterval(interval);
-  }, []);
-  const ClockIcon = clockIcons[clockIndex];
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      <ClockIcon size={14} className="transition-opacity duration-75" />
-      {typeof progress === 'number' && <span className="tabular-nums">{Math.max(1, Math.min(99, progress))}%</span>}
-    </span>
-  );
-};
 
 // Only primitives, the message itself and stable callbacks are passed so React.memo can skip
 // every item that did not change when a new message, reaction or typing event arrives.
@@ -132,13 +115,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const reserveAvatarSpace = isGroup && !isMine;
   const showAvatar = reserveAvatarSpace && isLastInGroup;
   const showTail = isLastInGroup && !isImage;
-  const forwardedFrom = message.forwarded_from;
-  const forwardedLabel = forwardedFrom
-    ? (translations.forwardedFrom || 'Forwarded from {sender}').replace(
-      '{sender}',
-      forwardedFrom.sender_name || forwardedFrom.sender_username || translations.deletedUser || 'Deleted User'
-    )
-    : null;
+  const hasImageCaption = isImage && typeof message.content !== 'string' && !!message.content?.caption?.trim();
+  const isText = message.type !== 'file' && typeof message.content === 'string';
+  const hasTime = isValidTimestamp(message.timestamp);
+  const time = (interactive = true) => (
+    <MessageTime
+      message={message} time={getMessageTime(message.timestamp)} isMine={isMine} isGroup={isGroup} isUploading={isUploadingMessage}
+      userId={userId} translations={translations} onOpenReadStatus={onOpenReadStatus} interactive={interactive}
+    />
+  );
 
   const handleReply = () => {
     if (!message.reply_to) return;
@@ -195,7 +180,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         <div className={`${message.is_deleting ? 'flex w-full' : 'message-cv flex'} ${isMine ? 'justify-end' : 'justify-start'}`}>
         <div className={`flex min-w-0 items-end space-x-2 max-w-[85%] md:max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
           {showAvatar && (
-            <button type="button" className="mb-1 shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring" onClick={(event) => {
+            <button type="button" className="mb-1 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={(event) => {
               event.stopPropagation();
               onAvatarClick(message.sender_username || message.sender);
             }}>
@@ -217,7 +202,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
             } ${isImage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}` : `px-4 py-2 border${isMine ? ' border-primary' : ' border-accent'}`} ${
               hasReactions ? (isImage ? 'mb-4' : 'mb-3.5') : ''
             }`}>
-              {forwardedLabel && <div className="mb-1 text-xs font-medium opacity-70">{forwardedLabel}</div>}
+              {message.forwarded_from && (
+                <ForwardedLabel forwardedFrom={message.forwarded_from} translations={translations} isMine={isMine} isImage={isImage} />
+              )}
               {message.reply_to && <ReplyPreview replyMessage={replyMessage} isMine={isMine} onClick={handleReply} />}
               <div className="relative">
                 {message.is_deleting && !reducedMotion && <DissolveParticles />}
@@ -230,24 +217,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   renderMessageContent={renderMessageContent}
                   isAudioPlaying={isAudioPlaying}
                   setPlayingMessageId={setPlayingMessageId}
+                  trailing={isText && hasTime ? <span aria-hidden="true" className="invisible ml-2 inline-block text-[10px]">{time(false)}</span> : undefined}
                 />
-                {isImage && isValidTimestamp(message.timestamp) && (
-                  <div className={`absolute bottom-1 text-[10px] px-2 py-1 bg-gray-500/50 rounded-xl flex items-center space-x-1 ${isMine ? 'right-1 text-white' : 'left-1 text-muted-foreground'}`}>
-                    {message.edited_at && <span>{translations.edited}</span>}
-                    <span>{getMessageTime(message.timestamp)}</span>
-                    {isMine && !message.delivery_error && (
-                      <button type="button" className="inline-flex items-center gap-0.5 transition-colors duration-150" onClick={(event) => {
-                        event.stopPropagation();
-                        if (isGroup) onOpenReadStatus?.(message);
-                      }}>
-                        {isUploadingMessage ? <UploadClockStatus progress={message.upload_progress} /> : (
-                          <>
-{message.read_by?.some((reader) => reader.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
-{isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
-</>
-                        )}
-                      </button>
-                    )}
+                {isText && hasTime && (
+                  <div data-testid="message-time" className={`absolute bottom-0 right-0 translate-y-1 select-none text-[10px] opacity-80 ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
+                    {time()}
+                  </div>
+                )}
+                {isImage && !hasImageCaption && hasTime && (
+                  <div data-testid="image-message-time" className={`absolute bottom-1.5 flex items-center rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm ${isMine ? 'right-1.5' : 'left-1.5'}`}>
+                    {time()}
                   </div>
                 )}
               </div>
@@ -255,23 +234,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} wsRef={wsRef}
                   onOpenReactionDetails={(reaction, reactions) => onOpenReactionDetails?.(message, reaction, reactions)} />
               ) : null}
-              {!isImage && isValidTimestamp(message.timestamp) && (
-                <div className={`text-[10px] mt-1 opacity-80 select-none flex items-center space-x-1 ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
-                  {message.edited_at && <span>{translations.edited}</span>}
-                  <span>{getMessageTime(message.timestamp)}</span>
-                  {isMine && !message.delivery_error && (
-                    <button type="button" className="inline-flex items-center gap-0.5 transition-colors duration-150" onClick={(event) => {
-                      event.stopPropagation();
-                      if (isGroup) onOpenReadStatus?.(message);
-                    }}>
-                      {isUploadingMessage ? <UploadClockStatus progress={message.upload_progress} /> : (
-                        <>
-{message.read_by?.some((reader) => reader.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
-{isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
-</>
-                      )}
-                    </button>
-                  )}
+              {!isText && (!isImage || hasImageCaption) && hasTime && (
+                <div className={`text-[10px] opacity-80 select-none flex items-center ${hasImageCaption ? '-mt-1 px-3 pb-2' : 'mt-1'} ${isMine ? 'justify-end text-white' : 'text-muted-foreground'}`}>
+                  {time()}
                 </div>
               )}
               {message.delivery_error && (

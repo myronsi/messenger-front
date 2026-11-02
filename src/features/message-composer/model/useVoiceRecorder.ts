@@ -113,6 +113,7 @@ export const useVoiceRecorder = ({
         const optimisticMessageId = onVoiceUploadStart?.(audioBlob, voiceFileName, 'voice') ?? null;
         formData.append('file', audioBlob, voiceFileName);
         formData.append('chat_id', chatId.toString());
+        if (optimisticMessageId !== null) formData.append('client_temp_id', String(optimisticMessageId));
         try {
           await uploadWithProgress({
             url: `${BASE_URL}/messages/vm`,

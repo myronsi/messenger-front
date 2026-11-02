@@ -189,6 +189,7 @@ export const usePreviewChat = ({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('chat_id', response.chat_id.toString());
+      formData.append('client_temp_id', String(optimisticMessageId));
       if (caption.trim()) formData.append('caption', caption.trim());
       await uploadWithProgress({
         url: `${BASE_URL}/messages/upload`,

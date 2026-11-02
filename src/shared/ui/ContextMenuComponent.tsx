@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useEffect } from 'react';
-import { Edit, Trash2, Copy, Reply, Forward } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Copy, Reply, Forward } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ContextMenuProps {
@@ -7,7 +7,8 @@ interface ContextMenuProps {
   y: number;
   isMine: boolean;
   onEdit?: () => void;
-  onDelete?: () => void;
+  onDeleteForMe?: () => void;
+  onDeleteForEveryone?: () => void;
   onCopy?: () => void;
   onReply: () => void;
   onForward?: () => void;
@@ -18,11 +19,14 @@ interface ContextMenuProps {
 const REACTION_MENU_OFFSET = 48;
 
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ x, y, isMine, onEdit, onDelete, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
+  ({ x, y, isMine, onEdit, onDeleteForMe, onDeleteForEveryone, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
     const [isAnimated, setIsAnimated] = useState(false);
+    const [view, setView] = useState<{ name: 'main' | 'delete'; direction: 'forward' | 'back' | null }>({ name: 'main', direction: null });
+    const itemClass = 'flex items-center w-full whitespace-nowrap px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors';
+    const slideClass = view.direction === 'forward' ? 'profile-panel-slide-in-right' : view.direction === 'back' ? 'profile-panel-slide-in-left' : '';
 
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
@@ -44,7 +48,7 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
         setAdjustedX(newX);
         setAdjustedY(newY);
       }
-    }, [x, y, ref]);
+    }, [x, y, ref, view.name]);
 
     useEffect(() => {
       if (!isClosing) {
@@ -66,12 +70,13 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
     return (
       <div
         ref={ref}
-        className="fixed bg-popover border border-border shadow-lg rounded-md py-1 z-50"
+        role="menu"
+        className="fixed overflow-hidden bg-popover border border-border shadow-lg rounded-md py-1 z-50"
         style={{
           top: adjustedY,
           left: adjustedX,
-          minWidth: '160px',
-          width: '160px',
+          maxWidth: 'min(16rem, calc(100vw - 1rem))',
+          width: 'max-content',
           transform: isAnimated ? 'scale(1)' : 'scale(0)',
           opacity: isAnimated ? 1 : 0,
           transition: 'transform 0.2s, opacity 0.2s',
@@ -79,50 +84,57 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
         }}
         onTransitionEnd={handleTransitionEnd}
       >
-        {isMine && onEdit && (
-          <button
-            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-            onClick={onEdit}
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            <span className="truncate">{translations.editMessage}</span>
-          </button>
-        )}
-        {onDelete && (
-          <button
-            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-destructive hover:text-destructive"
-            onClick={() => {
-              onDelete();
-            }}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            <span className="truncate">{translations.deleteMessage}</span>
-          </button>
-        )}
-        {onCopy && (
-          <button
-            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-            onClick={onCopy}
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            <span className="truncate">{translations.copy}</span>
-          </button>
-        )}
-        <button
-          className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-          onClick={onReply}
-        >
-          <Reply className="w-4 h-4 mr-2" />
-          <span className="truncate">{translations.replyToMessage}</span>
-        </button>
-        {onForward && (
-          <button
-            className="flex items-center w-full px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-            onClick={onForward}
-          >
-            <Forward className="w-4 h-4 mr-2" />
-            <span className="truncate">{translations.forward || 'Forward'}</span>
-          </button>
+        {view.name === 'delete' ? (
+          <div key="delete" className={slideClass}>
+            <button type="button" className={`${itemClass} font-medium`} onClick={() => setView({ name: 'main', direction: 'back' })}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="truncate">{translations.deleteMessage}</span>
+            </button>
+            <div className="my-1 border-t border-border" />
+            <button type="button" className={`${itemClass} text-destructive hover:text-destructive`} onClick={onDeleteForMe}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              <span className="truncate">{translations.deleteForMeShort || 'For me'}</span>
+            </button>
+            <button type="button" className={`${itemClass} font-medium text-destructive hover:text-destructive`} onClick={onDeleteForEveryone}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              <span className="truncate">{translations.deleteForEveryoneShort || 'For everyone'}</span>
+            </button>
+          </div>
+        ) : (
+          <div key="main" className={slideClass}>
+            {isMine && onEdit && (
+              <button type="button" className={itemClass} onClick={onEdit}>
+                <Edit className="w-4 h-4 mr-2" />
+                <span className="truncate">{translations.editMessage}</span>
+              </button>
+            )}
+            {onDeleteForMe && (
+              <button
+                type="button"
+                className={`${itemClass} text-destructive hover:text-destructive`}
+                onClick={() => (onDeleteForEveryone ? setView({ name: 'delete', direction: 'forward' }) : onDeleteForMe())}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                <span className="truncate">{onDeleteForEveryone ? translations.deleteMessage : translations.deleteForMe || 'Delete for me'}</span>
+              </button>
+            )}
+            {onCopy && (
+              <button type="button" className={itemClass} onClick={onCopy}>
+                <Copy className="w-4 h-4 mr-2" />
+                <span className="truncate">{translations.copy}</span>
+              </button>
+            )}
+            <button type="button" className={itemClass} onClick={onReply}>
+              <Reply className="w-4 h-4 mr-2" />
+              <span className="truncate">{translations.replyToMessage}</span>
+            </button>
+            {onForward && (
+              <button type="button" className={itemClass} onClick={onForward}>
+                <Forward className="w-4 h-4 mr-2" />
+                <span className="truncate">{translations.forward || 'Forward'}</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
     );

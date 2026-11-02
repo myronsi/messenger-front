@@ -39,7 +39,7 @@ export const useGroupChatScreen = ({
   const [participantInput, setParticipantInput] = useState('');
   const [isSavingGroup, setIsSavingGroup] = useState(false);
 
-  const messageInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const onBackRef = useLatest(onBack);
   const translationsRef = useLatest(rawTranslations as Translations);
@@ -87,6 +87,10 @@ export const useGroupChatScreen = ({
     onOpenUserProfile?.(profileUsername);
   };
 
+  const handleOpenMemberProfile = (profileUsername: string) => {
+    if (onOpenUserProfile) profilePanel.openMemberProfile(profileUsername);
+  };
+
   const readIds = new Set((readStatusMessage?.read_by || []).map((read) => read.user_id));
   const unreadParticipants = readStatusMessage
     ? (groupDetails?.participants || []).filter((participant) => participant.id !== readStatusMessage.sender_id && !readIds.has(participant.id))
@@ -108,6 +112,7 @@ export const useGroupChatScreen = ({
     ...menus,
     ...profilePanel,
     handleOpenUserProfile,
+    handleOpenMemberProfile,
     messageInputRef, messageInput, setMessageInput, replyTo, setReplyTo, editingMessage, setEditingMessage,
     handleSendMessage: sender.handleSendMessage,
     handleResendMessage: sender.handleResendMessage,
