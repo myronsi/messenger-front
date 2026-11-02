@@ -41,6 +41,27 @@ describe('Go migration transport', () => {
     });
   });
 
+  it('maps chat and group deletion to their Go resources', async () => {
+    const native = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    const fetch = withGoTransport(native, base);
+    await fetch(`${base}/chats/delete/${id}`, { method: 'DELETE' });
+    await fetch(`${base}/groups/delete/${id}`, { method: 'DELETE' });
+    expect(native.mock.calls.map(([url, init]) => [url, init.method])).toEqual([
+      [`${base}/chats/${id}`, 'DELETE'],
+      [`${base}/groups/${id}`, 'DELETE'],
+    ]);
+  });
+  it('reports a successful forward in the shape the forward dialog reads', async () => {
+    const native = vi.fn().mockResolvedValue(json({ items: [{ id: '77', chat_id: id }, { id: '78', chat_id: '5' }] }, 201));
+    const response = await withGoTransport(native, base)(`${base}/messages/forward`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source_message_id: '9', target_chat_ids: [id, '5'] }),
+    });
+    expect(native.mock.calls[0][0]).toBe(`${base}/messages/9/forward`);
+    expect(JSON.parse(native.mock.calls[0][1].body)).toEqual({ chat_ids: [id, '5'] });
+    expect(await response.json()).toEqual({
+      forwarded: [{ chat_id: id, message_id: '77' }, { chat_id: '5', message_id: '78' }], failed: [],
+    });
+  });
   it('maps self-profile edits to PATCH /me without dropping authentication', async () => {
     const native = vi.fn().mockResolvedValue(json(user));
     const fetch = withGoTransport(native, base);
@@ -80,6 +101,14 @@ describe('Go migration transport', () => {
     const response = await withGoTransport(native, base)(`${base}/messages/photos/1`);
     expect(native.mock.calls[1][0]).toContain('after=next');
     expect((await response.json()).photos.map((photo: {id: string}) => photo.id)).toEqual([id, '9007199254740994']);
+  });
+
+  it('drops messages deleted for everyone from chat history', async () => {
+    const message = { id, chat_id: '1', sender: user, content: 'hi', attachment: null, type: 'text',
+      reply_to: null, reactions: [], read_by: [], created_at: '2026-01-01T00:00:00Z', edited_at: null, is_deleted: false };
+    const native = vi.fn().mockResolvedValue(json({ items: [message, { ...message, id: '9', content: null, is_deleted: true }], next_cursor: null }));
+    const response = await withGoTransport(native, base)(`${base}/messages/history/1`);
+    expect((await response.json()).history.map((item: { id: string }) => item.id)).toEqual([id]);
   });
 
   it('sends the current password when starting two-factor setup', async () => {

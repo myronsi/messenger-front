@@ -62,6 +62,31 @@ describe('mergeIncomingMessage', () => {
     expect(result[0]).toMatchObject({ id: 20, client_temp_id: -2 });
   });
 
+  it('replaces an uploading placeholder by its temp id when the server re-encoded the file', () => {
+    const content = { file_url: '', file_name: 'a.png', file_type: 'image/png', file_size: 5000 };
+    const pending = msg(-2, { type: 'file', content, client_temp_id: -2, upload_status: 'uploading' });
+    const incoming = msg('20', { type: 'file', client_temp_id: '-2', content: { ...content, file_url: '/a.png', file_size: 3100 } });
+    const result = mergeIncomingMessage([pending], incoming);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ id: '20', client_temp_id: -2 });
+  });
+
+  it('keeps an uploading placeholder when a same-named file arrives with another temp id', () => {
+    const content = { file_url: '', file_name: 'a.png', file_type: 'image/png', file_size: 5 };
+    const pending = msg(-2, { type: 'file', content, client_temp_id: -2, upload_status: 'uploading' });
+    const incoming = msg('20', { type: 'file', client_temp_id: 'other-device', content });
+    expect(mergeIncomingMessage([pending], incoming).map((m) => m.id)).toEqual([-2, '20']);
+  });
+
+  it('keeps an uploading placeholder when another member sends a file with the same temp id', () => {
+    const content = { file_url: '', file_name: 'a.png', file_type: 'image/png', file_size: 5 };
+    const pending = msg(-2, { type: 'file', content, client_temp_id: -2, upload_status: 'uploading', is_own: true });
+    const incoming = msg('20', { type: 'file', client_temp_id: '-2', sender: 'bob', sender_id: 2, content });
+    const result = mergeIncomingMessage([pending], incoming);
+    expect(result.map((m) => m.id)).toEqual([-2, '20']);
+    expect(result[1].is_own).toBeUndefined();
+  });
+
   it('appends unrelated messages', () => {
     expect(mergeIncomingMessage([msg(1)], msg(2)).map((m) => m.id)).toEqual([1, 2]);
   });
@@ -72,6 +97,13 @@ describe('applyMessageEdit', () => {
     const result = applyMessageEdit([msg(1), msg(2)], 2, 'edited', 'time');
     expect(result[0].content).toBe('m1');
     expect(result[1]).toMatchObject({ content: 'edited', edited_at: 'time' });
+  });
+
+  it('changes only the caption of a file message', () => {
+    const content = { file_url: '/a.png', file_name: 'a.png', file_type: 'image/png', file_size: 5, caption: 'old' };
+    const [result] = applyMessageEdit([msg(3, { type: 'file', content })], 3, 'new caption', 'time');
+    expect(result.content).toEqual({ ...content, caption: 'new caption' });
+    expect(result.edited_at).toBe('time');
   });
 });
 

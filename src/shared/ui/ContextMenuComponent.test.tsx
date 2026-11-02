@@ -1,0 +1,37 @@
+import { createRef } from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import ContextMenuComponent from './ContextMenuComponent';
+
+vi.mock('@/shared/contexts/LanguageContext', () => ({
+  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply' } }),
+}));
+
+const renderMenu = (props: { onDeleteForMe?: () => void; onDeleteForEveryone?: () => void }) => render(
+  <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine onReply={vi.fn()} isClosing={false} onClose={vi.fn()} {...props} />,
+);
+
+describe('ContextMenuComponent delete', () => {
+  it('opens the delete step inside the menu and can go back', () => {
+    const onDeleteForMe = vi.fn();
+    const onDeleteForEveryone = vi.fn();
+    renderMenu({ onDeleteForMe, onDeleteForEveryone });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onDeleteForMe).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Reply' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Delete', 'For me', 'For everyone']);
+    fireEvent.click(screen.getByRole('button', { name: 'For everyone' }));
+    expect(onDeleteForEveryone).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getByRole('button', { name: 'Reply' })).toBeInTheDocument();
+  });
+
+  it('deletes for me right away when that is the only choice', () => {
+    const onDeleteForMe = vi.fn();
+    renderMenu({ onDeleteForMe });
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete for me' }));
+    expect(onDeleteForMe).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'For everyone' })).not.toBeInTheDocument();
+  });
+});

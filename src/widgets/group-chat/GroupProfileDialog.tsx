@@ -1,10 +1,9 @@
 import { isPersistedId } from '@/shared/api/entityId';
-import type { EntityId } from '@/shared/api/entityId';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
 import { useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { ProfileAudiosPanel, ProfilePhotosPanel, ProfileSearchPanel, toProfileAudios, toProfilePhotos } from '@/entities/message';
+import { ProfileAudiosPanel, ProfilePhotosPanel, toProfileAudios, toProfilePhotos } from '@/entities/message';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupProfileView, GroupProfileTransition } from './GroupProfileTypes';
 import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';
@@ -17,7 +16,7 @@ const emptyPendingInvites: GroupPendingInvite[] = [];
 const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const {
     open, isClosing, onOpenChange, chatId, groupDetails, currentGroupName, currentGroupAvatar, groupForm,
-    participantInput, currentUsername, onJumpToMessage, groupConfirm, onCloseGroupConfirm,
+    participantInput, currentUsername, groupConfirm, onCloseGroupConfirm,
   } = model;
   const { translations } = useLanguage();
   const [activeView, setActiveView] = useState<GroupProfileView>('details');
@@ -120,11 +119,11 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const visiblePanelOrder: GroupProfileView[] = [
     'details',
     'participants',
-    'search',
     ...(canShowPhotosAction ? (['photos'] as const) : []),
     ...(canShowAudiosAction ? (['audios'] as const) : []),
   ];
-  const actionColumns = Math.min(visiblePanelOrder.length, 5);
+  const canMute = isPersistedId(chatId);
+  const actionColumns = Math.min(visiblePanelOrder.length + (canMute ? 1 : 0), 6);
   const hasGroupChanges = groupForm.name.trim() !== currentGroupName || groupForm.description.trim() !== (groupDetails?.description || '');
 
   const selectView = (view: GroupProfileView) => {
@@ -145,21 +144,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     }, 340);
   };
 
-  const handleJumpToMessage = (messageId: EntityId) => {
-    onOpenChange(false);
-    onJumpToMessage(messageId);
-  };
-
-  const renderPanelContent = (view: GroupProfileView, options: { autoFocusSearch?: boolean } = {}) => {
-    if (view === 'search') {
-      return (
-        <ProfileSearchPanel
-          chatId={chatId}
-          onJumpToMessage={handleJumpToMessage}
-          autoFocus={options.autoFocusSearch !== false}
-        />
-      );
-    }
+  const renderPanelContent = (view: GroupProfileView) => {
     if (view === 'photos' && canShowPhotosAction) {
       return <ProfilePhotosPanel photos={photos} isLoading={isLoadingPhotos} error={photosError} />;
     }
@@ -184,6 +169,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   };
 
   return <GroupProfileDialogShell
+    chatId={chatId} canMute={canMute}
     open={open} isClosing={isClosing} onOpenChange={onOpenChange}
     currentGroupName={currentGroupName} currentGroupAvatar={currentGroupAvatar}
     participants={participants} actionColumns={actionColumns}

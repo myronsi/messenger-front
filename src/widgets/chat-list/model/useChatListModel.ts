@@ -112,6 +112,7 @@ export function useChatListModel(props: ChatsListComponentProps) {
     modal,
     setModal,
     chatContextMenu,
+    closeChatContextMenu: () => setChatContextMenu(null),
     isLoading,
     chats,
     requestInbox,

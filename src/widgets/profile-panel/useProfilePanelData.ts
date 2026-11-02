@@ -1,9 +1,11 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import type { SettingsPage } from '@/shared/lib/urlOverlay';
+import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ProfileModalState } from './useProfileAccountActions';
 import { useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
@@ -30,7 +32,11 @@ interface ProfilePanelDataOptions {
 
 export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOptions) => {
   const { translations } = useLanguage();
-  const [activeProfilePage, setActiveProfilePage] = useState<'profile' | 'requests' | 'personal' | 'privacy' | 'security' | 'notifications'>('profile');
+  const { overlay, replace: replaceOverlay } = useUrlOverlay();
+  const activeProfilePage: SettingsPage = overlay?.kind === 'settings' ? overlay.page : 'profile';
+  const setActiveProfilePage = useCallback((page: SettingsPage) => {
+    replaceOverlay({ kind: 'settings', page });
+  }, [replaceOverlay]);
   const [blockUsername, setBlockUsername] = useState('');
   const [pendingBlockUsername, setPendingBlockUsername] = useState('');
   const [isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed] = useState(true);

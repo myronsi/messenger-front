@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type ProfilePanelView = 'details' | 'search' | 'photos' | 'audios';
+export type ProfilePanelView = 'details' | 'photos' | 'audios';
 export interface ProfilePanelTransition {
   from: ProfilePanelView;
   to: ProfilePanelView;
@@ -11,7 +11,7 @@ export interface ProfilePanelTransition {
 interface UserProfilePanelContentProps {
   activeView: ProfilePanelView;
   transition: ProfilePanelTransition | null;
-  renderPanelContent: (view: ProfilePanelView, options?: { autoFocusSearch?: boolean }) => React.ReactNode;
+  renderPanelContent: (view: ProfilePanelView) => React.ReactNode;
 }
 
 const UserProfilePanelContent: React.FC<UserProfilePanelContentProps> = ({ activeView, transition, renderPanelContent }) => (
@@ -26,7 +26,7 @@ const UserProfilePanelContent: React.FC<UserProfilePanelContentProps> = ({ activ
             transition.direction === 'forward' ? 'profile-panel-slide-out-left' : 'profile-panel-slide-out-right'
           }`}
         >
-          {renderPanelContent(transition.from, { autoFocusSearch: false })}
+          {renderPanelContent(transition.from)}
         </div>
         <div
           key={`to-${transition.key}-${transition.to}`}
@@ -34,12 +34,12 @@ const UserProfilePanelContent: React.FC<UserProfilePanelContentProps> = ({ activ
             transition.direction === 'forward' ? 'profile-panel-slide-in-right' : 'profile-panel-slide-in-left'
           }`}
         >
-          {renderPanelContent(transition.to, { autoFocusSearch: false })}
+          {renderPanelContent(transition.to)}
         </div>
       </>
     ) : (
       <div key={`active-${activeView}`} className="absolute inset-0 overflow-y-auto bg-white">
-        {renderPanelContent(activeView, { autoFocusSearch: activeView === 'search' })}
+        {renderPanelContent(activeView)}
       </div>
     )}
   </div>

@@ -55,8 +55,9 @@ export const mergeIncomingMessage = (
   const pendingUploadIndex = previous.findIndex((message) => {
     if (message.upload_status !== 'uploading' || message.type !== 'file' || incoming.type !== 'file') return false;
     if (typeof message.content === 'string' || typeof incoming.content === 'string') return false;
-    return isSameSender(message, incoming) &&
-      message.content.file_name === incoming.content.file_name &&
+    if (!isSameSender(message, incoming)) return false;
+    if (incoming.client_temp_id != null) return String(message.client_temp_id ?? message.id) === String(incoming.client_temp_id);
+    return message.content.file_name === incoming.content.file_name &&
       message.content.file_size === incoming.content.file_size;
   });
   if (pendingUploadIndex !== -1) {
@@ -96,12 +97,18 @@ export const mergeIncomingMessage = (
   return [...previous, incoming];
 };
 
+export const editableText = (message: Message) => (
+  typeof message.content === 'string' ? message.content : message.content?.caption || ''
+);
+
 export const applyMessageEdit = (previous: Message[], messageId: EntityId, content: Message['content'], editedAt?: string): Message[] =>
-  previous.map((message) => (
-    message.id === messageId
-      ? { ...message, content, edited_at: editedAt || new Date().toISOString() }
-      : message
-  ));
+  previous.map((message) => {
+    if (message.id !== messageId) return message;
+    const nextContent = typeof message.content !== 'string' && message.content && typeof content === 'string'
+      ? { ...message.content, caption: content }
+      : content;
+    return { ...message, content: nextContent, edited_at: editedAt || new Date().toISOString() };
+  });
 
 export const addReaction = (previous: Message[], messageId: EntityId, reaction: ReactionInfo): Message[] =>
   previous.map((message) => {

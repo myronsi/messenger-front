@@ -1,15 +1,21 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
-import { Image as ImageIcon, Music, Search, UserPlus, Users, X } from 'lucide-react';
+import type { EntityId } from '@/shared/api/entityId';
+import { ChatMuteAction } from '@/features/chat-mute';
+import { Image as ImageIcon, Music, UserPlus, Users, X } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import GroupAvatarViewer from './GroupAvatarViewer';
+import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import { getAvatarSrc } from './groupChatUtils';
 import type { GroupProfileConfirmState, GroupParticipant } from './GroupProfileTypes';
 
-type GroupProfileView = 'details' | 'participants' | 'search' | 'photos' | 'audios';
+type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios';
 type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };
 interface Props {
+  chatId: EntityId;
+  canMute: boolean;
   open: boolean;
   isClosing: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,7 +28,7 @@ interface Props {
   activeView: GroupProfileView;
   panelTransition: GroupProfileTransition | null;
   onSelectView: (view: GroupProfileView) => void;
-  renderPanelContent: (view: GroupProfileView, options?: { autoFocusSearch?: boolean }) => React.ReactNode;
+  renderPanelContent: (view: GroupProfileView) => React.ReactNode;
   groupConfirm: GroupProfileConfirmState | null;
   onCloseGroupConfirm: () => void;
   isAvatarViewerOpen: boolean;
@@ -30,13 +36,14 @@ interface Props {
 }
 
 const GroupProfileDialogShell: React.FC<Props> = ({
-  open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, actionColumns,
+  chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, actionColumns,
   canShowPhotosAction, canShowAudiosAction, activeView, panelTransition, onSelectView, renderPanelContent,
   groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen,
 }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const requestClose = () => onOpenChange(false);
+  const hasCustomAvatar = !!currentGroupAvatar && currentGroupAvatar !== getAvatarSrc(DEFAULT_GROUP_AVATAR);
   const actionButton = (view: GroupProfileView, icon: React.ReactNode, label: string) => (
     <button
       type="button"
@@ -87,18 +94,26 @@ const GroupProfileDialogShell: React.FC<Props> = ({
           <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">
             <div className="flex h-full min-h-0 flex-col">
               <div className="px-5 pb-3 pt-5 text-center md:pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsAvatarViewerOpen(true)}
-                  className="mx-auto block rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  aria-label="View group picture"
-                >
+                {hasCustomAvatar ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsAvatarViewerOpen(true)}
+                    className="mx-auto block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    aria-label="View group picture"
+                  >
+                    <AuthenticatedImage
+                      src={currentGroupAvatar}
+                      alt={currentGroupName}
+                      className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
+                    />
+                  </button>
+                ) : (
                   <AuthenticatedImage
                     src={currentGroupAvatar}
                     alt={currentGroupName}
-                    className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
+                    className="mx-auto h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm md:h-20 md:w-20"
                   />
-                </button>
+                )}
                 <h3 className="mt-3 break-words text-xl font-semibold leading-tight text-gray-950">{currentGroupName}</h3>
                 <p className="mt-1 text-sm text-gray-500">
                   {participants.length} {translations.participants || 'participants'}
@@ -111,9 +126,14 @@ const GroupProfileDialogShell: React.FC<Props> = ({
               >
                 {actionButton('details', <Users className="h-5 w-5" />, translations.info || 'Info')}
                 {actionButton('participants', <UserPlus className="h-5 w-5" />, translations.participants || 'Participants')}
-                {actionButton('search', <Search className="h-5 w-5" />, translations.search || 'Search')}
                 {canShowPhotosAction && actionButton('photos', <ImageIcon className="h-5 w-5" />, translations.photos || 'Photos')}
                 {canShowAudiosAction && actionButton('audios', <Music className="h-5 w-5" />, translations.audios || 'Audios')}
+                {canMute && (
+                  <ChatMuteAction
+                    chatId={chatId}
+                    className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors hover:bg-gray-100 disabled:opacity-50"
+                  />
+                )}
               </div>
 
               <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
@@ -129,7 +149,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                           : 'profile-panel-slide-out-right'
                       }`}
                     >
-                      {renderPanelContent(panelTransition.from, { autoFocusSearch: false })}
+                      {renderPanelContent(panelTransition.from)}
                     </div>
                     <div
                       key={`to-${panelTransition.key}-${panelTransition.to}`}
@@ -139,12 +159,12 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                           : 'profile-panel-slide-in-left'
                       }`}
                     >
-                      {renderPanelContent(panelTransition.to, { autoFocusSearch: false })}
+                      {renderPanelContent(panelTransition.to)}
                     </div>
                   </>
                 ) : (
                   <div key={`active-${activeView}`} className="absolute inset-0 overflow-y-auto bg-white">
-                    {renderPanelContent(activeView, { autoFocusSearch: activeView === 'search' })}
+                    {renderPanelContent(activeView)}
                   </div>
                 )}
               </div>
@@ -164,7 +184,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
             contained
           />
         )}
-        {isAvatarViewerOpen && (
+        {isAvatarViewerOpen && hasCustomAvatar && (
           <GroupAvatarViewer
             avatarUrl={currentGroupAvatar}
             groupName={currentGroupName}

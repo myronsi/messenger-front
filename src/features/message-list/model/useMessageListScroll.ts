@@ -28,6 +28,7 @@ interface MessageListScrollOptions {
 }
 
 const BOTTOM_TOLERANCE = 4;
+const USER_SCROLL_WINDOW_MS = 1000;
 
 export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const {
@@ -52,6 +53,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const positionedFrameRef = useRef(0);
   const autoScrollUntilRef = useRef(0);
   const settleRef = useRef<(() => void) | null>(null);
+  const lastUserInputAtRef = useRef(0);
   const previousMessagesRef = useRef<Message[]>([]);
   const latest = useLatestRef(options);
   const isOwnMessageRef = useLatestRef(isOwnMessage);
@@ -65,12 +67,20 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(),
   });
 
+  const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
+  useLayoutEffect(() => {
+    if (jumpTargetId == null) return;
+    shouldStickToBottomRef.current = false;
+    autoScrollUntilRef.current = 0;
+    settleRef.current = null;
+  }, [jumpTargetId]);
+
   useLayoutEffect(() => {
     setVisibleFirstUnreadId(firstUnreadMessageId ?? null);
     if (!hasScrolledInitialRef.current) hasScrolledToFirstUnreadRef.current = false;
   }, [firstUnreadMessageId]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     hasScrolledInitialRef.current = false;
     hasScrolledToFirstUnreadRef.current = false;
     isSeekingFirstUnreadRef.current = false;
@@ -131,12 +141,13 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       const current = latest.current;
       current.onScrollStart?.();
       updateDistance();
+      const movedByUser = Date.now() - lastUserInputAtRef.current < USER_SCROLL_WINDOW_MS;
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distanceFromBottom <= BOTTOM_TOLERANCE) {
         shouldStickToBottomRef.current = true;
         autoScrollUntilRef.current = 0;
         clearUnseen();
-      } else if (Date.now() > autoScrollUntilRef.current) {
+      } else if (movedByUser && Date.now() > autoScrollUntilRef.current) {
         shouldStickToBottomRef.current = false;
       }
       setIsScrolling(true);
@@ -183,10 +194,16 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
         settleRef.current();
       } else if (shouldStickToBottomRef.current && Date.now() > autoScrollUntilRef.current) {
         container.scrollTop = container.scrollHeight;
+      } else if (shouldStickToBottomRef.current) {
+        container.scrollTo({ top: container.scrollHeight, behavior: getScrollBehavior() });
       }
     });
-    observer.observe(content);
-    const stopSettling = () => { settleRef.current = null; };
+    observer.observe(content, { box: 'border-box' });
+    observer.observe(container);
+    const stopSettling = () => {
+      settleRef.current = null;
+      lastUserInputAtRef.current = Date.now();
+    };
     const userInput = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
     userInput.forEach((name) => container.addEventListener(name, stopSettling, { passive: true }));
     return () => {

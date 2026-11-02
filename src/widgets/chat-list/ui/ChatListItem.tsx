@@ -2,8 +2,9 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { Check, CheckCheck, Pin } from 'lucide-react';
+import { BellOff, Check, CheckCheck, Pin } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
+import { useChatMuteStatus } from '@/features/chat-mute';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -33,6 +34,10 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const ownLastMessageFailed = ownLastMessage && !!chat.last_message?.delivery_error;
   const isActive = chat.id === activeChatId;
   const unreadCount = chat.unread_count || 0;
+  const isMuted = !!useChatMuteStatus(chat.id).mute;
+  const unreadBadgeClass = isMuted
+    ? isActive ? 'bg-primary-foreground/60 text-primary' : 'bg-gray-400 text-white'
+    : isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground';
 
   return (
     <div
@@ -68,6 +73,13 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           <span className="truncate">
             {chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
           </span>
+          {isMuted && (
+            <BellOff
+              data-testid="chat-muted-icon"
+              aria-label={translations.mutedForever}
+              className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+            />
+          )}
         </div>
         <div className={`truncate text-xs ${isActive ? 'text-primary-foreground/80' : unreadCount ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
           {getLastMessagePreview(chat.last_message)}
@@ -87,7 +99,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         ) : null}
         <span
           aria-hidden={unreadCount === 0}
-          className={`motion-unread-indicator flex items-center justify-center overflow-hidden rounded-full text-xs font-semibold ${unreadCount ? `is-visible ${isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}` : ''}`}
+          className={`motion-unread-indicator flex items-center justify-center overflow-hidden rounded-full text-xs font-semibold ${unreadCount ? `is-visible ${unreadBadgeClass}` : ''}`}
         >
           {unreadCount > 99 ? '99+' : unreadCount || ''}
         </span>

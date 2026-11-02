@@ -3,12 +3,13 @@ import { AuthenticatedAudio } from '@/shared/ui/AuthenticatedAudio';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image as ImageIcon, Loader2, Music, Search } from 'lucide-react';
 import type { ChatAudio, ChatPhoto, ChatSearchResult } from '../model/types';
 import { useSearchChatMessagesQuery } from '../api/messageApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
+import { ImageViewer } from '@/shared/ui/image-viewer';
 
 
 
@@ -147,13 +148,8 @@ export const ProfilePhotosPanel: React.FC<{
   error?: string | null;
 }> = ({ photos, isLoading, error }) => {
   const { translations } = useLanguage();
-  const [selectedPhoto, setSelectedPhoto] = useState<ProfilePhotoItem | null>(null);
-
-  useEffect(() => {
-    setSelectedPhoto((currentPhoto) => (
-      currentPhoto && photos.some((photo) => photo.id === currentPhoto.id) ? currentPhoto : null
-    ));
-  }, [photos]);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const viewerImages = useMemo(() => photos.map((photo) => ({ url: photo.url, name: photo.name })), [photos]);
 
   return (
     <section className="border-b border-gray-200 px-5 py-4">
@@ -174,20 +170,13 @@ export const ProfilePhotosPanel: React.FC<{
         </div>
       ) : photos.length > 0 ? (
         <div className="space-y-3">
-          {selectedPhoto && (
-            <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-              <AuthenticatedImage src={selectedPhoto.url} alt={selectedPhoto.name} className="max-h-72 w-full bg-gray-100 object-contain" />
-            </div>
-          )}
           <div className="grid grid-cols-3 gap-2">
-            {photos.map((photo) => (
+            {photos.map((photo, index) => (
               <button
                 key={photo.id}
                 type="button"
-                onClick={() => setSelectedPhoto(photo)}
-                className={`group block aspect-square overflow-hidden rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  selectedPhoto?.id === photo.id ? 'ring-2 ring-primary ring-offset-2' : ''
-                }`}
+                onClick={() => setOpenIndex(index)}
+                className="group block aspect-square overflow-hidden rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 title={photo.name}
               >
                 <AuthenticatedImage src={photo.thumbnailUrl} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
@@ -199,6 +188,9 @@ export const ProfilePhotosPanel: React.FC<{
         <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">
           {translations.noDmPhotos || 'No photos in this chat yet.'}
         </div>
+      )}
+      {openIndex !== null && viewerImages.length > 0 && (
+        <ImageViewer images={viewerImages} initialIndex={openIndex} onClose={() => setOpenIndex(null)} />
       )}
     </section>
   );

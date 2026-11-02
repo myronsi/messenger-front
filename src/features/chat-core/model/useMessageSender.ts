@@ -6,6 +6,7 @@ import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
+import { applyMessageEdit, editableText } from './messageUpdates';
 import { getLocalUploadFileType } from './uploadFileType';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
@@ -155,15 +156,18 @@ export const useMessageSender = ({
   };
 
   const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
     const contentToSend = messageInput.trim();
+    if (editingMessage && editableText(editingMessage).trim() === contentToSend) {
+      setMessageInput('');
+      setEditingMessage(null);
+      return;
+    }
+    if (!contentToSend) return;
     const escapedMessage = isGoApi() ? contentToSend : escapeCurlyBraces(contentToSend);
     let payload: OutgoingPayload;
 
     if (editingMessage) {
-      if (!isGoApi()) setMessages((previous) => previous.map((message) => message.id === editingMessage.id
-        ? { ...message, content: contentToSend, edited_at: new Date().toISOString() }
-        : message));
+      if (!isGoApi()) setMessages((previous) => applyMessageEdit(previous, editingMessage.id, contentToSend));
       payload = { type: 'edit', message_id: editingMessage.id, content: escapedMessage };
     } else {
       const tempId = -Date.now();
@@ -211,6 +215,7 @@ export const useMessageSender = ({
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chat_id', chatId.toString());
+    formData.append('client_temp_id', String(optimisticMessageId));
     if (caption.trim()) formData.append('caption', caption.trim());
     try {
       await uploadWithProgress({

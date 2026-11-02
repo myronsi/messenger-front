@@ -91,8 +91,8 @@ export const useMessageHistory = ({
     if (!latestHistory) return;
     const nextMessages = normalizeHistoryMessages(latestHistory.history);
     setMessages((previous) => mergeFreshHistoryMessages(previous, nextMessages));
-    setOldestMessageId(nextMessages[0]?.id || null);
-    setNewestMessageId(nextMessages[nextMessages.length - 1]?.id || null);
+    setOldestMessageId(latestHistory.next_before_id ?? nextMessages[0]?.id ?? null);
+    setNewestMessageId(latestHistory.next_after_id ?? nextMessages[nextMessages.length - 1]?.id ?? null);
     setHasMoreMessages(latestHistory.has_more_before ?? latestHistory.has_more);
     setHasMoreNewerMessages(!!latestHistory.has_more_after);
     setIsLoadingInitialMessages(false);
@@ -127,7 +127,8 @@ export const useMessageHistory = ({
         setMessages((previous) => prependUniqueMessages(previous, olderMessages));
         trimNewestPendingRef.current = true;
         setHasMoreMessages(data.has_more_before ?? data.has_more);
-        if (olderMessages.length > 0) setOldestMessageId(olderMessages[0].id);
+        const nextOldestId = data.next_before_id ?? olderMessages[0]?.id;
+        if (nextOldestId != null) setOldestMessageId(nextOldestId);
       } else if (response.status === 401) {
         setModal({ type: 'error', message: translationsRef.current.loginRequired });
         setTimeout(() => onBackRef.current(), 2000);
@@ -156,7 +157,8 @@ export const useMessageHistory = ({
         const newerMessages = normalizeHistoryMessages(data.history);
         setMessages((previous) => appendUniqueMessages(previous, newerMessages));
         setHasMoreNewerMessages(!!data.has_more_after);
-        if (newerMessages.length > 0) setNewestMessageId(newerMessages[newerMessages.length - 1].id);
+        const nextNewestId = data.next_after_id ?? newerMessages[newerMessages.length - 1]?.id;
+        if (nextNewestId != null) setNewestMessageId(nextNewestId);
       } else if (response.status === 401) {
         setModal({ type: 'error', message: translationsRef.current.loginRequired });
         setTimeout(() => onBackRef.current(), 2000);
@@ -185,8 +187,8 @@ export const useMessageHistory = ({
         const data: MessageHistoryResponse = await response.json();
         const latestMessages = normalizeHistoryMessages(data.history);
         setMessages((previous) => mergeFreshHistoryMessages(previous, latestMessages));
-        setOldestMessageId(latestMessages[0]?.id || null);
-        setNewestMessageId(latestMessages[latestMessages.length - 1]?.id || null);
+        setOldestMessageId(data.next_before_id ?? latestMessages[0]?.id ?? null);
+        setNewestMessageId(data.next_after_id ?? latestMessages[latestMessages.length - 1]?.id ?? null);
         setHasMoreMessages(data.has_more_before ?? data.has_more);
         setHasMoreNewerMessages(false);
       } else if (response.status === 401) {

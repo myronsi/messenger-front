@@ -67,7 +67,7 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
     });
     const response = await authFetch(`${base}/chats/${options.formData.get('chat_id')}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_temp_id: crypto.randomUUID(), type: voice ? 'voice' : 'file',
+      body: JSON.stringify({ client_temp_id: String(options.formData.get('client_temp_id') || crypto.randomUUID()), type: voice ? 'voice' : 'file',
         attachment_id: attachment.id, content: options.formData.get('caption') || null }),
     });
     if (!response.ok) throw { status: response.status, body: await response.json() };

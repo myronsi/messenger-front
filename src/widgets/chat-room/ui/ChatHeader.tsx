@@ -1,6 +1,6 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
 
@@ -13,19 +13,20 @@ interface ChatHeaderProps {
   onBack: () => void;
   onDeleteChat: () => void;
   onOpenProfile: () => void;
+  onOpenSearch?: () => void;
   interlocutorAvatar: string;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onOpenProfile,
-  interlocutorAvatar,
+  onOpenSearch, interlocutorAvatar,
 }) => {
   const { translations } = useLanguage();
   const displayName = chatDisplayName || chatName;
 
   return (
     <div className="motion-panel-in px-4 py-3 sm:px-6 sm:py-4 border-b border-border flex justify-between items-center">
-      <div className="flex items-center space-x-4">
+      <div className="flex min-w-0 items-center space-x-4">
         <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press p-2 hover:bg-accent rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -41,6 +42,17 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </span>
         </button>
       </div>
+      {onOpenSearch && (
+        <button
+          type="button"
+          onClick={onOpenSearch}
+          aria-label={translations.search || 'Search'}
+          title={translations.search || 'Search'}
+          className="motion-press shrink-0 rounded-full p-2 transition-colors hover:bg-accent"
+        >
+          <Search className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 };

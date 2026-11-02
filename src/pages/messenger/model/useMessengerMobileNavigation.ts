@@ -7,8 +7,6 @@ interface MessengerMobileNavigationOptions {
   isMobile: boolean;
   navigate: NavigateFunction;
   setCurrentChat: (chat: CurrentChat | null) => void;
-  setIsUserProfileOpen: (open: boolean) => void;
-  setProfileUsername: (username: string | null) => void;
 }
 
 export const useMessengerMobileNavigation = ({
@@ -16,8 +14,6 @@ export const useMessengerMobileNavigation = ({
   isMobile,
   navigate,
   setCurrentChat,
-  setIsUserProfileOpen,
-  setProfileUsername,
 }: MessengerMobileNavigationOptions) => {
   const [mobileChatStage, setMobileChatStage] = useState<'closed' | 'open' | 'closing'>('closed');
   const mobileChatCloseTimerRef = useRef<number | null>(null);
@@ -42,14 +38,12 @@ export const useMessengerMobileNavigation = ({
     clearMobileChatCloseTimer();
     setCurrentChat(null);
     setMobileChatStage('closed');
-    setIsUserProfileOpen(false);
-    setProfileUsername(null);
     try {
       navigate('/');
     } catch (error) {
       console.error('Error navigating back to chats:', error);
     }
-  }, [clearMobileChatCloseTimer, navigate, setCurrentChat, setIsUserProfileOpen, setProfileUsername]);
+  }, [clearMobileChatCloseTimer, navigate, setCurrentChat]);
 
   const backToChats = useCallback(() => {
     if (isMobile && currentChat) {

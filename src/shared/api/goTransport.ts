@@ -136,7 +136,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
       const memberIds = await Promise.all((data.participants || []).map(async name => (await lookupUser(name)).id));
       data = { name: data.name, description: data.description, member_ids: memberIds };
     }
-    path = path.replace(/^\/groups\/delete\/(\d+)$/, '/groups/$1');
+    path = path.replace(/^\/(groups|chats)\/delete\/(\d+)$/, '/$1/$2');
     if (/^\/groups\/\d+\/leave$/.test(path)) method = 'POST';
     if (/^\/groups\/\d+\/(participants|transfer-owner)$/.test(path) && data.username) {
       data = { user_id: (await lookupUser(data.username)).id };
@@ -209,6 +209,9 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
       return jsonResponse(originalPath === '/users' ? users : { users }, response);
     }
     if (/^\/users\/\d+\/avatars$/.test(path)) return jsonResponse({ avatars: (result.items || result).map((item: S['AvatarVersion'], i: number) => ({ ...item, avatar_url: item.url, is_current: i === 0 })) }, response);
+    if (/^\/messages\/\d+\/forward$/.test(path)) return jsonResponse({
+      forwarded: (result.items || []).map((item: S['Message']) => ({ chat_id: item.chat_id, message_id: item.id })), failed: [],
+    }, response);
     if (path === '/me/sessions') return jsonResponse({ sessions: (result.items || result).map((item: S['Session']) => ({ ...item, user_agent: item.device || '', last_active_at: item.last_used_at })) }, response);
     if (path === '/chats' && method === 'POST') return jsonResponse(response.status === 202
       ? { message: 'Approval required', approval_required: true, request_id: result.id }
@@ -218,7 +221,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     if (history) {
       const after = url.searchParams.has('after');
       return jsonResponse({
-        history: result.items.map(messageModel), has_more: !!result.next_cursor,
+        history: result.items.filter((item: S['Message']) => !item.is_deleted).map(messageModel), has_more: !!result.next_cursor,
         has_more_before: !!(after ? result.prev_cursor : result.next_cursor),
         has_more_after: !!(after ? result.next_cursor : result.prev_cursor),
         next_before_id: after ? result.prev_cursor : result.next_cursor,

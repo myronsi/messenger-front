@@ -19,6 +19,7 @@ interface MessageContentProps {
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
   setPlayingMessageId: (id: EntityId | null) => void;
+  trailing?: React.ReactNode;
 }
 
 const MessageContent: React.FC<MessageContentProps> = ({
@@ -30,10 +31,11 @@ const MessageContent: React.FC<MessageContentProps> = ({
   renderMessageContent,
   isAudioPlaying,
   setPlayingMessageId,
+  trailing,
 }) => {
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
-    return typeof content === 'string' ? <div>{content}</div> : content;
+    return typeof content === 'string' ? <div className="whitespace-pre-wrap">{content}{trailing}</div> : <>{content}{trailing}</>;
   }
 
   const fileName = message.content.file_name || '';
@@ -46,7 +48,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
     <>
       {content}
       {caption && (
-        <div className={`whitespace-pre-wrap text-sm leading-snug ${isImage ? 'px-3 pb-2 pt-1' : 'mt-2'}`}>
+        <div data-testid="message-caption" className={`whitespace-pre-wrap text-sm leading-snug ${isImage ? 'w-0 min-w-full px-3 pb-2 pt-1' : 'mt-2'}`}>
           {caption}
         </div>
       )}

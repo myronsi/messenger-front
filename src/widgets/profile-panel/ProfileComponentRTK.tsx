@@ -151,7 +151,6 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-hidden">
-          {activeProfilePage === 'notifications' && <NotificationSettingsPanel isActive onBack={() => setActiveProfilePage('profile')} />}
           <div
             aria-hidden={activeProfilePage !== 'profile'}
             inert={activeProfilePage !== 'profile' ? true : undefined}
@@ -189,6 +188,19 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
           >
             <PrivacySettingsPanel
               isActive={activeProfilePage === 'privacy'}
+              onBack={() => setActiveProfilePage('profile')}
+            />
+          </div>
+
+          <div
+            aria-hidden={activeProfilePage !== 'notifications'}
+            inert={activeProfilePage !== 'notifications' ? true : undefined}
+            className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${
+              activeProfilePage === 'notifications' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'
+            }`}
+          >
+            <NotificationSettingsPanel
+              isActive={activeProfilePage === 'notifications'}
               onBack={() => setActiveProfilePage('profile')}
             />
           </div>
