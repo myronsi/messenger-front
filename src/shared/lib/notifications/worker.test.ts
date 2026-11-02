@@ -120,4 +120,27 @@ describe('background notification worker', () => {
     await w.push({ message_id: '5', read_token: 'r.1' });
     expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
   });
+  it('keeps the read token of the newest message when an older push arrives late', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '12', read_token: 'r.12' });
+    await w.push({ message_id: '11', read_token: 'r.11' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ read_token: 'r.12', read_message_id: '12' });
+  });
+  it('does not restore a failed Mark as read after logout or over a newer stack', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    const notification = { title: 'Mai', body: 'secret', tag: 'chat-7', data: { user_id: '1', chat_id: '7', read_token: 'r.1' }, close: vi.fn() };
+    let fail: (error: Error) => void = () => undefined;
+    w.fetch.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
+    const click = w.dispatch('notificationclick', { notification, action: 'read' });
+    await w.account('');
+    fail(new TypeError('offline'));
+    await click;
+    expect(w.registration.showNotification).not.toHaveBeenCalled();
+    await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '2', title: 'Mai', body: 'newer' });
+    w.fetch.mockRejectedValueOnce(new TypeError('offline'));
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    expect(w.registration.showNotification).toHaveBeenCalledTimes(1);
+    expect(w.registration.showNotification.mock.lastCall?.[1].body).toBe('newer');
+  });
 });

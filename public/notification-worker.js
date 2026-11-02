@@ -35,6 +35,11 @@ function apiUrl(api, path) {
     return `${href}${path}`;
   } catch { return null; }
 }
+function newerId(a, b) {
+  if (!b) return true;
+  if (!a) return false;
+  return a.length !== b.length ? a.length > b.length : a > b;
+}
 function inChatOrder(chatId, task) {
   const run = (chatQueues.get(chatId) || Promise.resolve()).then(task, task);
   const tail = run.catch(() => undefined);
@@ -77,7 +82,10 @@ async function showChatNotification(data) {
   const title = String(data.title || 'Messenger');
   const avatar = preview && typeof data.avatar_token === 'string' && settings.api
     ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
-  const readToken = repeated ? before.read_token || '' : typeof data.read_token === 'string' ? data.read_token : '';
+  const incomingToken = !repeated && typeof data.read_token === 'string' ? data.read_token : '';
+  const takeToken = !!incomingToken && (!before.read_token || newerId(messageId, String(before.read_message_id || '')));
+  const readToken = takeToken ? incomingToken : before.read_token || '';
+  const readMessageId = takeToken ? messageId : String(before.read_message_id || '');
   const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
   const actions = [{ action: 'reply', title: titles.reply }];
   if (readToken && settings.api) actions.push({ action: 'read', title: titles.read });
@@ -85,7 +93,7 @@ async function showChatNotification(data) {
     body: (lines.length ? lines : [line]).join('\n'), icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png',
     tag, renotify: false, silent: repeated || !data.sound, actions,
     data: {
-      chat_id: String(data.chat_id), user_id: String(data.user_id), read_token: readToken, lines, count, preview,
+      chat_id: String(data.chat_id), user_id: String(data.user_id), read_token: readToken, read_message_id: readMessageId, lines, count, preview,
       ids: repeated || !messageId ? ids : [...ids, messageId].slice(-MAX_IDS),
     },
   });
@@ -105,6 +113,8 @@ async function markRead(notification) {
   const url = data.read_token && settings.api ? apiUrl(settings.api, `/notifications/read/${encodeURIComponent(data.read_token)}`) : null;
   const response = url ? await fetch(url, { method: 'POST', credentials: 'omit' }).catch(() => null) : null;
   if (response?.ok || response?.status === 404) return;
+  if (data.user_id !== await notificationAccount()) return;
+  if ((await self.registration.getNotifications({ tag: notification.tag })).length) return;
   await self.registration.showNotification(notification.title, {
     body: notification.body, icon: notification.icon, badge: notification.badge, tag: notification.tag,
     renotify: false, silent: true, actions: notification.actions, data,
