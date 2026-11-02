@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery, type BaseQueryFn, type FetchArgs, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import { dropInvalidSession, getAccessToken, refreshAccessToken } from '@/shared/auth/session';
+import { getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -22,8 +22,6 @@ const baseQueryWithRefresh: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQu
     const refreshedToken = await refreshAccessToken();
     if (refreshedToken) {
       result = await rawBaseQuery(args, api, extraOptions);
-    } else {
-      dropInvalidSession();
     }
   }
 
