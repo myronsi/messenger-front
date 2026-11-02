@@ -16,7 +16,7 @@ function worker() {
       .filter((n) => !filter?.tag || n.tag === filter.tag),
   };
   const navigate = vi.fn(); const focus = vi.fn(); const openWindow = vi.fn(); const postMessage = vi.fn();
-  const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+  const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }));
   runInNewContext(readFileSync('public/notification-worker.js', 'utf8'), {
     URL, Response, Date, fetch, encodeURIComponent,
     caches: { open: async () => ({
@@ -68,24 +68,56 @@ describe('background notification worker', () => {
     await w.account('2'); await w.dispatch('notificationclick', { notification }); expect(w.navigate).toHaveBeenCalledTimes(1);
   });
   it('stacks messages of one chat and shows the sender photo', async () => {
-    const w = worker(); await w.account('1', 'https://chat.test', { api: 'https://chat.test/api/v2/', language: 'ru' });
-    for (const body of ['one', 'two', 'three', 'four', 'five', 'six']) await w.push({ title: 'Mai', body, avatar_token: 'a.1.2.9.sig', read_token: 'r.1' });
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2/', language: 'ru' });
+    let id = 100;
+    for (const body of ['one', 'two', 'three', 'four', 'five', 'six']) {
+      id += 1;
+      await w.push({ title: 'Mai', body, message_id: String(id), preview: true, avatar_token: 'a.1.2.9.sig', read_token: 'r.1' });
+    }
     const [title, options] = w.registration.showNotification.mock.lastCall!;
     expect(title).toBe('Mai (6)');
     expect(options.body).toBe('two\nthree\nfour\nfive\nsix');
     expect(options.icon).toBe('https://chat.test/api/v2/notifications/avatar/a.1.2.9.sig');
     expect(options.actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
-    await w.push({ chat_id: '8', title: 'Bob', body: 'hi' });
-    expect(w.registration.showNotification.mock.lastCall!).toEqual(['Bob', expect.objectContaining({ body: 'hi', icon: '/pwa-192x192.png' })]);
+    await w.push({ chat_id: '8', title: 'Bob', body: 'hi', message_id: '200' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Bob', expect.objectContaining({ body: 'hi', icon: '/pwa-192x192.png' })]);
   });
-  it('marks the chat read without opening the app, and focuses the input for a reply', async () => {
+  it('counts a repeated delivery once and keeps overlapping pushes of one chat', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'one', message_id: '1', preview: true });
+    await w.push({ title: 'Mai', body: 'one', message_id: '1', preview: true });
+    await Promise.all([
+      w.push({ title: 'Mai', body: 'two', message_id: '2', preview: true }),
+      w.push({ title: 'Mai', body: 'three', message_id: '3', preview: true }),
+    ]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Mai (3)', expect.objectContaining({ body: 'one\ntwo\nthree' })]);
+  });
+  it('drops earlier message text once previews are turned off', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false, avatar_token: 'a.x' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+  });
+  it('marks the chat read without opening the app and keeps the notification when that fails', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: 'https://chat.test/api/v2' });
-    const notification = { data: { user_id: '1', chat_id: '7', read_token: 'r.1.7.9.5.sig' }, close: vi.fn() };
+    const notification = { title: 'Mai', body: 'hi', tag: 'chat-7', data: { user_id: '1', chat_id: '7', read_token: 'r.1.7.9.5.sig' }, close: vi.fn() };
     await w.dispatch('notificationclick', { notification, action: 'read' });
     expect(w.fetch).toHaveBeenCalledWith('https://chat.test/api/v2/notifications/read/r.1.7.9.5.sig', expect.objectContaining({ method: 'POST' }));
+    expect(w.registration.showNotification).not.toHaveBeenCalled();
     expect(w.navigate).not.toHaveBeenCalled();
-    await w.dispatch('notificationclick', { notification, action: 'reply' });
-    expect(w.navigate).toHaveBeenCalledWith('https://chat.test/chat/7?notification=1');
-    expect(w.postMessage).toHaveBeenCalledWith({ type: 'notification-reply', chat_id: '7' });
+    w.fetch.mockRejectedValueOnce(new TypeError('offline'));
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    expect(w.registration.showNotification).toHaveBeenCalledWith('Mai', expect.objectContaining({ tag: 'chat-7', body: 'hi' }));
+  });
+  it('opens the chat ready for a reply', async () => {
+    const w = worker(); await w.account('1');
+    await w.dispatch('notificationclick', { notification: { data: { user_id: '1', chat_id: '7' }, close: vi.fn() }, action: 'reply' });
+    expect(w.navigate).toHaveBeenCalledWith('https://chat.test/chat/7?notification=1&reply=1');
+  });
+  it('updates the action language without changing the account', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2', language: 'en' });
+    await w.dispatch('message', { origin: 'https://chat.test', data: { type: 'notification-settings', language: 'ru' } });
+    await w.push({ message_id: '5', read_token: 'r.1' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
   });
 });

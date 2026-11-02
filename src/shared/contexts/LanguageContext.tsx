@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { en } from '@/shared/lang/en';
 import { ru } from '@/shared/lang/ru';
+import { syncNotificationWorkerLanguage } from '@/shared/lib/notifications/workerSettings';
 
 type Language = 'en' | 'ru';
 export type Translations = typeof en;
@@ -24,6 +25,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     localStorage.setItem('language', language);
     setTranslations(language === 'ru' ? ru : en);
+    syncNotificationWorkerLanguage(language);
   }, [language]);
 
   return (

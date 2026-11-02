@@ -14,14 +14,3 @@ export const focusComposerWhenReady = (chatId: string, now = () => Date.now()) =
   attempt();
 };
 
-export const listenForNotificationReply = () => {
-  const container = typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined;
-  if (!container) return () => undefined;
-  const onMessage = (event: MessageEvent) => {
-    if (event.data?.type === 'notification-reply' && /^\d+$/.test(String(event.data.chat_id))) {
-      focusComposerWhenReady(String(event.data.chat_id));
-    }
-  };
-  container.addEventListener('message', onMessage);
-  return () => container.removeEventListener('message', onMessage);
-};
