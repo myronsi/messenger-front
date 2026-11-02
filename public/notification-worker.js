@@ -21,7 +21,9 @@ function apiUrl(api, path) {
   try {
     const base = new URL(api);
     if (base.protocol !== 'https:' && base.protocol !== 'http:') return null;
-    return `${base.href.replace(/\/+$/, '')}${path}`;
+    let href = base.href;
+    while (href.endsWith('/')) href = href.slice(0, -1);
+    return `${href}${path}`;
   } catch { return null; }
 }
 self.addEventListener('message', (event) => {
