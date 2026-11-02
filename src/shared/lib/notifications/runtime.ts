@@ -2,6 +2,7 @@ import { loadNotifications, resetNotifications } from './api';
 import { cleanupNotificationDevice, reportNotificationActivity, restoreNotificationDevice } from './device';
 import { resumeNotificationNavigation, startNativeNotifications } from './device';
 import { clearMessageAlerts, prepareNotificationSound } from './alerts';
+import { listenForNotificationReply } from './replyFocus';
 let live = false;
 const foreground = () => document.visibilityState === 'visible' && document.hasFocus();
 export const setNotificationLive = (value: boolean) => {
@@ -29,7 +30,9 @@ export function startNotifications(userId: string) {
   window.addEventListener('messenger:logout', logout);
   window.addEventListener('focus', refresh);
   window.addEventListener('pointerdown', prepareNotificationSound);
+  const stopReplyFocus = listenForNotificationReply();
   return () => {
+    stopReplyFocus();
     clearMessageAlerts();
     window.removeEventListener('messenger:logout', logout);
     window.removeEventListener('focus', refresh);
