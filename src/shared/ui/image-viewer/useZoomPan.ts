@@ -1,6 +1,6 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
-import { IDENTITY, panBy, wheelZoomFactor, zoomAt, clampZoomPan, type Size, type ZoomPan } from './zoomPan';
+import { IDENTITY, panBy, pinchTo, wheelZoomFactor, zoomAt, clampZoomPan, type Size, type ZoomPan } from './zoomPan';
 
 interface Point { x: number; y: number }
 interface Measure { stage: Size; image: Size; rect: DOMRect }
@@ -138,10 +138,9 @@ export const useZoomPan = (
       const mid = midpoint(a, b);
       const { lastMid } = gesture;
       gesture.lastMid = mid;
-      update((current, m) => {
-        const zoomed = zoomAt(current, gesture.startScale * (distance(a, b) / gesture.startDistance), toStage(mid, m.rect), m.image, m.stage);
-        return panBy(zoomed, mid.x - lastMid.x, mid.y - lastMid.y, m.image, m.stage);
-      });
+      update((current, m) => pinchTo(
+        current, gesture.startScale * (distance(a, b) / gesture.startDistance), toStage(lastMid, m.rect), toStage(mid, m.rect), m.image, m.stage,
+      ));
     } else if (gesture?.type === 'pan') {
       const { last } = gesture;
       gesture.last = point;

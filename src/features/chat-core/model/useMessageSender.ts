@@ -156,16 +156,15 @@ export const useMessageSender = ({
   };
 
   const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
     const contentToSend = messageInput.trim();
-    const escapedMessage = isGoApi() ? contentToSend : escapeCurlyBraces(contentToSend);
-    let payload: OutgoingPayload;
-
     if (editingMessage && editableText(editingMessage).trim() === contentToSend) {
       setMessageInput('');
       setEditingMessage(null);
       return;
     }
+    if (!contentToSend) return;
+    const escapedMessage = isGoApi() ? contentToSend : escapeCurlyBraces(contentToSend);
+    let payload: OutgoingPayload;
 
     if (editingMessage) {
       if (!isGoApi()) setMessages((previous) => applyMessageEdit(previous, editingMessage.id, contentToSend));

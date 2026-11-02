@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IDENTITY, MAX_SCALE, clampZoomPan, panBy, wheelZoomFactor, zoomAt } from './zoomPan';
+import { IDENTITY, MAX_SCALE, clampZoomPan, panBy, pinchTo, wheelZoomFactor, zoomAt } from './zoomPan';
 
 const image = { width: 400, height: 300 };
 const stage = { width: 800, height: 600 };
@@ -8,6 +8,10 @@ describe('zoomPan', () => {
   it('keeps the point under the cursor in place while zooming', () => {
     const view = zoomAt(IDENTITY, 4, { x: 100, y: 50 }, image, stage);
     expect(view).toEqual({ scale: 4, x: -300, y: -150 });
+  });
+
+  it('keeps the pinched point under the fingers while they zoom and move', () => {
+    expect(pinchTo({ scale: 2, x: 0, y: 0 }, 3, { x: 100, y: 50 }, { x: 130, y: 70 }, image, stage)).toEqual({ scale: 3, x: -20, y: -5 });
   });
 
   it('cannot move a fitted image away from the center', () => {

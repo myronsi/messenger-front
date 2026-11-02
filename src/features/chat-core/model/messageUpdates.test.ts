@@ -78,6 +78,15 @@ describe('mergeIncomingMessage', () => {
     expect(mergeIncomingMessage([pending], incoming).map((m) => m.id)).toEqual([-2, '20']);
   });
 
+  it('keeps an uploading placeholder when another member sends a file with the same temp id', () => {
+    const content = { file_url: '', file_name: 'a.png', file_type: 'image/png', file_size: 5 };
+    const pending = msg(-2, { type: 'file', content, client_temp_id: -2, upload_status: 'uploading', is_own: true });
+    const incoming = msg('20', { type: 'file', client_temp_id: '-2', sender: 'bob', sender_id: 2, content });
+    const result = mergeIncomingMessage([pending], incoming);
+    expect(result.map((m) => m.id)).toEqual([-2, '20']);
+    expect(result[1].is_own).toBeUndefined();
+  });
+
   it('appends unrelated messages', () => {
     expect(mergeIncomingMessage([msg(1)], msg(2)).map((m) => m.id)).toEqual([1, 2]);
   });

@@ -70,6 +70,13 @@ describe('MessageInput', () => {
     expect(onSendMessage).toHaveBeenCalledTimes(1);
   });
 
+  it('saves instead of recording a voice message while editing with an empty caption', () => {
+    const { onSendMessage } = renderInput('', editing);
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    expect(onSendMessage).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Record voice message' })).not.toBeInTheDocument();
+  });
+
   it('takes a file dropped anywhere on the chat', () => {
     render(
       <div data-chat-drop-zone data-testid="zone">

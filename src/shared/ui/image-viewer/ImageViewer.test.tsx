@@ -48,6 +48,25 @@ describe('ImageViewer', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps keyboard shortcuts working while a viewer button has focus', () => {
+    const { onClose } = renderViewer();
+    const zoomIn = screen.getByRole('button', { name: 'Zoom in' });
+    zoomIn.focus();
+    fireEvent.keyDown(zoomIn, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('moves focus into the viewer and gives it back to the opener on close', async () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const { unmount } = render(<ImageViewer images={[{ url: '/photo.png', name: 'photo.png' }]} onClose={vi.fn()} />);
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+    unmount();
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+    opener.remove();
+  });
+
   it('has no gallery controls for a single image', () => {
     renderViewer();
     expect(screen.queryByRole('button', { name: 'Next image' })).not.toBeInTheDocument();

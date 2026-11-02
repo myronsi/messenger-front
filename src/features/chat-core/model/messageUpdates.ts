@@ -55,9 +55,9 @@ export const mergeIncomingMessage = (
   const pendingUploadIndex = previous.findIndex((message) => {
     if (message.upload_status !== 'uploading' || message.type !== 'file' || incoming.type !== 'file') return false;
     if (typeof message.content === 'string' || typeof incoming.content === 'string') return false;
+    if (!isSameSender(message, incoming)) return false;
     if (incoming.client_temp_id != null) return String(message.client_temp_id ?? message.id) === String(incoming.client_temp_id);
-    return isSameSender(message, incoming) &&
-      message.content.file_name === incoming.content.file_name &&
+    return message.content.file_name === incoming.content.file_name &&
       message.content.file_size === incoming.content.file_size;
   });
   if (pendingUploadIndex !== -1) {

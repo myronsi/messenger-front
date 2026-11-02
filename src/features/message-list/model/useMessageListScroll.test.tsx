@@ -19,10 +19,10 @@ const flushFrames = () => {
   }
 };
 
-const List = ({ messages, chat = 'chat' }: { messages: Message[]; chat?: string }) => {
+const List = ({ messages, chat = 'chat', target = null }: { messages: Message[]; chat?: string; target?: string | null }) => {
   const messageRefs = useRef({});
   const { chatContainerRef, contentRef } = useMessageListScroll({
-    messages, messageRefs, highlightedMessageId: null, tempHighlightedMessageId: null,
+    messages, messageRefs, highlightedMessageId: target, tempHighlightedMessageId: null,
     getFormattedDateLabel: () => '', hasMoreMessages: false, hasMoreNewerMessages: false,
     isLoadingInitialMessages: false, isLoadingOlderMessages: false, isLoadingNewerMessages: false,
     scrollToBottomKey: chat, isOwnMessage: () => false,
@@ -146,6 +146,22 @@ describe('useMessageListScroll', () => {
     await act(async () => { flushFrames(); });
 
     container.dispatchEvent(new Event('wheel'));
+    container.scrollTop = 200;
+    container.dispatchEvent(new Event('scroll'));
+    await act(async () => { flushFrames(); });
+    grow(1300);
+    act(() => resize());
+
+    expect(container.scrollTop).toBe(200);
+  });
+
+  it('stays on a search result it jumped to when new content arrives', async () => {
+    const { view, container, grow } = setup([]);
+    view.rerender(<List messages={[message('1'), message('2')]} />);
+    container.scrollTop = 1000;
+    await act(async () => { flushFrames(); });
+
+    view.rerender(<List messages={[message('1'), message('2')]} target="1" />);
     container.scrollTop = 200;
     container.dispatchEvent(new Event('scroll'));
     await act(async () => { flushFrames(); });

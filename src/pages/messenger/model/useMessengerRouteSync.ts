@@ -5,6 +5,7 @@ import { useLocation, type NavigateFunction } from 'react-router-dom';
 import { CurrentChat, directChatPath, parseDmIdentifier } from './messengerRoutes';
 import { joinOverlayPath, splitOverlayPath } from '@/shared/lib/urlOverlay';
 import { authFetch } from '@/shared/auth/session';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { resolveNotificationChat } from './resolveNotificationChat';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -65,9 +66,9 @@ export const useMessengerRouteSync = ({
   setCurrentChat,
 }: MessengerRouteSyncOptions) => {
   const routeBase = splitOverlayPath(location.pathname).base;
+  const pathnameRef = useLatestRef(location.pathname);
   useEffect(() => {
-    const { overlay } = splitOverlayPath(location.pathname);
-    const withOverlay = (path: string) => joinOverlayPath(path, overlay);
+    const withOverlay = (path: string) => joinOverlayPath(path, splitOverlayPath(pathnameRef.current).overlay);
     const match = routeBase.match(/^\/chat\/(\d+)$/);
     if (match) {
       const id = match[1];
@@ -244,5 +245,5 @@ export const useMessengerRouteSync = ({
 
     if (currentChat) setCurrentChat(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeBase, location.search, username]);
+  }, [routeBase, location.search, username, pathnameRef]);
 };

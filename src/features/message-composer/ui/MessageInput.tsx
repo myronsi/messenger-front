@@ -58,6 +58,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const isEditing = !!editingMessage;
   const hasSelectedFile = !!selectedFile && !isEditing;
   const hasDraft = messageInput.trim().length > 0 || hasSelectedFile;
+  const canSend = hasDraft || isEditing;
   const {
     isRecording,
     isStarting,
@@ -101,7 +102,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   };
 
   const sendAndKeepFocus = () => {
-    if (!hasDraft || isDisabled) return;
+    if (!canSend || isDisabled) return;
     if (selectedFile && !isEditing) {
       onFileUpload(selectedFile, messageInput);
       setSelectedFile(null);
@@ -165,7 +166,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const handleActionClick = () => {
     if (isRecording) {
       stopRecording();
-    } else if (!isStarting && hasDraft) {
+    } else if (!isStarting && canSend) {
       sendAndKeepFocus();
     } else if (!isStarting) {
       void handleStartRecording();
@@ -265,16 +266,16 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
           <button
             type="button"
             onClick={handleActionClick}
-            disabled={isRecording ? false : isStarting || (hasDraft ? isDisabled : disableVoice || isDisabled)}
-            aria-label={isRecording ? 'Stop recording and send' : hasDraft ? 'Send message' : 'Record voice message'}
+            disabled={isRecording ? false : isStarting || (canSend ? isDisabled : disableVoice || isDisabled)}
+            aria-label={isRecording ? 'Stop recording and send' : canSend ? 'Send message' : 'Record voice message'}
             className={`motion-press relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full transition-colors duration-200 ${
-              isRecording ? 'motion-presence bg-red-500 text-white' : hasDraft ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-accent text-accent-foreground hover:bg-accent/90'
+              isRecording ? 'motion-presence bg-red-500 text-white' : canSend ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-accent text-accent-foreground hover:bg-accent/90'
             } disabled:opacity-50`}
           >
-            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${hasDraft && !isRecording ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-75 opacity-0'}`}>
+            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${canSend && !isRecording ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-75 opacity-0'}`}>
               <Send className="h-6 w-6" />
             </span>
-            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${hasDraft || isRecording ? '-translate-y-2 scale-75 opacity-0' : 'translate-y-0 scale-100 opacity-100'}`}>
+            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${canSend || isRecording ? '-translate-y-2 scale-75 opacity-0' : 'translate-y-0 scale-100 opacity-100'}`}>
               <Mic className="h-6 w-6" />
             </span>
             <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${isRecording ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-75 opacity-0'}`}>

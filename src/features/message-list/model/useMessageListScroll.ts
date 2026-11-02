@@ -67,6 +67,14 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(),
   });
 
+  const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
+  useLayoutEffect(() => {
+    if (jumpTargetId == null) return;
+    shouldStickToBottomRef.current = false;
+    autoScrollUntilRef.current = 0;
+    settleRef.current = null;
+  }, [jumpTargetId]);
+
   useLayoutEffect(() => {
     setVisibleFirstUnreadId(firstUnreadMessageId ?? null);
     if (!hasScrolledInitialRef.current) hasScrolledToFirstUnreadRef.current = false;

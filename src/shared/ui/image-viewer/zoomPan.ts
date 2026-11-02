@@ -36,4 +36,8 @@ export const panBy = (view: ZoomPan, dx: number, dy: number, image: Size, stage:
   clampZoomPan({ ...view, x: view.x + dx, y: view.y + dy }, image, stage)
 );
 
+export const pinchTo = (view: ZoomPan, nextScale: number, from: { x: number; y: number }, to: { x: number; y: number }, image: Size, stage: Size): ZoomPan => (
+  panBy(zoomAt(view, nextScale, from, image, stage), to.x - from.x, to.y - from.y, image, stage)
+);
+
 export const wheelZoomFactor = (deltaY: number, deltaMode = 0) => Math.exp(-deltaY * (deltaMode === 1 ? 33 : 1) * 0.002);

@@ -54,4 +54,11 @@ describe('useMessageSender editing', () => {
     changed.handleSendMessage();
     expect(JSON.parse(changed.send.mock.calls[0][0])).toMatchObject({ type: 'edit', message_id: '7', content: 'Holiday 2026' });
   });
+
+  it('ends editing a file without a caption when the caption stays empty', () => {
+    const { send, options, handleSendMessage } = setup('', { ...photo, content: { ...(photo.content as object), caption: undefined } as Message['content'] });
+    handleSendMessage();
+    expect(send).not.toHaveBeenCalled();
+    expect(options.setEditingMessage).toHaveBeenCalledWith(null);
+  });
 });
