@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.4](https://github.com/myronsi/messenger-front/compare/v0.6.3...v0.6.4) (2026-11-02)
+
+
+### Features
+
+* **notifications:** add message alerts and push settings ([#126](https://github.com/myronsi/messenger-front/issues/126)) ([efbd946](https://github.com/myronsi/messenger-front/commit/efbd9468bcad153cd8ba581f4ce310b8ac63b250))
+
+
+### Performance Improvements
+
+* **ci:** share frontend dependency setup across checks ([#124](https://github.com/myronsi/messenger-front/issues/124)) ([74f405f](https://github.com/myronsi/messenger-front/commit/74f405fe34149d024b679a81e4633b46f92c1e57))
+
 ## [0.6.3](https://github.com/myronsi/messenger-front/compare/v0.6.2...v0.6.3) (2026-11-01)
 
 
