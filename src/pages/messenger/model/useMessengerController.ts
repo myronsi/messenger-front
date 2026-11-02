@@ -6,13 +6,13 @@ import { CurrentChat, directChatPath, dmPath, parseDmIdentifier } from './messen
 import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { authFetch, dropInvalidSession, getAccessToken } from '@/shared/auth/session';
+import { authFetch } from '@/shared/auth/session';
+import { watchCurrentUser } from './watchCurrentUser';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
 import { notificationReturnPath } from './resolveNotificationChat';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-const CURRENT_USER_RETRY_DELAYS_MS = [1000, 3000, 10000];
 
 export const useMessengerController = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -53,27 +53,19 @@ export const useMessengerController = () => {
     if (hasFetchedUser.current) return;
     hasFetchedUser.current = true;
 
-    const loadCurrentUser = async (attempt = 0): Promise<void> => {
-      const response = await authFetch(`${BASE_URL}/auth/me`).catch(() => null);
-      const user = response?.ok ? await response.json().catch(() => null) : null;
-      if (user) {
+    watchCurrentUser({
+      fetchMe: () => authFetch(`${BASE_URL}/auth/me`),
+      onUser: (user) => {
         setIsLoggedIn(true);
         setUsername(user.username);
         setIsLoading(false);
-        return;
-      }
-      const rejected = response?.status === 401 || response?.status === 403;
-      if (!rejected && getAccessToken() && attempt < CURRENT_USER_RETRY_DELAYS_MS.length) {
-        window.setTimeout(() => void loadCurrentUser(attempt + 1), CURRENT_USER_RETRY_DELAYS_MS[attempt]);
-        return;
-      }
-      if (rejected) dropInvalidSession();
-      setIsLoggedIn(false);
-      setUsername('');
-      setIsLoading(false);
-    };
-
-    loadCurrentUser();
+      },
+      onSignedOut: () => {
+        setIsLoggedIn(false);
+        setUsername('');
+        setIsLoading(false);
+      },
+    });
   }, []);
 
   const handleLoginSuccess = (user: string) => {

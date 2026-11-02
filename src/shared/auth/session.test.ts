@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getAccessToken, refreshAccessToken, setAccessToken } from './session';
+import { authFetch, getAccessToken, refreshAccessToken, setAccessToken } from './session';
 
 describe('refreshAccessToken', () => {
   afterEach(() => {
@@ -29,5 +29,15 @@ describe('refreshAccessToken', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'new' }), { status: 200 })));
     expect(await refreshAccessToken()).toBe('new');
     expect(getAccessToken()).toBe('new');
+  });
+
+  it('reports a request as failed, not unauthorized, while the refresh cannot reach the server', async () => {
+    setAccessToken('expired');
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/refresh')) throw new TypeError('Failed to fetch');
+      return new Response('{}', { status: 401 });
+    }));
+    await expect(authFetch('https://api.test/auth/me')).rejects.toThrow();
+    expect(getAccessToken()).toBe('expired');
   });
 });

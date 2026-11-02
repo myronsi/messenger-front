@@ -118,7 +118,10 @@ export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}
   if (response.status !== 401) return response;
 
   const refreshedToken = await refreshAccessToken();
-  if (!refreshedToken) return response;
+  if (!refreshedToken) {
+    if (getAccessToken()) throw new Error('The session could not be refreshed right now');
+    return response;
+  }
 
   const retryHeaders = new Headers(init.headers);
   retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
