@@ -3,10 +3,11 @@ const notificationCache = 'messenger-notification-account';
 const accountKey = new URL('/__notification_account', self.location.origin).href;
 async function notificationAccount() {
   const cache = await caches.open(notificationCache);
-  return (await cache.match(accountKey))?.text() || '';
+  const response = await cache.match(accountKey);
+  return response ? await response.text() : '';
 }
 self.addEventListener('message', (event) => {
-  if (event.data?.type !== 'notification-account') return;
+  if (event.origin !== self.location.origin || event.data?.type !== 'notification-account') return;
   event.waitUntil((async () => {
     const cache = await caches.open(notificationCache);
     const previous = await notificationAccount();

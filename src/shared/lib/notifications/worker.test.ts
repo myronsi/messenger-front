@@ -29,7 +29,7 @@ function worker() {
   const push = (extra = {}) => dispatch('push', { data: { json: () => ({
     user_id: '1', chat_id: '7', message_id: '9', title: 'Messenger', body: 'New message', expires_at: Date.now() / 1000 + 300, ...extra,
   }) } });
-  const account = (user: string) => dispatch('message', { data: { type: 'notification-account', user } });
+  const account = (user: string, origin = 'https://chat.test') => dispatch('message', { origin, data: { type: 'notification-account', user } });
   return { registration, close, navigate, focus, openWindow, dispatch, push, account };
 }
 describe('background notification worker', () => {
@@ -37,6 +37,11 @@ describe('background notification worker', () => {
     const w = worker(); await w.account('1'); w.close.mockClear();
     await w.account('1'); expect(w.close).not.toHaveBeenCalled();
     await w.account('2'); expect(w.close).toHaveBeenCalledTimes(1);
+  });
+  it('ignores account messages from another origin', async () => {
+    const w = worker(); await w.account('1'); w.close.mockClear();
+    await w.account('2', 'https://evil.test'); expect(w.close).not.toHaveBeenCalled();
+    await w.push(); expect(w.registration.showNotification).toHaveBeenCalledTimes(1);
   });
   it('only displays unexpired pushes for the signed-in account', async () => {
     const w = worker(); await w.account('1');
