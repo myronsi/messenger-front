@@ -7,10 +7,10 @@ function worker() {
   const events: Record<string, (event: unknown) => void> = {};
   const storage = new Map<string, Response>();
   const close = vi.fn();
-  let shown: { tag: string; data: unknown; close: () => void }[] = [];
+  let shown: ({ tag: string; data: unknown; close: () => void } & Record<string, unknown>)[] = [];
   const registration = {
-    showNotification: vi.fn(async (_title: string, options: NotificationOptions & { tag: string; actions?: { title: string }[] }) => {
-      shown = [...shown.filter((n) => n.tag !== options.tag), { tag: options.tag, data: options.data, close }];
+    showNotification: vi.fn(async (title: string, options: NotificationOptions & { tag: string; actions?: { title: string }[] }) => {
+      shown = [...shown.filter((n) => n.tag !== options.tag), { ...options, title, tag: options.tag, data: options.data, close }];
     }),
     getNotifications: async (filter?: { tag?: string }) => (shown.length || filter ? shown : [{ tag: '', data: null, close }])
       .filter((n) => !filter?.tag || n.tag === filter.tag),
@@ -173,5 +173,18 @@ describe('background notification worker', () => {
     const [, options] = w.registration.showNotification.mock.lastCall!;
     expect(options.actions?.map((a: { title: string }) => a.title)).toEqual(['Reply']);
     expect(options.data).toMatchObject({ read_token: '' });
+  });
+  it('does not bring back private text when an old preview push is delivered again', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false });
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message' })]);
+  });
+  it('keeps two people with the same name apart', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Alex', body: 'one', message_id: '1', preview: true, sender_id: '5', avatar_token: 'a.5' });
+    await w.push({ title: 'Alex', body: 'two', message_id: '2', preview: true, sender_id: '6', avatar_token: 'a.6' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Alex: one\nAlex: two', icon: '/pwa-192x192.png' })]);
   });
 });

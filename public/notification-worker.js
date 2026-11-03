@@ -66,8 +66,11 @@ self.addEventListener('message', (event) => {
   })());
 });
 function stackedLine(entry, fallback) {
-  if (entry && typeof entry === 'object') return { from: String(entry.from || ''), text: String(entry.text || '') };
-  return { from: fallback, text: String(entry || '') };
+  if (entry && typeof entry === 'object') {
+    const from = String(entry.from || '');
+    return { from, sender: String(entry.sender || from), text: String(entry.text || '') };
+  }
+  return { from: fallback, sender: fallback, text: String(entry || '') };
 }
 async function showChatNotification(data) {
   const tag = `chat-${data.chat_id}`;
@@ -78,15 +81,24 @@ async function showChatNotification(data) {
   const messageId = /^\d+$/.test(String(data.message_id)) ? String(data.message_id) : '';
   const ids = Array.isArray(before.ids) ? before.ids : [];
   const repeated = !!messageId && ids.includes(messageId);
+  if (repeated && previous) {
+    if (user !== await notificationAccount()) return;
+    await self.registration.showNotification(previous.title, {
+      body: previous.body, icon: previous.icon, badge: previous.badge, tag,
+      renotify: false, silent: true, actions: previous.actions, data: before,
+    });
+    return;
+  }
   const preview = data.preview === true;
   const keepLines = preview && before.preview === true;
   const count = repeated ? Number(before.count) || 1 : (Number(before.count) || 0) + 1;
   const from = String(data.title || 'Messenger');
-  const line = { from, text: String(data.body || 'New message') };
+  const sender = preview && /^\d+$/.test(String(data.sender_id)) ? `id:${data.sender_id}` : from;
+  const line = { from, sender, text: String(data.body || 'New message') };
   const earlier = keepLines && Array.isArray(before.lines) ? before.lines.map((entry) => stackedLine(entry, String(before.from || from))) : [];
   const lines = repeated ? earlier : [...earlier, line].slice(-MAX_LINES);
   const shown = lines.length ? lines : [line];
-  const oneSender = shown.every((entry) => entry.from === from);
+  const oneSender = shown.every((entry) => entry.sender === sender);
   const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
   const title = oneSender ? (count > 1 ? `${from} (${count})` : from) : titles.many(count);
   const body = shown.map((entry) => (oneSender ? entry.text : `${entry.from}: ${entry.text}`)).join('\n');
