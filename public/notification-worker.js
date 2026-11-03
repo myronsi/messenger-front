@@ -80,7 +80,8 @@ async function showChatNotification(data) {
   const before = previous?.data || {};
   const messageId = /^\d+$/.test(String(data.message_id)) ? String(data.message_id) : '';
   const ids = Array.isArray(before.ids) ? before.ids : [];
-  const repeated = !!messageId && ids.includes(messageId);
+  const evicted = !!messageId && ids.length >= MAX_IDS && ids.every((id) => newerId(String(id), messageId));
+  const repeated = !!messageId && (ids.includes(messageId) || evicted);
   if (repeated && previous && !(before.preview === true && data.preview !== true)) {
     if (user !== await notificationAccount()) return;
     await self.registration.showNotification(previous.title, {
@@ -109,13 +110,15 @@ async function showChatNotification(data) {
   const readToken = takeToken ? incomingToken : before.read_token || '';
   const readMessageId = takeToken ? messageId : String(before.read_message_id || '');
   const actions = [{ action: 'reply', title: titles.reply }];
-  if (readToken && settings.api) actions.push({ action: 'read', title: titles.read });
+  const newestId = messageId && newerId(messageId, String(before.newest_id || '')) ? messageId : String(before.newest_id || messageId);
+  if (readToken && settings.api && readMessageId === newestId) actions.push({ action: 'read', title: titles.read });
   if (user !== await notificationAccount()) return;
   await self.registration.showNotification(title, {
     body, icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png',
     tag, renotify: false, silent: repeated || !data.sound, actions,
     data: {
       chat_id: String(data.chat_id), user_id: user, read_token: readToken, read_message_id: readMessageId, lines, count, preview, from,
+      newest_id: newestId,
       ids: repeated || !messageId ? ids : [...ids, messageId].slice(-MAX_IDS),
     },
   });

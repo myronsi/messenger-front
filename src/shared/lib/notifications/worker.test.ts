@@ -9,7 +9,7 @@ function worker() {
   const close = vi.fn();
   let shown: ({ tag: string; data: unknown; close: () => void } & Record<string, unknown>)[] = [];
   const registration = {
-    showNotification: vi.fn(async (title: string, options: NotificationOptions & { tag: string; actions?: { title: string }[] }) => {
+    showNotification: vi.fn(async (title: string, options: NotificationOptions & { tag: string; actions?: { action: string; title: string }[] }) => {
       shown = [...shown.filter((n) => n.tag !== options.tag), { ...options, title, tag: options.tag, data: options.data, close }];
     }),
     getNotifications: async (filter?: { tag?: string }) => (shown.length || filter ? shown : [{ tag: '', data: null, close }])
@@ -187,6 +187,22 @@ describe('background notification worker', () => {
     await w.push({ title: 'Messenger', body: 'New message', message_id: '1', preview: false });
     expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
     expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 1, preview: false });
+  });
+  it('offers Mark as read only when its token covers the newest message', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '10', read_token: 'r.10' });
+    await w.push({ message_id: '11' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { action: string }) => a.action)).toEqual(['reply']);
+    await w.push({ message_id: '12', read_token: 'r.12' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { action: string }) => a.action)).toEqual(['reply', 'read']);
+  });
+  it('does not count a late retry again after its id dropped out of the stack', async () => {
+    const w = worker(); await w.account('1');
+    for (let id = 101; id <= 150; id += 1) await w.push({ message_id: String(id) });
+    await w.push({ message_id: '100' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 50 });
+    await w.push({ message_id: '151' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 51 });
   });
   it('keeps two people with the same name apart', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
