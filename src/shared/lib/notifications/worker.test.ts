@@ -145,17 +145,33 @@ describe('background notification worker', () => {
   });
   it('names each sender when a group stack has messages from several people', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
-    await w.push({ title: 'Mai', body: 'hi', message_id: '1', avatar_token: 'a.mai' });
-    await w.push({ title: 'Bob', body: 'yo', message_id: '2', avatar_token: 'a.bob' });
+    await w.push({ title: 'Mai', body: 'hi', message_id: '1', preview: true, avatar_token: 'a.mai' });
+    await w.push({ title: 'Bob', body: 'yo', message_id: '2', preview: true, avatar_token: 'a.bob' });
     expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Mai: hi\nBob: yo', icon: '/pwa-192x192.png' })]);
   });
   it('drops a queued push when the account logs out before it is shown', async () => {
     const w = worker(); await w.account('1');
-    const first = w.push({ title: 'Mai', body: 'one', message_id: '1' });
-    const second = w.push({ title: 'Mai', body: 'secret', message_id: '2' });
+    const first = w.push({ title: 'Mai', body: 'one', message_id: '1', preview: true });
+    const second = w.push({ title: 'Mai', body: 'secret', message_id: '2', preview: true });
     await first;
     await w.account('');
     await second;
     expect(w.registration.showNotification.mock.calls.map(([, options]) => options.body)).not.toContain('one\nsecret');
+  });
+  it('treats a push without the preview flag as private', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', avatar_token: 'a.x' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+  });
+  it('keeps the alert without Mark as read when the read link has expired', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    const actions = [{ action: 'reply', title: 'Reply' }, { action: 'read', title: 'Mark as read' }];
+    const notification = { title: 'Mai', body: 'hi', tag: 'chat-7', actions, data: { user_id: '1', chat_id: '7', read_token: 'r.old' }, close: vi.fn() };
+    w.fetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    const [, options] = w.registration.showNotification.mock.lastCall!;
+    expect(options.actions?.map((a: { title: string }) => a.title)).toEqual(['Reply']);
+    expect(options.data).toMatchObject({ read_token: '' });
   });
 });

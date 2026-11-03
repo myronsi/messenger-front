@@ -78,8 +78,8 @@ async function showChatNotification(data) {
   const messageId = /^\d+$/.test(String(data.message_id)) ? String(data.message_id) : '';
   const ids = Array.isArray(before.ids) ? before.ids : [];
   const repeated = !!messageId && ids.includes(messageId);
-  const preview = data.preview !== false;
-  const keepLines = preview && before.preview !== false;
+  const preview = data.preview === true;
+  const keepLines = preview && before.preview === true;
   const count = repeated ? Number(before.count) || 1 : (Number(before.count) || 0) + 1;
   const from = String(data.title || 'Messenger');
   const line = { from, text: String(data.body || 'New message') };
@@ -122,12 +122,15 @@ async function markRead(notification) {
   const settings = await notificationSettings();
   const url = data.read_token && settings.api ? apiUrl(settings.api, `/notifications/read/${encodeURIComponent(data.read_token)}`) : null;
   const response = url ? await fetch(url, { method: 'POST', credentials: 'omit' }).catch(() => null) : null;
-  if (response?.ok || response?.status === 404) return;
+  if (response?.ok) return;
+  const expired = response?.status === 404;
   if (data.user_id !== await notificationAccount()) return;
   if ((await self.registration.getNotifications({ tag: notification.tag })).length) return;
   await self.registration.showNotification(notification.title, {
     body: notification.body, icon: notification.icon, badge: notification.badge, tag: notification.tag,
-    renotify: false, silent: true, actions: notification.actions, data,
+    renotify: false, silent: true,
+    actions: expired ? (notification.actions || []).filter((action) => action.action !== 'read') : notification.actions,
+    data: expired ? { ...data, read_token: '' } : data,
   });
 }
 self.addEventListener('notificationclick', (event) => {
