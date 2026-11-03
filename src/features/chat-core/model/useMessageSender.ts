@@ -162,7 +162,7 @@ export const useMessageSender = ({
       setEditingMessage(null);
       return;
     }
-    if (!contentToSend) return;
+    if (!contentToSend && editingMessage?.type !== 'file') return;
     const escapedMessage = isGoApi() ? contentToSend : escapeCurlyBraces(contentToSend);
     let payload: OutgoingPayload;
 
