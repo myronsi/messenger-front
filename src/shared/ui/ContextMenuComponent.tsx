@@ -6,6 +6,7 @@ interface ContextMenuProps {
   x: number;
   y: number;
   isMine: boolean;
+  openLeft?: boolean;
   onEdit?: () => void;
   onDeleteForMe?: () => void;
   onDeleteForEveryone?: () => void;
@@ -16,10 +17,11 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
+const EDGE = 8;
 const REACTION_MENU_OFFSET = 48;
 
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ x, y, isMine, onEdit, onDeleteForMe, onDeleteForEveryone, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
+  ({ x, y, isMine, openLeft = false, onEdit, onDeleteForMe, onDeleteForEveryone, onCopy, onReply, onForward, isClosing, onClose }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
@@ -31,24 +33,12 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
         const menu = ref.current;
-        const menuWidth = menu.clientWidth;
-        const menuHeight = menu.clientHeight;
-
-        let newX = x;
-        let newY = y;
-
-        if (x + menuWidth > window.innerWidth) {
-          newX = Math.max(0, x - menuWidth);
-        }
-        if (y + menuHeight > window.innerHeight) {
-          // Leave room for the reaction menu that sits just above the cursor
-          newY = Math.max(0, y - menuHeight - REACTION_MENU_OFFSET);
-        }
-
-        setAdjustedX(newX);
-        setAdjustedY(newY);
+        const left = openLeft ? x - menu.offsetWidth : x;
+        const top = y + menu.offsetHeight > window.innerHeight - EDGE ? y - menu.offsetHeight - REACTION_MENU_OFFSET : y;
+        setAdjustedX(Math.max(EDGE, Math.min(left, window.innerWidth - menu.offsetWidth - EDGE)));
+        setAdjustedY(Math.max(EDGE, top));
       }
-    }, [x, y, ref, view.name]);
+    }, [x, y, openLeft, ref, view.name]);
 
     useEffect(() => {
       if (!isClosing) {

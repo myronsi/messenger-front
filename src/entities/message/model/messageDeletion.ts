@@ -14,13 +14,14 @@ interface LocalDeleteDetail {
 export const prefersReducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-// The animation is purely visual: the message is always removed from state after a timeout.
 export const removeMessageAnimated = (setMessages: Dispatch<SetStateAction<Message[]>>, messageId: EntityId) => {
   setMessages((prev) => prev.map((message) => (
     message.id === messageId && !message.is_deleting ? { ...message, is_deleting: true } : message
   )));
   window.setTimeout(() => {
-    setMessages((prev) => prev.filter((message) => message.id !== messageId));
+    setMessages((prev) => prev.map((message) => (
+      message.id === messageId ? { ...message, is_deleting: false, is_deleted: true, reactions: [] } : message
+    )));
   }, prefersReducedMotion() ? REDUCED_ANIMATION_MS : FULL_ANIMATION_MS);
 };
 

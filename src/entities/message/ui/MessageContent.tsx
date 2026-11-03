@@ -18,7 +18,7 @@ interface MessageContentProps {
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
-  setPlayingMessageId: (id: EntityId | null) => void;
+  setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
   trailing?: React.ReactNode;
 }
 
@@ -61,6 +61,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
       duration={audioMetadata?.duration}
       waveform={audioMetadata?.waveform}
       isPlaying={isAudioPlaying}
+      isMine={isOwnMessage(message)}
       setPlayingMessageId={setPlayingMessageId}
     />
   );

@@ -8,3 +8,4 @@ export * from './model/messageListScrollUtils';
 export { default as MessageItem } from './ui/MessageItem';
 export * from './ui/ProfileChatPanels';
 export { default as ChatSearchDialog } from './ui/ChatSearchDialog';
+export { formatAudioTime } from './model/audioMessageHelpers';

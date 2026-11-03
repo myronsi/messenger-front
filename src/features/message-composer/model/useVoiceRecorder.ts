@@ -5,7 +5,7 @@ import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const OPUS_AUDIO_BITS_PER_SECOND = 48_000;
 const MIN_RECORDING_MS = 1000;
-const RECORDING_TOO_SHORT_MESSAGE = 'Recording was too short and was not sent. Tap the mic to start, then tap stop when you are done.';
+const RECORDING_TOO_SHORT_MESSAGE = 'Recording was too short and was not sent. Hold the mic to record, or slide up to lock it.';
 const OPUS_MIME_TYPES = [
   'audio/ogg;codecs=opus',
   'audio/ogg; codecs=opus',
@@ -16,14 +16,21 @@ const OPUS_MIME_TYPES = [
 interface RecordingSession {
   chunks: Blob[];
   startedAt: number;
+  pausedMs: number;
+  pausedAt: number | null;
   discard: boolean;
 }
+
+export const recordedMs = (session: Pick<RecordingSession, 'startedAt' | 'pausedMs' | 'pausedAt'>, now: number) => (
+  now - session.startedAt - session.pausedMs - (session.pausedAt === null ? 0 : now - session.pausedAt)
+);
 
 interface VoiceRecorderOptions {
   chatId: EntityId;
   isDisabled: boolean;
   disableVoice: boolean;
   onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => number | null;
+  getReplyToId?: () => EntityId | null;
   onVoiceUploadProgress?: (messageId: EntityId, percent: number) => void;
   onVoiceUploadError?: (messageId: EntityId, errorMessage?: string) => void;
   onVoiceUploadComplete?: (messageId: EntityId) => void;
@@ -43,6 +50,7 @@ export const useVoiceRecorder = ({
   isDisabled,
   disableVoice,
   onVoiceUploadStart,
+  getReplyToId,
   onVoiceUploadProgress,
   onVoiceUploadError,
   onVoiceUploadComplete,
@@ -50,7 +58,9 @@ export const useVoiceRecorder = ({
   const [isRecording, setIsRecording] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [liveStream, setLiveStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingSessionRef = useRef<RecordingSession | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -76,7 +86,8 @@ export const useVoiceRecorder = ({
         return;
       }
       streamRef.current = stream;
-      const session: RecordingSession = { chunks: [], startedAt: 0, discard: false };
+      setLiveStream(stream);
+      const session: RecordingSession = { chunks: [], startedAt: 0, pausedMs: 0, pausedAt: null, discard: false };
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: opusMimeType,
         audioBitsPerSecond: OPUS_AUDIO_BITS_PER_SECOND,
@@ -87,6 +98,7 @@ export const useVoiceRecorder = ({
       const releaseRecorder = () => {
         stream.getTracks().forEach((track) => track.stop());
         if (streamRef.current === stream) streamRef.current = null;
+        setLiveStream((current) => (current === stream ? null : current));
         if (mediaRecorderRef.current === mediaRecorder) mediaRecorderRef.current = null;
         if (recordingSessionRef.current === session) recordingSessionRef.current = null;
       };
@@ -110,9 +122,11 @@ export const useVoiceRecorder = ({
 
         const formData = new FormData();
         const voiceFileName = getVoiceMessageFileName(audioBlob.type);
+        const replyToId = getReplyToId?.() ?? null;
         const optimisticMessageId = onVoiceUploadStart?.(audioBlob, voiceFileName, 'voice') ?? null;
         formData.append('file', audioBlob, voiceFileName);
         formData.append('chat_id', chatId.toString());
+        if (replyToId != null) formData.append('reply_to', String(replyToId));
         if (optimisticMessageId !== null) formData.append('client_temp_id', String(optimisticMessageId));
         try {
           await uploadWithProgress({
@@ -161,7 +175,7 @@ export const useVoiceRecorder = ({
     if (session && recorder && recorder.state !== 'inactive') {
       if (discard) {
         session.discard = true;
-      } else if (performance.now() - session.startedAt < MIN_RECORDING_MS) {
+      } else if (recordedMs(session, performance.now()) < MIN_RECORDING_MS) {
         session.discard = true;
         setErrorMessage(RECORDING_TOO_SHORT_MESSAGE);
       }
@@ -172,7 +186,31 @@ export const useVoiceRecorder = ({
       timerRef.current = null;
     }
     setIsRecording(false);
+    setIsPaused(false);
     setRecordingDuration(0);
+  };
+
+  const togglePause = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+    const session = recordingSessionRef.current;
+    if (recorder.state === 'recording') {
+      recorder.pause();
+      if (session) session.pausedAt = performance.now();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setIsPaused(true);
+      return;
+    }
+    recorder.resume();
+    if (session?.pausedAt != null) {
+      session.pausedMs += performance.now() - session.pausedAt;
+      session.pausedAt = null;
+    }
+    timerRef.current = setInterval(() => setRecordingDuration((prev) => prev + 1), 1000);
+    setIsPaused(false);
   };
 
   useEffect(() => () => {
@@ -199,6 +237,9 @@ export const useVoiceRecorder = ({
     isRecording,
     isStarting,
     recordingDuration,
+    liveStream,
+    isPaused,
+    togglePause,
     errorMessage,
     setErrorMessage,
     stopRecording,

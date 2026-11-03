@@ -1,13 +1,18 @@
-import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import type { EntityId } from '@/shared/api/entityId';
-import React, { useRef, forwardRef, useState, useEffect, useLayoutEffect } from 'react';
+import React, { useCallback, useRef, forwardRef, useState, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { File as FileIcon, Paperclip, Send, X, Mic, Square, Upload } from 'lucide-react';
+import { Paperclip, Upload } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { UPLOAD_ACCEPT, validateUploadFile } from '@/shared/lib/uploadValidation';
+import { UPLOAD_ACCEPT, uploadLimitMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
+import { useHoldToRecord } from '../model/useHoldToRecord';
 import ReplyEditBar from './ReplyEditBar';
+import ComposerActionButton from './ComposerActionButton';
+import ComposerNotice from './ComposerNotice';
+import RecordingBar from './RecordingBar';
+import SelectedFileChip from './SelectedFileChip';
 import { useFileDrop } from '../model/useFileDrop';
 
 interface MessageInputProps {
@@ -29,6 +34,8 @@ interface MessageInputProps {
   onVoiceUploadComplete?: (messageId: EntityId) => void;
 }
 
+const editableCaption = (message: Message | null) => (typeof message?.content === 'string' ? message.content : message?.content?.caption || '');
+const MAX_MESSAGE_LENGTH = 4096;
 const sendsOnEnter = () => !window.matchMedia?.('(pointer: coarse)').matches;
 
 const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
@@ -52,29 +59,21 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const replyToRef = useLatestRef(replyTo);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFilePreviewUrl, setSelectedFilePreviewUrl] = useState<string | null>(null);
   const isDisabled = disabled || isSending;
   const isEditing = !!editingMessage;
   const hasSelectedFile = !!selectedFile && !isEditing;
   const hasDraft = messageInput.trim().length > 0 || hasSelectedFile;
-  const canSend = hasDraft || isEditing;
+  const isUnchangedEdit = isEditing && messageInput.trim() === editableCaption(editingMessage).trim();
+  const canSend = (hasDraft || isEditing) && !isUnchangedEdit;
   const {
-    isRecording,
-    isStarting,
-    recordingDuration,
-    errorMessage,
-    setErrorMessage,
-    stopRecording,
-    handleStartRecording,
+    isRecording, isStarting, recordingDuration, liveStream, isPaused, togglePause,
+    errorMessage, setErrorMessage, stopRecording, handleStartRecording,
   } = useVoiceRecorder({
-    chatId,
-    isDisabled,
-    disableVoice,
-    onVoiceUploadStart,
-    onVoiceUploadProgress,
-    onVoiceUploadError,
-    onVoiceUploadComplete,
+    chatId, isDisabled, disableVoice, onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete,
+    getReplyToId: () => replyToRef.current?.id ?? null,
   });
 
   useLayoutEffect(() => {
@@ -102,7 +101,16 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   };
 
   const sendAndKeepFocus = () => {
+    if (isUnchangedEdit) {
+      cancelKeepingFocus();
+      return;
+    }
     if (!canSend || isDisabled) return;
+    const length = [...messageInput.trim()].length;
+    if (length > MAX_MESSAGE_LENGTH) {
+      setErrorMessage((translations.messageTooLong || 'Message is too long: {count} of {max} characters.').replace('{count}', String(length)).replace('{max}', String(MAX_MESSAGE_LENGTH)));
+      return;
+    }
     if (selectedFile && !isEditing) {
       onFileUpload(selectedFile, messageInput);
       setSelectedFile(null);
@@ -118,7 +126,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     const validationError = file ? validateUploadFile(file) : null;
     if (file && validationError) {
       setErrorMessage(validationError === 'tooLarge'
-        ? translations.uploadFileTooLarge || 'File is too large. The maximum size is 10 MB.'
+        ? (translations.uploadFileTooLarge || 'File is too large. The maximum size for this type is {size} MB.').replace('{size}', String(uploadLimitMegabytes(file.name)))
         : translations.uploadUnsupportedType || 'This file type is not supported.');
       setSelectedFile(null);
       return false;
@@ -163,7 +171,29 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     return () => URL.revokeObjectURL(objectUrl);
   }, [selectedFile]);
 
+  const dismissError = useCallback(() => setErrorMessage(null), [setErrorMessage]);
+
+  const cancelKeepingFocus = () => {
+    const keepFocus = document.activeElement === inputRef.current;
+    onCancelReplyOrEdit();
+    if (keepFocus) requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
+  };
+
+  const hold = useHoldToRecord({
+    enabled: !canSend && !isUnchangedEdit && !isRecording && !isStarting && !disableVoice && !isDisabled,
+    isRecording,
+    isStarting,
+    start: () => { void handleStartRecording(); },
+    stop: () => stopRecording(),
+    discard: () => stopRecording({ discard: true }),
+  });
+
   const handleActionClick = () => {
+    if (!hold.takeClick()) return;
+    if (isUnchangedEdit) {
+      cancelKeepingFocus();
+      return;
+    }
     if (isRecording) {
       stopRecording();
     } else if (!isStarting && canSend) {
@@ -190,49 +220,30 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             message={(editingMessage || replyTo) as Message}
             mode={editingMessage ? 'edit' : 'reply'}
             translations={translations}
-            onCancel={onCancelReplyOrEdit}
+            onCancel={cancelKeepingFocus}
+            showCancel={!isUnchangedEdit}
           />
         )}
         {errorMessage && (
-          <div className="motion-error-in rounded-2xl bg-red-100 p-2 text-sm text-red-700 shadow-sm">
-            {errorMessage}
-            <button onClick={() => setErrorMessage(null)} className="motion-press ml-2 rounded px-1 text-red-700 hover:text-red-900">
-              Close
-            </button>
-          </div>
+          <ComposerNotice key={errorMessage} message={errorMessage} closeLabel={translations.close || 'Close'} onDismiss={dismissError} />
         )}
         {selectedFile && (
-          <div className="motion-reply-in flex justify-start">
-            <div className="flex max-w-[min(100%,24rem)] items-center gap-2 rounded-2xl border border-border/60 bg-background/55 px-2 py-2 shadow-lg shadow-foreground/10 backdrop-blur-2xl">
-              {selectedFilePreviewUrl ? (
-                <AuthenticatedImage src={selectedFilePreviewUrl} alt={selectedFile.name} className="h-11 w-11 rounded-xl object-cover" />
-              ) : (
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent">
-                  <FileIcon className="h-5 w-5" />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{selectedFile.name}</div>
-                <div className="text-xs text-muted-foreground">{Math.ceil(selectedFile.size / 1024)} KB</div>
-              </div>
-              <button type="button" onClick={clearSelectedFile} aria-label={translations.removeFile || 'Remove file'} className="motion-press shrink-0 rounded-full p-1 transition-colors hover:bg-accent">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+          <SelectedFileChip file={selectedFile} previewUrl={selectedFilePreviewUrl} removeLabel={translations.removeFile || 'Remove file'} onRemove={clearSelectedFile} />
         )}
         <div className="flex items-end gap-2">
           <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label={translations.attachFile || 'Attach file'}
-              title={isEditing ? translations.attachDisabledWhileEditing : undefined}
-              disabled={isDisabled || isRecording || isStarting || isEditing}
-              className="motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
+            {!isRecording && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label={translations.attachFile || 'Attach file'}
+                title={isEditing ? translations.attachDisabledWhileEditing : undefined}
+                disabled={isDisabled || isRecording || isStarting || isEditing}
+                className="motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+            )}
             <input
               type="file"
               ref={fileInputRef}
@@ -242,13 +253,16 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
               className="hidden"
             />
             {isRecording ? (
-              <div className="motion-reply-in flex min-h-10 flex-1 items-center justify-center rounded-full bg-red-50 px-3 text-sm text-red-600">
-                <span className="mr-2 h-2 w-2 rounded-full bg-red-500 motion-presence" />
-                <span className="font-semibold">{recordingDuration}s</span>
-                <button type="button" onClick={() => stopRecording({ discard: true })} aria-label="Cancel recording" className="motion-press ml-3 rounded-full p-1 text-red-600 transition-colors hover:bg-red-100">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+              <RecordingBar
+                seconds={recordingDuration}
+                stream={liveStream}
+                locked={hold.locked}
+                paused={isPaused}
+                pauseLabel={translations.pauseRecording}
+                resumeLabel={translations.resumeRecording}
+                onTogglePause={togglePause}
+                onDiscard={() => stopRecording({ discard: true })}
+              />
             ) : (
               <textarea
                 rows={1}
@@ -263,25 +277,15 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
               />
             )}
           </div>
-          <button
-            type="button"
+          <ComposerActionButton
+            mode={isRecording ? 'recording' : isUnchangedEdit ? 'cancel' : canSend ? 'send' : 'voice'}
+            disabled={isRecording || isUnchangedEdit ? false : isStarting || (canSend ? isDisabled : disableVoice || isDisabled)}
+            cancelLabel={translations.cancel || 'Cancel'}
             onClick={handleActionClick}
-            disabled={isRecording ? false : isStarting || (canSend ? isDisabled : disableVoice || isDisabled)}
-            aria-label={isRecording ? 'Stop recording and send' : canSend ? 'Send message' : 'Record voice message'}
-            className={`motion-press relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full transition-colors duration-200 ${
-              isRecording ? 'motion-presence bg-red-500 text-white' : canSend ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-accent text-accent-foreground hover:bg-accent/90'
-            } disabled:opacity-50`}
-          >
-            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${canSend && !isRecording ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-75 opacity-0'}`}>
-              <Send className="h-6 w-6" />
-            </span>
-            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${canSend || isRecording ? '-translate-y-2 scale-75 opacity-0' : 'translate-y-0 scale-100 opacity-100'}`}>
-              <Mic className="h-6 w-6" />
-            </span>
-            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${isRecording ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-75 opacity-0'}`}>
-              <Square className="h-5 w-5 fill-current" />
-            </span>
-          </button>
+            holding={hold.holding}
+            lift={hold.lift}
+            holdHandlers={hold.handlers}
+          />
         </div>
       </div>
     </div>

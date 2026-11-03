@@ -2,6 +2,7 @@ import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
+import { nextPlaybackSpeed, usePlaybackSpeed } from '../model/playbackSpeed';
 import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform, normalizeWaveform } from '../model/audioMessageHelpers';
 
 interface AudioMessageProps {
@@ -10,8 +11,14 @@ interface AudioMessageProps {
   duration?: number;
   waveform?: number[];
   isPlaying: boolean;
-  setPlayingMessageId: (id: EntityId | null) => void;
+  isMine?: boolean;
+  setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
 }
+
+
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 300;
+const DEFAULT_WIDTH = 240;
 
 const isUsableDuration = (value: number | undefined): value is number => !!value && Number.isFinite(value) && value > 0;
 
@@ -24,8 +31,11 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   duration: metadataDuration,
   waveform: metadataWaveform,
   isPlaying,
+  isMine = false,
   setPlayingMessageId,
 }) => {
+  const speed = usePlaybackSpeed();
+  const seekingRef = useRef(false);
   const [mediaRequested, setMediaRequested] = useState(false);
   const fileUrl = useAuthenticatedMedia(sourceFileUrl, undefined, mediaRequested) || '';
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -53,6 +63,12 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     if (fileUrl) audio.play().catch(() => setPlayingMessageId(null));
     setPlayingMessageId(messageId);
   };
+
+  useEffect(() => {
+    if (!isPlaying || loadError) return;
+    setHasStartedPlaying(true);
+    setMediaRequested(true);
+  }, [isPlaying, loadError]);
 
   useEffect(() => {
     if (fileUrl && isPlaying) void audioRef.current?.play().catch(() => setPlayingMessageId(null));
@@ -100,7 +116,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
       setIsDurationUnknown(false);
     };
     const handleEnded = () => {
-      setPlayingMessageId(null);
+      setPlayingMessageId(null, messageId);
       setCurrentTime(0);
       audio.currentTime = 0;
     };
@@ -116,7 +132,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [fileUrl, setPlayingMessageId]);
+  }, [fileUrl, messageId, setPlayingMessageId]);
 
   // Fallback only: without a stored waveform the file has to be downloaded and decoded,
   // so it is deferred until the user actually plays the message.
@@ -140,8 +156,24 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     };
   }, [fileUrl, hasMetadataWaveform, hasStartedPlaying]);
 
-  const seekAudio = (event: React.PointerEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!isPlaying || !audio) return undefined;
+    let frame = requestAnimationFrame(function tick() {
+      setCurrentTime(audio.currentTime || 0);
+      frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isPlaying, fileUrl]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.defaultPlaybackRate = speed;
+    audio.playbackRate = speed;
+  }, [speed, fileUrl]);
+
+  const seekTo = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!audioRef.current || !duration) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
@@ -150,9 +182,27 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     setCurrentTime(nextTime);
   };
 
+  const startSeek = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    seekingRef.current = true;
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    } catch (error) {
+      if (!(error instanceof DOMException)) throw error;
+    }
+    seekTo(event);
+  };
+
+  const width = duration > 0 ? Math.round(MIN_WIDTH + Math.min(1, Math.max(0, (duration - 2) / 28)) * (MAX_WIDTH - MIN_WIDTH)) : DEFAULT_WIDTH;
+
+  const shownTime = loadError ? '--:--' : isPlaying || currentTime > 0
+    ? formatAudioTime(currentTime)
+    : isDurationUnknown || !duration ? '--:--' : formatAudioTime(duration);
+
   return (
     <div
-      className="voice-message-player flex w-[220px] max-w-full min-w-0 items-center gap-2"
+      className="voice-message-player flex max-w-full min-w-0 items-center gap-2.5 py-0.5"
+      style={{ width }}
       onClick={stopVoicePlayerPropagation}
       onContextMenu={stopVoicePlayerPropagation}
     >
@@ -160,38 +210,66 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
         type="button"
         onClick={() => (isPlaying ? pauseMessage() : playMessage())}
         disabled={loadError}
-        className="motion-press flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background/20 transition-colors hover:bg-background/30 disabled:opacity-50"
+        aria-label={isPlaying ? 'Pause voice message' : 'Play voice message'}
+        className={`motion-press relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-sm transition-colors disabled:opacity-50 ${
+          isMine ? 'bg-primary-foreground text-primary hover:bg-primary-foreground/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+        }`}
       >
-        {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+        <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${isPlaying ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-50 opacity-0'}`}>
+          <Pause className="h-5 w-5 fill-current" />
+        </span>
+        <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${isPlaying ? 'rotate-90 scale-50 opacity-0' : 'rotate-0 scale-100 opacity-100'}`}>
+          <Play className="ml-0.5 h-5 w-5 fill-current" />
+        </span>
       </button>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <button
           type="button"
-          onPointerDown={seekAudio}
+          onPointerDown={startSeek}
+          onPointerMove={(event) => { if (seekingRef.current) seekTo(event); }}
+          onPointerUp={() => { seekingRef.current = false; }}
+          onPointerCancel={() => { seekingRef.current = false; }}
           onClick={stopVoicePlayerPropagation}
           disabled={loadError || !duration}
           aria-label="Seek voice message"
-          className="group flex h-9 w-full min-w-0 items-center gap-[2px] overflow-hidden rounded-full px-0.5 disabled:cursor-default"
+          className={`relative h-7 w-full min-w-0 touch-none overflow-hidden disabled:cursor-default ${isMine ? 'text-primary-foreground' : 'text-primary'}`}
         >
-          {waveform.map((barHeight, index) => {
-            const barProgress = ((index + 0.5) / waveform.length) * 100;
-            const isPlayed = barProgress <= progress;
-
-            return (
-              <span
-                key={`${messageId}-waveform-${index}`}
-                data-testid="waveform-bar"
-                className={`block flex-1 rounded-full transition-all duration-150 ${
-                  isPlayed ? 'bg-current opacity-95' : 'bg-current opacity-35'
-                } ${isAnalyzingWaveform && !isWaveformReady ? 'animate-pulse' : ''}`}
-                style={{ height: `${Math.round(4 + barHeight * 24)}px` }}
-              />
-            );
-          })}
+          {[false, true].map((played) => (
+            <span
+              key={played ? 'played' : 'rest'}
+              aria-hidden={played}
+              className={`absolute inset-0 flex items-center gap-[2px] ${played ? '' : 'opacity-35'}`}
+              style={played ? { clipPath: `inset(0 ${100 - progress}% 0 0)` } : undefined}
+            >
+              {waveform.map((barHeight, index) => (
+                <span
+                  key={`${messageId}-waveform-${index}`}
+                  data-testid={played ? undefined : 'waveform-bar'}
+                  className={`block min-w-[2px] flex-1 rounded-full bg-current ${isAnalyzingWaveform && !isWaveformReady ? 'animate-pulse' : ''}`}
+                  style={{ height: `${Math.round(3 + barHeight * 22)}px` }}
+                />
+              ))}
+            </span>
+          ))}
         </button>
-        <span className="text-[11px] leading-none opacity-75">
-          {loadError ? 'Ошибка' : isDurationUnknown ? `${formatAudioTime(currentTime)} / Неизвестно` : `${formatAudioTime(currentTime)} / ${formatAudioTime(duration)}`}
-        </span>
+        <div className="flex h-4 items-center gap-2 text-[11px] leading-none">
+          <span className="tabular-nums opacity-80">{shownTime}</span>
+          <button
+            type="button"
+            tabIndex={isPlaying ? 0 : -1}
+            aria-hidden={!isPlaying}
+            onClick={(event) => {
+              event.stopPropagation();
+              nextPlaybackSpeed();
+            }}
+            aria-label="Playback speed"
+            className={`motion-press flex h-4 items-center rounded-full px-1.5 text-[10px] font-semibold transition-opacity ${
+              isPlaying ? 'opacity-100' : 'pointer-events-none opacity-0'
+            } ${isMine ? 'bg-primary-foreground/20' : 'bg-primary/15 text-primary'}`}
+          >
+            {speed}×
+          </button>
+        </div>
       </div>
       <audio ref={audioRef} src={fileUrl} preload={isUsableDuration(metadataDuration) ? 'none' : 'metadata'} />
     </div>

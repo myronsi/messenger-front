@@ -1,6 +1,6 @@
 export const fileTypes = {
   image: "Image",
-  voiceMessage: "Voice Message",
+  voiceMessage: "Voice message",
   video: "Video",
   pdfDocument: "PDF Document",
   wordDocument: "Word Document",

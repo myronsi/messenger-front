@@ -1,6 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { MutableRefObject } from 'react';
 import { Message } from '@/entities/message';
+import { messageMenuPlacement } from '@/features/message-actions';
 import { DELETED_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 
@@ -9,6 +10,7 @@ interface ChatMenuPosition {
   y: number;
   messageId: EntityId;
   isMine: boolean;
+  openLeft?: boolean;
 }
 
 interface ChatReactionMenu {
@@ -68,48 +70,44 @@ export const useChatInteractions = ({
 
   const normalizeAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
+  const openMenusAt = (message: Message, point: { clientX: number; clientY: number }) => {
+    if (!messageRefs.current[message.id]) return;
+    const placement = messageMenuPlacement(point);
+    setReactionMenu({ message, ...placement.reaction });
+    setContextMenu({ ...placement.context, openLeft: placement.openLeft, messageId: message.id, isMine: isOwnMessage(message) });
+  };
+
+  const closeThen = (next?: () => void) => {
+    setIsClosing(true);
+    setTimeout(() => {
+      closeMenus();
+      setIsClosing(false);
+      next?.();
+    }, 200);
+  };
+
   const handleMessageClick = (event: React.MouseEvent, message: Message) => {
     if (window.innerWidth >= 768 && event.type !== 'contextmenu') return;
     event.preventDefault();
-    if (interlocutorDeleted) return;
-    if (contextMenu?.messageId === message.id && reactionMenu?.message.id === message.id) {
-      setIsClosing(true);
-      setTimeout(() => {
-        closeMenus();
-        setIsClosing(false);
-      }, 200);
-    } else if (contextMenu || reactionMenu) {
-      setIsClosing(true);
-      setTimeout(() => {
-        closeMenus();
-        setIsClosing(false);
-        if (!messageRefs.current[message.id]) return;
-        setReactionMenu({ message, x: event.clientX, y: event.clientY - 45 });
-        setContextMenu({ x: event.clientX, y: event.clientY, messageId: message.id, isMine: isOwnMessage(message) });
-      }, 200);
-    } else if (messageRefs.current[message.id]) {
-      setReactionMenu({ message, x: event.clientX, y: event.clientY - 45 });
-      setContextMenu({ x: event.clientX, y: event.clientY, messageId: message.id, isMine: isOwnMessage(message) });
-    }
     event.stopPropagation();
+    if (interlocutorDeleted) return;
+    const point = { clientX: event.clientX, clientY: event.clientY };
+    if (contextMenu || reactionMenu) {
+      const sameMessage = contextMenu?.messageId === message.id;
+      closeThen(event.type === 'contextmenu' && !sameMessage ? () => openMenusAt(message, point) : undefined);
+      return;
+    }
+    openMenusAt(message, point);
   };
 
   const onOpenReactionMenu = (message: Message, event: React.MouseEvent) => {
-    if (reactionMenu?.message.id === message.id && contextMenu?.messageId === message.id) {
-      setIsClosing(true);
-      setTimeout(() => closeMenus(), 200);
-    } else if (contextMenu || reactionMenu) {
-      setIsClosing(true);
-      setTimeout(() => {
-        closeMenus();
-        if (!messageRefs.current[message.id]) return;
-        setReactionMenu({ message, x: event.clientX, y: event.clientY - 35 });
-        setContextMenu({ x: event.clientX, y: event.clientY, messageId: message.id, isMine: isOwnMessage(message) });
-      }, 200);
-    } else if (messageRefs.current[message.id]) {
-      setReactionMenu({ message, x: event.clientX, y: event.clientY - 35 });
-      setContextMenu({ x: event.clientX, y: event.clientY, messageId: message.id, isMine: isOwnMessage(message) });
+    const point = { clientX: event.clientX, clientY: event.clientY };
+    if (contextMenu || reactionMenu) {
+      const sameMessage = contextMenu?.messageId === message.id;
+      closeThen(sameMessage ? undefined : () => openMenusAt(message, point));
+      return;
     }
+    openMenusAt(message, point);
   };
 
   const onOpenProfile = () => {

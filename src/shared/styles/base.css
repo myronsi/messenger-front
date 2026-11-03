@@ -125,6 +125,23 @@
     animation: errorIn 180ms ease-out both;
   }
 
+  .motion-wave-shift {
+    animation: waveShift 90ms linear both;
+  }
+
+  .motion-wave-bar {
+    animation: waveBar 140ms ease-out both;
+    transform-origin: center;
+  }
+
+  .motion-collapse-in {
+    animation: collapseIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .motion-collapse-out {
+    animation: collapseOut 220ms cubic-bezier(0.4, 0, 0.6, 1) both;
+  }
+
   .profile-panel-slide-in-right {
     animation: profilePanelSlideInRight 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     will-change: transform, opacity;

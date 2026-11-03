@@ -156,6 +156,7 @@ export interface ContextMenuState {
   y: number;
   messageId: EntityId;
   isMine: boolean;
+  openLeft?: boolean;
   isClosing?: boolean;
 }
 
