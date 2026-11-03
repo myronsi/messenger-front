@@ -90,12 +90,12 @@ async function showChatNotification(data) {
     });
     return;
   }
-  const preview = data.preview === true;
+  const preview = data.preview === true && !(before.preview === false && !newerId(messageId, String(before.newest_id || '')));
   const keepLines = preview && before.preview === true;
   const count = repeated ? Number(before.count) || 1 : (Number(before.count) || 0) + 1;
-  const from = String(data.title || 'Messenger');
+  const from = preview ? String(data.title || 'Messenger') : 'Messenger';
   const sender = preview && /^\d+$/.test(String(data.sender_id)) ? `id:${data.sender_id}` : from;
-  const line = { from, sender, text: String(data.body || 'New message') };
+  const line = { from, sender, text: preview ? String(data.body || 'New message') : 'New message' };
   const earlier = keepLines && Array.isArray(before.lines) ? before.lines.map((entry) => stackedLine(entry, String(before.from || from))) : [];
   const lines = repeated ? earlier : [...earlier, line].slice(-MAX_LINES);
   const shown = lines.length ? lines : [line];

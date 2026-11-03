@@ -79,7 +79,7 @@ describe('background notification worker', () => {
     expect(options.body).toBe('two\nthree\nfour\nfive\nsix');
     expect(options.icon).toBe('https://chat.test/api/v2/notifications/avatar/a.1.2.9.sig');
     expect(options.actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
-    await w.push({ chat_id: '8', title: 'Bob', body: 'hi', message_id: '200' });
+    await w.push({ chat_id: '8', title: 'Bob', body: 'hi', message_id: '200', preview: true });
     expect(w.registration.showNotification.mock.lastCall).toEqual(['Bob', expect.objectContaining({ body: 'hi', icon: '/pwa-192x192.png' })]);
   });
   it('counts a repeated delivery once and keeps overlapping pushes of one chat', async () => {
@@ -137,7 +137,7 @@ describe('background notification worker', () => {
     await click;
     expect(w.registration.showNotification).not.toHaveBeenCalled();
     await w.account('1', 'https://chat.test', { api: '/api/v2' });
-    await w.push({ message_id: '2', title: 'Mai', body: 'newer' });
+    await w.push({ message_id: '2', title: 'Mai', body: 'newer', preview: true });
     w.fetch.mockRejectedValueOnce(new TypeError('offline'));
     await w.dispatch('notificationclick', { notification, action: 'read' });
     expect(w.registration.showNotification).toHaveBeenCalledTimes(1);
@@ -203,6 +203,14 @@ describe('background notification worker', () => {
     expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 50 });
     await w.push({ message_id: '151' });
     expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 51 });
+  });
+  it('keeps a late older preview push private after a newer private one', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false });
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true, avatar_token: 'a.1' });
+    const [title, options] = w.registration.showNotification.mock.lastCall!;
+    expect(title).toBe('Messenger (2)');
+    expect(options).toMatchObject({ body: 'New message', icon: '/pwa-192x192.png' });
   });
   it('keeps two people with the same name apart', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
