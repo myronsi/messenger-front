@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --ignore-scripts
       - run: npm run check:contract
       - name: Build for the staging API
         run: npm run build
@@ -43,7 +43,7 @@ jobs:
           SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
-          test -n "$SSH_KEY" && test -n "$SSH_HOST" && test -n "$SSH_USER" && test -n "$SSH_KNOWN_HOSTS"
+          [[ -n "$SSH_KEY" && -n "$SSH_HOST" && -n "$SSH_USER" && -n "$SSH_KNOWN_HOSTS" ]]
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/staging_deploy
           chmod 600 ~/.ssh/staging_deploy

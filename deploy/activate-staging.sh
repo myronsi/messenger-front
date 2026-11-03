@@ -8,7 +8,7 @@ root="$1" commit="$2" origin="$3"
 cd "$root"
 release="releases/sha-$commit"
 tar -xzf "$release/dist.tar.gz" -C "$release"
-test -s "$release/index.html"
+[[ -s "$release/index.html" ]]
 grep -Fq "\"commit\":\"${commit:0:7}\"" "$release/version.json"
 rm "$release/dist.tar.gz"
 previous="$(readlink current || true)"
@@ -23,10 +23,12 @@ for attempt in $(seq 1 10); do
   fi
   sleep 2
 done
-if [ "$ready" != true ]; then
-  if [ -n "$previous" ]; then
+if [[ "$ready" != true ]]; then
+  if [[ -n "$previous" ]]; then
     ln -sfn "$previous" current.tmp
     mv -T current.tmp current
+  else
+    rm current
   fi
   echo 'Staging verification failed; restored the previous frontend.' >&2
   exit 1
