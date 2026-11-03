@@ -1,8 +1,9 @@
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Message } from '@/entities/message';
+import { messageMenuPlacement } from '@/features/message-actions';
 
-type ContextMenuState = { x: number; y: number; messageId: EntityId; isMine: boolean; isClosing?: boolean };
+type ContextMenuState = { x: number; y: number; messageId: EntityId; isMine: boolean; openLeft?: boolean; isClosing?: boolean };
 type ReactionMenuState = { message: Message; x: number; y: number; isClosing?: boolean };
 
 interface UseGroupMessageMenusArgs {
@@ -27,9 +28,10 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
     setIsClosing(false);
   }, []);
 
-  const openMenus = useCallback((message: Message, event: React.MouseEvent) => {
-    setReactionMenu({ message, x: event.clientX, y: event.clientY - 45 });
-    setContextMenu({ x: event.clientX, y: event.clientY, messageId: message.id, isMine: isOwnMessage(message) });
+  const openMenus = useCallback((message: Message, event: { clientX: number; clientY: number }) => {
+    const placement = messageMenuPlacement(event);
+    setReactionMenu({ message, ...placement.reaction });
+    setContextMenu({ ...placement.context, openLeft: placement.openLeft, messageId: message.id, isMine: isOwnMessage(message) });
   }, [isOwnMessage]);
 
   const handleMessageClick = useCallback((event: React.MouseEvent, message: Message) => {
@@ -42,10 +44,11 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
         return;
       }
       if (contextMenu || reactionMenu) {
+        const point = { clientX: event.clientX, clientY: event.clientY };
         setIsClosing(true);
         setTimeout(() => {
           closeMenus();
-          openMenus(message, event);
+          if (event.type === 'contextmenu') openMenus(message, point);
         }, 200);
         return;
       }

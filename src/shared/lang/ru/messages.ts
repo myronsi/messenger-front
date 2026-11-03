@@ -17,7 +17,11 @@ export const messages = {
   editing: "Редактирование",
   edited: "изменено",
   uploadUnsupportedType: "Этот тип файла не поддерживается.",
-  uploadFileTooLarge: "Файл слишком большой. Максимальный размер — 10 МБ.",
+  uploadFileTooLarge: "Файл слишком большой. Максимальный размер для этого типа — {size} МБ.",
   deleteForMeShort: "Для меня",
+  replyUnavailable: "Исходное сообщение",
+  pauseRecording: "Приостановить запись",
+  resumeRecording: "Продолжить запись",
+  messageTooLong: "Сообщение слишком длинное: {count} из {max} символов.",
   deleteForEveryoneShort: "Для всех",
 };

@@ -29,7 +29,7 @@ export const docs = {
         id: "messages",
         title: "Work with messages",
         steps: [
-          "Attach photos, voice messages and files (up to 10 MB) next to the message field.",
+          "Attach photos, voice messages and files (up to 10 MB, videos up to 100 MB) next to the message field.",
           "Right-click a message (or long-press on a phone) to reply, edit, copy, forward, react or delete it.",
           "Delete a message for yourself only or for everyone in the chat.",
           "Unsent text is kept as a draft for each chat while the tab is open.",

@@ -221,7 +221,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     if (history) {
       const after = url.searchParams.has('after');
       return jsonResponse({
-        history: result.items.filter((item: S['Message']) => !item.is_deleted).map(messageModel), has_more: !!result.next_cursor,
+        history: result.items.map(messageModel), has_more: !!result.next_cursor,
         has_more_before: !!(after ? result.prev_cursor : result.next_cursor),
         has_more_after: !!(after ? result.next_cursor : result.prev_cursor),
         next_before_id: after ? result.prev_cursor : result.next_cursor,

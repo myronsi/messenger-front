@@ -62,7 +62,10 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
             if (previewUrl !== fileUrl) setThumbnailFailed(true);
             else setIsLoaded(true);
           }}
-          onClick={() => setIsExpanded(true)}
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsExpanded(true);
+          }}
           className={`block h-full w-full select-none rounded-2xl cursor-pointer object-cover transition-opacity duration-150 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
           style={{
             userSelect: 'none',
@@ -71,14 +74,14 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
           draggable={false}
         />
         {onReply && (
-          <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-black/30 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:hidden">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onReply();
               }}
               aria-label={translations.replyToMessage || 'Reply'}
-              className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors backdrop-blur-sm"
+              className="pointer-events-auto p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors backdrop-blur-sm"
             >
               <MessageSquare className="w-5 h-5" aria-hidden="true" />
             </button>

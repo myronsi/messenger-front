@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import type { MutableRefObject } from 'react';
+import { useRef, type MutableRefObject } from 'react';
 import type { FileMessageContent, Message } from '@/entities/message';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
@@ -70,6 +70,9 @@ export const useMessageSender = ({
       : item));
   };
 
+  const replyToRef = useRef(replyTo);
+  replyToRef.current = replyTo;
+
   const createOptimisticUploadMessage = (
     file: Blob,
     fileName: string,
@@ -77,6 +80,8 @@ export const useMessageSender = ({
     caption = ''
   ) => {
     const tempId = -Date.now();
+    const reply = replyToRef.current;
+    if (reply) setReplyTo(null);
     const objectUrl = URL.createObjectURL(file);
     const content: FileMessageContent = {
       file_url: objectUrl,
@@ -98,7 +103,7 @@ export const useMessageSender = ({
       content,
       timestamp: new Date().toISOString(),
       avatar_url: DEFAULT_AVATAR,
-      reply_to: null,
+      reply_to: reply?.id || null,
       is_deleted: false,
       type: 'file',
       reactions: [],
@@ -211,11 +216,13 @@ export const useMessageSender = ({
 
   const handleFileUpload = async (file: File, caption = '') => {
     if (!file) return;
+    const replyToId = replyToRef.current?.id;
     const optimisticMessageId = createOptimisticUploadMessage(file, file.name, undefined, caption);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chat_id', chatId.toString());
     formData.append('client_temp_id', String(optimisticMessageId));
+    if (replyToId != null) formData.append('reply_to', String(replyToId));
     if (caption.trim()) formData.append('caption', caption.trim());
     try {
       await uploadWithProgress({

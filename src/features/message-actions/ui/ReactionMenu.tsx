@@ -13,6 +13,8 @@ interface ReactionMenuProps {
   contextMenuRef?: React.RefObject<HTMLDivElement | null>;
 }
 
+const EDGE = 8;
+
 const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
   ({ reactionMenu, wsRef, userId, setReactionMenu, onClose, contextMenu, setContextMenu, contextMenuRef }, ref) => {
     const [adjustedX, setAdjustedX] = useState(reactionMenu.x);
@@ -44,26 +46,16 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
       }
     }, [contextMenu, reactionMenu, setReactionMenu, onClose]);
 
+    const openLeft = !!contextMenu?.openLeft;
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
         const menu = ref.current;
-        const menuWidth = menu.clientWidth;
-        const menuHeight = menu.clientHeight;
-
-        let newX = reactionMenu.x;
-        let newY = reactionMenu.y;
-
-        if (newX + menuWidth > window.innerWidth) {
-          newX = Math.max(0, newX - menuWidth);
-        }
-        if (newY + menuHeight > window.innerHeight) {
-          newY = Math.max(0, newY - menuHeight);
-        }
-
-        setAdjustedX(newX);
-        setAdjustedY(newY);
+        const left = openLeft ? reactionMenu.x - menu.offsetWidth : reactionMenu.x;
+        const top = reactionMenu.y + menu.offsetHeight > window.innerHeight - EDGE ? reactionMenu.y - menu.offsetHeight : reactionMenu.y;
+        setAdjustedX(Math.max(EDGE, Math.min(left, window.innerWidth - menu.offsetWidth - EDGE)));
+        setAdjustedY(Math.max(EDGE, top));
       }
-    }, [reactionMenu.x, reactionMenu.y, ref]);
+    }, [reactionMenu.x, reactionMenu.y, openLeft, ref]);
 
     useEffect(() => {
       if (!reactionMenu.isClosing) {

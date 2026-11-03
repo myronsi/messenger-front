@@ -19,7 +19,7 @@ export interface GroupComponentProps {
 export type GroupTranslations = Record<string, string> & { leaveGroupConsequences?: string[]; deleteGroupConsequences?: string[] };
 
 type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
-type ContextMenuState = { x: number; y: number; messageId: EntityId; isMine: boolean; isClosing?: boolean } | null;
+type ContextMenuState = { x: number; y: number; messageId: EntityId; isMine: boolean; openLeft?: boolean; isClosing?: boolean } | null;
 type ReactionMenuState = { message: Message; x: number; y: number; isClosing?: boolean } | null;
 type ReactionDetailsState = { message: Message; reaction: string; reactions: ReactionInfo[] } | null;
 

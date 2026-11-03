@@ -1,4 +1,7 @@
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MB = 1024 * 1024;
+const VIDEO_EXTENSIONS = ['mp4', 'mov'];
+const VIDEO_LIMIT_BYTES = 100 * MB;
+const FILE_LIMIT_BYTES = 10 * MB;
 
 // Mirrors the extensions the backend accepts for the file picker (messenger-back /messages/upload).
 const ALLOWED_EXTENSIONS = [
@@ -17,8 +20,14 @@ const getExtension = (fileName: string) => {
   return dot < 0 ? '' : fileName.slice(dot + 1).toLowerCase();
 };
 
+export const uploadLimitBytes = (fileName: string) => {
+  return VIDEO_EXTENSIONS.includes(getExtension(fileName)) ? VIDEO_LIMIT_BYTES : FILE_LIMIT_BYTES;
+};
+
+export const uploadLimitMegabytes = (fileName: string) => uploadLimitBytes(fileName) / MB;
+
 export const validateUploadFile = (file: Pick<File, 'name' | 'size'>): UploadValidationError | null => {
   if (!(ALLOWED_EXTENSIONS as readonly string[]).includes(getExtension(file.name))) return 'unsupportedType';
-  if (file.size > MAX_UPLOAD_BYTES) return 'tooLarge';
+  if (file.size > uploadLimitBytes(file.name)) return 'tooLarge';
   return null;
 };

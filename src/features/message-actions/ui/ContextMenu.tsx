@@ -148,9 +148,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         const text = message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content);
         await copyToClipboard(text);
       }
-      setContextMenu({ ...contextMenu, isClosing: true });
-      setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
-      setTimeout(() => onClose(), 1500);
+      closeMenu();
     };
 
     const handleReply = () => {
@@ -182,6 +180,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         x={contextMenu.x}
         y={contextMenu.y}
         isMine={contextMenu.isMine}
+        openLeft={contextMenu.openLeft}
         {...(canEdit && { onEdit: handleEdit })}
         onDeleteForMe={() => void handleDeleteForMe()}
         onDeleteForEveryone={canDelete ? handleDeleteForEveryone : undefined}

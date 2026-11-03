@@ -24,14 +24,15 @@ const editing: Message = { id: '7', sender: 'me', sender_id: '1', content: 'Old 
 const renderInput = (messageInput = 'Hello', editingMessage: Message | null = null) => {
   const onSendMessage = vi.fn();
   const onFileUpload = vi.fn();
+  const onCancel = vi.fn();
   const element = (editingValue: Message | null) => (
     <MessageInput
       chatId="3" token="" messageInput={messageInput} setMessageInput={vi.fn()} replyTo={null} editingMessage={editingValue}
-      onSendMessage={onSendMessage} onFileUpload={onFileUpload} onCancelReplyOrEdit={vi.fn()}
+      onSendMessage={onSendMessage} onFileUpload={onFileUpload} onCancelReplyOrEdit={onCancel}
     />
   );
   const view = render(element(editingMessage));
-  return { onSendMessage, onFileUpload, field: screen.getByTestId('message-input-field'), startEditing: () => view.rerender(element(editing)) };
+  return { onSendMessage, onFileUpload, onCancel, field: screen.getByTestId('message-input-field'), startEditing: () => view.rerender(element(editing)) };
 };
 
 describe('MessageInput', () => {
@@ -74,7 +75,23 @@ describe('MessageInput', () => {
     const { onSendMessage } = renderInput('', editing);
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
     expect(onSendMessage).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('button', { name: 'Record voice message' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Hold to record a voice message' })).not.toBeInTheDocument();
+  });
+
+  it('warns instead of sending a message over the length limit', () => {
+    const { onSendMessage, field } = renderInput('x'.repeat(4097));
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(onSendMessage).not.toHaveBeenCalled();
+    expect(setErrorMessage).toHaveBeenCalledWith(expect.stringContaining('4097 of 4096'));
+  });
+
+  it('offers to cancel instead of sending while an edit is unchanged', () => {
+    const { onSendMessage, onCancel, field } = renderInput('Old text', editing);
+    expect(screen.queryByRole('button', { name: 'Send message' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(onCancel).toHaveBeenCalledTimes(2);
+    expect(onSendMessage).not.toHaveBeenCalled();
   });
 
   it('takes a file dropped anywhere on the chat', () => {

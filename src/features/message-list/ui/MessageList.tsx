@@ -3,6 +3,8 @@ import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
+import { isIgnoredTap } from '../model/tapFilter';
+import { nextVoiceMessageId } from '../model/nextVoiceMessage';
 import { MessageItem } from '@/entities/message';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { Message, ReactionInfo } from '@/entities/message';
@@ -53,7 +55,7 @@ const COMPOSER_GAP = 16;
 
 const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) => {
   const {
-    messages,
+    messages: allMessages,
     username,
     userId,
     interlocutorDeleted,
@@ -106,6 +108,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const latchedBoundaryRef = useRef<{ key: string | number | undefined; id: EntityId | null }>({ key: scrollToBottomKey, id: null });
   if (latchedBoundaryRef.current.key !== scrollToBottomKey) latchedBoundaryRef.current = { key: scrollToBottomKey, id: null };
 
+  const messages = useMemo(() => allMessages.filter((message) => !message.is_deleted || message.is_deleting), [allMessages]);
   // Latched per chat so the separator doesn't jump as messages become read.
   const visibleUnreadBoundaryId = (() => {
     if (latchedBoundaryRef.current.id !== null) return latchedBoundaryRef.current.id;
@@ -148,7 +151,10 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     onMarkMessagesRead, enabled: isPositioned,
   });
 
-  const [playingMessageId, setPlayingMessageId] = useState<EntityId | null>(null);
+  const [playingMessageId, setPlayingMessageIdState] = useState<EntityId | null>(null);
+  const setPlayingMessageId = useStableCallback((id: EntityId | null, endedId?: EntityId) => {
+    setPlayingMessageIdState(id === null && endedId != null ? nextVoiceMessageId(messages, endedId) : id);
+  });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -173,23 +179,21 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const stableOnResendMessage = useStableCallback((message: Message) => onResendMessage?.(message));
   const hasResendHandler = !!onResendMessage;
 
-  const messagesById = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
+  const messagesById = useMemo(() => new Map(allMessages.map((message) => [message.id, message])), [allMessages]);
+
+  const lastScrollAtRef = useRef(0);
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return undefined;
+    const onScroll = () => { lastScrollAtRef.current = Date.now(); };
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+  }, [chatContainerRef]);
 
   const handleMessageClick = useStableCallback((e: React.MouseEvent, message: Message) => {
     e.preventDefault();
-    if (message.reply_to && e.type === 'click' && !interlocutorDeleted) {
-      onReplyClick(message.reply_to);
-      const originalMessage = messageRefs.current[message.reply_to];
-      if (originalMessage) {
-        originalMessage.scrollIntoView({ behavior: 'smooth' });
-        setTempHighlightedMessageId(message.reply_to);
-        setTimeout(() => {
-          setTempHighlightedMessageId(null);
-        }, 2000);
-      }
-    } else {
-      onMessageClick(e, message);
-    }
+    if (e.type === 'click' && isIgnoredTap(e, lastScrollAtRef.current)) return;
+    onMessageClick(e, message);
   });
 
   return (

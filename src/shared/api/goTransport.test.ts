@@ -103,12 +103,12 @@ describe('Go migration transport', () => {
     expect((await response.json()).photos.map((photo: {id: string}) => photo.id)).toEqual([id, '9007199254740994']);
   });
 
-  it('drops messages deleted for everyone from chat history', async () => {
+  it('keeps messages deleted for everyone as marked tombstones so replies can name them', async () => {
     const message = { id, chat_id: '1', sender: user, content: 'hi', attachment: null, type: 'text',
       reply_to: null, reactions: [], read_by: [], created_at: '2026-01-01T00:00:00Z', edited_at: null, is_deleted: false };
     const native = vi.fn().mockResolvedValue(json({ items: [message, { ...message, id: '9', content: null, is_deleted: true }], next_cursor: null }));
     const response = await withGoTransport(native, base)(`${base}/messages/history/1`);
-    expect((await response.json()).history.map((item: { id: string }) => item.id)).toEqual([id]);
+    expect((await response.json()).history.map((item: { id: string; is_deleted: boolean }) => [item.id, item.is_deleted])).toEqual([[id, false], ['9', true]]);
   });
 
   it('sends the current password when starting two-factor setup', async () => {

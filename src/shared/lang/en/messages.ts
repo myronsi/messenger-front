@@ -16,8 +16,12 @@ export const messages = {
   replyTo: "Reply to",
   editing: "Editing",
   edited: "edited",
-  uploadFileTooLarge: "File is too large. The maximum size is 10 MB.",
+  uploadFileTooLarge: "File is too large. The maximum size for this type is {size} MB.",
   uploadUnsupportedType: "This file type is not supported.",
   deleteForMeShort: "For me",
+  replyUnavailable: "Original message",
+  pauseRecording: "Pause recording",
+  resumeRecording: "Resume recording",
+  messageTooLong: "Message is too long: {count} of {max} characters.",
   deleteForEveryoneShort: "For everyone",
 };

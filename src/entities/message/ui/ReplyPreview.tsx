@@ -8,65 +8,57 @@ import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 interface ReplyPreviewProps {
   replyMessage: Message | undefined;
   isMine: boolean;
+  isImage?: boolean;
   onClick?: () => void;
 }
 
-const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, onClick }) => {
+const IMAGE_NAME = /\.(jpg|jpeg|png|gif|webp)$/i;
+
+const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isImage = false, onClick }) => {
   const { translations } = useLanguage();
   const { getFileTypeConfig } = useFileTypes();
 
-  const getReplyContent = (message: Message | undefined) => {
-    if (!message) return { text: translations.messageDeleted };
-
+  const describe = (message: Message | undefined): { text: string; imageUrl?: string; muted?: boolean } => {
+    if (!message) return { text: translations.replyUnavailable, muted: true };
+    if (message.is_deleted) return { text: translations.messageDeleted, muted: true };
     if (message.type === 'file' && typeof message.content !== 'string') {
-      const fileName = message.content.file_name || '';
-      const config = getFileTypeConfig(fileName);
-
-      if (message.content.file_type === 'voice') {
-        return { text: translations.voiceMessage };
-      }
-
-      // Check if it's an image
-      if (message.content.file_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
-        return {
-          text: 'Image',
-          imageUrl: resolveMediaUrl(message.content.thumbnail_url || message.content.file_url),
-          isImage: true
-        };
-      }
-
-      if (config) {
-        return { text: config.replyText };
-      }
-      return { text: fileName || 'File' };
+      const { file_name: fileName = '', file_type: fileType, caption, thumbnail_url: thumbnail, file_url: url } = message.content;
+      if (fileType === 'voice') return { text: translations.voiceMessage };
+      if (url && IMAGE_NAME.test(fileName)) return { text: caption || '', imageUrl: resolveMediaUrl(thumbnail || url) };
+      return { text: caption || getFileTypeConfig(fileName)?.replyText || fileName || 'File' };
     }
     return { text: typeof message.content === 'string' ? message.content : message.content.file_name || 'File' };
   };
 
-  const content = getReplyContent(replyMessage);
+  const content = describe(replyMessage);
+  const sender = replyMessage?.sender || '';
 
   return (
-    <div
-      className={`mb-2 p-2 rounded text-sm ${
-        isMine ? 'bg-primary-darker' : 'bg-accent-darker'
-      } cursor-pointer hover:bg-opacity-70 transition-all flex items-center gap-2`}
-      onClick={onClick}
+    <button
+      type="button"
+      data-testid="reply-preview"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.();
+      }}
+      className={`flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border-l-[3px] py-1 pl-2 pr-2.5 text-left transition-colors ${
+        isImage ? 'mx-1.5 mb-1.5 mt-1.5 w-[calc(100%-0.75rem)] max-w-[calc(100%-0.75rem)]' : 'mb-1.5 w-full max-w-full'
+      } ${isMine ? 'border-white/80 bg-white/15 hover:bg-white/20' : 'border-primary bg-primary/10 hover:bg-primary/15'}`}
     >
-      {content.isImage && content.imageUrl && (
-        <div className="w-8 h-8 flex-shrink-0">
-          <AuthenticatedImage
-            src={content.imageUrl}
-            alt="Reply preview"
-            className="w-full h-full object-cover rounded"
-            draggable={false}
-          />
-        </div>
+      {content.imageUrl && (
+        <AuthenticatedImage src={content.imageUrl} alt="" className="h-9 w-9 shrink-0 rounded object-cover" draggable={false} />
       )}
-      <div>
-        <div className="text-gray-400 text-xs">Replying to:</div>
-        {content.text}
-      </div>
-    </div>
+      <span className="min-w-0 flex-1">
+        {sender && (
+          <span className={`block truncate text-xs font-semibold ${isMine ? 'text-primary-foreground' : 'text-primary'}`}>{sender}</span>
+        )}
+        {(content.text || !sender) && (
+          <span className={`block truncate text-[13px] leading-snug ${content.muted ? 'italic opacity-70' : ''} ${isMine ? 'text-primary-foreground/85' : 'text-foreground/80'}`}>
+            {content.text || translations.image}
+          </span>
+        )}
+      </span>
+    </button>
   );
 };
 

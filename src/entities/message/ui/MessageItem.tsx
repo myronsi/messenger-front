@@ -73,7 +73,7 @@ interface MessageItemProps {
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   renderMessageContent: (message: Message) => React.ReactNode;
   isAudioPlaying: boolean;
-  setPlayingMessageId: (id: EntityId | null) => void;
+  setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
   onMessageClick: (event: React.MouseEvent, message: Message) => void;
   onClick: (event: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
@@ -172,8 +172,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }}
         onClick={(event) => {
           event.preventDefault();
-          if (message.reply_to && event.type === 'click' && !interlocutorDeleted) handleReply();
-          else onClick(event, message);
+          onClick(event, message);
         }}
         onContextMenu={(event) => onMessageClick(event, message)}
       >
@@ -205,7 +204,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
               {message.forwarded_from && (
                 <ForwardedLabel forwardedFrom={message.forwarded_from} translations={translations} isMine={isMine} isImage={isImage} />
               )}
-              {message.reply_to && <ReplyPreview replyMessage={replyMessage} isMine={isMine} onClick={handleReply} />}
+              {message.reply_to && (
+                <ReplyPreview replyMessage={replyMessage} isMine={isMine} isImage={isImage} onClick={interlocutorDeleted ? undefined : handleReply} />
+              )}
               <div className="relative">
                 {message.is_deleting && !reducedMotion && <DissolveParticles />}
                 <MessageContent
