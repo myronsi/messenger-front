@@ -1,10 +1,11 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeft, ChevronRight, Download, ImageOff, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, ImageOff, Trash2, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { fetchMedia } from '@/shared/api/fetchMedia';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
+import { Button } from '@/shared/ui/button';
 
 const KEY_PAN_STEP = 80;
 
@@ -12,6 +13,7 @@ export interface ViewerImage {
   url: string;
   name: string;
   downloadName?: string;
+  onDelete?: () => Promise<void>;
 }
 
 interface ImageViewerProps {
@@ -62,6 +64,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const [index, setIndex] = useState(() => Math.min(Math.max(initialIndex, 0), Math.max(images.length - 1, 0)));
   const [brokenUrls, setBrokenUrls] = useState<Record<string, true>>({});
   const [isDownloading, setIsDownloading] = useState(false);
+  const [deleting, setDeleting] = useState<{ url: string; busy: boolean; failed: boolean } | null>(null);
   const isGallery = images.length > 1;
   const canGoBack = index > 0;
   const canGoForward = index < images.length - 1;
@@ -124,6 +127,18 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     }
   };
 
+  const confirmDelete = async () => {
+    if (!image.onDelete) return;
+    setDeleting({ url: image.url, busy: true, failed: false });
+    try {
+      await image.onDelete();
+      setDeleting(null);
+    } catch {
+      setDeleting({ url: image.url, busy: false, failed: true });
+    }
+  };
+  const deleteState = deleting?.url === image.url ? deleting : null;
+
   const buttonClass = 'p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm';
   const sideButtonClass = 'absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
   const edgeResistance = (!canGoBack && swipeX > 0) || (!canGoForward && swipeX < 0) ? 0.3 : 1;
@@ -180,10 +195,28 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                   <Download className={`w-5 h-5 ${isDownloading ? 'animate-pulse' : ''}`} />
                 </button>
               )}
+              {image.onDelete && (
+                <button type="button" onClick={() => setDeleting({ url: image.url, busy: false, failed: false })} aria-label={translations.deletePhoto} className={buttonClass}>
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
               <button type="button" onClick={onClose} aria-label={translations.close || 'Close'} className={buttonClass}>
                 <X className="w-5 h-5" />
               </button>
             </div>
+            {deleteState && (
+              <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/40 p-4" onClick={() => !deleteState.busy && setDeleting(null)}>
+                <div role="alertdialog" aria-label={translations.deletePhotoConfirm} onClick={stopPropagation}
+                  className="motion-panel-in w-full max-w-sm rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg">
+                  <h3 className="mb-2 text-lg font-semibold leading-none tracking-tight">{translations.deletePhotoConfirm}</h3>
+                  {deleteState.failed && <p className="text-sm text-destructive">{translations.photoDeleteFailed}</p>}
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setDeleting(null)}>{translations.cancel}</Button>
+                    <Button type="button" variant="destructive" disabled={deleteState.busy} onClick={() => void confirmDelete()}>{translations.delete}</Button>
+                  </div>
+                </div>
+              </div>
+            )}
             {isGallery && (
               <>
                 <button type="button" disabled={!canGoBack} onClick={() => go(-1)} aria-label={translations.previousImage} className={`${sideButtonClass} left-2 sm:left-4`}>

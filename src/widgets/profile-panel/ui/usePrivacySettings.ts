@@ -9,32 +9,41 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 type PrivacySettingKey = Exclude<keyof PrivacySettings, 'privacy_exceptions'>;
 type PrivacyCandidate = Partial<Pick<User, 'id' | 'display_name' | 'avatar_url'>> & { username: string };
 type StatusMessage = { type: 'success' | 'error'; text: string };
+type ExceptionDraftKey = `${PrivacyExceptionKey}:${PrivacyExceptionEffect}`;
 
 export const usePrivacySettings = (isActive: boolean) => {
   const { translations } = useLanguage();
   const { data: currentUser } = useGetCurrentUserQuery(undefined, { skip: !isActive });
   const currentUsername = currentUser?.username || '';
-  const { data: privacySettings, isLoading: isLoadingPrivacy } = useGetPrivacySettingsQuery(undefined, { skip: !isActive });
+  const { data: savedSettings, isLoading: isLoadingPrivacy } = useGetPrivacySettingsQuery(undefined, { skip: !isActive });
   const { data: dmChatsData } = useGetOneOnOneChatsQuery(currentUsername, { skip: !isActive || !currentUsername });
   const [updatePrivacySettings, { isLoading: isUpdatingPrivacy }] = useUpdatePrivacySettingsMutation();
   const [updatePrivacyExceptions, { isLoading: isUpdatingExceptions }] = useUpdatePrivacyExceptionsMutation();
   const [lookupUser, { isFetching: isLookingUpUser }] = useLazyGetUserByUsernameQuery();
   const [status, setStatus] = useState<StatusMessage | null>(null);
-  const [openSelect, setOpenSelect] = useState<PrivacySettingKey | null>(null);
   const [activeExceptionKey, setActiveExceptionKey] = useState<PrivacyExceptionKey | null>(null);
-  const [collapsedExceptionKeys, setCollapsedExceptionKeys] = useState<Record<PrivacyExceptionKey, boolean>>({
-    avatar_visibility: true,
-    profile_visibility: true,
-    presence_visibility: true,
-    group_invites: true,
-  });
   const [exceptionDrafts, setExceptionDrafts] = useState<Record<PrivacyExceptionKey, string>>({
     avatar_visibility: '',
     profile_visibility: '',
     presence_visibility: '',
     group_invites: '',
+    direct_messages: '',
+    search_visibility: '',
   });
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [settingDrafts, setSettingDrafts] = useState<Partial<Record<PrivacySettingKey, string | boolean>>>({});
+  const [listDrafts, setListDrafts] = useState<Partial<Record<ExceptionDraftKey, User[]>>>({});
+  const hasUnsavedChanges = Object.keys(settingDrafts).length > 0 || Object.keys(listDrafts).length > 0;
+
+  const privacySettings = useMemo<PrivacySettings | undefined>(() => {
+    if (!savedSettings) return savedSettings;
+    const exceptions = { ...savedSettings.privacy_exceptions };
+    (Object.entries(listDrafts) as Array<[ExceptionDraftKey, User[]]>).forEach(([draftKey, users]) => {
+      const [key, effect] = draftKey.split(':') as [PrivacyExceptionKey, PrivacyExceptionEffect];
+      exceptions[key] = { ...exceptions[key], [effect]: users };
+    });
+    return { ...savedSettings, ...settingDrafts, privacy_exceptions: exceptions } as PrivacySettings;
+  }, [listDrafts, savedSettings, settingDrafts]);
 
   useEffect(() => {
     if (!status) return undefined;
@@ -43,17 +52,7 @@ export const usePrivacySettings = (isActive: boolean) => {
   }, [status]);
 
   useEffect(() => {
-    if (!isActive) {
-      setOpenSelect(null);
-      return;
-    }
-    setActiveExceptionKey(null);
-    setCollapsedExceptionKeys({
-      avatar_visibility: true,
-      profile_visibility: true,
-      presence_visibility: true,
-      group_invites: true,
-    });
+    if (!isActive) setActiveExceptionKey(null);
   }, [isActive]);
 
   useEffect(() => {
@@ -91,25 +90,46 @@ export const usePrivacySettings = (isActive: boolean) => {
     return translations.everyone || 'Everyone';
   };
 
-  const handlePrivacyChange = async (key: PrivacySettingKey, value: string | boolean) => {
+  const handlePrivacyChange = (key: PrivacySettingKey, value: string | boolean) => {
+    setSettingDrafts((drafts) => {
+      const next = { ...drafts };
+      if (savedSettings?.[key] === value) delete next[key];
+      else next[key] = value;
+      return next;
+    });
+  };
+
+  const handleExceptionListChange = (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, users: User[]) => {
+    const saved = savedSettings?.privacy_exceptions?.[key]?.[effect] || [];
+    const names = (list: User[]) => list.map((user) => user.username.toLowerCase()).sort().join(',');
+    setListDrafts((drafts) => {
+      const next = { ...drafts };
+      if (names(saved) === names(users)) delete next[`${key}:${effect}`];
+      else next[`${key}:${effect}`] = users;
+      return next;
+    });
+  };
+
+  const discardChanges = () => {
+    setSettingDrafts({});
+    setListDrafts({});
+  };
+
+  const saveChanges = async () => {
     setStatus(null);
     try {
-      await updatePrivacySettings({ [key]: value }).unwrap();
+      if (Object.keys(settingDrafts).length) await updatePrivacySettings(settingDrafts as Partial<PrivacySettings>).unwrap();
+      for (const [draftKey, users] of Object.entries(listDrafts) as Array<[ExceptionDraftKey, User[]]>) {
+        const [settingKey, effect] = draftKey.split(':') as [PrivacyExceptionKey, PrivacyExceptionEffect];
+        await updatePrivacyExceptions({ settingKey, effect, usernames: users.map((user) => user.username) }).unwrap();
+      }
+      discardChanges();
       setStatus({ type: 'success', text: translations.saved || 'Saved' });
+      return true;
     } catch (caught) {
       const error = asApiError(caught);
       setStatus({ type: 'error', text: error?.data?.detail || 'Failed to update privacy settings' });
-    }
-  };
-
-  const handleExceptionListChange = async (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, usernames: string[]) => {
-    setStatus(null);
-    try {
-      await updatePrivacyExceptions({ settingKey: key, effect, usernames }).unwrap();
-      setStatus({ type: 'success', text: translations.saved || 'Saved' });
-    } catch (caught) {
-      const error = asApiError(caught);
-      setStatus({ type: 'error', text: error?.data?.detail || 'Failed to update privacy exceptions' });
+      return false;
     }
   };
 
@@ -121,8 +141,7 @@ export const usePrivacySettings = (isActive: boolean) => {
 
     try {
       const resolvedUser = await lookupUser(trimmedUsername).unwrap();
-      const nextUsernames = [...currentUsers.map((user) => user.username), resolvedUser.username];
-      await handleExceptionListChange(key, effect, nextUsernames);
+      handleExceptionListChange(key, effect, [...currentUsers, resolvedUser]);
       setExceptionDrafts((drafts) => ({ ...drafts, [key]: '' }));
       setDebouncedSearch('');
     } catch (caught) {
@@ -134,9 +153,9 @@ export const usePrivacySettings = (isActive: boolean) => {
 
   return {
     translations, currentUsername, privacySettings, isLoadingPrivacy, isUpdatingPrivacy,
-    isUpdatingExceptions, isLookingUpUser, status, setStatus, openSelect, setOpenSelect, activeExceptionKey,
-    setActiveExceptionKey, collapsedExceptionKeys, setCollapsedExceptionKeys, exceptionDrafts,
+    isUpdatingExceptions, isLookingUpUser, status, setStatus, activeExceptionKey,
+    setActiveExceptionKey, exceptionDrafts,
     setExceptionDrafts, debouncedSearch, searchData, isSearchingUsers, dmCandidates, visibilityLabel,
-    handlePrivacyChange, handleExceptionListChange, handleAddException,
+    handlePrivacyChange, handleExceptionListChange, handleAddException, hasUnsavedChanges, saveChanges, discardChanges,
   };
 };

@@ -1,8 +1,14 @@
-import React from 'react';
-import { Check, Loader2, UserRound } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, Check, Loader2, UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { LeaveUnsavedDialog, UnsavedChangesBar } from './UnsavedChanges';
 
 interface PersonalInfoPageProps {
+  avatarUrl: string;
+  displayName: string;
+  isUploadingAvatar: boolean;
+  onPickAvatar: (file: File) => void;
   newDisplayName: string;
   displayNameChanged: boolean;
   displayNameInvalid: boolean;
@@ -14,27 +20,56 @@ interface PersonalInfoPageProps {
   isUpdatingBio: boolean;
   onBioChange: (value: string) => void;
   onSaveBio: () => void;
+  onSaveAll: () => Promise<boolean>;
+  onDiscard: () => void;
   onBack: () => void;
 }
 
 const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
-  newDisplayName, displayNameChanged, displayNameInvalid, isUpdatingDisplayName, onDisplayNameChange,
-  onSaveDisplayName, bio, newBio, isUpdatingBio, onBioChange, onSaveBio, onBack,
+  avatarUrl, displayName, isUploadingAvatar, onPickAvatar, newDisplayName, displayNameChanged, displayNameInvalid, isUpdatingDisplayName, onDisplayNameChange,
+  onSaveDisplayName, bio, newBio, isUpdatingBio, onBioChange, onSaveBio, onSaveAll, onDiscard, onBack,
 }) => {
   const { translations } = useLanguage();
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const hasUnsavedChanges = displayNameChanged || newBio !== bio;
+  const isSaving = isUpdatingDisplayName || isUpdatingBio;
+  const requestBack = () => (hasUnsavedChanges ? setConfirmLeave(true) : onBack());
+  const saveAll = async () => {
+    const saved = await onSaveAll();
+    if (saved && confirmLeave) {
+      setConfirmLeave(false);
+      onBack();
+    }
+  };
   return (
     <div className="flex h-full flex-col bg-white">
       <div className="border-b border-border px-5 py-4">
         <nav className="flex items-center gap-2 text-sm">
-          <button type="button" onClick={onBack}>{translations.profile || 'Profile'}</button>
+          <button type="button" onClick={requestBack}>{translations.profile || 'Profile'}</button>
           <span>/</span>
-          <button type="button" onClick={onBack}>{translations.settings || 'Settings'}</button>
+          <button type="button" onClick={requestBack}>{translations.settings || 'Settings'}</button>
           <span>/</span>
           <span className="inline-flex items-center gap-2 font-medium"><UserRound className="h-4 w-4 text-muted-foreground" />{translations.personalInfo || 'Personal info'}</span>
         </nav>
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         <p className="text-sm text-muted-foreground">{translations.editProfile || 'Edit how other people see you.'}</p>
+        <section className="rounded-lg border border-border p-4">
+          <label className="group flex cursor-pointer flex-col items-center gap-3">
+            <span className="relative h-24 w-24 rounded-full">
+              <AuthenticatedImage src={avatarUrl} alt={displayName} className="h-24 w-24 rounded-full border border-gray-200 object-cover" />
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-white transition-colors group-hover:bg-black/35">
+                {isUploadingAvatar ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100" />}
+              </span>
+            </span>
+            <span className="text-sm font-medium text-primary group-hover:underline">{translations.changeAvatar}</span>
+            <input type="file" accept="image/*" className="sr-only" disabled={isUploadingAvatar} aria-label={translations.changeAvatar} onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) onPickAvatar(file);
+            }} />
+          </label>
+        </section>
         <section className="rounded-lg border border-border p-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">{translations.displayName || 'Display name'}</label>
@@ -66,6 +101,13 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
           </div>
         </section>
       </div>
+      {hasUnsavedChanges && (
+        <UnsavedChangesBar isSaving={isSaving} canSave={!displayNameInvalid} onSave={() => void saveAll()} onDiscard={onDiscard} />
+      )}
+      <LeaveUnsavedDialog
+        open={confirmLeave} text={translations.leaveUnsavedText} isSaving={isSaving} canSave={!displayNameInvalid} onSave={() => void saveAll()}
+        onDiscard={() => { setConfirmLeave(false); onDiscard(); onBack(); }} onStay={() => setConfirmLeave(false)}
+      />
     </div>
   );
 };

@@ -9,6 +9,26 @@ const user = { id, username: 'alice', display_name: 'Alice', contact_name: 'My A
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 describe('Go migration transport', () => {
+  it('reads exception lists of every privacy setting and keeps the direct message values', async () => {
+    const privacy = {
+      avatar_visibility: 'contacts', direct_messages: 'shared_chats', search_visibility: 'everyone', profile_visibility: 'everyone',
+      presence_visibility: 'everyone', group_invites: 'everyone', read_receipts_enabled: true,
+      exceptions: { direct_messages: { allow: [id], deny: [] }, search_visibility: { allow: [], deny: [id] } },
+    };
+    const native = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => (String(input).endsWith(`/users/${id}`) ? json(user) : json(privacy)));
+    const result = await (await withGoTransport(native as typeof fetch, base)(`${base}/me/privacy`)).json();
+    expect(result.avatar_visibility).toBe('shared_chats');
+    expect(result.direct_messages).toBe('shared_chats');
+    expect(result.privacy_exceptions.direct_messages.allow[0].username).toBe('alice');
+    expect(result.privacy_exceptions.search_visibility.deny[0].username).toBe('alice');
+
+    native.mockClear();
+    await withGoTransport(native as typeof fetch, base)(`${base}/me/privacy`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ direct_messages: 'shared_chats', avatar_visibility: 'shared_chats' }),
+    });
+    expect(JSON.parse(String(native.mock.calls[0][1]?.body))).toEqual({ direct_messages: 'shared_chats', avatar_visibility: 'contacts' });
+  });
+
   it('does not send an empty read receipt', async () => {
     const native = vi.fn();
     const response = await withGoTransport(native, base)(`${base}/chats/1/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message_ids: [] }) });

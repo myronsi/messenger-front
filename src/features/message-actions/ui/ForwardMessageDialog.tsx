@@ -5,7 +5,7 @@ import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Send } from 'lucide-react';
 import { Message } from '@/entities/message';
-import { useForwardMessageMutation } from '@/entities/message';
+import { useForwardMessageMutation, useForwardMessagesMutation } from '@/entities/message';
 import { useGetGroupChatsQuery, useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
@@ -20,6 +20,7 @@ interface ForwardMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   message: Message | null;
+  bulk?: { chatId: EntityId; messageIds: EntityId[] } | null;
   username: string;
   onForwarded?: () => void;
 }
@@ -36,6 +37,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   open,
   onOpenChange,
   message,
+  bulk,
   username,
   onForwarded,
 }) => {
@@ -43,7 +45,9 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   const [query, setQuery] = useState('');
   const [selectedChatIds, setSelectedChatIds] = useState<EntityId[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [forwardMessage, { isLoading }] = useForwardMessageMutation();
+  const [forwardMessage, { isLoading: isForwardingOne }] = useForwardMessageMutation();
+  const [forwardMessages, { isLoading: isForwardingMany }] = useForwardMessagesMutation();
+  const isLoading = isForwardingOne || isForwardingMany;
   const { data: directChatsData, isLoading: isLoadingDirect } = useGetOneOnOneChatsQuery(username, { skip: !open || !username });
   const { data: groupChatsData, isLoading: isLoadingGroups } = useGetGroupChatsQuery(username, { skip: !open || !username });
   const { data: blockedUsersData } = useGetBlockedUsersQuery(undefined, { skip: !open });
@@ -99,9 +103,16 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   };
 
   const handleForward = async () => {
-    if (!message || selectedChatIds.length === 0 || isLoading) return;
+    if ((!message && !bulk) || selectedChatIds.length === 0 || isLoading) return;
 
     try {
+      if (bulk) {
+        await forwardMessages({ chatId: bulk.chatId, messageIds: bulk.messageIds, targetChatIds: selectedChatIds }).unwrap();
+        onForwarded?.();
+        onOpenChange(false);
+        return;
+      }
+      if (!message) return;
       const result = await forwardMessage({
         sourceMessageId: message.id,
         targetChatIds: selectedChatIds,
@@ -129,7 +140,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     <Dialog open={open} onOpenChange={(nextOpen) => !isLoading && onOpenChange(nextOpen)}>
       <DialogContent className="max-h-[85vh] max-w-md grid-rows-[auto_auto_minmax(0,1fr)_auto] p-0">
         <DialogHeader className="border-b border-border px-4 py-4">
-          <DialogTitle>{translations.forwardMessage || 'Forward message'}</DialogTitle>
+          <DialogTitle>{bulk ? translations.forward : translations.forwardMessage || 'Forward message'}</DialogTitle>
         </DialogHeader>
 
         <div className="px-4">
@@ -183,7 +194,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               {translations.cancel}
             </Button>
-            <Button type="button" onClick={handleForward} disabled={!message || selectedChatIds.length === 0 || isLoading}>
+            <Button type="button" onClick={handleForward} disabled={(!message && !bulk) || selectedChatIds.length === 0 || isLoading}>
               <Send className="h-4 w-4" />
               {translations.forward || 'Forward'}
             </Button>

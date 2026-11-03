@@ -24,4 +24,10 @@ export const messages = {
   resumeRecording: "Resume recording",
   messageTooLong: "Message is too long: {count} of {max} characters.",
   deleteForEveryoneShort: "For everyone",
+  selectMessage: "Select",
+  selectedMessages: "{count} selected",
+  cancelSelection: "Cancel selection",
+  deleteLimit: "You can delete up to {max} messages at once",
+  deleteMessagesConfirm: "Delete {count} messages?",
+  failedToDeleteMessages: "Failed to delete messages",
 };

@@ -3,6 +3,9 @@ import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { MutableRefObject, memo } from 'react';
+import { useLongPress } from '@/shared/lib/useLongPress';
+import { combineTouchHandlers, useSwipeAction } from '@/shared/lib/useSwipeAction';
+import SwipeReplyIcon from './SwipeReplyIcon';
 import { Message, ReactionInfo } from '../model/types';
 import { isValidTimestamp } from '../model/messageListScrollUtils';
 import ReplyPreview from './ReplyPreview';
@@ -13,7 +16,7 @@ import MessageTime from './MessageTime';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Check } from 'lucide-react';
 
 const PARTICLE_COUNT = 36;
 
@@ -83,7 +86,12 @@ interface MessageItemProps {
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
   onResendMessage?: (message: Message) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (message: Message, extend?: boolean) => void;
+  onLongPress?: (message: Message) => void;
+  onSwipeReply?: (message: Message) => void;
 }
+
 
 const MessageItem: React.FC<MessageItemProps> = ({
   message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage, isMobile, showNewMessagesMarker,
@@ -91,9 +99,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
   observerRef, firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
   renderMessageContent, isAudioPlaying, setPlayingMessageId,
   onMessageClick, onClick, onAvatarClick, onReplyClick,
-  setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage,
+  setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage, isSelected = false, onToggleSelect, onLongPress, onSwipeReply,
 }) => {
+  const longPress = useLongPress(onLongPress && !onToggleSelect ? () => onLongPress(message) : undefined);
   const isMine = isOwnMessage(message);
+  const canSwipe = !!onSwipeReply && !onToggleSelect && isPersistedId(message.id) && !message.is_deleted && !interlocutorDeleted;
+  const swipe = useSwipeAction(isMine ? -1 : 1, canSwipe ? () => onSwipeReply?.(message) : undefined);
   const reducedMotion = prefersReducedMotion();
   const isOutgoingSend = isMine && (!isPersistedId(message.id) || !!message.client_temp_id);
   const isUploadingMessage = isMine && message.upload_status === 'uploading';
@@ -161,7 +172,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             observerRef.current.observe(element);
           }
         }}
-        className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} flex ${isMine ? 'justify-end' : 'justify-start'} ${
+        className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} motion-selection-row ${onToggleSelect ? 'relative pl-8' : swipe.offset ? 'relative' : ''} ${canSwipe ? 'touch-pan-y' : ''} flex ${isMine ? 'justify-end' : 'justify-start'} ${
           isHighlighted ? 'highlight' : ''
         } ${isContextHighlighted ? 'context-menu-highlight' : ''} ${
           message.is_deleting ? (reducedMotion ? 'message-deleting message-deleting-reduced' : 'message-deleting') : ''
@@ -172,11 +183,26 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }}
         onClick={(event) => {
           event.preventDefault();
+          if (longPress.consumeClick()) return;
           onClick(event, message);
         }}
+        onMouseDown={(event) => { if (event.shiftKey) event.preventDefault(); }}
+        {...combineTouchHandlers(longPress.handlers, swipe.handlers)}
         onContextMenu={(event) => onMessageClick(event, message)}
       >
-        <div className={`${message.is_deleting ? 'flex w-full' : 'message-cv flex'} ${isMine ? 'justify-end' : 'justify-start'}`}>
+        {onToggleSelect && (
+          <button type="button" role="checkbox" aria-checked={isSelected} aria-label={translations.selectMessage}
+            className={`absolute inset-0 z-10 flex items-center rounded-lg pl-1 transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-accent/40'}`}
+            onClick={(event) => { event.stopPropagation(); onToggleSelect(message, event.shiftKey); }}
+            onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
+            <span className={`motion-selection-check flex h-5 w-5 items-center justify-center rounded-full border-2 ${isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/60 bg-background'}`}>
+              {isSelected && <Check className="motion-selection-check h-3 w-3" />}
+            </span>
+          </button>
+        )}
+        {swipe.offset !== 0 && <SwipeReplyIcon side={isMine ? 'right' : 'left'} progress={swipe.progress} />}
+        <div className={`${message.is_deleting ? 'flex w-full' : 'message-cv flex'} ${isMine ? 'justify-end' : 'justify-start'}`}
+          style={swipe.offset ? { transform: `translateX(${swipe.offset}px)` } : { transition: 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
         <div className={`flex min-w-0 items-end space-x-2 max-w-[85%] md:max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
           {showAvatar && (
             <button type="button" className="mb-1 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={(event) => {

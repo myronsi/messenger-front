@@ -67,6 +67,7 @@ export interface Message {
   timestamp: string;
   avatar_url?: string;
   reply_to?: EntityId | null;
+  reply_preview?: Message;
   is_deleted?: boolean;
   is_deleting?: boolean;
   edited_at?: string | null;
@@ -75,6 +76,14 @@ export interface Message {
   forwarded_from?: ForwardedFrom | null;
   reactions?: ReactionInfo[];
   read_by: ReadReceiptInfo[];
+}
+
+export interface MessageSelection {
+  ids: ReadonlySet<EntityId>;
+  active: boolean;
+  closing: boolean;
+  toggle: (message: Message, extend?: boolean) => void;
+  start: (message: Message) => void;
 }
 
 export interface ChatPhoto {

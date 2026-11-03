@@ -7,7 +7,7 @@ import { unescapeCurlyBraces } from '@/features/chat-core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { MessageList } from '@/features/message-list';
 import { MessageInput } from '@/features/message-composer';
-import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog } from '@/features/message-actions';
+import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog, SelectionBar, useMessageSelection, useReplyAction } from '@/features/message-actions';
 import GroupProfileDialog from './GroupProfileDialog';
 
 import type { GroupChatViewModel } from './groupChatTypes';
@@ -37,6 +37,8 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm,
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
+  const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, messages);
+  const startReply = useReplyAction({ setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
   return (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
       <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
@@ -79,7 +81,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         userId={currentUserId}
         interlocutorDeleted={false}
         firstUnreadMessageId={firstUnreadMessageId}
-        onMessageClick={handleMessageClick}
+        onMessageClick={intercept(handleMessageClick)}
         onAvatarClick={handleOpenUserProfile}
         highlightedMessageId={highlightedMessageId}
         contextMenuMessageId={contextMenu?.messageId}
@@ -110,13 +112,14 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         }}
         onOpenReactionDetails={(message, reaction, reactions) => setReactionDetails({ message, reaction, reactions })}
         scrollToBottomKey={chatId}
+        selection={selection} onSwipeReply={startReply}
         onScrollStart={() => {
           if (!contextMenu && !reactionMenu) return;
           closeMenus();
         }}
       />
 
-      <div ref={composerRef} className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+      <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active ? 'is-hidden' : ''}`}>
         <MessageInput
           ref={messageInputRef}
           messageInput={messageInput}
@@ -160,6 +163,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           messageInputRef={messageInputRef}
           canDeleteMessage={canDeleteMessage}
           onForward={setForwardMessage}
+          onSelect={startSelection}
         />
       )}
 
@@ -278,6 +282,8 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
       </Dialog>
 
       <Modal modal={modal} onClose={() => setModal(null)} />
+      <SelectionBar chatId={chatId} messages={messages} selection={selection} username={username} canDeleteForEveryone={canDeleteMessage}
+        onClear={clearSelection} />
       <ForwardMessageDialog
         open={!!forwardMessage}
         onOpenChange={(open) => {
@@ -285,7 +291,6 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         }}
         message={forwardMessage}
         username={username}
-        onForwarded={() => setModal({ type: 'copy', message: translations.messageForwarded || 'Message forwarded' })}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import { useChatRoomState } from './model/useChatRoomState';
 import { useChatInteractions } from './model/useChatInteractions';
 import { ChatProps } from './model/types';
 import ChatOverlays from './ui/ChatOverlays';
+import { useMessageSelection, useReplyAction } from '@/features/message-actions';
 import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
 import { useGetBlockedUsersQuery } from '@/entities/user';
@@ -156,6 +157,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   });
 
   const displayedMessages = isPreview ? previewFailedMessages : messages;
+  const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, displayedMessages);
+  const startReply = useReplyAction({ setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
 
   const content = (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
@@ -177,7 +180,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           username={username}
           interlocutorDeleted={interlocutorDeleted}
           firstUnreadMessageId={firstUnreadMessageId}
-          onMessageClick={handleMessageClick}
+          onMessageClick={isPreview ? handleMessageClick : intercept(handleMessageClick)}
           onAvatarClick={(profileUsername) => {
             if (onOpenUserProfile) {
               onOpenUserProfile(profileUsername);
@@ -211,9 +214,11 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           onResendMessage={!isPreview ? handleResendMessage : undefined}
           scrollToBottomKey={chatId}
           onScrollStart={onScrollStart}
+          selection={isPreview ? undefined : selection}
+          onSwipeReply={isPreview ? undefined : startReply}
         />
       {!interlocutorDeleted && !isBlockedByMe && (
-        <div ref={composerRef} className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+        <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active ? 'is-hidden' : ''}`}>
           <MessageInput
             ref={messageInputRef}
             messageInput={isPreview ? previewMessageInput : messageInput}
@@ -278,8 +283,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         jumpToSearchResult={jumpToSearchResult}
         forwardMessage={forwardMessage}
         username={username}
-        onForwarded={() => setModal({ type: 'copy', message: translations.messageForwarded || 'Message forwarded' })}
         modal={modal}
+        selection={selection} onSelect={isPreview ? undefined : startSelection} onClearSelection={clearSelection}
       />
 
     </div>

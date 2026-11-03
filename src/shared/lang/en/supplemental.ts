@@ -30,7 +30,7 @@ export const supplemental = {
   onlyYouWillSeeRemoved: "Only you will see it removed",
   everyoneWillSeeRemoved: "Everyone will see it removed",
   passwordsMatch: "Passwords match",
-  accountDetails: "Username, account age, and app language.",
+  accountDetails: "Username and account age.",
   accountName: "Account name",
   activeSessions: "Active sessions",
   addAvatar: "Add avatar",
