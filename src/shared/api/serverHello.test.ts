@@ -12,9 +12,9 @@ describe('handleHelloEvent', () => {
 
   it('reads the versions nested in data (Go backend)', async () => {
     const { handleHelloEvent, gate } = await load();
-    const event = { type: 'hello', event_id: '1', chat_id: null, data: { api_version: '2.4.0', min_client_api_version: '2.2.0', user_id: '7' } };
+    const event = { type: 'hello', event_id: '1', chat_id: null, data: { api_version: '2.4.0', min_client_api_version: '2.3.0', user_id: '7' } };
     expect(handleHelloEvent(event)).toBe(true);
-    expect(gate.getUpdateStatus()).toBe('available');
+    expect(gate.getUpdateStatus()).toBe('required');
   });
 
   it('reads the versions at the top level (Python backend)', async () => {
