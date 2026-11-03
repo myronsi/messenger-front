@@ -212,6 +212,13 @@ describe('background notification worker', () => {
     expect(title).toBe('Messenger (2)');
     expect(options).toMatchObject({ body: 'New message', icon: '/pwa-192x192.png' });
   });
+  it('still recognises a retry of a newer message that arrived before older ones', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ message_id: '2000' });
+    for (let id = 1001; id <= 1200; id += 1) await w.push({ message_id: String(id) });
+    await w.push({ message_id: '2000' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 201 });
+  });
   it('keeps two people with the same name apart', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
     await w.push({ title: 'Alex', body: 'one', message_id: '1', preview: true, sender_id: '5', avatar_token: 'a.5' });

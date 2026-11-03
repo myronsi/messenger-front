@@ -119,7 +119,7 @@ async function showChatNotification(data) {
     data: {
       chat_id: String(data.chat_id), user_id: user, read_token: readToken, read_message_id: readMessageId, lines, count, preview, from,
       newest_id: newestId,
-      ids: repeated || !messageId ? ids : [...ids, messageId].slice(-MAX_IDS),
+      ids: repeated || !messageId ? ids : [...ids, messageId].sort((a, b) => (a === b ? 0 : newerId(String(a), String(b)) ? 1 : -1)).slice(-MAX_IDS),
     },
   });
 }
