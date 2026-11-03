@@ -6,7 +6,8 @@ import { CurrentChat, directChatPath, dmPath, parseDmIdentifier } from './messen
 import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { authFetch, dropInvalidSession } from '@/shared/auth/session';
+import { authFetch } from '@/shared/auth/session';
+import { watchCurrentUser } from './watchCurrentUser';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
 import { notificationReturnPath } from './resolveNotificationChat';
@@ -52,27 +53,23 @@ export const useMessengerController = () => {
     if (hasFetchedUser.current) return;
     hasFetchedUser.current = true;
 
-    const loadCurrentUser = async () => {
-      const fetchMe = async () => {
-        const response = await authFetch(`${BASE_URL}/auth/me`);
-        if (!response.ok) throw new Error('Invalid token');
-        return response.json();
-      };
-
-      try {
-        const user = await fetchMe();
+    const stop = watchCurrentUser({
+      fetchMe: () => authFetch(`${BASE_URL}/auth/me`),
+      onUser: (user) => {
         setIsLoggedIn(true);
         setUsername(user.username);
-      } catch {
-        dropInvalidSession();
+        setIsLoading(false);
+      },
+      onSignedOut: () => {
         setIsLoggedIn(false);
         setUsername('');
-      } finally {
         setIsLoading(false);
-      }
+      },
+    });
+    return () => {
+      stop();
+      hasFetchedUser.current = false;
     };
-
-    loadCurrentUser();
   }, []);
 
   const handleLoginSuccess = (user: string) => {

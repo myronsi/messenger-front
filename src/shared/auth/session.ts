@@ -82,16 +82,17 @@ export const refreshAccessToken = async () => {
       credentials: 'include',
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error('Refresh failed');
+        if (response.status === 401 || response.status === 403) {
+          dropInvalidSession();
+          return null;
+        }
+        if (!response.ok) return null;
         const refreshed = await response.json();
-        if (!refreshed.access_token) throw new Error('Missing access token');
+        if (!refreshed.access_token) return null;
         setAccessToken(refreshed.access_token);
         return refreshed.access_token as string;
       })
-      .catch(() => {
-        dropInvalidSession();
-        return null;
-      })
+      .catch(() => null)
       .finally(() => {
         refreshPromise = null;
       });
@@ -117,7 +118,10 @@ export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}
   if (response.status !== 401) return response;
 
   const refreshedToken = await refreshAccessToken();
-  if (!refreshedToken) return response;
+  if (!refreshedToken) {
+    if (getAccessToken()) throw new Error('The session could not be refreshed right now');
+    return response;
+  }
 
   const retryHeaders = new Headers(init.headers);
   retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
