@@ -42,3 +42,6 @@ ios/DerivedData
 
 # Backend stack started by scripts/backend-up.sh
 .backend-stack
+
+# Keep backend checkouts separate; do not commit a nested Git repository.
+/messenger-back/
