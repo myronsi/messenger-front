@@ -151,12 +151,16 @@ describe('background notification worker', () => {
   });
   it('drops a queued push when the account logs out before it is shown', async () => {
     const w = worker(); await w.account('1');
+    let release: () => void = () => undefined;
+    w.registration.showNotification.mockImplementationOnce(() => new Promise<void>((resolve) => { release = resolve; }));
     const first = w.push({ title: 'Mai', body: 'one', message_id: '1', preview: true });
     const second = w.push({ title: 'Mai', body: 'secret', message_id: '2', preview: true });
-    await first;
+    await vi.waitFor(() => expect(w.registration.showNotification).toHaveBeenCalledTimes(1));
     await w.account('');
+    release();
+    await first;
     await second;
-    expect(w.registration.showNotification.mock.calls.map(([, options]) => options.body)).not.toContain('one\nsecret');
+    expect(w.registration.showNotification).toHaveBeenCalledTimes(1);
   });
   it('treats a push without the preview flag as private', async () => {
     const w = worker(); await w.account('1');
@@ -218,6 +222,26 @@ describe('background notification worker', () => {
     for (let id = 1001; id <= 1200; id += 1) await w.push({ message_id: String(id) });
     await w.push({ message_id: '2000' });
     expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 201 });
+  });
+  it('drops a late push for a message that Mark as read already covered', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '5', read_token: 'r.5' });
+    const notification = { title: 'Messenger', body: 'New message', tag: 'chat-7', data: { user_id: '1', chat_id: '7', read_token: 'r.5', read_message_id: '5' }, close: vi.fn() };
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    const shown = w.registration.showNotification.mock.calls.length;
+    await w.push({ message_id: '4' });
+    expect(w.registration.showNotification.mock.calls.length).toBe(shown);
+    await w.push({ message_id: '6' });
+    expect(w.registration.showNotification.mock.calls.length).toBe(shown + 1);
+  });
+  it('applies account and language messages in the order they were sent', async () => {
+    const w = worker();
+    await Promise.all([
+      w.account('1', 'https://chat.test', { api: '/api/v2', language: 'en' }),
+      w.dispatch('message', { origin: 'https://chat.test', data: { type: 'notification-settings', language: 'ru' } }),
+    ]);
+    await w.push({ message_id: '9', read_token: 'r.9' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
   });
   it('keeps two people with the same name apart', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });

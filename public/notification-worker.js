@@ -9,6 +9,7 @@ const ACTION_TITLES = {
   ru: { reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}` },
 };
 const chatQueues = new Map();
+const readUpTo = new Map();
 async function notificationAccount() {
   const cache = await caches.open(notificationCache);
   const response = await cache.match(accountKey);
@@ -50,11 +51,11 @@ function inChatOrder(chatId, task) {
 self.addEventListener('message', (event) => {
   if (event.origin !== self.location.origin) return;
   if (event.data?.type === 'notification-settings') {
-    event.waitUntil(notificationSettings().then((previous) => saveSettings(event.data, previous)));
+    event.waitUntil(inChatOrder('settings', () => notificationSettings().then((previous) => saveSettings(event.data, previous))));
     return;
   }
   if (event.data?.type !== 'notification-account') return;
-  event.waitUntil((async () => {
+  event.waitUntil(inChatOrder('settings', async () => {
     const cache = await caches.open(notificationCache);
     const previous = await notificationAccount();
     const next = String(event.data.user || '');
@@ -63,7 +64,7 @@ self.addEventListener('message', (event) => {
     if (!next || previous !== next) {
       for (const notification of await self.registration.getNotifications()) notification.close();
     }
-  })());
+  }));
 });
 function stackedLine(entry, fallback) {
   if (entry && typeof entry === 'object') {
@@ -79,6 +80,8 @@ async function showChatNotification(data) {
   const previous = (await self.registration.getNotifications({ tag })).find((n) => n.data?.user_id === user);
   const before = previous?.data || {};
   const messageId = /^\d+$/.test(String(data.message_id)) ? String(data.message_id) : '';
+  const readMark = readUpTo.get(`${user}:${data.chat_id}`);
+  if (messageId && readMark && !newerId(messageId, readMark)) return;
   const ids = Array.isArray(before.ids) ? before.ids : [];
   const evicted = !!messageId && ids.length >= MAX_IDS && ids.every((id) => newerId(String(id), messageId));
   const repeated = !!messageId && (ids.includes(messageId) || evicted);
@@ -137,7 +140,12 @@ async function markRead(notification) {
   const settings = await notificationSettings();
   const url = data.read_token && settings.api ? apiUrl(settings.api, `/notifications/read/${encodeURIComponent(data.read_token)}`) : null;
   const response = url ? await fetch(url, { method: 'POST', credentials: 'omit' }).catch(() => null) : null;
-  if (response?.ok) return;
+  if (response?.ok) {
+    const key = `${data.user_id}:${data.chat_id}`;
+    const mark = String(data.read_message_id || '');
+    if (mark && newerId(mark, readUpTo.get(key) || '')) readUpTo.set(key, mark);
+    return;
+  }
   const expired = response?.status === 404;
   if (data.user_id !== await notificationAccount()) return;
   if ((await self.registration.getNotifications({ tag: notification.tag })).length) return;
