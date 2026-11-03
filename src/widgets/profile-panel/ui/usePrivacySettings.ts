@@ -125,11 +125,26 @@ export const usePrivacySettings = (isActive: boolean) => {
 
   const saveChanges = async () => {
     setStatus(null);
+    const lists = (Object.entries(listDrafts) as Array<[ExceptionDraftKey, User[]]>).map(([draftKey, users]) => {
+      const [settingKey, effect] = draftKey.split(':') as [PrivacyExceptionKey, PrivacyExceptionEffect];
+      const saved = (savedSettings?.privacy_exceptions?.[settingKey]?.[effect] || []).map((user) => user.username);
+      const draft = users.map((user) => user.username);
+      const inDraft = new Set(draft.map((name) => name.toLowerCase()));
+      const inSaved = new Set(saved.map((name) => name.toLowerCase()));
+      const narrowed = effect === 'deny'
+        ? [...saved, ...draft.filter((name) => !inSaved.has(name.toLowerCase()))]
+        : saved.filter((name) => inDraft.has(name.toLowerCase()));
+      return { settingKey, effect, saved, narrowed, draft };
+    });
+    const sameNames = (a: string[], b: string[]) => a.length === b.length && a.every((name, index) => name.toLowerCase() === b[index].toLowerCase());
+    const putList = async ({ settingKey, effect }: (typeof lists)[number], current: string[], next: string[]) => {
+      if (!sameNames(next, current)) await updatePrivacyExceptions({ settingKey, effect, usernames: next }).unwrap();
+    };
     try {
+      for (const list of lists) await putList(list, list.saved, list.narrowed);
       if (Object.keys(settingDrafts).length) await updatePrivacySettings(settingDrafts as Partial<PrivacySettings>).unwrap();
-      for (const [draftKey, users] of Object.entries(listDrafts) as Array<[ExceptionDraftKey, User[]]>) {
-        const [settingKey, effect] = draftKey.split(':') as [PrivacyExceptionKey, PrivacyExceptionEffect];
-        await updatePrivacyExceptions({ settingKey, effect, usernames: users.map((user) => user.username) }).unwrap();
+      for (const list of [...lists].sort((a, b) => (a.effect === b.effect ? 0 : a.effect === 'deny' ? -1 : 1))) {
+        await putList(list, list.narrowed, list.draft);
       }
       discardChanges();
       setStatus({ type: 'success', text: translations.saved || 'Saved' });
