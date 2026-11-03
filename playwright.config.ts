@@ -1,7 +1,9 @@
 import process from 'node:process';
+import { API_VERSION } from '@myronsi/messenger-api';
 import { defineConfig } from '@playwright/test';
 
-const DEFAULT_API_URL = 'http://127.0.0.1:8000';
+const DEFAULT_API_URL = 'http://127.0.0.1:8000/api/v2';
+process.env.GO_API_TESTS ??= '1';
 const APP_URL = 'http://127.0.0.1:5173';
 
 const trimTrailingSlashes = (value: string) => {
@@ -26,9 +28,12 @@ const webSocketUrl = trimTrailingSlashes(
     : process.env.VITE_WS_URL ?? toWebSocketUrl(apiUrl)
 );
 
+// Give API tests the same resolved backend URL as the browser.
+process.env.E2E_API_URL = apiUrl;
+
 const clientApiVersion = process.env.E2E_CLIENT_API_VERSION
   ?? process.env.VITE_CLIENT_API_VERSION
-  ?? '1.0.0';
+  ?? API_VERSION;
 
 export default defineConfig({
   testDir: './e2e/smoke',

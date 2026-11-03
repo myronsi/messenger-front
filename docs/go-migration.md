@@ -1,3 +1,5 @@
+> Historical record: the Go migration is complete and Python has been retired. Use the current Go deployment and backend startup scripts.
+
 # Go backend staging
 
 Set `VITE_BASE_URL=https://staging.messenger.viserix.com/api/v2` and

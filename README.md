@@ -1,6 +1,6 @@
 # Messenger Application
 
-This project is a simple web-based messenger application designed for sending and receiving real-time messages using a client-server architecture. It includes a web client interface and a Python-based server for handling connections, user authentication, and message storage.
+This project is a simple web-based messenger application designed for sending and receiving real-time messages using a client-server architecture. It includes a web client interface and a Go server for handling connections, user authentication, and message storage.
 
 ---
 
@@ -24,7 +24,7 @@ This project is a simple web-based messenger application designed for sending an
 
 ## Technologies Used
 - **Frontend**: React, TypeScript
-- **Backend**: Python (FastAPI, SQLite, WebSocket)
+- **Backend**: Go (HTTP, PostgreSQL, WebSocket)
 - **Database**: SQLite
 
 ---
