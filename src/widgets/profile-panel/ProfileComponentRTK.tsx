@@ -1,10 +1,13 @@
 import React, { forwardRef, useCallback, useRef, useState } from 'react';
 import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
+import BlockedUsersSection from './ui/BlockedUsersSection';
 import NotificationSettingsPanel from './ui/NotificationSettingsPanel';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
 import PersonalInfoPage from './ui/PersonalInfoPage';
-import { Bell, Inbox, Loader2, Shield, Smartphone, UserRound, X } from 'lucide-react';
+import LanguageSettingsPage from './ui/LanguageSettingsPage';
+import { LANGUAGE_NAMES } from './languageNames';
+import { Bell, Globe, Inbox, Loader2, Shield, Smartphone, UserRound, X } from 'lucide-react';
 import ProfileHomePage from './ui/ProfileHomePage';
 import ProfilePanelDialogs from './ui/ProfilePanelDialogs';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -44,20 +47,22 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     avatarFile, setAvatarFile, avatarCropUrl, setAvatarCropUrl, isUploading, bio, newBio, setNewBio,
     displayName, newDisplayName, setNewDisplayName, isUpdatingBio, isUpdatingDisplayName,
     isGroupModalOpen, setIsGroupModalOpen, isAvatarViewerOpen, setIsAvatarViewerOpen, isVisible,
-    modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleUpdateBio,
-    handleUpdateDisplayName, handleLogout, handleDeleteAccount, handleClose, displayNameChanged,
+    modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete, handleUpdateBio,
+    handleUpdateDisplayName, handleSavePersonalInfo, discardPersonalInfo, handleLogout, handleDeleteAccount, handleClose, displayNameChanged,
     displayNameInvalid,
   } = useProfileAccountActions({ userData, refetchCurrentUser, onClose: safeClose, onLogout });
+  const pickAvatar = (file: File) => {
+    setAvatarFile(file);
+    setAvatarCropUrl(URL.createObjectURL(file));
+  };
   const handleCreateGroup = useCreateGroupFromProfile({ setIsGroupModalOpen, setModal });
-  const panelData = useProfilePanelData({ username: userData?.username || username, setModal });
+  const panelData = useProfilePanelData({ setModal });
   const {
-    activeProfilePage, setActiveProfilePage, blockUsername, setBlockUsername, pendingBlockUsername,
-    setPendingBlockUsername, isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed, blockedUsers,
-    blockDmContactSuggestions, requestInbox, pendingRequestCount, isApprovingRequest, isRejectingRequest,
-    isBlockingUser, isUnblockingUser, handleBlockUser, handleUnblockUser, handleApproveRequest,
+    activeProfilePage, setActiveProfilePage, blockedUsers,
+    requestInbox, pendingRequestCount, isApprovingRequest, isRejectingRequest,
+    isUnblockingUser, handleUnblockUser, handleApproveRequest,
     handleRejectRequest, getProfileAvatarUrl, getProfileMediaUrl,
   } = panelData;
-  const handleBlockUserConfirmed = panelData.confirmBlockUser;
   const getAvatarUrl = getProfileAvatarUrl;
   const getMediaUrl = getProfileMediaUrl;
 
@@ -121,6 +126,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     },
     { label: translations.notifications, description: language === 'ru' ? 'Звук, уведомления и чаты без звука' : 'Sound, alerts, and muted conversations',
       icon: Bell, indicatorCount: 0, onClick: () => setActiveProfilePage('notifications') },
+    { label: translations.language || 'Language', description: LANGUAGE_NAMES[language], icon: Globe, indicatorCount: 0, onClick: () => setActiveProfilePage('language') },
   ];
   const futureSettingsRows: [] = [];
   return (
@@ -158,15 +164,11 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
           >
             <ProfileHomePage
               username={username} userData={userData} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar}
-              displayName={displayName} bio={bio} language={language} setLanguage={setLanguage}
+              displayName={displayName} bio={bio} language={language}
               setIsAvatarViewerOpen={setIsAvatarViewerOpen} setIsGroupModalOpen={setIsGroupModalOpen}
-              setAvatarFile={setAvatarFile} setAvatarCropUrl={setAvatarCropUrl}
+              onEditProfile={() => setActiveProfilePage('personal')}
               settingsRows={settingsRows} futureSettingsRows={futureSettingsRows}
-              blockUsername={blockUsername} setBlockUsername={setBlockUsername} handleBlockUser={handleBlockUser}
-              isBlockingUser={isBlockingUser} isBlockDmContactsCollapsed={isBlockDmContactsCollapsed}
-              setIsBlockDmContactsCollapsed={setIsBlockDmContactsCollapsed} blockDmContactSuggestions={blockDmContactSuggestions}
-              getAvatarUrl={getAvatarUrl} blockedUsers={blockedUsers} handleUnblockUser={handleUnblockUser}
-              isUnblockingUser={isUnblockingUser} handleLogout={handleLogout} isLoggingOut={isLoggingOut}
+              handleLogout={handleLogout} isLoggingOut={isLoggingOut}
               handleDeleteAccount={handleDeleteAccount} isDeletingAccount={isDeletingAccount}
             />
           </div>
@@ -175,8 +177,12 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
             <ApprovalRequestsPage inbox={requestInbox} pendingCount={pendingRequestCount} isApproving={isApprovingRequest} isRejecting={isRejectingRequest} onApprove={handleApproveRequest} onReject={handleRejectRequest} onBack={() => setActiveProfilePage('profile')} getMediaUrl={getMediaUrl} />
           </div>
 
+          <div aria-hidden={activeProfilePage !== 'language'} inert={activeProfilePage !== 'language' ? true : undefined} className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${activeProfilePage === 'language' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'}`}>
+            <LanguageSettingsPage language={language} onChange={(next) => { setLanguage(next); window.location.reload(); }} onBack={() => setActiveProfilePage('profile')} />
+          </div>
+
           <div aria-hidden={activeProfilePage !== 'personal'} inert={activeProfilePage !== 'personal' ? true : undefined} className={`absolute inset-0 transition-transform duration-300 ease-out will-change-transform ${activeProfilePage === 'personal' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'}`}>
-            <PersonalInfoPage newDisplayName={newDisplayName} displayNameChanged={displayNameChanged} displayNameInvalid={displayNameInvalid} isUpdatingDisplayName={isUpdatingDisplayName} onDisplayNameChange={setNewDisplayName} onSaveDisplayName={handleUpdateDisplayName} bio={bio} newBio={newBio} isUpdatingBio={isUpdatingBio} onBioChange={setNewBio} onSaveBio={handleUpdateBio} onBack={() => setActiveProfilePage('profile')} />
+            <PersonalInfoPage avatarUrl={avatarUrl} displayName={displayName} isUploadingAvatar={isUploading} onPickAvatar={pickAvatar} newDisplayName={newDisplayName} displayNameChanged={displayNameChanged} displayNameInvalid={displayNameInvalid} isUpdatingDisplayName={isUpdatingDisplayName} onDisplayNameChange={setNewDisplayName} onSaveDisplayName={handleUpdateDisplayName} bio={bio} newBio={newBio} isUpdatingBio={isUpdatingBio} onBioChange={setNewBio} onSaveBio={handleUpdateBio} onSaveAll={handleSavePersonalInfo} onDiscard={discardPersonalInfo} onBack={() => setActiveProfilePage('profile')} />
           </div>
 
           <div
@@ -188,8 +194,13 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
           >
             <PrivacySettingsPanel
               isActive={activeProfilePage === 'privacy'}
+              detail={panelData.privacyDetail}
+              showExceptions={panelData.privacyExceptions}
+              onOpenDetail={panelData.openPrivacyDetail}
               onBack={() => setActiveProfilePage('profile')}
-            />
+            >
+              <BlockedUsersSection blockedUsers={blockedUsers} handleUnblockUser={handleUnblockUser} isUnblockingUser={isUnblockingUser} />
+            </PrivacySettingsPanel>
           </div>
 
           <div
@@ -232,12 +243,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         onCloseGroupModal={() => setIsGroupModalOpen(false)}
         onCreateGroup={handleCreateGroup}
         modal={modal}
-        pendingBlockUsername={pendingBlockUsername}
-        onConfirmBlock={handleBlockUserConfirmed}
-        onCancel={() => {
-          if (modal?.type === 'blockUser') setPendingBlockUsername('');
-          setModal(null);
-        }}
+        onCancel={() => setModal(null)}
         setModal={setModal}
         translations={translations}
         avatarFile={avatarFile}
@@ -252,6 +258,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         }}
         isAvatarViewerOpen={isAvatarViewerOpen}
         onCloseAvatarViewer={() => setIsAvatarViewerOpen(false)}
+        onDeleteAvatar={handleAvatarDelete}
       />
 
     </div>

@@ -1,10 +1,12 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeft, ChevronRight, Download, ImageOff, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { trapFocus } from '@/shared/lib/trapFocus';
+import { ChevronLeft, ChevronRight, Download, ImageOff, Trash2, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { fetchMedia } from '@/shared/api/fetchMedia';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
+import { Button } from '@/shared/ui/button';
 
 const KEY_PAN_STEP = 80;
 
@@ -12,6 +14,7 @@ export interface ViewerImage {
   url: string;
   name: string;
   downloadName?: string;
+  onDelete?: () => Promise<void>;
 }
 
 interface ImageViewerProps {
@@ -62,6 +65,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const [index, setIndex] = useState(() => Math.min(Math.max(initialIndex, 0), Math.max(images.length - 1, 0)));
   const [brokenUrls, setBrokenUrls] = useState<Record<string, true>>({});
   const [isDownloading, setIsDownloading] = useState(false);
+  const [deleting, setDeleting] = useState<{ url: string; busy: boolean; failed: boolean } | null>(null);
   const isGallery = images.length > 1;
   const canGoBack = index > 0;
   const canGoForward = index < images.length - 1;
@@ -88,9 +92,26 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     return () => { document.body.style.overflow = previousOverflow; };
   }, []);
 
+  const confirmingRef = useRef(false);
+  confirmingRef.current = !!deleting;
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const wasConfirmingRef = useRef(false);
+
+  useEffect(() => {
+    if (wasConfirmingRef.current && !deleting && deleteButtonRef.current?.isConnected) deleteButtonRef.current.focus({ preventScroll: true });
+    wasConfirmingRef.current = !!deleting;
+  }, [deleting]);
+
   useEffect(() => {
     const zoomed = view.scale > 1;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (confirmingRef.current) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setDeleting((current) => (current?.busy ? current : null));
+        }
+        return;
+      }
       if (event.key === 'Escape') onClose();
       else if (event.key === '+' || event.key === '=') zoomBy(1.25);
       else if (event.key === '-' || event.key === '_') zoomBy(0.8);
@@ -123,6 +144,18 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
       setIsDownloading(false);
     }
   };
+
+  const confirmDelete = async () => {
+    if (!image.onDelete) return;
+    setDeleting({ url: image.url, busy: true, failed: false });
+    try {
+      await image.onDelete();
+      setDeleting(null);
+    } catch {
+      setDeleting({ url: image.url, busy: false, failed: true });
+    }
+  };
+  const deleteState = deleting?.url === image.url ? deleting : null;
 
   const buttonClass = 'p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm';
   const sideButtonClass = 'absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
@@ -180,10 +213,30 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                   <Download className={`w-5 h-5 ${isDownloading ? 'animate-pulse' : ''}`} />
                 </button>
               )}
+              {image.onDelete && (
+                <button ref={deleteButtonRef} type="button" onClick={() => setDeleting({ url: image.url, busy: false, failed: false })} aria-label={translations.deletePhoto} className={buttonClass}>
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
               <button type="button" onClick={onClose} aria-label={translations.close || 'Close'} className={buttonClass}>
                 <X className="w-5 h-5" />
               </button>
             </div>
+            {deleteState && (
+              <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
+                <button type="button" tabIndex={-1} aria-hidden="true" disabled={deleteState.busy} onClick={() => setDeleting(null)}
+                  className="absolute inset-0 cursor-default bg-black/40" />
+                <div role="alertdialog" aria-modal="true" aria-label={translations.deletePhotoConfirm} onKeyDown={trapFocus}
+                  className="motion-panel-in relative w-full max-w-sm rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg">
+                  <h3 className="mb-2 text-lg font-semibold leading-none tracking-tight">{translations.deletePhotoConfirm}</h3>
+                  {deleteState.failed && <p className="text-sm text-destructive">{translations.photoDeleteFailed}</p>}
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button type="button" variant="outline" autoFocus onClick={() => setDeleting(null)}>{translations.cancel}</Button>
+                    <Button type="button" variant="destructive" disabled={deleteState.busy} onClick={() => void confirmDelete()}>{translations.delete}</Button>
+                  </div>
+                </div>
+              </div>
+            )}
             {isGallery && (
               <>
                 <button type="button" disabled={!canGoBack} onClick={() => go(-1)} aria-label={translations.previousImage} className={`${sideButtonClass} left-2 sm:left-4`}>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Ban, Info, Loader2, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateOnly } from '@/shared/utils/dateFormatters';
+import CopyableUsername from '@/shared/ui/CopyableUsername';
 
 interface UserProfileInfoPanelProps {
   username: string;
@@ -42,7 +43,7 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
         <div className="mt-2 space-y-1.5 text-sm">
           <div className="flex items-center justify-between gap-4">
             <span className="text-gray-500">{translations.userName || 'Username'}</span>
-            <span className="min-w-0 truncate font-medium text-gray-900">@{username}</span>
+            <CopyableUsername username={username} />
           </div>
           {canShowCreatedAt && createdAt && (
             <div className="flex items-center justify-between gap-4">

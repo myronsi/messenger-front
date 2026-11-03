@@ -30,7 +30,7 @@ export const supplemental = {
   onlyYouWillSeeRemoved: "Только вы увидите, что оно удалено",
   everyoneWillSeeRemoved: "Все увидят, что оно удалено",
   passwordsMatch: "Пароли совпадают",
-  accountDetails: "Имя пользователя, возраст аккаунта и язык приложения.",
+  accountDetails: "Имя пользователя и возраст аккаунта.",
   accountName: "Имя аккаунта",
   activeSessions: "Активные сессии",
   addAvatar: "Добавить аватар",

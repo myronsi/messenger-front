@@ -7,6 +7,7 @@ export const messages = {
   messageCopied: "Сообщение скопировано!",
   addCaption: "Добавьте подпись",
   forwardMessage: "Переслать сообщение",
+  forwardTargetLimit: "За раз можно переслать максимум в {max} чатов",
   forwardedFrom: "Переслано от {sender}",
   selectChats: "Выберите чаты",
   messageForwarded: "Сообщение переслано",
@@ -24,4 +25,10 @@ export const messages = {
   resumeRecording: "Продолжить запись",
   messageTooLong: "Сообщение слишком длинное: {count} из {max} символов.",
   deleteForEveryoneShort: "Для всех",
+  selectMessage: "Выбрать",
+  selectedMessages: "Выбрано: {count}",
+  cancelSelection: "Отменить выбор",
+  deleteLimit: "За раз можно удалить не больше {max} сообщений",
+  deleteMessagesConfirm: "Удалить сообщения ({count})?",
+  failedToDeleteMessages: "Не удалось удалить сообщения",
 };

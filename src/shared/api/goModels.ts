@@ -13,6 +13,33 @@ export const userModel = (user: Schema['User']) => ({
   can_message: !user.is_deleted,
 });
 
+const contentModel = ({ attachment, content }: Pick<Schema['Message'], 'attachment' | 'content'>) => attachment ? {
+  file_url: attachment.url,
+  file_name: attachment.filename,
+  file_type: attachment.kind === 'voice' ? 'voice' : attachment.content_type,
+  file_size: attachment.size,
+  caption: content || undefined,
+  image_width: attachment.width || undefined,
+  image_height: attachment.height || undefined,
+  thumbnail_url: attachment.thumbnail_url || undefined,
+  audio_metadata: {
+    duration: (attachment.duration_ms || 0) / 1000,
+    waveform: attachment.waveform || undefined,
+  },
+} : content || '';
+
+export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
+  id: preview.id,
+  sender_id: preview.sender?.id,
+  sender: preview.sender?.display_name || 'System',
+  sender_username: preview.sender?.username,
+  timestamp: '',
+  type: preview.attachment ? 'file' as const : 'message' as const,
+  content: contentModel(preview),
+  is_deleted: preview.is_deleted,
+  read_by: [],
+});
+
 export const messageModel = (message: Schema['Message']) => ({
   ...message,
   sender_id: message.sender?.id,
@@ -21,20 +48,9 @@ export const messageModel = (message: Schema['Message']) => ({
   avatar_url: message.sender?.avatar_url || undefined,
   timestamp: message.created_at,
   type: message.attachment ? 'file' as const : 'message' as const,
-  content: message.attachment ? {
-    file_url: message.attachment.url,
-    file_name: message.attachment.filename,
-    file_type: message.attachment.kind === 'voice' ? 'voice' : message.attachment.content_type,
-    file_size: message.attachment.size,
-    caption: message.content || undefined,
-    image_width: message.attachment.width || undefined,
-    image_height: message.attachment.height || undefined,
-    thumbnail_url: message.attachment.thumbnail_url || undefined,
-    audio_metadata: {
-      duration: (message.attachment.duration_ms || 0) / 1000,
-      waveform: message.attachment.waveform || undefined,
-    },
-  } : message.content || '',
+  content: contentModel(message),
+  is_system: message.type === 'system',
+  reply_preview: message.reply_preview ? replyPreviewModel(message.reply_preview) : undefined,
   reactions: message.reactions.map(({ emoji, user_id }) => ({ reaction: emoji, user_id })),
 });
 

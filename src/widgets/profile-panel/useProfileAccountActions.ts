@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDeleteAccountMutation } from '@/features/profile';
 import { useLogoutMutation } from '@/features/auth';
 import { authFetch, endSession } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import type { User } from '@/entities/user';
+import { useDeleteMyAvatarMutation, type User } from '@/entities/user';
+import type { EntityId } from '@/shared/api/entityId';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const BIO_MAX_LENGTH = 500;
@@ -42,6 +43,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const { translations } = useLanguage();
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   const [deleteAccount, { isLoading: isDeletingAccount }] = useDeleteAccountMutation();
+  const [deleteMyAvatar] = useDeleteMyAvatarMutation();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarCropUrl, setAvatarCropUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -56,13 +58,18 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const [isVisible, setIsVisible] = useState(false);
   const [modal, setModal] = useState<ProfileModalState | null>(null);
 
+  const savedRef = useRef({ bio: '', displayName: '' });
+
   useEffect(() => {
     setIsVisible(true);
     if (userData) {
-      setBio(userData.bio || '');
-      setNewBio(userData.bio || '');
-      setDisplayName(userData.display_name || userData.username);
-      setNewDisplayName(userData.display_name || userData.username);
+      const previous = savedRef.current;
+      const saved = { bio: userData.bio || '', displayName: userData.display_name || userData.username };
+      savedRef.current = saved;
+      setBio(saved.bio);
+      setNewBio((draft) => (draft === previous.bio ? saved.bio : draft));
+      setDisplayName(saved.displayName);
+      setNewDisplayName((draft) => (draft === previous.displayName ? saved.displayName : draft));
     }
   }, [userData]);
 
@@ -75,7 +82,6 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
       const response = await authFetch(`${BASE_URL}/auth/me/avatar`, { method: 'POST', body: formData });
       if (!response.ok) throw new Error('Failed to upload avatar');
       await refetchCurrentUser();
-      setModal({ type: 'success', message: 'Avatar updated successfully' });
       if (avatarCropUrl) URL.revokeObjectURL(avatarCropUrl);
       setAvatarCropUrl(null);
       setAvatarFile(null);
@@ -86,8 +92,14 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     }
   };
 
-  const handleUpdateBio = async () => {
-    if (!userData || newBio === bio) return;
+  const handleAvatarDelete = async (id: EntityId) => {
+    if (!userData) return;
+    await deleteMyAvatar({ id, username: userData.username }).unwrap();
+    await refetchCurrentUser();
+  };
+
+  const saveBio = async (quiet: boolean) => {
+    if (!userData || newBio === bio) return true;
     setIsUpdatingBio(true);
     try {
       const response = await authFetch(`${BASE_URL}/auth/me/bio`, {
@@ -97,20 +109,23 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
       });
       if (!response.ok) throw new Error('Failed to update bio');
       setBio(newBio);
-      setModal({ type: 'success', message: 'Bio updated successfully' });
+      if (!quiet) setModal({ type: 'success', message: 'Bio updated successfully' });
+      return true;
     } catch (error) {
       setModal({ type: 'error', message: errorMessage(error, 'Failed to update bio') });
+      return false;
     } finally {
       setIsUpdatingBio(false);
     }
   };
+  const handleUpdateBio = () => saveBio(false);
 
-  const handleUpdateDisplayName = async () => {
+  const saveDisplayName = async (quiet: boolean) => {
     const normalized = normalizeDisplayName(newDisplayName);
-    if (!userData || normalized === displayName) return;
+    if (!userData || normalized === displayName) return true;
     if (!isValidDisplayName(newDisplayName)) {
       setModal({ type: 'error', message: 'Display name must be between 3 and 50 characters' });
-      return;
+      return false;
     }
     setIsUpdatingDisplayName(true);
     try {
@@ -122,12 +137,21 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
       if (!response.ok) throw new Error('Failed to update display name');
       setDisplayName(normalized);
       setNewDisplayName(normalized);
-      setModal({ type: 'success', message: 'Display name updated successfully' });
+      if (!quiet) setModal({ type: 'success', message: 'Display name updated successfully' });
+      return true;
     } catch (error) {
       setModal({ type: 'error', message: errorMessage(error, 'Failed to update display name') });
+      return false;
     } finally {
       setIsUpdatingDisplayName(false);
     }
+  };
+  const handleUpdateDisplayName = () => saveDisplayName(false);
+
+  const handleSavePersonalInfo = async () => (await saveDisplayName(true)) && (await saveBio(true));
+  const discardPersonalInfo = () => {
+    setNewDisplayName(displayName);
+    setNewBio(bio);
   };
 
   const handleLogout = () => setModal({
@@ -168,8 +192,8 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     bio, newBio, setNewBio, displayName, newDisplayName, setNewDisplayName,
     isUpdatingBio, isUpdatingDisplayName, isGroupModalOpen, setIsGroupModalOpen,
     isAvatarViewerOpen, setIsAvatarViewerOpen, isVisible, modal, setModal,
-    isLoggingOut, isDeletingAccount, handleAvatarUpload, handleUpdateBio,
-    handleUpdateDisplayName, handleLogout, handleDeleteAccount, handleClose,
+    isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete, handleUpdateBio,
+    handleUpdateDisplayName, handleSavePersonalInfo, discardPersonalInfo, handleLogout, handleDeleteAccount, handleClose,
     displayNameChanged: normalizeDisplayName(newDisplayName) !== displayName,
     displayNameInvalid: !!newDisplayName && !isValidDisplayName(newDisplayName),
     bioMaxLength: BIO_MAX_LENGTH,

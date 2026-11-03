@@ -35,6 +35,23 @@ export const messageApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Message', 'Chat'],
     }),
 
+    forwardMessages: builder.mutation<{ items: unknown[] }, { chatId: EntityId; messageIds: EntityId[]; targetChatIds: EntityId[] }>({
+      query: ({ chatId, messageIds, targetChatIds }) => ({
+        url: `/chats/${chatId}/messages/forward`,
+        method: 'POST',
+        body: { message_ids: messageIds.map(String), chat_ids: targetChatIds.map(String) },
+      }),
+      invalidatesTags: ['Message', 'Chat'],
+    }),
+
+    deleteMessages: builder.mutation<void, { chatId: EntityId; messageIds: EntityId[]; scope: 'me' | 'everyone' }>({
+      query: ({ chatId, messageIds, scope }) => ({
+        url: `/chats/${chatId}/messages/delete`,
+        method: 'POST',
+        body: { message_ids: messageIds.map(String), scope },
+      }),
+    }),
+
     getMessageHistory: builder.query<MessageHistoryResponse, {
       chatId: EntityId; limit?: number; beforeId?: EntityId | null; afterId?: EntityId | null;
       aroundId?: EntityId | null;
@@ -146,6 +163,8 @@ export const {
   useUploadFileMutation,
   useUploadVoiceMessageMutation,
   useForwardMessageMutation,
+  useForwardMessagesMutation,
+  useDeleteMessagesMutation,
   useGetMessageHistoryQuery,
   useGetChatPhotosQuery,
   useGetChatAudiosQuery,

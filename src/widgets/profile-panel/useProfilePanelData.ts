@@ -1,14 +1,14 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
-import { useLanguage } from '@/shared/contexts/LanguageContext';
-import type { SettingsPage } from '@/shared/lib/urlOverlay';
-import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
-import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
+import { useNavigate } from 'react-router-dom';
+import type { PrivacyDetail, SettingsPage, UrlOverlay } from '@/shared/lib/urlOverlay';
+import { currentEntryMarks, useUrlOverlay } from '@/shared/lib/useUrlOverlay';
+import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ProfileModalState } from './useProfileAccountActions';
-import { useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
+import { useGetBlockedUsersQuery, useUnblockUserMutation } from '@/entities/user';
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
@@ -25,88 +25,44 @@ export const getProfileAvatarUrl = (avatarUrl?: string | null) => resolveMediaUr
 
 export const getProfileMediaUrl = (path?: string | null, fallback = DEFAULT_AVATAR) => resolveMediaUrl(path, fallback);
 
+type SettingsOverlay = Extract<UrlOverlay, { kind: 'settings' }>;
+
+const settingsDepth = (target: SettingsOverlay) => {
+  if (target.page === 'profile') return 0;
+  if (!target.detail) return 1;
+  return target.exceptions ? 3 : 2;
+};
+
 interface ProfilePanelDataOptions {
-  username: string;
   setModal: Dispatch<SetStateAction<ProfileModalState | null>>;
 }
 
-export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOptions) => {
-  const { translations } = useLanguage();
-  const { overlay, replace: replaceOverlay } = useUrlOverlay();
-  const activeProfilePage: SettingsPage = overlay?.kind === 'settings' ? overlay.page : 'profile';
-  const setActiveProfilePage = useCallback((page: SettingsPage) => {
-    replaceOverlay({ kind: 'settings', page });
-  }, [replaceOverlay]);
-  const [blockUsername, setBlockUsername] = useState('');
-  const [pendingBlockUsername, setPendingBlockUsername] = useState('');
-  const [isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed] = useState(true);
+export const useProfilePanelData = ({ setModal }: ProfilePanelDataOptions) => {
+  const navigate = useNavigate();
+  const { overlay, open: openOverlay, replace: replaceOverlay } = useUrlOverlay();
+  const settings: SettingsOverlay = overlay?.kind === 'settings' ? overlay : { kind: 'settings', page: 'profile' };
+  const activeProfilePage: SettingsPage = settings.page;
+  const goToSettings = useCallback((target: SettingsOverlay) => {
+    const from = settingsDepth(settings);
+    const to = settingsDepth(target);
+    const marks = currentEntryMarks();
+    if (to < from && from - to <= (marks.settingsChain ?? 0)) navigate(to - from);
+    else if (to === from + 1) openOverlay(target, { settingsDepth: to, settingsChain: (marks.settingsChain ?? 0) + 1 });
+    else replaceOverlay(target);
+  }, [navigate, openOverlay, replaceOverlay, settings]);
+  const setActiveProfilePage = useCallback((page: SettingsPage) => goToSettings({ kind: 'settings', page }), [goToSettings]);
+  const openPrivacyDetail = useCallback((detail: PrivacyDetail | null, exceptions?: 'allow' | 'deny') => (
+    goToSettings(detail ? { kind: 'settings', page: 'privacy', detail, exceptions } : { kind: 'settings', page: 'privacy' })
+  ), [goToSettings]);
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
-  const { data: dmChatsData } = useGetOneOnOneChatsQuery(username, { skip: !username });
   const { data: requestInbox, refetch: refetchRequestInbox } = useGetApprovalRequestInboxQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
   const [approveRequest, { isLoading: isApprovingRequest }] = useApproveApprovalRequestMutation();
   const [rejectRequest, { isLoading: isRejectingRequest }] = useRejectApprovalRequestMutation();
-  const [blockUser, { isLoading: isBlockingUser }] = useBlockUserMutation();
   const [unblockUser, { isLoading: isUnblockingUser }] = useUnblockUserMutation();
   const blockedUsers = blockedUsersData?.users || [];
   const pendingRequestCount = requestInbox?.unread_count || 0;
-  const blockedUsernameSet = useMemo(
-    () => new Set(blockedUsers.map((user) => user.username.toLowerCase())),
-    [blockedUsers],
-  );
-  const blockDmContactSuggestions = useMemo(() => {
-    const currentUsername = username.toLowerCase();
-    const query = blockUsername.trim().toLowerCase();
-    const seen = new Set<string>();
-    return (dmChatsData?.chats || [])
-      .filter((chat) => !chat.interlocutor_deleted && !!chat.interlocutor_name)
-      .map((chat) => ({
-        username: chat.interlocutor_name,
-        display_name: chat.interlocutor_display_name || chat.interlocutor_name,
-        avatar_url: chat.avatar_url,
-      }))
-      .filter((contact) => {
-        const usernameKey = contact.username.toLowerCase();
-        if (usernameKey === currentUsername || blockedUsernameSet.has(usernameKey) || seen.has(usernameKey)) return false;
-        seen.add(usernameKey);
-        return !query || usernameKey.includes(query) || (contact.display_name || '').toLowerCase().includes(query);
-      })
-      .slice(0, 6);
-  }, [blockUsername, blockedUsernameSet, dmChatsData?.chats, username]);
-
-  const blockUserConsequences = translations.blockUserConsequences || [
-    'They will not be able to send you direct messages.',
-    'They will not be able to invite you to groups.',
-    'They will not be able to see your private profile details.',
-    'Existing chats remain in your list, but messaging requires unblocking them first.',
-  ];
-
-  const confirmBlockUser = async () => {
-    const target = pendingBlockUsername.trim();
-    if (!target) return;
-    try {
-      await blockUser(target).unwrap();
-      setBlockUsername('');
-      setPendingBlockUsername('');
-      setModal(null);
-    } catch (error) {
-      setModal({ type: 'error', message: getErrorMessage(error, 'Failed to block user') });
-    }
-  };
-
-  const handleBlockUser = (usernameOverride?: string) => {
-    const target = (usernameOverride || blockUsername).trim();
-    if (!target) return;
-    setPendingBlockUsername(target);
-    setModal({
-      type: 'blockUser',
-      message: translations.blockUserConfirmMessage || 'After blocking this user, the following consequences will apply:',
-      consequences: blockUserConsequences,
-      onConfirm: confirmBlockUser,
-    });
-  };
-
   const handleUnblockUser = async (targetUsername: string) => {
     try {
       await unblockUser(targetUsername).unwrap();
@@ -134,11 +90,9 @@ export const useProfilePanelData = ({ username, setModal }: ProfilePanelDataOpti
   };
 
   return {
-    activeProfilePage, setActiveProfilePage, blockUsername, setBlockUsername,
-    pendingBlockUsername, setPendingBlockUsername, isBlockDmContactsCollapsed,
-    setIsBlockDmContactsCollapsed, blockedUsers, blockDmContactSuggestions,
+    activeProfilePage, setActiveProfilePage, privacyDetail: settings.detail, privacyExceptions: settings.exceptions, openPrivacyDetail, blockedUsers,
     requestInbox, pendingRequestCount, isApprovingRequest, isRejectingRequest,
-    isBlockingUser, isUnblockingUser, handleBlockUser, handleUnblockUser,
-    handleApproveRequest, handleRejectRequest, confirmBlockUser, getProfileAvatarUrl, getProfileMediaUrl,
+    isUnblockingUser, handleUnblockUser,
+    handleApproveRequest, handleRejectRequest, getProfileAvatarUrl, getProfileMediaUrl,
   };
 };

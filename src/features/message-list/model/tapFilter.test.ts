@@ -24,6 +24,14 @@ describe('isIgnoredTap', () => {
     expect(isIgnoredTap({ target: row }, 0, 10_000)).toBe(true);
   });
 
+  it('takes ctrl, cmd and shift clicks anywhere on the message line, but not on its controls', () => {
+    const { reaction, image, row } = bubble();
+    expect(isIgnoredTap({ target: row, ctrlKey: true }, 0, 10_000)).toBe(false);
+    expect(isIgnoredTap({ target: row, metaKey: true }, 0, 10_000)).toBe(false);
+    expect(isIgnoredTap({ target: image, shiftKey: true }, 0, 10_000)).toBe(false);
+    expect(isIgnoredTap({ target: reaction, ctrlKey: true }, 0, 10_000)).toBe(true);
+  });
+
   it('ignores the tap that stops a scroll', () => {
     const { text } = bubble();
     expect(isIgnoredTap({ target: text }, 9_900, 10_000)).toBe(true);
