@@ -7,10 +7,18 @@ function worker() {
   const events: Record<string, (event: unknown) => void> = {};
   const storage = new Map<string, Response>();
   const close = vi.fn();
-  const registration = { showNotification: vi.fn(), getNotifications: async () => [{ close }] };
-  const navigate = vi.fn(); const focus = vi.fn(); const openWindow = vi.fn();
+  let shown: ({ tag: string; data: unknown; close: () => void } & Record<string, unknown>)[] = [];
+  const registration = {
+    showNotification: vi.fn(async (title: string, options: NotificationOptions & { tag: string; actions?: { action: string; title: string }[] }) => {
+      shown = [...shown.filter((n) => n.tag !== options.tag), { ...options, title, tag: options.tag, data: options.data, close }];
+    }),
+    getNotifications: async (filter?: { tag?: string }) => (shown.length || filter ? shown : [{ tag: '', data: null, close }])
+      .filter((n) => !filter?.tag || n.tag === filter.tag),
+  };
+  const navigate = vi.fn(); const focus = vi.fn(); const openWindow = vi.fn(); const postMessage = vi.fn();
+  const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }));
   runInNewContext(readFileSync('public/notification-worker.js', 'utf8'), {
-    URL, Response, Date,
+    URL, Response, Date, fetch, encodeURIComponent,
     caches: { open: async () => ({
       put: async (key: string, value: Response) => storage.set(key, value),
       match: async (key: string) => storage.get(key)?.clone(),
@@ -18,7 +26,7 @@ function worker() {
     self: {
       location: { origin: 'https://chat.test' }, registration,
       addEventListener: (type: string, callback: (event: unknown) => void) => { events[type] = callback; },
-      clients: { openWindow, matchAll: async () => [{ url: 'https://chat.test/', navigate, focus }] },
+      clients: { openWindow, matchAll: async () => [{ url: 'https://chat.test/', navigate, focus, postMessage }] },
     },
   });
   const dispatch = async (type: string, data: Record<string, unknown>) => {
@@ -29,8 +37,8 @@ function worker() {
   const push = (extra = {}) => dispatch('push', { data: { json: () => ({
     user_id: '1', chat_id: '7', message_id: '9', title: 'Messenger', body: 'New message', expires_at: Date.now() / 1000 + 300, ...extra,
   }) } });
-  const account = (user: string, origin = 'https://chat.test') => dispatch('message', { origin, data: { type: 'notification-account', user } });
-  return { registration, close, navigate, focus, openWindow, dispatch, push, account };
+  const account = (user: string, origin = 'https://chat.test', extra = {}) => dispatch('message', { origin, data: { type: 'notification-account', user, ...extra } });
+  return { registration, close, navigate, focus, openWindow, postMessage, fetch, dispatch, push, account };
 }
 describe('background notification worker', () => {
   it('retains unread system notifications when the same account reconnects', async () => {
@@ -58,5 +66,187 @@ describe('background notification worker', () => {
     await w.dispatch('notificationclick', { notification });
     expect(w.navigate).toHaveBeenCalledWith('https://chat.test/chat/7?notification=1'); expect(w.focus).toHaveBeenCalled();
     await w.account('2'); await w.dispatch('notificationclick', { notification }); expect(w.navigate).toHaveBeenCalledTimes(1);
+  });
+  it('stacks messages of one chat and shows the sender photo', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2/', language: 'ru' });
+    let id = 100;
+    for (const body of ['one', 'two', 'three', 'four', 'five', 'six']) {
+      id += 1;
+      await w.push({ title: 'Mai', body, message_id: String(id), preview: true, avatar_token: 'a.1.2.9.sig', read_token: 'r.1' });
+    }
+    const [title, options] = w.registration.showNotification.mock.lastCall!;
+    expect(title).toBe('Mai (6)');
+    expect(options.body).toBe('two\nthree\nfour\nfive\nsix');
+    expect(options.icon).toBe('https://chat.test/api/v2/notifications/avatar/a.1.2.9.sig');
+    expect(options.actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
+    await w.push({ chat_id: '8', title: 'Bob', body: 'hi', message_id: '200', preview: true });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Bob', expect.objectContaining({ body: 'hi', icon: '/pwa-192x192.png' })]);
+  });
+  it('counts a repeated delivery once and keeps overlapping pushes of one chat', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'one', message_id: '1', preview: true });
+    await w.push({ title: 'Mai', body: 'one', message_id: '1', preview: true });
+    await Promise.all([
+      w.push({ title: 'Mai', body: 'two', message_id: '2', preview: true }),
+      w.push({ title: 'Mai', body: 'three', message_id: '3', preview: true }),
+    ]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Mai (3)', expect.objectContaining({ body: 'one\ntwo\nthree' })]);
+  });
+  it('drops earlier message text once previews are turned off', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false, avatar_token: 'a.x' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+  });
+  it('marks the chat read without opening the app and keeps the notification when that fails', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: 'https://chat.test/api/v2' });
+    const notification = { title: 'Mai', body: 'hi', tag: 'chat-7', data: { user_id: '1', chat_id: '7', read_token: 'r.1.7.9.5.sig' }, close: vi.fn() };
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    expect(w.fetch).toHaveBeenCalledWith('https://chat.test/api/v2/notifications/read/r.1.7.9.5.sig', expect.objectContaining({ method: 'POST' }));
+    expect(w.registration.showNotification).not.toHaveBeenCalled();
+    expect(w.navigate).not.toHaveBeenCalled();
+    w.fetch.mockRejectedValueOnce(new TypeError('offline'));
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    expect(w.registration.showNotification).toHaveBeenCalledWith('Mai', expect.objectContaining({ tag: 'chat-7', body: 'hi' }));
+  });
+  it('opens the chat ready for a reply', async () => {
+    const w = worker(); await w.account('1');
+    await w.dispatch('notificationclick', { notification: { data: { user_id: '1', chat_id: '7' }, close: vi.fn() }, action: 'reply' });
+    expect(w.navigate).toHaveBeenCalledWith('https://chat.test/chat/7?notification=1&reply=1');
+  });
+  it('updates the action language without changing the account', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2', language: 'en' });
+    await w.dispatch('message', { origin: 'https://chat.test', data: { type: 'notification-settings', language: 'ru' } });
+    await w.push({ message_id: '5', read_token: 'r.1' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
+  });
+  it('keeps the read token of the newest message when an older push arrives late', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '12', read_token: 'r.12' });
+    await w.push({ message_id: '11', read_token: 'r.11' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ read_token: 'r.12', read_message_id: '12' });
+  });
+  it('does not restore a failed Mark as read after logout or over a newer stack', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    const notification = { title: 'Mai', body: 'secret', tag: 'chat-7', data: { user_id: '1', chat_id: '7', read_token: 'r.1' }, close: vi.fn() };
+    let fail: (error: Error) => void = () => undefined;
+    w.fetch.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
+    const click = w.dispatch('notificationclick', { notification, action: 'read' });
+    await w.account('');
+    fail(new TypeError('offline'));
+    await click;
+    expect(w.registration.showNotification).not.toHaveBeenCalled();
+    await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '2', title: 'Mai', body: 'newer', preview: true });
+    w.fetch.mockRejectedValueOnce(new TypeError('offline'));
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    expect(w.registration.showNotification).toHaveBeenCalledTimes(1);
+    expect(w.registration.showNotification.mock.lastCall?.[1].body).toBe('newer');
+  });
+  it('names each sender when a group stack has messages from several people', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Mai', body: 'hi', message_id: '1', preview: true, avatar_token: 'a.mai' });
+    await w.push({ title: 'Bob', body: 'yo', message_id: '2', preview: true, avatar_token: 'a.bob' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Mai: hi\nBob: yo', icon: '/pwa-192x192.png' })]);
+  });
+  it('drops a queued push when the account logs out before it is shown', async () => {
+    const w = worker(); await w.account('1');
+    let release: () => void = () => undefined;
+    w.registration.showNotification.mockImplementationOnce(() => new Promise<void>((resolve) => { release = resolve; }));
+    const first = w.push({ title: 'Mai', body: 'one', message_id: '1', preview: true });
+    const second = w.push({ title: 'Mai', body: 'secret', message_id: '2', preview: true });
+    await vi.waitFor(() => expect(w.registration.showNotification).toHaveBeenCalledTimes(1));
+    await w.account('');
+    release();
+    await first;
+    await second;
+    expect(w.registration.showNotification).toHaveBeenCalledTimes(1);
+  });
+  it('treats a push without the preview flag as private', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', avatar_token: 'a.x' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+  });
+  it('keeps the alert without Mark as read when the read link has expired', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    const actions = [{ action: 'reply', title: 'Reply' }, { action: 'read', title: 'Mark as read' }];
+    const notification = { title: 'Mai', body: 'hi', tag: 'chat-7', actions, data: { user_id: '1', chat_id: '7', read_token: 'r.old' }, close: vi.fn() };
+    w.fetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    const [, options] = w.registration.showNotification.mock.lastCall!;
+    expect(options.actions?.map((a: { title: string }) => a.title)).toEqual(['Reply']);
+    expect(options.data).toMatchObject({ read_token: '' });
+  });
+  it('does not bring back private text when an old preview push is delivered again', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false });
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message' })]);
+  });
+  it('redacts a counted message that is delivered again after previews were turned off', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true, avatar_token: 'a.1' });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '1', preview: false });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 1, preview: false });
+  });
+  it('offers Mark as read only when its token covers the newest message', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '10', read_token: 'r.10' });
+    await w.push({ message_id: '11' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { action: string }) => a.action)).toEqual(['reply']);
+    await w.push({ message_id: '12', read_token: 'r.12' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { action: string }) => a.action)).toEqual(['reply', 'read']);
+  });
+  it('does not count a late retry again after its id dropped out of the stack', async () => {
+    const w = worker(); await w.account('1');
+    for (let id = 1001; id <= 1200; id += 1) await w.push({ message_id: String(id) });
+    await w.push({ message_id: '1000' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 200 });
+    await w.push({ message_id: '1201' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 201 });
+  });
+  it('keeps a late older preview push private after a newer private one', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false });
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true, avatar_token: 'a.1' });
+    const [title, options] = w.registration.showNotification.mock.lastCall!;
+    expect(title).toBe('Messenger (2)');
+    expect(options).toMatchObject({ body: 'New message', icon: '/pwa-192x192.png' });
+  });
+  it('still recognises a retry of a newer message that arrived before older ones', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ message_id: '2000' });
+    for (let id = 1001; id <= 1200; id += 1) await w.push({ message_id: String(id) });
+    await w.push({ message_id: '2000' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 201 });
+  });
+  it('drops a late push for a message that Mark as read already covered', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ message_id: '5', read_token: 'r.5' });
+    const notification = { title: 'Messenger', body: 'New message', tag: 'chat-7', data: { user_id: '1', chat_id: '7', read_token: 'r.5', read_message_id: '5' }, close: vi.fn() };
+    await w.dispatch('notificationclick', { notification, action: 'read' });
+    const shown = w.registration.showNotification.mock.calls.length;
+    await w.push({ message_id: '4' });
+    expect(w.registration.showNotification.mock.calls.length).toBe(shown);
+    await w.push({ message_id: '6' });
+    expect(w.registration.showNotification.mock.calls.length).toBe(shown + 1);
+  });
+  it('applies account and language messages in the order they were sent', async () => {
+    const w = worker();
+    await Promise.all([
+      w.account('1', 'https://chat.test', { api: '/api/v2', language: 'en' }),
+      w.dispatch('message', { origin: 'https://chat.test', data: { type: 'notification-settings', language: 'ru' } }),
+    ]);
+    await w.push({ message_id: '9', read_token: 'r.9' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
+  });
+  it('keeps two people with the same name apart', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Alex', body: 'one', message_id: '1', preview: true, sender_id: '5', avatar_token: 'a.5' });
+    await w.push({ title: 'Alex', body: 'two', message_id: '2', preview: true, sender_id: '6', avatar_token: 'a.6' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Alex: one\nAlex: two', icon: '/pwa-192x192.png' })]);
   });
 });

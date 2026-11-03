@@ -158,7 +158,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const displayedMessages = isPreview ? previewFailedMessages : messages;
 
   const content = (
-    <div data-chat-drop-zone className="relative flex h-full flex-col overflow-hidden">
+    <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
       <ChatHeader
         chatName={chatName}
         chatDisplayName={chatDisplayName}
