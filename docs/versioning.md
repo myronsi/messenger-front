@@ -1,6 +1,6 @@
 # Versioning
 
-Both repositories (`messenger-front`, `messenger-back`) follow [Semantic Versioning](https://semver.org/) and share one release train: for each release the frontend and the backend have the same `MAJOR.MINOR`, while `PATCH` is independent (release 0.5 = backend `0.5.0` + frontend `0.5.2`).
+Frontend and backend releases follow [Semantic Versioning](https://semver.org/) independently. Their app version numbers need not match; compatibility is determined by the pinned API contract and the backend minimum client API version.
 
 | Number | Where | Rule |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ Compatibility is decided by the API contract version, not by app versions. The b
 - Merge pull requests with **squash**; the PR title becomes the commit message and is checked by the `PR title` workflow.
 - [release-please](https://github.com/googleapis/release-please) (release type `node`) keeps a release PR open with the changelog. Merging it creates the tag, the GitHub Release and attaches the built `dist/` archive.
 - While the version is `0.x`, `bump-minor-pre-major` and `bump-patch-for-minor-pre-major` are enabled: breaking changes bump MINOR, features and fixes bump PATCH.
-- To start a new release train (for example `0.6`) so that `MAJOR.MINOR` matches the backend, add a `Release-As: 0.6.0` footer to a commit:
+- To deliberately choose the next frontend release version, add a `Release-As: 0.6.0` footer to a commit:
 
   ```
   chore: start the 0.6 release train
@@ -25,8 +25,8 @@ Compatibility is decided by the API contract version, not by app versions. The b
 
 ## Milestones
 
-Both repositories use the same milestones: `0.5`, `1.0` and `1.1`. Every open issue belongs to one of them.
+Use the current repository milestones for planning. Historical Python milestones do not define the supported runtime.
 
 ## Build metadata
 
-`vite.config.ts` injects `__APP_VERSION__` (from `package.json`) and `__APP_COMMIT__` (first 7 characters of `GITHUB_SHA`, `dev` locally), and writes the same two values to `version.json` in the build output (the dev server serves it too). The app compares that file with its own values to detect a new deploy. The About screen reads the server version from `GET /version` (Python backend) or `GET /api/v2/meta` (Go backend).
+`vite.config.ts` injects `__APP_VERSION__` (from `package.json`) and `__APP_COMMIT__` (first 7 characters of `GITHUB_SHA`, `dev` locally), and writes the same two values to `version.json` in the build output (the dev server serves it too). The app compares that file with its own values to detect a new deploy. The About screen reads the server version from `GET /api/v2/meta`.

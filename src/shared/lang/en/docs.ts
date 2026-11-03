@@ -13,7 +13,7 @@ export const docs = {
         steps: [
           "Open the app and choose Register.",
           "Pick a username of 3-32 characters (letters, digits and underscores) and a password of at least 8 characters.",
-          "After registration, download or copy the QR recovery part and keep it somewhere safe. Together with this device it is the only way to reset a forgotten password.",
+          "Save the recovery key shown after registration somewhere safe, then confirm that you saved it. You will need it if you forget your password.",
         ],
       },
       {
@@ -29,7 +29,7 @@ export const docs = {
         id: "messages",
         title: "Work with messages",
         steps: [
-          "Attach photos, voice messages and files (up to 10 MB, videos up to 100 MB) next to the message field.",
+          "Attach photos, voice messages and files next to the message field.",
           "Right-click a message (or long-press on a phone) to reply, edit, copy, forward, react or delete it.",
           "Delete a message for yourself only or for everyone in the chat.",
           "Unsent text is kept as a draft for each chat while the tab is open.",
@@ -61,8 +61,28 @@ export const docs = {
         title: "Forgot your password",
         steps: [
           "On the sign-in screen choose Forgot Password? and select your username.",
-          "Enter the recovery part you saved at registration.",
-          "Set a new password and sign in again.",
+          "Enter your saved recovery key and a new password. If two-factor authentication is enabled, also enter an authenticator or backup code.",
+          "Save the replacement recovery key before continuing. The old key stops working, and your other sessions are signed out.",
+          "Security-method changes are temporarily restricted for 24 hours after recovery. Old recovery shares and QR parts cannot replace the recovery key.",
+        ],
+      },
+      {
+        id: "security",
+        title: "Protect your account",
+        steps: [
+          "Open Security & devices in your profile to manage two-factor authentication and review signed-in sessions.",
+          "If your account does not have a recovery key yet, create one while you still know your password. Supply your authenticator or backup code if required.",
+          "Save any new recovery key immediately. Creating a replacement invalidates the previous key.",
+          "Sign out sessions you no longer use. Keep authenticator backup codes separately from your recovery key.",
+        ],
+      },
+      {
+        id: "notifications",
+        title: "Message notifications",
+        steps: [
+          "Open Notifications in your profile to manage message alerts, sound and message previews.",
+          "Enable browser notifications there and allow the browser permission prompt if you want background alerts.",
+          "Mute individual chats when you do not want alerts. Browser or device settings can also block notifications.",
         ],
       },
       {
@@ -79,13 +99,11 @@ export const docs = {
     upcomingIntro: "We are working on these. Plans can change, so there are no dates yet.",
     upcoming: [
       { id: "search", title: "Search", description: "Find messages across all your chats and find people by name, with the matching words highlighted." },
-      { id: "attachments", title: "Better file sharing", description: "See upload progress, cancel or retry an upload, and keep your files visible only to people in the chat." },
-      { id: "reliability", title: "Faster, more reliable messaging", description: "A new server and a single connection for all chats, so messages arrive instantly and none are lost after a reconnect." },
+      { id: "attachments", title: "Better upload controls", description: "More controls for cancelling and retrying file uploads." },
       { id: "passkeys", title: "Sign in with a passkey", description: "Use Face ID, a fingerprint, Windows Hello or a security key instead of a password." },
-      { id: "recovery-key", title: "Simpler password recovery", description: "One recovery key, saved once at registration, replaces the recovery parts and QR code." },
       { id: "device-approval", title: "Approve recovery from another device", description: "Reset your password by approving the request on a device where you are still signed in." },
       { id: "email-recovery", title: "Recovery email", description: "Optionally add an email address used only to recover your account and to warn you about security changes." },
-      { id: "security-settings", title: "Security overview", description: "See which recovery methods are set up and review recent security activity on your account." },
+      { id: "security-settings", title: "Security activity history", description: "Review recent sign-ins and security changes in one place." },
     ],
     whatsNewTitle: "What's new",
     whatsNewIntro: "Changes in the latest versions of the app.",
