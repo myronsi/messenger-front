@@ -2,6 +2,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
+import { useRowScrollAnchoring } from './useRowScrollAnchoring';
 import { getAppendedMessages } from '@/entities/message';
 import { useCurrentDateLabel } from './useCurrentDateLabel';
 import { useHighlightScroll } from './useHighlightScroll';
@@ -184,6 +185,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
 
   // Keeps the view pinned to the bottom (or on the first unread message) while content such as images
   // finishes loading, until the user takes over by scrolling.
+  useRowScrollAnchoring({ chatContainerRef, messageRefs, messages, shouldStickToBottomRef, isRestoringScrollRef });
+
   useEffect(() => {
     const container = chatContainerRef.current;
     const content = contentRef.current;
