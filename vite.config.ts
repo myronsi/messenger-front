@@ -72,6 +72,10 @@ export default defineConfig(({ command, mode }) => {
   }
 
   return {
+    build: {
+      // Preserve Vite 7's browser targets instead of raising them implicitly with Vite 8.
+      target: ["chrome107", "edge107", "firefox104", "safari16"],
+    },
     server: {
       host: "::",
       port: 8080,
@@ -124,7 +128,7 @@ export default defineConfig(({ command, mode }) => {
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve(import.meta.dirname, "./src"),
       },
     },
     test: {
