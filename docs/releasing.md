@@ -2,6 +2,20 @@
 
 The backend always deploys first and stays compatible with the previous frontend release.
 
+## Staging
+
+Every push to `main` automatically runs `deploy-staging.yml`. It builds the frontend for
+`https://staging.messenger.viserix.com/api/v2`, uploads it with the staging-only SSH account,
+and atomically switches `/var/www/messenger-staging/current`. The deployment checks the
+public `version.json` against the deployed commit and restores the previous frontend on
+failure. Five frontend builds are retained. The workflow can also be run manually from `main`.
+
+The GitHub `staging` environment permits only `main` and stores `STAGING_SSH_HOST`,
+`STAGING_SSH_USER`, `STAGING_SSH_KEY`, and `STAGING_SSH_KNOWN_HOSTS`. The staging account
+owns `/var/www/messenger-staging` and its `releases` directory. Production bundles contain
+production API addresses, so staging always gets its own build. Production continues to
+deploy only through the release workflow below.
+
 ## Checklist
 
 1. Make sure all PRs for the release are merged to `main` with Conventional Commit titles and CI is green.
