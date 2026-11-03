@@ -53,3 +53,14 @@ describe('useSwipeAction', () => {
     expect(b).toHaveBeenCalled();
   });
 });
+
+describe('useSwipeAction cancel', () => {
+  it('springs back without replying when the browser cancels the touch', () => {
+    const onSwipe = vi.fn();
+    const { result } = renderHook(() => useSwipeAction(1, onSwipe));
+    drag(result.current.handlers, SWIPE_THRESHOLD + 10);
+    act(() => result.current.handlers.onTouchCancel(none));
+    expect(onSwipe).not.toHaveBeenCalled();
+    expect(result.current.offset).toBe(0);
+  });
+});

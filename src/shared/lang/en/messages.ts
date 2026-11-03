@@ -7,6 +7,7 @@ export const messages = {
   messageCopied: "Message copied!",
   addCaption: "Add a caption",
   forwardMessage: "Forward message",
+  forwardTargetLimit: "You can forward to up to {max} chats at once",
   forwardedFrom: "Forwarded from {sender}",
   selectChats: "Select chats",
   messageForwarded: "Message forwarded",

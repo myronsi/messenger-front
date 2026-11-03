@@ -74,6 +74,7 @@ export const profile = {
   privacyNobodyAdded: "Nobody added yet.",
   privacyAddPeople: "Add people",
   privacySearchPeople: "Search by name or username",
+  privacyAddUsername: "Add @{username}",
   sharedChatsHint: "People you have a direct chat or a group with.",
   sharedChatsOnlyHint: "Only people you share a chat with are listed: nobody else is allowed anyway.",
   presenceVisibility: "Online status",

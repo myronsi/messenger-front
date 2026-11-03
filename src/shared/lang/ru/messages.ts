@@ -7,6 +7,7 @@ export const messages = {
   messageCopied: "Сообщение скопировано!",
   addCaption: "Добавьте подпись",
   forwardMessage: "Переслать сообщение",
+  forwardTargetLimit: "За раз можно переслать максимум в {max} чатов",
   forwardedFrom: "Переслано от {sender}",
   selectChats: "Выберите чаты",
   messageForwarded: "Сообщение переслано",

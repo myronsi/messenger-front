@@ -1,6 +1,7 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { trapFocus } from '@/shared/lib/trapFocus';
 import { ChevronLeft, ChevronRight, Download, ImageOff, Trash2, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { fetchMedia } from '@/shared/api/fetchMedia';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -91,9 +92,26 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     return () => { document.body.style.overflow = previousOverflow; };
   }, []);
 
+  const confirmingRef = useRef(false);
+  confirmingRef.current = !!deleting;
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const wasConfirmingRef = useRef(false);
+
+  useEffect(() => {
+    if (wasConfirmingRef.current && !deleting && deleteButtonRef.current?.isConnected) deleteButtonRef.current.focus({ preventScroll: true });
+    wasConfirmingRef.current = !!deleting;
+  }, [deleting]);
+
   useEffect(() => {
     const zoomed = view.scale > 1;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (confirmingRef.current) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setDeleting((current) => (current?.busy ? current : null));
+        }
+        return;
+      }
       if (event.key === 'Escape') onClose();
       else if (event.key === '+' || event.key === '=') zoomBy(1.25);
       else if (event.key === '-' || event.key === '_') zoomBy(0.8);
@@ -196,7 +214,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                 </button>
               )}
               {image.onDelete && (
-                <button type="button" onClick={() => setDeleting({ url: image.url, busy: false, failed: false })} aria-label={translations.deletePhoto} className={buttonClass}>
+                <button ref={deleteButtonRef} type="button" onClick={() => setDeleting({ url: image.url, busy: false, failed: false })} aria-label={translations.deletePhoto} className={buttonClass}>
                   <Trash2 className="w-5 h-5" />
                 </button>
               )}
@@ -208,12 +226,12 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
               <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
                 <button type="button" tabIndex={-1} aria-hidden="true" disabled={deleteState.busy} onClick={() => setDeleting(null)}
                   className="absolute inset-0 cursor-default bg-black/40" />
-                <div role="alertdialog" aria-label={translations.deletePhotoConfirm}
+                <div role="alertdialog" aria-modal="true" aria-label={translations.deletePhotoConfirm} onKeyDown={trapFocus}
                   className="motion-panel-in relative w-full max-w-sm rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg">
                   <h3 className="mb-2 text-lg font-semibold leading-none tracking-tight">{translations.deletePhotoConfirm}</h3>
                   {deleteState.failed && <p className="text-sm text-destructive">{translations.photoDeleteFailed}</p>}
                   <div className="mt-4 flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setDeleting(null)}>{translations.cancel}</Button>
+                    <Button type="button" variant="outline" autoFocus onClick={() => setDeleting(null)}>{translations.cancel}</Button>
                     <Button type="button" variant="destructive" disabled={deleteState.busy} onClick={() => void confirmDelete()}>{translations.delete}</Button>
                   </div>
                 </div>

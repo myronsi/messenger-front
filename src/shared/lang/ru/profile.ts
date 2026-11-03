@@ -74,6 +74,7 @@ export const profile = {
   privacyNobodyAdded: "Пока никого нет.",
   privacyAddPeople: "Добавить людей",
   privacySearchPeople: "Поиск по имени или имени пользователя",
+  privacyAddUsername: "Добавить @{username}",
   sharedChatsHint: "Люди, с которыми у вас есть личный чат или общая группа.",
   sharedChatsOnlyHint: "Показаны только люди, с которыми у вас есть общий чат: остальным и так нельзя.",
   presenceVisibility: "Онлайн-статус",

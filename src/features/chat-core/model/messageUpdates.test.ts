@@ -141,3 +141,13 @@ describe('addReadReceipts', () => {
     expect(addReadReceipts(start, [1], 0, 'at')).toBe(start);
   });
 });
+
+describe('buildMessageFromSocketEvent previews', () => {
+  it('keeps the reply preview and the system flag of a live message', () => {
+    const preview = { id: '10', sender: 'Ann', content: 'old', timestamp: '', type: 'message' as const, read_by: [] };
+    const live = { ...event(), reply_preview: preview, is_system: true } as NewMessageEvent;
+    const result = buildMessageFromSocketEvent(live, { currentUserId: 1, username: 'alice' });
+    expect(result.reply_preview).toEqual(preview);
+    expect(result.is_system).toBe(true);
+  });
+});

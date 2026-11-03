@@ -100,12 +100,20 @@ export const usePrivacySettings = (isActive: boolean) => {
   };
 
   const handleExceptionListChange = (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, users: User[]) => {
-    const saved = savedSettings?.privacy_exceptions?.[key]?.[effect] || [];
     const names = (list: User[]) => list.map((user) => user.username.toLowerCase()).sort((a, b) => a.localeCompare(b)).join(',');
+    const opposite: PrivacyExceptionEffect = effect === 'allow' ? 'deny' : 'allow';
+    const listed = new Set(users.map((user) => user.username.toLowerCase()));
+    const oppositeUsers = privacySettings?.privacy_exceptions?.[key]?.[opposite] || [];
+    const keptOpposite = oppositeUsers.filter((user) => !listed.has(user.username.toLowerCase()));
+    const putDraft = (drafts: Partial<Record<ExceptionDraftKey, User[]>>, draftEffect: PrivacyExceptionEffect, list: User[]) => {
+      const saved = savedSettings?.privacy_exceptions?.[key]?.[draftEffect] || [];
+      if (names(saved) === names(list)) delete drafts[`${key}:${draftEffect}`];
+      else drafts[`${key}:${draftEffect}`] = list;
+    };
     setListDrafts((drafts) => {
       const next = { ...drafts };
-      if (names(saved) === names(users)) delete next[`${key}:${effect}`];
-      else next[`${key}:${effect}`] = users;
+      putDraft(next, effect, users);
+      if (keptOpposite.length !== oppositeUsers.length) putDraft(next, opposite, keptOpposite);
       return next;
     });
   };

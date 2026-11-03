@@ -68,6 +68,7 @@ export interface Message {
   avatar_url?: string;
   reply_to?: EntityId | null;
   reply_preview?: Message;
+  is_system?: boolean;
   is_deleted?: boolean;
   is_deleting?: boolean;
   edited_at?: string | null;

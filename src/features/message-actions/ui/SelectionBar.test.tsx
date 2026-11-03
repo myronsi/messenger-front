@@ -80,3 +80,14 @@ describe('SelectionBar', () => {
     expect(onClear).toHaveBeenCalled();
   });
 });
+
+describe('SelectionBar actions', () => {
+  it('hides Forward when a selected message is a system message', () => {
+    renderBar(['1', '2'], [message('1'), { ...message('2'), is_system: true }]);
+    expect(screen.queryByRole('button', { name: 'Forward' })).not.toBeInTheDocument();
+    cleanup();
+    renderBar(['1'], [message('1')]);
+    expect(screen.getByRole('button', { name: 'Forward' })).toHaveAttribute('aria-label', 'Forward');
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveAttribute('aria-label', 'Delete');
+  });
+});

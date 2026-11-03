@@ -42,7 +42,12 @@ export const useSwipeAction = (direction: 1 | -1, onSwipe?: () => void) => {
     if (current?.axis === 'x' && current.distance >= SWIPE_THRESHOLD) latest.current?.();
   }, []);
 
-  const handlers: TouchHandlers = { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd };
+  const onTouchCancel = useCallback(() => {
+    gesture.current = null;
+    setOffset(0);
+  }, []);
+
+  const handlers: TouchHandlers = { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel };
   return { offset, progress: Math.min(1, Math.abs(offset) / SWIPE_THRESHOLD), handlers };
 };
 

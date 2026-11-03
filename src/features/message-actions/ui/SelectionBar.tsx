@@ -6,7 +6,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import ForwardMessageDialog from './ForwardMessageDialog';
-import { MAX_FORWARDED_MESSAGES, MAX_SELECTED_MESSAGES } from '../model/useMessageSelection';
+import { MAX_FORWARDED_MESSAGES, MAX_SELECTED_MESSAGES, isForwardableMessage } from '../model/useMessageSelection';
 
 interface SelectionBarProps {
   chatId: EntityId;
@@ -28,6 +28,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
   const ids = selected.map((message) => message.id);
   const count = ids.length;
   const forEveryone = count > 0 && selected.every(canDeleteForEveryone);
+  const canForward = count > 0 && count <= MAX_FORWARDED_MESSAGES && selected.every(isForwardableMessage);
 
   useEffect(() => {
     if (!selection?.active) return;
@@ -64,15 +65,15 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
             <X className="h-5 w-5" />
           </button>
           <span className="flex-1 text-sm font-medium" aria-live="polite">{fill(translations.selectedMessages, MAX_SELECTED_MESSAGES)}</span>
-          {count <= MAX_FORWARDED_MESSAGES && (
-            <button type="button" onClick={() => setIsForwardOpen(true)} className={`${iconButton} motion-selection-check hover:bg-accent`}>
-              <Forward className="h-4 w-4" />
-              <span className="hidden sm:inline">{translations.forward}</span>
+          {canForward && (
+            <button type="button" onClick={() => setIsForwardOpen(true)} aria-label={translations.forward} className={`${iconButton} motion-selection-check hover:bg-accent`}>
+              <Forward className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline" aria-hidden="true">{translations.forward}</span>
             </button>
           )}
-          <button type="button" onClick={() => { setDeleteFailed(false); setIsDeleteOpen(true); }} className={`${iconButton} text-destructive hover:bg-destructive/10`}>
-            <Trash2 className="h-4 w-4" />
-            <span className="hidden sm:inline">{translations.deleteMessage}</span>
+          <button type="button" onClick={() => { setDeleteFailed(false); setIsDeleteOpen(true); }} aria-label={translations.deleteMessage} className={`${iconButton} text-destructive hover:bg-destructive/10`}>
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline" aria-hidden="true">{translations.deleteMessage}</span>
           </button>
         </div>
       </div>

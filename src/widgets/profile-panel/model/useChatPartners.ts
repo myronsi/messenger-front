@@ -26,7 +26,10 @@ export const useChatPartners = (enabled: boolean, currentUsername: string, direc
   const groupIds = useMemo(() => (groupsData?.groups || []).map((group) => group.chat_id), [groupsData?.groups]);
 
   useEffect(() => {
-    if (!enabled || groupIds.length === 0) return undefined;
+    if (!enabled || groupIds.length === 0) {
+      setGroupMembers([]);
+      return undefined;
+    }
     let active = true;
     const requests = groupIds.map((id) => dispatch(chatApi.endpoints.getGroupDetails.initiate(id)));
     void Promise.allSettled(requests.map((request) => request.unwrap())).then((results) => {

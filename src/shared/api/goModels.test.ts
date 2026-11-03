@@ -52,3 +52,14 @@ describe('messageModel', () => {
     expect(message({}).reply_preview).toBeUndefined();
   });
 });
+
+describe('messageModel system messages', () => {
+  it('marks system messages so they are not offered for forwarding', () => {
+    const base = {
+      id: '20', chat_id: '5', type: 'text', sender: user('1', 'bob'), content: 'hi', attachment: null, reply_to: null,
+      forwarded_from: null, reactions: [], read_by: [], created_at: '2026-11-03T10:00:00Z', edited_at: null, is_deleted: false,
+    } as Parameters<typeof messageModel>[0];
+    expect(messageModel({ ...base, type: 'system', sender: null } as Parameters<typeof messageModel>[0]).is_system).toBe(true);
+    expect(messageModel(base).is_system).toBe(false);
+  });
+});

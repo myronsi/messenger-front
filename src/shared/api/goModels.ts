@@ -49,6 +49,7 @@ export const messageModel = (message: Schema['Message']) => ({
   timestamp: message.created_at,
   type: message.attachment ? 'file' as const : 'message' as const,
   content: contentModel(message),
+  is_system: message.type === 'system',
   reply_preview: message.reply_preview ? replyPreviewModel(message.reply_preview) : undefined,
   reactions: message.reactions.map(({ emoji, user_id }) => ({ reaction: emoji, user_id })),
 });

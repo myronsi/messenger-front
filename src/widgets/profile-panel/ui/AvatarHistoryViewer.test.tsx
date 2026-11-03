@@ -67,3 +67,20 @@ describe('AvatarHistoryViewer', () => {
     expect(screen.queryByRole('button', { name: 'Delete photo' })).not.toBeInTheDocument();
   });
 });
+
+describe('AvatarHistoryViewer delete confirmation keyboard', () => {
+  it('focuses Cancel, keeps Escape and arrows inside the confirmation and returns focus', () => {
+    history = { data: { avatars: [item('3', true), item('2', false)] } };
+    const onClose = vi.fn();
+    render(<AvatarHistoryViewer username="alice" displayName="Alice" currentAvatarUrl={current} onClose={onClose} onDeleteAvatar={vi.fn(async () => undefined)} />);
+    const deleteButton = screen.getByRole('button', { name: 'Delete photo' });
+    fireEvent.click(deleteButton);
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(shownSrc()).toContain('version=3');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(deleteButton).toHaveFocus();
+  });
+});

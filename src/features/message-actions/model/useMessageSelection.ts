@@ -4,12 +4,19 @@ import type { Message, MessageSelection } from '@/entities/message';
 
 export const MAX_SELECTED_MESSAGES = 100;
 export const MAX_FORWARDED_MESSAGES = 20;
+export const MAX_FORWARD_TARGETS = 20;
+export const MAX_FORWARD_COPIES = 20;
 export const SELECTION_CLOSE_MS = 180;
 
 const EMPTY: ReadonlySet<EntityId> = new Set();
 
 export const isSelectableMessage = (message: Message) =>
   isPersistedId(message.id) && !message.is_deleted && !message.is_deleting && !message.upload_status;
+
+export const isForwardableMessage = (message: Message) => isSelectableMessage(message) && !message.is_system;
+
+export const forwardTargetLimit = (messageCount: number) =>
+  Math.max(1, Math.min(MAX_FORWARD_TARGETS, Math.floor(MAX_FORWARD_COPIES / Math.max(1, messageCount))));
 
 const isCoarsePointer = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
 
@@ -29,6 +36,16 @@ export const useMessageSelection = (chatId: EntityId, messages: Message[] = []) 
     setState(null);
     anchor.current = null;
   }, [chatId]);
+
+  useEffect(() => {
+    setState((current) => {
+      if (!current || current.closing) return current;
+      const available = new Set(messages.filter(isSelectableMessage).map((message) => message.id));
+      const kept = new Set([...current.ids].filter((id) => available.has(id)));
+      if (kept.size === current.ids.size) return current;
+      return kept.size ? { ids: kept, closing: false } : closed(current);
+    });
+  }, [messages]);
 
   useEffect(() => {
     if (!state?.closing) return undefined;

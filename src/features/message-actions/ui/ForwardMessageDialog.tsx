@@ -15,6 +15,7 @@ import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { useGetBlockedUsersQuery } from '@/entities/user';
+import { forwardTargetLimit } from '../model/useMessageSelection';
 
 interface ForwardMessageDialogProps {
   open: boolean;
@@ -93,12 +94,14 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     ));
   }, [blockedUsersData?.users, directChatsData?.chats, groupChatsData?.groups, query, translations.group]);
 
+  const maxTargets = forwardTargetLimit(bulk ? bulk.messageIds.length : 1);
+  const atTargetLimit = selectedChatIds.length >= maxTargets;
+
   const toggleTarget = (chatId: EntityId) => {
-    setSelectedChatIds((current) => (
-      current.includes(chatId)
-        ? current.filter((id) => id !== chatId)
-        : [...current, chatId]
-    ));
+    setSelectedChatIds((current) => {
+      if (current.includes(chatId)) return current.filter((id) => id !== chatId);
+      return current.length < maxTargets ? [...current, chatId] : current;
+    });
     setStatusMessage(null);
   };
 
@@ -164,15 +167,18 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
             <div className="space-y-1">
               {targets.map((target) => {
                 const isSelected = selectedChatIds.includes(target.id);
+                const isBlocked = !isSelected && atTargetLimit;
                 return (
                   <button
                     key={`${target.type}-${target.id}`}
                     type="button"
+                    disabled={isBlocked}
                     onClick={() => toggleTarget(target.id)}
-                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
+                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
                   >
                     <Checkbox
                       checked={isSelected}
+                      disabled={isBlocked}
                       onClick={(event) => event.stopPropagation()}
                       onCheckedChange={() => toggleTarget(target.id)}
                     />
@@ -189,6 +195,9 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
         </div>
 
         <div className="border-t border-border px-4 py-3">
+          {atTargetLimit && (
+            <div className="mb-2 text-xs text-muted-foreground">{(translations.forwardTargetLimit || '').replace('{max}', String(maxTargets))}</div>
+          )}
           {statusMessage && <div className="mb-2 text-sm text-destructive">{statusMessage}</div>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>

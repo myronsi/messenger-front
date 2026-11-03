@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDeleteAccountMutation } from '@/features/profile';
 import { useLogoutMutation } from '@/features/auth';
 import { authFetch, endSession } from '@/shared/auth/session';
@@ -58,13 +58,18 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const [isVisible, setIsVisible] = useState(false);
   const [modal, setModal] = useState<ProfileModalState | null>(null);
 
+  const savedRef = useRef({ bio: '', displayName: '' });
+
   useEffect(() => {
     setIsVisible(true);
     if (userData) {
-      setBio(userData.bio || '');
-      setNewBio(userData.bio || '');
-      setDisplayName(userData.display_name || userData.username);
-      setNewDisplayName(userData.display_name || userData.username);
+      const previous = savedRef.current;
+      const saved = { bio: userData.bio || '', displayName: userData.display_name || userData.username };
+      savedRef.current = saved;
+      setBio(saved.bio);
+      setNewBio((draft) => (draft === previous.bio ? saved.bio : draft));
+      setDisplayName(saved.displayName);
+      setNewDisplayName((draft) => (draft === previous.displayName ? saved.displayName : draft));
     }
   }, [userData]);
 

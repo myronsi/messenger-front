@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import type { MouseEvent } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Message } from '@/entities/message';
-import { MAX_SELECTED_MESSAGES, SELECTION_CLOSE_MS, useMessageSelection } from './useMessageSelection';
+import { MAX_SELECTED_MESSAGES, SELECTION_CLOSE_MS, forwardTargetLimit, useMessageSelection } from './useMessageSelection';
 
 const message = (id: string, extra: Partial<Message> = {}): Message => ({
   id, sender: 'ann', content: 'hi', timestamp: '2026-11-03T10:00:00Z', type: 'message', read_by: [], ...extra,
@@ -95,5 +95,23 @@ describe('useMessageSelection', () => {
     act(() => result.current.start(chat[0]));
     rerender({ chatId: '6' });
     expect(result.current.selection.active).toBe(false);
+  });
+});
+
+describe('selection against the loaded messages', () => {
+  it('drops ids that are deleted or no longer loaded and closes when none remain', () => {
+    const { result, rerender } = renderHook(({ messages }) => useMessageSelection('5', messages), { initialProps: { messages: chat } });
+    act(() => result.current.start(chat[0]));
+    act(() => result.current.selection.toggle(chat[1]));
+    rerender({ messages: [message('1', { is_deleted: true }), ...chat.slice(1)] });
+    expect(selected(result.current.selection.ids)).toEqual(['2']);
+    rerender({ messages: chat.slice(2) });
+    expect(result.current.selection.active).toBe(false);
+  });
+
+  it('keeps one forward within the backend limit of 20 copies', () => {
+    expect(forwardTargetLimit(1)).toBe(20);
+    expect(forwardTargetLimit(3)).toBe(6);
+    expect(forwardTargetLimit(20)).toBe(1);
   });
 });
