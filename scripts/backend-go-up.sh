@@ -5,12 +5,17 @@ tag="$1" dir="$2" port="$3"
 repo="${BACKEND_REPO:-myronsi/messenger-back}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source="$dir/source-$tag"
+ref="refs/tags/$tag"
+case "$tag" in
+  go-master) ref=refs/heads/master ;;
+  go-sha-*) ref="${tag#go-sha-}" ;;
+esac
 mkdir -p "$source"
 curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location --retry 3 \
-  "https://codeload.github.com/$repo/tar.gz/refs/tags/$tag" | tar -xz --strip-components=1 -C "$source"
+  "https://codeload.github.com/$repo/tar.gz/$ref" | tar -xz --strip-components=1 -C "$source"
 (cd "$source" && bash deploy/go/bundle.sh "$dir")
 node "$root/scripts/backend-go-env.mjs" "$dir/env.example" "$dir/.env" "$port"
-# Keep the existing cleanup/log path usable for both backend implementations.
+# Keep the frontend cleanup/log path pointing at the Go stack.
 cp "$dir/compose.yaml" "$dir/compose.stack.yaml"
 PRUNE_IMAGES=false bash "$dir/deploy.sh" "$dir" "ghcr.io/$repo:$tag"
 if [[ -n "${GITHUB_ENV:-}" ]]; then

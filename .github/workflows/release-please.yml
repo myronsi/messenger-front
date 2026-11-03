@@ -39,8 +39,8 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
           VITE_WS_URL: ${{ vars.VITE_WS_URL }}
-          # The contract version the target backend implements (Python backend: 1.0.0).
-          VITE_CLIENT_API_VERSION: ${{ vars.VITE_CLIENT_API_VERSION || '1.0.0' }}
+          # The contract version implemented by the target Go backend.
+          VITE_CLIENT_API_VERSION: ${{ vars.VITE_CLIENT_API_VERSION || '' }}
       - name: Package dist
         run: tar -czf messenger-front-${{ needs.release-please.outputs.tag_name }}-dist.tar.gz -C dist .
       - name: Attach dist to the GitHub Release

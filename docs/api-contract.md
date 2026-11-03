@@ -14,7 +14,7 @@ The frontend is built against the released contract package
   `npm run check:contract -- --stable` additionally rejects `next` snapshots. CI runs it on `main` and the release build runs it before building,
   so releases only use stable contracts.
 - WebSocket event types come from `@myronsi/messenger-api/ws-events`.
-- Today the generated types are used for `/meta` and the `hello` event. The chat screens still use handwritten models for the legacy Python routes; they move to the generated types together with the v2 migration, so `tsc` only guards those parts once that is done.
+- The supported backend is Go at `/api/v2`; Python routes are retired.
 
 ### Updating the contract
 
@@ -26,14 +26,13 @@ The frontend is built against the released contract package
 - After changing the pin, update `scripts/backend-version` to the backend release that
   implements it. The smoke tests in CI start that backend version.
 - `scripts/backend-up.sh` starts Go release tags from their matching deployment bundle, including stores and
-  migrations. It exports the v2 URL and pinned client contract to GitHub smoke jobs. Legacy tags and nightly
-  `master` continue to exercise Python compatibility. No production credentials are used by these test stacks.
+  migrations. It exports the v2 URL and pinned client contract to GitHub smoke jobs. Nightly tests use `go-master`; Python tags are rejected. No production credentials are used by these test stacks.
 
 ## Mock backend
 
 `npm run dev:mock` (same as `VITE_API_MOCK=true`) starts [Prism](https://stoplight.io/open-source/prism)
 from the contract and points the frontend at it, so UI work can start before the backend
-endpoint exists. WebSocket events are not mocked. Prism serves the v2 contract paths (`/me`, `/chats`, `/groups`, ...); screens that still call the legacy Python routes (for example `/auth/me`, `/chats/list/{username}`) get "route not found" until they are migrated to the v2 API.
+endpoint exists. WebSocket events are not mocked. Prism serves the v2 contract paths (`/me`, `/chats`, `/groups`, ...).
 
 ## Client version headers
 
@@ -45,8 +44,7 @@ Every request to the backend, including the WebSocket ticket request and uploads
 | `X-Client-Api-Version` | the contract version the client was generated from |
 
 By default the contract version is `API_VERSION` from the package. `VITE_CLIENT_API_VERSION`
-overrides it. The Python backend implements contract `1.0.0`, so builds served by it must set
-`VITE_CLIENT_API_VERSION=1.0.0`. The release build does this through the repository variable `VITE_CLIENT_API_VERSION` (default `1.0.0`); set the variable to the new contract version when production moves to the Go backend. The smoke tests also default to `1.0.0`.
+overrides it only when explicitly configured. Release builds otherwise use the pinned package contract.
 
 ## Outdated clients and new deployments
 
@@ -64,7 +62,7 @@ Unsent message drafts (including the first message to a new contact) are kept in
 
 In the native (Capacitor) apps a reload cannot update the bundled assets, so the dialog and banner tell the user to install the update from the app store instead of offering **Reload**. In the browser, **Reload** first waits (up to a few seconds) for a new service worker to take control, so the reload loads the new build.
 
-The focus check calls `/api/v2/meta` relative to `VITE_BASE_URL` (the host root, an `/api` prefix, or an `/api/v2` base all work). The Python backend's `GET /version` has no API version fields, so the check only works with the Go backend. `hello` and `426` work with both.
+The focus check calls `/api/v2/meta` relative to `VITE_BASE_URL` (the host root, an `/api` prefix, or an `/api/v2` base all work). The Go backend supplies the API version fields.
 
 ## Tolerant client
 
@@ -83,13 +81,6 @@ MINOR contract updates must not break the client:
 
 ## Local backend and smoke tests
 
-`npm run backend:up [tag]` (`scripts/backend-up.sh`) downloads `deploy/compose.stack.yaml` from
-the matching backend release (or `master`) and starts the backend with all stores from Docker
-images on `http://127.0.0.1:8000`. The default tag is in `scripts/backend-version` (currently `v0.5.2`, the first backend release that accepts the client version headers; update it whenever the pinned contract moves to a backend that implements it).
-`scripts/backend-up.sh down` removes it.
+`npm run backend:up -- [tag]` starts the Go deployment bundle with matching migrations and isolated stores. The default release is pinned in `scripts/backend-version`; `go-master` and `go-sha-<sha>` snapshots are also supported. Python tags are rejected. The API is at `http://127.0.0.1:8000/api/v2`.
 
-`npm run test:smoke` runs the Playwright suite in `e2e/smoke` (register, sign in, open a chat,
-send and receive a message between two browser contexts, upload a file) against `E2E_API_URL`
-(default `http://127.0.0.1:8000`). Test data is created by the tests. CI runs it on every PR
-against the backend version in `scripts/backend-version` and nightly against backend `master`.
-The backend's compatibility job runs the same suite, so keep it stable.
+`scripts/backend-up.sh down` removes the local test stack. `npm run test:smoke` runs Playwright against `E2E_API_URL`. CI tests the pinned backend on pull requests and the `go-master` snapshot nightly. The backend compatibility job runs the same suite against its Go development stack.

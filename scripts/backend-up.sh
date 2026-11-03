@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Starts the backend and its stores from published Docker images, so frontend work needs no
-# Python or Go setup.
+# Go compiler setup.
 #
-#   scripts/backend-up.sh [tag]     tag: 0.5.1, v0.5.1, master, sha-abc1234 (default: scripts/backend-version)
+#   scripts/backend-up.sh [tag]     tag: v1.5.0-alpha.1, go-master, go-sha-abc1234 (default: scripts/backend-version)
 #   scripts/backend-up.sh down      stop and remove the stack
 #
 # The backend listens on http://127.0.0.1:${BACKEND_PORT:-8000}.
@@ -27,40 +27,11 @@ TAG="${1:-$(tr -d '[:space:]' < "$ROOT/scripts/backend-version")}"
 RELEASE_TAG="$TAG"
 case "$TAG" in [0-9]*) RELEASE_TAG="v$TAG" ;; esac
 
-if [[ "$RELEASE_TAG" =~ ^v[1-9][0-9]*\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
-  bash "$ROOT/scripts/backend-go-up.sh" "$RELEASE_TAG" "$DIR" "$PORT"
-  exit 0
+case "$RELEASE_TAG" in
+  v0.*|master|sha-*) echo "Retired Python backend tag: $TAG. Use a Go release or go-master/go-sha-*" >&2; exit 1 ;;
+esac
+if [[ ! "$RELEASE_TAG" =~ ^v[1-9][0-9]*\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ && ! "$RELEASE_TAG" =~ ^go-(master|sha-[a-f0-9]{7,40})$ ]]; then
+  echo "Unsupported Go backend tag: $TAG" >&2
+  exit 1
 fi
-
-mkdir -p "$DIR"
-RAW="https://raw.githubusercontent.com/${REPO}"
-
-download() { curl --fail --silent --show-error --location --retry 3 --output "$FILE" "$1"; }
-
-# A release carries a compose file with the image pinned to that release. Older releases and
-# branch tags do not, so fall back to the file in the repository and override the image.
-if download "https://github.com/${REPO}/releases/download/${RELEASE_TAG}/compose.stack.yaml" 2>/dev/null; then
-  echo "Using compose.stack.yaml from release ${RELEASE_TAG}"
-else
-  REF=master
-  echo "Release asset not found, using deploy/compose.stack.yaml from ${REF} with image tag ${TAG}"
-  download "${RAW}/${REF}/deploy/compose.stack.yaml"
-  export BACKEND_IMAGE="${BACKEND_IMAGE:-${IMAGE_REPO}:${TAG}}"
-fi
-
-docker compose -f "$FILE" pull
-docker compose -f "$FILE" up -d
-
-echo "Waiting for http://127.0.0.1:${PORT}/version"
-for _ in $(seq 1 60); do
-  if curl --fail --silent "http://127.0.0.1:${PORT}/version" > /dev/null; then
-    curl --silent "http://127.0.0.1:${PORT}/version"
-    echo
-    exit 0
-  fi
-  sleep 2
-done
-
-echo "Backend did not become ready in time" >&2
-docker compose -f "$FILE" logs --tail 80 >&2
-exit 1
+bash "$ROOT/scripts/backend-go-up.sh" "$RELEASE_TAG" "$DIR" "$PORT"
