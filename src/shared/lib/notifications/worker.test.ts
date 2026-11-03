@@ -198,11 +198,11 @@ describe('background notification worker', () => {
   });
   it('does not count a late retry again after its id dropped out of the stack', async () => {
     const w = worker(); await w.account('1');
-    for (let id = 101; id <= 150; id += 1) await w.push({ message_id: String(id) });
-    await w.push({ message_id: '100' });
-    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 50 });
-    await w.push({ message_id: '151' });
-    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 51 });
+    for (let id = 1001; id <= 1200; id += 1) await w.push({ message_id: String(id) });
+    await w.push({ message_id: '1000' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 200 });
+    await w.push({ message_id: '1201' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 201 });
   });
   it('keeps a late older preview push private after a newer private one', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
