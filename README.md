@@ -120,12 +120,12 @@ run `npm run dev` (in client directory)
 
 ```text
 src/
-â”œâ”€â”€ app/          # Application setup, routes, store, and API wiring
-â”œâ”€â”€ pages/        # Route-level screens and page controllers
-â”œâ”€â”€ widgets/      # User-facing compositions such as chat room and profile panel
-â”œâ”€â”€ features/     # Focused user actions and workflows
-â”œâ”€â”€ entities/     # Domain models, types, and entity APIs
-â””â”€â”€ shared/       # Reusable UI, hooks, utilities, localization, and styles
+├── app/          # Application setup, routes, store, and API wiring
+├── pages/        # Route-level screens and page controllers
+├── widgets/      # User-facing compositions such as chat room and profile panel
+├── features/     # Focused user actions and workflows
+├── entities/     # Domain models, types, and entity APIs
+└── shared/       # Reusable UI, hooks, utilities, localization, and styles
 ```
 
 Layers may only import from layers below them (`app` > `pages` > `widgets` > `features` > `entities` > `shared`). Slices of the same layer in `pages`, `widgets` and `features` must not import each other, and other slices are only reachable through their public API (`index` file). These rules are enforced by `eslint-plugin-boundaries` (see `eslint.config.js`) and checked by `npm run lint`.

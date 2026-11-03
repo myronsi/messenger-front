@@ -3,12 +3,13 @@
 set -euo pipefail
 tag="$1" dir="$2" port="$3"
 repo="${BACKEND_REPO:-myronsi/messenger-back}"
+image_tag="$tag"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source="$dir/source-$tag"
 ref="refs/tags/$tag"
 case "$tag" in
   go-master) ref=refs/heads/master ;;
-  go-sha-*) ref="${tag#go-sha-}" ;;
+  go-sha-*) ref="${tag#go-sha-}"; image_tag="go-sha-${ref:0:7}" ;;
 esac
 mkdir -p "$source"
 curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --location --retry 3 \
@@ -17,7 +18,10 @@ curl --proto '=https' --proto-redir '=https' --fail --silent --show-error --loca
 node "$root/scripts/backend-go-env.mjs" "$dir/env.example" "$dir/.env" "$port"
 # Keep the frontend cleanup/log path pointing at the Go stack.
 cp "$dir/compose.yaml" "$dir/compose.stack.yaml"
-PRUNE_IMAGES=false bash "$dir/deploy.sh" "$dir" "ghcr.io/$repo:$tag"
+if [[ "$tag" == go-master ]]; then
+  docker pull "ghcr.io/$repo:$image_tag"
+fi
+PRUNE_IMAGES=false bash "$dir/deploy.sh" "$dir" "ghcr.io/$repo:$image_tag"
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   {
     printf 'E2E_API_URL=http://127.0.0.1:%s/api/v2\n' "$port"

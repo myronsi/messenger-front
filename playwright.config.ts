@@ -28,6 +28,9 @@ const webSocketUrl = trimTrailingSlashes(
     : process.env.VITE_WS_URL ?? toWebSocketUrl(apiUrl)
 );
 
+// Give API tests the same resolved backend URL as the browser.
+process.env.E2E_API_URL = apiUrl;
+
 const clientApiVersion = process.env.E2E_CLIENT_API_VERSION
   ?? process.env.VITE_CLIENT_API_VERSION
   ?? API_VERSION;
