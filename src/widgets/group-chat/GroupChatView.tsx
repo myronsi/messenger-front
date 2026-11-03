@@ -38,7 +38,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
   return (
-    <div data-chat-drop-zone className="relative flex h-full flex-col overflow-hidden">
+    <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
       <div className="motion-panel-in flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex min-w-0 items-center space-x-4">
           <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press rounded-full p-2 transition-colors hover:bg-accent">

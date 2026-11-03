@@ -61,4 +61,17 @@ describe('useMessageSender editing', () => {
     expect(send).not.toHaveBeenCalled();
     expect(options.setEditingMessage).toHaveBeenCalledWith(null);
   });
+
+  it('removes the caption of a file when the field is emptied', () => {
+    const { send, options, handleSendMessage } = setup('  ', photo);
+    handleSendMessage();
+    expect(JSON.parse(send.mock.calls[0][0])).toMatchObject({ type: 'edit', message_id: '7', content: '' });
+    expect(options.setEditingMessage).toHaveBeenCalledWith(null);
+  });
+
+  it('does not send an empty text message edit', () => {
+    const { send, handleSendMessage } = setup('');
+    handleSendMessage();
+    expect(send).not.toHaveBeenCalled();
+  });
 });

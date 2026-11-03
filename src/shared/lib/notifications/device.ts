@@ -34,6 +34,9 @@ export function resumeNotificationNavigation() {
   const data = pendingNavigation; pendingNavigation = null;
   if (data) openNotificationChat(data);
 }
+const accountMessage = (user: string) => ({
+  type: 'notification-account', user, api: import.meta.env.VITE_BASE_URL || '', language: localStorage.getItem('language') === 'ru' ? 'ru' : 'en',
+});
 export async function startNativeNotifications() {
   if (!nativeNotifications()) return;
   if (!nativeSetup) nativeSetup = initializeNative().catch((error) => { nativeSetup = null; throw error; });
@@ -77,7 +80,7 @@ export async function enableNotificationDevice(settings: NotificationSettings) {
   });
   const json = subscription.toJSON();
   await storeDevice('web', subscription.endpoint, json.keys);
-  registration.active?.postMessage({ type: 'notification-account', user: notificationAccount() });
+  registration.active?.postMessage(accountMessage(notificationAccount()));
 }
 export async function disableNotificationDevice() {
   const raw = localStorage.getItem(DEVICE_KEY);
@@ -92,7 +95,7 @@ export async function disableNotificationDevice() {
   else if ('serviceWorker' in navigator) {
     const registration = await navigator.serviceWorker.getRegistration();
     await (await registration?.pushManager.getSubscription())?.unsubscribe();
-    registration?.active?.postMessage({ type: 'notification-account', user: '' });
+    registration?.active?.postMessage(accountMessage(''));
   }
   localStorage.removeItem(DEVICE_KEY);
 }
@@ -113,7 +116,7 @@ export function cleanupNotificationDevice() {
     void PushNotifications.unregister().catch(() => undefined);
   }
   else if ('serviceWorker' in navigator) void navigator.serviceWorker.getRegistration().then(async (r) => {
-    r?.active?.postMessage({ type: 'notification-account', user: '' });
+    r?.active?.postMessage(accountMessage(''));
     await (await r?.pushManager.getSubscription())?.unsubscribe();
     for (const n of await r?.getNotifications() || []) n.close();
   }).catch(() => undefined);
@@ -135,7 +138,7 @@ export async function restoreNotificationDevice() {
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
       await storeDevice('web', subscription.endpoint, subscription.toJSON().keys);
-      registration.active?.postMessage({ type: 'notification-account', user: notificationAccount() });
+      registration.active?.postMessage(accountMessage(notificationAccount()));
     } else localStorage.removeItem(DEVICE_KEY);
   }
 }

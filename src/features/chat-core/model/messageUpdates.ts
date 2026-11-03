@@ -101,12 +101,12 @@ export const editableText = (message: Message) => (
   typeof message.content === 'string' ? message.content : message.content?.caption || ''
 );
 
-export const applyMessageEdit = (previous: Message[], messageId: EntityId, content: Message['content'], editedAt?: string): Message[] =>
+export const applyMessageEdit = (previous: Message[], messageId: EntityId, content: Message['content'] | null, editedAt?: string): Message[] =>
   previous.map((message) => {
     if (message.id !== messageId) return message;
-    const nextContent = typeof message.content !== 'string' && message.content && typeof content === 'string'
-      ? { ...message.content, caption: content }
-      : content;
+    const nextContent = typeof message.content !== 'string' && message.content && (typeof content === 'string' || content == null)
+      ? { ...message.content, caption: content || undefined }
+      : content ?? message.content;
     return { ...message, content: nextContent, edited_at: editedAt || new Date().toISOString() };
   });
 

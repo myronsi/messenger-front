@@ -7,6 +7,7 @@ import { joinOverlayPath, splitOverlayPath } from '@/shared/lib/urlOverlay';
 import { authFetch } from '@/shared/auth/session';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { resolveNotificationChat } from './resolveNotificationChat';
+import { focusComposerWhenReady } from '@/shared/lib/notifications/replyFocus';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -76,11 +77,14 @@ export const useMessengerRouteSync = ({
         navigate('/');
         return;
       }
-      if (location.search === '?notification=1') {
+      if (location.search === '?notification=1' || location.search === '?notification=1&reply=1') {
         if (!username) return;
         let cancelled = false;
+        const reply = location.search.endsWith('&reply=1');
         void resolveNotificationChat(id).then((state) => {
-          if (!cancelled) navigate(withOverlay(`/chat/${id}`), { replace: true, state });
+          if (cancelled) return;
+          navigate(withOverlay(`/chat/${id}`), { replace: true, state });
+          if (reply) focusComposerWhenReady(id);
         }).catch(() => { if (!cancelled) navigate('/', { replace: true }); });
         return () => { cancelled = true; };
       }
