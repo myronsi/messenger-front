@@ -36,6 +36,10 @@ E2E_API_URL=https://staging.messenger.viserix.com/api/v2 npx playwright test --c
 
 The command above uses Bash-style environment assignment. The suite covers registration/sign-in, recovery, sessions, chats, groups, permissions and media; some cases require dedicated fixtures. `GO_TEST_USER_A`, `GO_TEST_PASSWORD_A`, `GO_TEST_USER_B`, `GO_TEST_PASSWORD_B`, `GO_SECURITY_FIXTURE` and `GO_LEGACY_USERNAME`/`GO_LEGACY_PASSWORD` must refer to disposable staging accounts. Security and recovery tests mutate those accounts. Keep fixture credentials outside the repository and never point this suite at production.
 
+`GO_SECURITY_FIXTURE` must name a writable JSON file outside the repository with `username` and `password` fields for a dedicated account that starts with 2FA disabled. The security test writes its newly generated setup secret into that file so cleanup remains possible if the test is interrupted; protect the file as credentials. The test waits for fresh authenticator time steps because reused TOTP codes are rejected.
+
+The optional legacy enrollment case needs `GO_LEGACY_USERNAME` and `GO_LEGACY_PASSWORD` for a synthetic account with no recovery key. Running it enrolls that account, so use a fresh unenrolled account to repeat the enrollment case. Do not reuse an ordinary account for these fixtures.
+
 ## Related records
 
 - Backend [completed cutover](https://github.com/myronsi/messenger-back/blob/master/docs/switchover.md), [data migration](https://github.com/myronsi/messenger-back/blob/master/docs/migration-v1.md), and [Python retirement](https://github.com/myronsi/messenger-back/blob/master/docs/python-retirement.md).
