@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { versionApi } from './versionApi';
 import { reportServerVersions } from './updateGate';
+import { checkForNewBuild } from './deployedBuild';
 
 export const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -19,7 +20,7 @@ export const useServerVersionCheck = () => {
       lastCheckAt = Date.now();
       try {
         const request = dispatch(versionApi.endpoints.getServerVersion.initiate(undefined, { forceRefetch: true }));
-        const { data } = await request;
+        const [{ data }] = await Promise.all([request, checkForNewBuild()]);
         request.unsubscribe();
         if (data) reportServerVersions({ apiVersion: data.apiVersion, minClientApiVersion: data.minClientApiVersion });
       } finally {

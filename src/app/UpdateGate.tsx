@@ -1,23 +1,20 @@
-import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import {
   AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/shared/ui/alert-dialog';
 import { Button } from '@/shared/ui/button';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { useUpdateStatus } from '@/shared/api/updateGate';
+import { dismissUpdate, useUpdateStatus } from '@/shared/api/updateGate';
 import { useServerVersionCheck } from '@/shared/api/useServerVersionCheck';
 import { reloadApp } from '@/shared/lib/reloadApp';
 
-// Blocks the app when the backend rejects this client (or announces a higher minimum contract version),
-// and shows a dismissible banner when a newer, still compatible backend is available.
+// Blocks the app when the backend rejects this client (or announces a higher minimum contract version).
 // Above the fixed panels of the app (the profile panel is z-[1000]), so the gate can never be hidden.
 const GATE_LAYER = 'z-[1100]';
 
 const UpdateGate = () => {
   const status = useUpdateStatus();
   const { translations } = useLanguage();
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   // Bundled native builds cannot update by reloading; the update comes from the app store.
   const isNative = Capacitor.isNativePlatform();
   useServerVersionCheck();
@@ -42,7 +39,7 @@ const UpdateGate = () => {
     );
   }
 
-  if (status === 'available' && !bannerDismissed) {
+  if (status === 'available') {
     return (
       <div
         role="status"
@@ -50,7 +47,7 @@ const UpdateGate = () => {
       >
         <span className="text-sm">{isNative ? translations.updateAvailableNativeMessage : translations.updateAvailableMessage}</span>
         {!isNative && <Button size="sm" onClick={() => { void reloadApp(); }}>{translations.updateReload}</Button>}
-        <Button size="sm" variant="ghost" onClick={() => setBannerDismissed(true)}>{translations.updateLater}</Button>
+        <Button size="sm" variant="ghost" onClick={dismissUpdate}>{translations.updateLater}</Button>
       </div>
     );
   }

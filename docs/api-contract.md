@@ -53,9 +53,12 @@ overrides it. The Python backend implements contract `1.0.0`, so builds served b
 | Signal | Result |
 | --- | --- |
 | `426` with `code: "client_outdated"` | blocking dialog with a **Reload** button |
-| WebSocket `hello`, or `/api/v2/meta` on tab focus (at most every 5 minutes): backend `api_version` is newer | non-blocking banner "Update available" |
+| `version.json` on tab focus (at most every 5 minutes) names a different build than the running one | non-blocking banner "Update available" |
+| Native app only: WebSocket `hello` or `/api/v2/meta` reports a newer backend `api_version` | non-blocking banner "update in the app store" |
 | `min_client_api_version` is higher than the client's contract version | blocking dialog |
 | `vite:preloadError` (lazy chunk missing after a deploy) | reload once |
+
+A newer backend `api_version` alone does not show the banner in the browser: the backend contract often moves ahead of the deployed frontend, and a reload would load the same build again. **Later** stores the offered version in `localStorage` (`dismissed_update`), so the banner stays hidden after a reload until a different build is offered.
 
 Unsent message drafts (including the first message to a new contact) are kept in `sessionStorage`, per account and conversation, and restored after the reload. Text of a message that is being edited is not stored. Drafts are removed when the tokens are cleared (sign-out, failed refresh, or sign-out in another tab).
 

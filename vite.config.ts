@@ -8,6 +8,25 @@ import { spawn } from "node:child_process";
 
 const { version: packageVersion } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8")) as { version: string };
 
+export const buildInfo = {
+  version: process.env.npm_package_version ?? packageVersion,
+  commit: process.env.GITHUB_SHA?.slice(0, 7) ?? "dev",
+};
+
+export const buildInfoPlugin = (): Plugin => ({
+  name: "build-info",
+  configureServer(server) {
+    server.middlewares.use("/version.json", (_req, res) => {
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Cache-Control", "no-cache");
+      res.end(JSON.stringify(buildInfo));
+    });
+  },
+  generateBundle() {
+    this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify(buildInfo) });
+  },
+});
+
 // The Capacitor build ("--mode mobile") is served from https://localhost / capacitor://localhost,
 // so the API and WebSocket URLs must be absolute and point at the real backend.
 const assertAbsoluteMobileUrls = (env: Record<string, string>) => {
@@ -58,12 +77,13 @@ export default defineConfig(({ command, mode }) => {
       port: 8080,
     },
     define: {
-      __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? packageVersion),
-      __APP_COMMIT__: JSON.stringify(process.env.GITHUB_SHA?.slice(0, 7) ?? 'dev'),
+      __APP_VERSION__: JSON.stringify(buildInfo.version),
+      __APP_COMMIT__: JSON.stringify(buildInfo.commit),
       ...(useMockApi ? { 'import.meta.env.VITE_BASE_URL': JSON.stringify(`http://127.0.0.1:${MOCK_API_PORT}`) } : {}),
     },
     plugins: [
       react(),
+      buildInfoPlugin(),
       ...(useMockApi ? [mockApiPlugin()] : []),
       VitePWA({
         // The native shell already bundles the assets, a service worker would only serve stale builds there.
