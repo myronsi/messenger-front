@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.6](https://github.com/myronsi/messenger-front/compare/v0.6.5...v0.6.6) (2026-11-03)
+
+
+### Features
+
+* **chat:** calmer mobile taps, hold-to-record voice, nicer voice messages and replies ([#134](https://github.com/myronsi/messenger-front/issues/134)) ([ae777fa](https://github.com/myronsi/messenger-front/commit/ae777fa54c6d4d74002fb3762ea665b09a95f228))
+* **chat:** remove a file's caption by emptying it while editing ([#132](https://github.com/myronsi/messenger-front/issues/132)) ([814a430](https://github.com/myronsi/messenger-front/commit/814a430eaf83d17ccc4a5f60e8249059295ce377))
+* **notifications:** sender photo, stacked messages, Reply and Mark as read ([#130](https://github.com/myronsi/messenger-front/issues/130)) ([1823cf9](https://github.com/myronsi/messenger-front/commit/1823cf99236789095bd7e7f52e8a8d90ec4b0d5e))
+
+
+### Bug Fixes
+
+* **auth:** only log out when the server rejects the session ([#129](https://github.com/myronsi/messenger-front/issues/129)) ([ce13fa7](https://github.com/myronsi/messenger-front/commit/ce13fa79f3a5e52236fa5a60f94e017a6d15799f))
+* **chat:** keep the chat still while rows above the viewport render ([#133](https://github.com/myronsi/messenger-front/issues/133)) ([fd8e049](https://github.com/myronsi/messenger-front/commit/fd8e0491e854b67cf82d890620b02c270e63e519))
+
 ## [0.6.5](https://github.com/myronsi/messenger-front/compare/v0.6.4...v0.6.5) (2026-11-02)
 
 
