@@ -16,8 +16,14 @@ const OPUS_MIME_TYPES = [
 interface RecordingSession {
   chunks: Blob[];
   startedAt: number;
+  pausedMs: number;
+  pausedAt: number | null;
   discard: boolean;
 }
+
+export const recordedMs = (session: Pick<RecordingSession, 'startedAt' | 'pausedMs' | 'pausedAt'>, now: number) => (
+  now - session.startedAt - session.pausedMs - (session.pausedAt === null ? 0 : now - session.pausedAt)
+);
 
 interface VoiceRecorderOptions {
   chatId: EntityId;
@@ -81,7 +87,7 @@ export const useVoiceRecorder = ({
       }
       streamRef.current = stream;
       setLiveStream(stream);
-      const session: RecordingSession = { chunks: [], startedAt: 0, discard: false };
+      const session: RecordingSession = { chunks: [], startedAt: 0, pausedMs: 0, pausedAt: null, discard: false };
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: opusMimeType,
         audioBitsPerSecond: OPUS_AUDIO_BITS_PER_SECOND,
@@ -169,7 +175,7 @@ export const useVoiceRecorder = ({
     if (session && recorder && recorder.state !== 'inactive') {
       if (discard) {
         session.discard = true;
-      } else if (performance.now() - session.startedAt < MIN_RECORDING_MS) {
+      } else if (recordedMs(session, performance.now()) < MIN_RECORDING_MS) {
         session.discard = true;
         setErrorMessage(RECORDING_TOO_SHORT_MESSAGE);
       }
@@ -187,8 +193,10 @@ export const useVoiceRecorder = ({
   const togglePause = () => {
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === 'inactive') return;
+    const session = recordingSessionRef.current;
     if (recorder.state === 'recording') {
       recorder.pause();
+      if (session) session.pausedAt = performance.now();
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -197,6 +205,10 @@ export const useVoiceRecorder = ({
       return;
     }
     recorder.resume();
+    if (session?.pausedAt != null) {
+      session.pausedMs += performance.now() - session.pausedAt;
+      session.pausedAt = null;
+    }
     timerRef.current = setInterval(() => setRecordingDuration((prev) => prev + 1), 1000);
     setIsPaused(false);
   };

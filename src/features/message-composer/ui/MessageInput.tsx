@@ -185,6 +185,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     isStarting,
     start: () => { void handleStartRecording(); },
     stop: () => stopRecording(),
+    discard: () => stopRecording({ discard: true }),
   });
 
   const handleActionClick = () => {

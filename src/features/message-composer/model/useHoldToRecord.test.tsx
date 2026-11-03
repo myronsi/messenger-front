@@ -9,10 +9,13 @@ const pointer = (clientY: number) => ({
 const setup = () => {
   const start = vi.fn();
   const stop = vi.fn();
-  const view = renderHook(({ isRecording, isStarting }) => useHoldToRecord({ enabled: !isRecording && !isStarting, isRecording, isStarting, start, stop }), {
+  const discard = vi.fn();
+  const view = renderHook(({ isRecording, isStarting }) => useHoldToRecord({
+    enabled: !isRecording && !isStarting, isRecording, isStarting, start, stop, discard,
+  }), {
     initialProps: { isRecording: false, isStarting: false },
   });
-  return { ...view, start, stop };
+  return { ...view, start, stop, discard };
 };
 
 describe('useHoldToRecord', () => {
@@ -51,5 +54,25 @@ describe('useHoldToRecord', () => {
     rerender({ isRecording: true, isStarting: false });
     expect(result.current.locked).toBe(true);
     expect(stop).not.toHaveBeenCalled();
+  });
+
+  it('discards an interrupted hold and does not swallow the next click', () => {
+    const { result, stop, discard } = setup();
+    act(() => result.current.handlers.onPointerDown(pointer(500)));
+    act(() => result.current.handlers.onPointerCancel(pointer(500)));
+    expect(discard).toHaveBeenCalledTimes(1);
+    expect(stop).not.toHaveBeenCalled();
+    expect(result.current.holding).toBe(false);
+    expect(result.current.takeClick()).toBe(true);
+  });
+
+  it('lets the next tap send after locking while the button was disabled', () => {
+    const { result, rerender } = setup();
+    act(() => result.current.handlers.onPointerDown(pointer(500)));
+    rerender({ isRecording: false, isStarting: true });
+    act(() => result.current.handlers.onPointerMove(pointer(500 - LOCK_DISTANCE)));
+    rerender({ isRecording: true, isStarting: false });
+    act(() => result.current.handlers.onPointerDown({ ...pointer(500), pointerId: 2 } as React.PointerEvent<HTMLElement>));
+    expect(result.current.takeClick()).toBe(true);
   });
 });

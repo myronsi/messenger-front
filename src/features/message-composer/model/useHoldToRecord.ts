@@ -8,9 +8,10 @@ interface HoldToRecordOptions {
   isStarting?: boolean;
   start: () => void;
   stop: () => void;
+  discard: () => void;
 }
 
-export const useHoldToRecord = ({ enabled, isRecording, isStarting = false, start, stop }: HoldToRecordOptions) => {
+export const useHoldToRecord = ({ enabled, isRecording, isStarting = false, start, stop, discard }: HoldToRecordOptions) => {
   const [holding, setHolding] = useState(false);
   const [locked, setLocked] = useState(false);
   const [lift, setLift] = useState(0);
@@ -33,6 +34,7 @@ export const useHoldToRecord = ({ enabled, isRecording, isStarting = false, star
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     event.preventDefault();
+    swallowClickRef.current = false;
     if (!enabled || event.button !== 0) return;
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -66,6 +68,13 @@ export const useHoldToRecord = ({ enabled, isRecording, isStarting = false, star
     stop();
   };
 
+  const onPointerCancel = (event: React.PointerEvent<HTMLElement>) => {
+    if (pointerRef.current !== event.pointerId) return;
+    swallowClickRef.current = false;
+    release();
+    discard();
+  };
+
   const takeClick = () => {
     const swallow = swallowClickRef.current;
     swallowClickRef.current = false;
@@ -77,6 +86,6 @@ export const useHoldToRecord = ({ enabled, isRecording, isStarting = false, star
     locked,
     lift,
     takeClick,
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp },
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
   };
 };
