@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
-# Run on the staging host after uploading releases/sha-<commit>/dist.tar.gz.
+# Run on staging after uploading incoming/<run-id>-<attempt>.tar.gz.
 set -euo pipefail
-root="$1" commit="$2" origin="$3"
+root="$1" commit="$2" origin="$3" deployment="$4"
 [[ "$root" == /var/www/messenger-staging ]]
 [[ "$commit" =~ ^[a-f0-9]{40}$ ]]
 [[ "$origin" == https://staging.messenger.viserix.com ]]
+[[ "$deployment" =~ ^[0-9]+-[0-9]+$ ]]
 cd "$root"
-release="releases/sha-$commit"
-tar -xzf "$release/dist.tar.gz" -C "$release"
+release="releases/sha-$commit-$deployment"
+# Each run attempt gets a new directory, including redeployments of the same commit.
+# Refuse to overwrite any existing bundle so extraction cannot change live files.
+mkdir "$release"
+tar -xzf "incoming/$deployment.tar.gz" -C "$release"
 [[ -s "$release/index.html" ]]
 grep -Fq "\"commit\":\"${commit:0:7}\"" "$release/version.json"
-rm "$release/dist.tar.gz"
+rm "incoming/$deployment.tar.gz"
 previous="$(readlink current || true)"
 ln -sfn "$release" current.tmp
 mv -T current.tmp current
