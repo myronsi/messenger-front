@@ -12,17 +12,17 @@ The frontend is built against the released contract package
   `openapi.yaml`. The generated file is committed; CI regenerates it and fails if it differs.
 - `npm run check:contract` verifies the pin is exact and matches the lockfile.
   `npm run check:contract -- --stable` additionally rejects `next` snapshots. CI runs it on `main` and the release build runs it before building,
-  so releases only use stable contracts.
+  so releases use published contracts; named pre-releases are allowed, while `next` snapshots are not.
 - WebSocket event types come from `@myronsi/messenger-api/ws-events`.
 - The supported backend is Go at `/api/v2`; Python routes are retired.
 
 ### Updating the contract
 
-- A new stable version arrives as a Dependabot PR (group `api-contract`). CI regenerates the
+- A new published version arrives as a Dependabot PR (group `api-contract`). CI regenerates the
   types and runs `tsc` and the smoke tests, so a contract change that does not fit the frontend
   fails the PR.
 - Unreleased backend features: on a feature branch, install the `next` tag
-  (`npm i -E @myronsi/messenger-api@next`). Replace it with a stable version before merging.
+  (`npm i -E @myronsi/messenger-api@next`). Replace it with a published, non-`next` version before merging.
 - After changing the pin, update `scripts/backend-version` to the backend release that
   implements it. The smoke tests in CI start that backend version.
 - `scripts/backend-up.sh` starts Go release tags from their matching deployment bundle, including stores and
@@ -62,7 +62,7 @@ Unsent message drafts (including the first message to a new contact) are kept in
 
 In the native (Capacitor) apps a reload cannot update the bundled assets, so the dialog and banner tell the user to install the update from the app store instead of offering **Reload**. In the browser, **Reload** first waits (up to a few seconds) for a new service worker to take control, so the reload loads the new build.
 
-The focus check calls `/api/v2/meta` relative to `VITE_BASE_URL` (the host root, an `/api` prefix, or an `/api/v2` base all work). The Go backend supplies the API version fields.
+Configure `VITE_BASE_URL` with the `/api/v2` base. The focus check reads `/meta` from that API to learn the backend version and compatibility fields. See [completed migration](go-migration.md) for current endpoints and recovery/session compatibility.
 
 ## Tolerant client
 

@@ -26,7 +26,7 @@ deploy only through the release workflow below.
 
 ## Starting a new release train
 
-Add a `Release-As: X.Y.0` footer to a commit on `main` so `MAJOR.MINOR` matches the backend release. Pull requests are squash-merged using the PR description as the commit message, so put the footer on its own line at the end of the PR description.
+Add a `Release-As: X.Y.0` footer to a commit on `main` when deliberately selecting the next frontend version. Frontend and backend app versions are independent; compatibility follows the API contract. Pull requests are squash-merged using the PR description as the commit message, so put the footer on its own line at the end of the PR description.
 
 ## Rollback
 
@@ -43,7 +43,7 @@ It waits for all four commands and fails if any command fails. The existing
 for branch protection and require the combined job to succeed. Browser smoke
 tests keep their own job and installation, including on the nightly schedule.
 
-Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-only until existing errors are fixed), `pr-title.yml`, `release-please.yml` (release, `dist` archive, then promote to `edge` and deploy) and `deploy.yml` (SSH deploy, also runnable manually for rollbacks).
+Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-only until existing errors are fixed), `pr-title.yml`, `release-please.yml` (release, `dist` archive, then promote to `edge` and deploy), `deploy-staging.yml` (every push to `main`, staging-only build and deployment), and `deploy.yml` (SSH deploy, also runnable manually for rollbacks).
 
 One-time setup:
 

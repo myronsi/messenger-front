@@ -1,115 +1,57 @@
-# Messenger Application
+# Messenger frontend
 
-This project is a simple web-based messenger application designed for sending and receiving real-time messages using a client-server architecture. It includes a web client interface and a Go server for handling connections, user authentication, and message storage.
+React, TypeScript and Vite web client, installable as a PWA and packaged for Android/iOS with Capacitor. The supported backend is [messenger-back](https://github.com/myronsi/messenger-back), implemented in Go with API base `/api/v2`. The Python migration is complete.
 
----
+## Local setup
 
-## Table of Contents
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
+Use Node 22 and npm. `package-lock.json` is the only lockfile.
 
----
-
-## Features
-- Real-time messaging using WebSocket.
-- User authentication and session management.
-- Message storage in a lightweight SQLite database.
-- RESTful API for user and chat management.
-- Simple and responsive web-based client interface.
-
----
-
-## Technologies Used
-- **Frontend**: React, TypeScript
-- **Backend**: Go (HTTP, PostgreSQL, WebSocket)
-- **Database**: SQLite
-
----
-
-## Installation
-
-### Clone Git-Repository
-`git clone https://github.com/myronsi/messenger.git`
-
-### Change directory
-`cd messenger`
-
-
-### Launch python virtual environment
-`python -m venv .`
-
-### Activate python virtual environment
-#### macOS/Linux
-`source bin/activate`
-
-### Install dependencies
-
-#### Arch Linux
-`sudo pacman -S python`<br>
-`pip install -r requirements.txt`
-
-#### Debian/Ubuntu
-`sudo apt update`<br>
-`sudo apt install python3 python3-pip`<br>
-`pip3 install -r requirements.txt`
-
-#### macOS
-`brew install python`<br>
-`pip3 install -r requirements.txt`
-
-### Install npm (in client directory only)
-
-`npm i`<br>
-or<br>
-`npm i --legacy-peer-deps`<br>
-
-This project uses npm only: `package-lock.json` is the single lock file (CI runs `npm ci --legacy-peer-deps`), so do not commit `bun.lockb`, `yarn.lock` or `pnpm-lock.yaml`.
-
-### Configure the frontend
-
-Create a `.env.local` file with the API server URL:
-
-```env
-VITE_BASE_URL=http://localhost:8000
+```sh
+git clone https://github.com/myronsi/messenger-front.git
+cd messenger-front
+npm ci --legacy-peer-deps
+npm run backend:up
 ```
 
-The WebSocket endpoint defaults to the same origin as `VITE_BASE_URL`, using `ws://` or `wss://` as appropriate. Set `VITE_WS_URL` only when WebSockets are hosted on a different origin:
+The backend helper requires Docker Compose and Bash. It starts the pinned Go image, migrations and isolated stores; no Python or Go compiler is needed. On Windows use a Bash-capable environment with Docker available. Keep backend source checkouts separate from this repository.
+
+Create `.env.local`:
 
 ```env
-VITE_WS_URL=ws://localhost:8000
+VITE_BASE_URL=http://127.0.0.1:8000/api/v2
+VITE_WS_URL=ws://127.0.0.1:8000/api/v2
 ```
 
-### Install as a mobile app
+```sh
+npm run dev
+```
 
-The frontend is an installable PWA (add to home screen) and can be packaged as a native Android/iOS app with Capacitor. See [docs/mobile.md](docs/mobile.md).
+Open the local URL printed by Vite. To use a separately running Go development stack, set both URLs to its address, typically port 8080. Preserve the `/api/v2` base. `VITE_CLIENT_API_VERSION` normally stays unset so the pinned contract supplies it.
 
-## Usage
+Stop the disposable backend with `bash scripts/backend-up.sh down`; this removes its local test data. `npm run backend:up -- go-master` selects the latest Go snapshot. Python `v0.*`, `master` and `sha-*` image tags are retired. See [API contract and backend testing](docs/api-contract.md).
 
-### Change your app.js file
+## Checks
 
-at first line change `const BASE_URL = "http://ip:8000";` to yours ip addres
+```sh
+npm run check:contract
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run test:smoke
+```
 
-### Launch python virtual environment
-`python -m venv .`
+Smoke tests need the local backend. They create synthetic users and data; use isolated test environments. `npm run dev:mock` serves the HTTP contract through Prism; it does not mock WebSocket delivery.
 
-### Activate python virtual environment
-#### macOS/Linux
-`source bin/activate`
+## Deployment and documentation
 
-### Launch server
-`uvicorn server.main:app --host 0.0.0.0 --port 8000`
+- Every push to `main` automatically builds and deploys [staging](https://staging.messenger.viserix.com/) with staging API addresses.
+- Production frontend deployment follows a release. Deploy a compatible backend before a dependent frontend release.
+- The in-app [help page](https://messenger.viserix.com/docs) ships with the frontend; English and Russian content lives in `src/shared/lang/*/docs.ts`.
+- [Releasing and rollback](docs/releasing.md), [versioning](docs/versioning.md), [mobile setup](docs/mobile.md), and [notifications](docs/notifications.md).
+- [Completed Go migration](docs/go-migration.md) explains current transport and account compatibility; the backend [retirement record](https://github.com/myronsi/messenger-back/blob/master/docs/python-retirement.md) documents archived data and removed infrastructure.
 
-### View swagger api
-`http://your_ip:8000/docs#/`
-
-### View messenger
-run `npm run dev` (in client directory)
-
-
-## Project Structure
+## Project structure
 
 ### Frontend conventions
 
@@ -129,10 +71,3 @@ src/
 ```
 
 Layers may only import from layers below them (`app` > `pages` > `widgets` > `features` > `entities` > `shared`). Slices of the same layer in `pages`, `widgets` and `features` must not import each other, and other slices are only reachable through their public API (`index` file). These rules are enforced by `eslint-plugin-boundaries` (see `eslint.config.js`) and checked by `npm run lint`.
-
-## Versioning and releases
-
-This project follows Semantic Versioning and Conventional Commits. See [docs/versioning.md](docs/versioning.md) for the scheme and [docs/releasing.md](docs/releasing.md) for the release checklist.
-
-The API layer is generated from the released contract package; see [docs/api-contract.md](docs/api-contract.md) for the mock backend (`npm run dev:mock`), local backend (`npm run backend:up`), smoke tests and outdated-client handling.
-

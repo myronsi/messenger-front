@@ -1,4 +1,4 @@
-import { Download, Fingerprint, KeyRound, Mail, MessageCircle, MessagesSquare, MonitorSmartphone, Paperclip, Search, Shield, ShieldCheck, Sparkles, UserPlus, Users, Zap } from 'lucide-react';
+import { Bell, Download, Fingerprint, KeyRound, Mail, MessageCircle, MessagesSquare, MonitorSmartphone, Paperclip, Search, Shield, ShieldCheck, Sparkles, UserPlus, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 // Keyed by the section and upcoming-feature ids in shared/lang/*/docs.ts.
@@ -9,12 +9,12 @@ const DOCS_ICONS: Record<string, LucideIcon> = {
   groups: Users,
   profile: Shield,
   recovery: KeyRound,
+  security: ShieldCheck,
+  notifications: Bell,
   install: Download,
   search: Search,
   attachments: Paperclip,
-  reliability: Zap,
   passkeys: Fingerprint,
-  'recovery-key': KeyRound,
   'device-approval': MonitorSmartphone,
   'email-recovery': Mail,
   'security-settings': ShieldCheck,
