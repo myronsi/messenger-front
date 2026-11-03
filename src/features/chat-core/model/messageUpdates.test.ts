@@ -99,6 +99,12 @@ describe('applyMessageEdit', () => {
     expect(result[1]).toMatchObject({ content: 'edited', edited_at: 'time' });
   });
 
+  it('keeps the file when its caption is removed', () => {
+    const content = { file_url: '/a.png', file_name: 'a.png', file_type: 'image/png', file_size: 5, caption: 'old' };
+    const [edited] = applyMessageEdit([msg(1, { type: 'file', content })], 1, null, 'time');
+    expect(edited.content).toEqual({ ...content, caption: undefined });
+  });
+
   it('changes only the caption of a file message', () => {
     const content = { file_url: '/a.png', file_name: 'a.png', file_type: 'image/png', file_size: 5, caption: 'old' };
     const [result] = applyMessageEdit([msg(3, { type: 'file', content })], 3, 'new caption', 'time');
