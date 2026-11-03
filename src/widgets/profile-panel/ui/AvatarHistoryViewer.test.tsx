@@ -43,6 +43,16 @@ describe('AvatarHistoryViewer', () => {
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
   });
 
+  it('cancels the delete confirmation from the backdrop', () => {
+    history = { data: { avatars: [item('3', true)] } };
+    const onDeleteAvatar = vi.fn(async () => undefined);
+    render(<AvatarHistoryViewer username="alice" displayName="Alice" currentAvatarUrl={current} onClose={vi.fn()} onDeleteAvatar={onDeleteAvatar} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete photo' }));
+    fireEvent.click(screen.getByRole('alertdialog').previousElementSibling as HTMLElement);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(onDeleteAvatar).not.toHaveBeenCalled();
+  });
+
   it('says so when the avatar could not be deleted', async () => {
     history = { data: { avatars: [item('3', true)] } };
     render(<AvatarHistoryViewer username="alice" displayName="Alice" currentAvatarUrl={current} onClose={vi.fn()} onDeleteAvatar={vi.fn(async () => { throw new Error('nope'); })} />);

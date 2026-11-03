@@ -24,7 +24,7 @@ const LanguageSettingsPage: React.FC<LanguageSettingsPageProps> = ({ language, o
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         <p className="text-sm text-muted-foreground">{translations.languageDescription}</p>
-        <section role="radiogroup" aria-label={translations.language || 'Language'} className="overflow-hidden rounded-lg border border-border">
+        <div role="radiogroup" aria-label={translations.language || 'Language'} className="overflow-hidden rounded-lg border border-border">
           {(Object.keys(LANGUAGE_NAMES) as AppLanguage[]).map((code) => (
             <button
               key={code}
@@ -38,7 +38,7 @@ const LanguageSettingsPage: React.FC<LanguageSettingsPageProps> = ({ language, o
               {language === code && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}
             </button>
           ))}
-        </section>
+        </div>
       </div>
     </div>
   );

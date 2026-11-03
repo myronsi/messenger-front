@@ -101,7 +101,7 @@ export const usePrivacySettings = (isActive: boolean) => {
 
   const handleExceptionListChange = (key: PrivacyExceptionKey, effect: PrivacyExceptionEffect, users: User[]) => {
     const saved = savedSettings?.privacy_exceptions?.[key]?.[effect] || [];
-    const names = (list: User[]) => list.map((user) => user.username.toLowerCase()).sort().join(',');
+    const names = (list: User[]) => list.map((user) => user.username.toLowerCase()).sort((a, b) => a.localeCompare(b)).join(',');
     setListDrafts((drafts) => {
       const next = { ...drafts };
       if (names(saved) === names(users)) delete next[`${key}:${effect}`];
