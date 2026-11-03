@@ -18,11 +18,11 @@ The frontend is built against the released contract package
 
 ### Updating the contract
 
-- A new stable version arrives as a Dependabot PR (group `api-contract`). CI regenerates the
+- A new published version arrives as a Dependabot PR (group `api-contract`). CI regenerates the
   types and runs `tsc` and the smoke tests, so a contract change that does not fit the frontend
   fails the PR.
 - Unreleased backend features: on a feature branch, install the `next` tag
-  (`npm i -E @myronsi/messenger-api@next`). Replace it with a stable version before merging.
+  (`npm i -E @myronsi/messenger-api@next`). Replace it with a published, non-`next` version before merging.
 - After changing the pin, update `scripts/backend-version` to the backend release that
   implements it. The smoke tests in CI start that backend version.
 - `scripts/backend-up.sh` starts Go release tags from their matching deployment bundle, including stores and
