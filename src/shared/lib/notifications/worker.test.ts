@@ -181,6 +181,13 @@ describe('background notification worker', () => {
     await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
     expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message' })]);
   });
+  it('redacts a counted message that is delivered again after previews were turned off', async () => {
+    const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
+    await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true, avatar_token: 'a.1' });
+    await w.push({ title: 'Messenger', body: 'New message', message_id: '1', preview: false });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+    expect(w.registration.showNotification.mock.lastCall?.[1].data).toMatchObject({ count: 1, preview: false });
+  });
   it('keeps two people with the same name apart', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
     await w.push({ title: 'Alex', body: 'one', message_id: '1', preview: true, sender_id: '5', avatar_token: 'a.5' });

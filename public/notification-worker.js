@@ -81,7 +81,7 @@ async function showChatNotification(data) {
   const messageId = /^\d+$/.test(String(data.message_id)) ? String(data.message_id) : '';
   const ids = Array.isArray(before.ids) ? before.ids : [];
   const repeated = !!messageId && ids.includes(messageId);
-  if (repeated && previous) {
+  if (repeated && previous && !(before.preview === true && data.preview !== true)) {
     if (user !== await notificationAccount()) return;
     await self.registration.showNotification(previous.title, {
       body: previous.body, icon: previous.icon, badge: previous.badge, tag,
