@@ -565,7 +565,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -1114,8 +1114,9 @@ export interface paths {
         put?: never;
         /**
          * Forward several messages of a chat to other chats
-         * @description Copies up to 20 messages of the chat, oldest first, into every target chat. Every message and target is
-         *     checked before anything is written, so a refused one forwards nothing.
+         * @description Copies up to 20 messages of the chat, oldest first, into every target chat, at most 20 copies in all. Every
+         *     copy counts against the sender's message rate. Every message and target is checked before anything is
+         *     written, so a refused one forwards nothing.
          */
         post: operations["forwardMessages"];
         delete?: never;
@@ -1802,7 +1803,7 @@ export interface components {
             code: string;
         };
         /**
-         * @description Who may see the item. `*_except` scopes use the exception lists.
+         * @description Who may see the item. The exception lists apply to every value; `*_except` behave like `everyone` and `nobody`.
          * @enum {string}
          */
         Visibility: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody";
@@ -1812,7 +1813,7 @@ export interface components {
         GroupInvitePolicy: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody" | "wait_approval";
         /** @enum {string} */
         SearchVisibility: "everyone" | "nobody";
-        /** @description User IDs per setting; `allow` applies to `nobody_except`, `deny` to `everyone_except`. */
+        /** @description User IDs per setting. An exception wins over the setting whatever its value; `allow` always lets the user in, `deny` always keeps them out. */
         PrivacyExceptions: {
             [key: string]: {
                 allow: components["schemas"]["Id"][];
@@ -3123,7 +3124,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
