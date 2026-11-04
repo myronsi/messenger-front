@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { authFetch, getAccessToken, refreshAccessToken, setAccessToken } from './session';
 
+const jwt = (expiresInSeconds: number) => {
+  const payload = btoa(JSON.stringify({ sub: '1', exp: Math.floor(Date.now() / 1000) + expiresInSeconds }));
+  return `header.${payload}.signature`;
+};
+
 describe('refreshAccessToken', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: undefined });
     localStorage.clear();
   });
 
@@ -29,6 +35,44 @@ describe('refreshAccessToken', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'new' }), { status: 200 })));
     expect(await refreshAccessToken()).toBe('new');
     expect(getAccessToken()).toBe('new');
+  });
+
+  it('uses the token another tab stored while this tab waited for the refresh lock', async () => {
+    setAccessToken('old');
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: {
+      request: async (_name: string, task: () => Promise<unknown>) => { await held; return task(); },
+    } });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const refreshing = refreshAccessToken();
+    const fresh = jwt(3600);
+    localStorage.setItem('access_token', fresh);
+    release();
+    expect(await refreshing).toBe(fresh);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the session when the refresh is rejected because another tab already rotated the token', async () => {
+    setAccessToken('old');
+    const fresh = jwt(3600);
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      localStorage.setItem('access_token', fresh);
+      return new Response('{}', { status: 401 });
+    }));
+    expect(await refreshAccessToken()).toBe(fresh);
+    expect(getAccessToken()).toBe(fresh);
+  });
+
+  it('still ends the session on a rejected refresh when the newer token is already expired', async () => {
+    setAccessToken('old');
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      localStorage.setItem('access_token', jwt(-60));
+      return new Response('{}', { status: 401 });
+    }));
+    expect(await refreshAccessToken()).toBeNull();
+    expect(getAccessToken()).toBeNull();
   });
 
   it('reports a request as failed, not unauthorized, while the refresh cannot reach the server', async () => {

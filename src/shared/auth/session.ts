@@ -75,23 +75,40 @@ export const subscribeToAccessToken = (listener: TokenListener) => {
   return () => listeners.delete(listener);
 };
 
+const withRefreshLock = async <T>(task: () => Promise<T>): Promise<T> => {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  if (!locks?.request) return task();
+  return locks.request('auth-refresh', task);
+};
+
+const requestRefresh = async (startedWith: string | null) => {
+  const newerToken = () => {
+    const current = getAccessToken();
+    return current && current !== startedWith && !isTokenExpired(current) ? current : null;
+  };
+  const alreadyRefreshed = newerToken();
+  if (alreadyRefreshed) return alreadyRefreshed;
+  const response = await fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (response.status === 401 || response.status === 403) {
+    const refreshedElsewhere = newerToken();
+    if (refreshedElsewhere) return refreshedElsewhere;
+    dropInvalidSession();
+    return null;
+  }
+  if (!response.ok) return null;
+  const refreshed = await response.json();
+  if (!refreshed.access_token) return null;
+  setAccessToken(refreshed.access_token);
+  return refreshed.access_token as string;
+};
+
 export const refreshAccessToken = async () => {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-      .then(async (response) => {
-        if (response.status === 401 || response.status === 403) {
-          dropInvalidSession();
-          return null;
-        }
-        if (!response.ok) return null;
-        const refreshed = await response.json();
-        if (!refreshed.access_token) return null;
-        setAccessToken(refreshed.access_token);
-        return refreshed.access_token as string;
-      })
+    const startedWith = getAccessToken();
+    refreshPromise = withRefreshLock(() => requestRefresh(startedWith))
       .catch(() => null)
       .finally(() => {
         refreshPromise = null;
