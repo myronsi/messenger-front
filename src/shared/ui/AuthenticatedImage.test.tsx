@@ -5,6 +5,7 @@ const session = vi.hoisted(() => ({ authFetch: vi.fn(), token: 'token' as string
 
 vi.mock('@/shared/auth/session', () => ({
   authFetch: session.authFetch,
+  getAccessToken: () => session.token,
   subscribeToAccessToken: () => () => undefined,
   useAccessToken: () => session.token,
 }));

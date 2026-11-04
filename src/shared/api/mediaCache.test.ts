@@ -7,6 +7,7 @@ const session = vi.hoisted(() => ({
 
 vi.mock('@/shared/auth/session', () => ({
   authFetch: session.authFetch,
+  getAccessToken: () => null,
   subscribeToAccessToken: (listener: (token: string | null) => void) => { session.listeners.push(listener); return () => undefined; },
 }));
 
@@ -21,12 +22,15 @@ const store = {
   keys: vi.fn(async () => [...stored.keys()].map(url => new Request(url))),
   delete: vi.fn(async (request: Request) => stored.delete(request.url)),
 };
-const cacheStorage = { open: vi.fn(async () => store), delete: vi.fn(async () => { stored.clear(); return true; }) };
+const cacheStorage = { open: vi.fn(async () => store), keys: vi.fn(async () => ['media-v1:1']), delete: vi.fn(async () => { stored.clear(); return true; }) };
+const jwt = (sub: string) => `x.${btoa(JSON.stringify({ sub }))}.y`;
+const signIn = (sub: string) => session.listeners.forEach(listener => listener(jwt(sub)));
 let objectUrls = 0;
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 beforeEach(() => {
+  signIn('1');
   objectUrls = 0;
   Object.assign(URL, { createObjectURL: vi.fn(() => `blob:media-${++objectUrls}`), revokeObjectURL: vi.fn() });
   vi.stubGlobal('caches', cacheStorage);
@@ -65,6 +69,7 @@ describe('mediaCache', () => {
     expect(stored.has(attachment('a1'))).toBe(true);
 
     clearMediaCache();
+    await flush();
     stored.set(attachment('a1'), new Response('image'));
     session.authFetch.mockClear();
 
@@ -168,7 +173,42 @@ describe('mediaCache', () => {
 
     expect(peekMedia(attachment('a3'))).toBeUndefined();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(url);
-    expect(cacheStorage.delete).toHaveBeenCalledWith('media-v1');
+    await flush();
+    expect(cacheStorage.delete).toHaveBeenCalledWith('media-v1:1');
+  });
+
+  it('keeps each account in its own store and forgets everything on a direct account switch', async () => {
+    const url = await acquireMedia(attachment('a4')).promise;
+    await flush();
+    expect(cacheStorage.open).toHaveBeenCalledWith('media-v1:1');
+
+    signIn('1');
+    expect(peekMedia(attachment('a4'))).toBe(url);
+
+    signIn('2');
+    await flush();
+    expect(peekMedia(attachment('a4'))).toBeUndefined();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(url);
+    expect(cacheStorage.delete).toHaveBeenCalledWith('media-v1:1');
+
+    cacheStorage.open.mockClear();
+    session.authFetch.mockClear();
+    await acquireMedia(attachment('a4')).promise;
+    expect(cacheStorage.open).toHaveBeenCalledWith('media-v1:2');
+    expect(session.authFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops a cancelled preload while it is still looking in Cache Storage', async () => {
+    let finishLookup: (response: Response | undefined) => void = () => undefined;
+    store.match.mockImplementationOnce(() => new Promise(resolve => { finishLookup = resolve; }));
+
+    const cancel = preloadMedia(attachment('a5'));
+    await flush();
+    cancel();
+    finishLookup(undefined);
+    await flush();
+
+    expect(session.authFetch).not.toHaveBeenCalled();
   });
 
   it('ignores media outside the API', () => {

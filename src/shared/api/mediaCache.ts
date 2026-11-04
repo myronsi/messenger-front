@@ -1,6 +1,7 @@
-import { authFetch, subscribeToAccessToken } from '@/shared/auth/session';
+import { authFetch, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
+import { getTokenSubject } from '@/shared/auth/tokenClaims';
 
-const STORE_NAME = 'media-v1';
+const STORE_PREFIX = 'media-v1';
 const MAX_STORED = 500;
 const MAX_IDLE_ENTRIES = 300;
 const MAX_IDLE_BYTES = 64 * 1024 * 1024;
@@ -25,6 +26,7 @@ interface Entry {
   keep: boolean;
   priority: Priority;
   slot?: Slot;
+  started: boolean;
 }
 
 const entries = new Map<string, Entry>();
@@ -32,6 +34,7 @@ const waiting: Slot[] = [];
 let active = 0;
 let activePreloads = 0;
 let generation = 0;
+let subject = getTokenSubject(getAccessToken());
 
 const pump = () => {
   while (active < MAX_ACTIVE && waiting.length > 0) {
@@ -49,6 +52,7 @@ const takeSlot = (entry: Entry) => new Promise<() => void>((resolve, reject) => 
     priority: entry.priority,
     start: () => {
       entry.slot = undefined;
+      entry.started = true;
       const preload = slot.priority === 'low';
       active += 1;
       if (preload) activePreloads += 1;
@@ -94,9 +98,19 @@ const isImmutable = (url: string) => {
   }
 };
 
+const storeName = () => (subject ? `${STORE_PREFIX}:${subject}` : null);
+
 const openStore = () => {
-  if (typeof caches === 'undefined') return null;
-  return caches.open(STORE_NAME).catch(() => null);
+  const name = storeName();
+  if (!name || typeof caches === 'undefined') return null;
+  return caches.open(name).catch(() => null);
+};
+
+const dropStores = (keep: string | null) => {
+  if (typeof caches === 'undefined') return;
+  void caches.keys()
+    .then(names => Promise.all(names.filter(name => name.startsWith(STORE_PREFIX) && name !== keep).map(name => caches.delete(name))))
+    .catch(() => undefined);
 };
 
 const readStored = async (url: string) => {
@@ -174,7 +188,7 @@ const load = (url: string, priority: Priority) => {
     return known;
   }
   const controller = new AbortController();
-  const entry: Entry = { controller, size: 0, users: 0, keep: priority === 'low', priority, promise: Promise.resolve('') };
+  const entry: Entry = { controller, size: 0, users: 0, keep: priority === 'low', priority, started: false, promise: Promise.resolve('') };
   entry.promise = download(url, entry).then(blob => {
     if (entries.get(url) !== entry) throw new Error('Media request was cancelled');
     entry.objectUrl = URL.createObjectURL(blob);
@@ -214,16 +228,26 @@ export const preloadMedia = (url?: string | null) => {
   const entry = load(url, 'low');
   entry.promise.catch(() => undefined);
   return () => {
-    if (entry.slot && entry.users === 0) forget(url, entry);
+    if (!entry.started && !entry.objectUrl && entry.users === 0) forget(url, entry);
   };
 };
 
-export const clearMediaCache = () => {
+const forgetAll = () => {
   generation += 1;
   [...entries].forEach(([url, entry]) => forget(url, entry));
-  if (typeof caches !== 'undefined') void caches.delete(STORE_NAME).catch(() => undefined);
+};
+
+export const clearMediaCache = () => {
+  forgetAll();
+  dropStores(null);
 };
 
 subscribeToAccessToken(token => {
-  if (!token) clearMediaCache();
+  const next = getTokenSubject(token);
+  if (token && next !== null && next === subject) return;
+  subject = token ? next : null;
+  forgetAll();
+  dropStores(storeName());
 });
+
+dropStores(storeName());

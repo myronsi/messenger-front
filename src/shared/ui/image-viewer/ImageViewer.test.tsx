@@ -61,6 +61,22 @@ describe('ImageViewer', () => {
     complete.mockRestore();
   });
 
+  it('treats a click on the shown thumbnail as a click on the picture while the full image loads', () => {
+    const onClose = vi.fn();
+    render(<ImageViewer images={[{ url: '/photo.png', name: 'photo.png', previewUrl: '/thumb.png' }]} onClose={onClose} />);
+    const preview = screen.getByTestId('image-viewer-preview');
+    Object.defineProperty(preview, 'naturalWidth', { value: 320 });
+    Object.defineProperty(preview, 'naturalHeight', { value: 160 });
+    preview.getBoundingClientRect = () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }) as DOMRect;
+    const stage = screen.getByTestId('image-viewer-stage');
+
+    fireEvent.click(stage, { clientX: 400, clientY: 300 });
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(stage, { clientX: 400, clientY: 40 });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('shows a small spinner while an image without a thumbnail loads', () => {
     const { image } = renderViewer();
     expect(screen.getByTestId('image-viewer-loading')).toBeTruthy();

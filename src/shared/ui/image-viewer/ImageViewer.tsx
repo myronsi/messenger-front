@@ -6,6 +6,7 @@ import { preloadMedia } from '@/shared/api/mediaCache';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
 import { downloadImage } from './downloadImage';
+import { isOnPicture } from './pictureRect';
 import { DeleteImageConfirm } from './DeleteImageConfirm';
 
 const KEY_PAN_STEP = 80;
@@ -117,11 +118,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [go, onClose, pan, view.scale, zoomBy]);
 
+  const previewRef = useRef<HTMLImageElement>(null);
   const handleStageClick = useCallback((event: React.MouseEvent) => {
     if (movedRef.current || view.scale > 1) return;
-    const rect = imageRef.current?.getBoundingClientRect();
-    const onImage = rect && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
-    if (!onImage) onClose();
+    if (!isOnPicture([imageRef.current, previewRef.current], event.clientX, event.clientY)) onClose();
   }, [movedRef, onClose, view.scale]);
 
   if (!image) return null;
@@ -248,6 +248,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                   {!isLoaded && (previewUrl ? (
                     <AuthenticatedImage
                       key={previewUrl}
+                      ref={previewRef}
                       src={previewUrl}
                       alt=""
                       aria-hidden="true"
