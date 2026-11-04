@@ -30,6 +30,7 @@ let objectUrls = 0;
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 beforeEach(() => {
+  vi.stubEnv('VITE_BASE_URL', window.location.origin + '/api');
   signIn('1');
   objectUrls = 0;
   Object.assign(URL, { createObjectURL: vi.fn(() => `blob:media-${++objectUrls}`), revokeObjectURL: vi.fn() });
@@ -41,6 +42,7 @@ afterEach(() => {
   clearMediaCache();
   stored.clear();
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 

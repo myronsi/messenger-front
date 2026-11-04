@@ -16,6 +16,7 @@ import { AuthenticatedImage } from './AuthenticatedImage';
 const avatar = `${window.location.origin}/api/v2/users/7/avatar?rev=a1`;
 
 beforeEach(() => {
+  vi.stubEnv('VITE_BASE_URL', window.location.origin + '/api');
   let count = 0;
   Object.assign(URL, { createObjectURL: vi.fn(() => `blob:avatar-${++count}`), revokeObjectURL: vi.fn() });
   vi.stubGlobal('IntersectionObserver', class {
@@ -28,6 +29,7 @@ beforeEach(() => {
 afterEach(() => {
   clearMediaCache();
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 

@@ -16,6 +16,7 @@ import { useAuthenticatedMedia } from './useAuthenticatedMedia';
 const source = `${window.location.origin}/api/v2/users/7/avatar`;
 
 beforeEach(() => {
+  vi.stubEnv('VITE_BASE_URL', window.location.origin + '/api');
   session.token = 'first';
   let count = 0;
   Object.assign(URL, { createObjectURL: vi.fn(() => `blob:avatar-${++count}`), revokeObjectURL: vi.fn() });
@@ -25,6 +26,7 @@ beforeEach(() => {
 afterEach(() => {
   clearMediaCache();
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe('useAuthenticatedMedia', () => {
