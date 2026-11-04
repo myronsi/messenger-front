@@ -26,7 +26,7 @@ describe('AvatarHistoryViewer', () => {
     history = { data: { avatars: [item('3', true), item('2', false)] } };
     render(<AvatarHistoryViewer username="alice" displayName="Alice" currentAvatarUrl={current} onClose={vi.fn()} />);
     expect(screen.getByText('1 / 2')).toBeInTheDocument();
-    expect(shownSrc()).toContain('version=3');
+    expect(shownSrc()).toBe(current);
     fireEvent.click(screen.getByRole('button', { name: 'Next image' }));
     expect(shownSrc()).toContain('version=2');
   });

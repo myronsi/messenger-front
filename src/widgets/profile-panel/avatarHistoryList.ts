@@ -9,10 +9,14 @@ export interface AvatarListItem extends UserAvatarHistoryItem {
 const isDefaultAvatar = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl) === DEFAULT_AVATAR;
 
 export const buildAvatarList = (history: UserAvatarHistoryItem[], currentAvatarUrl: string): AvatarListItem[] => {
+  const hasCurrentAvatar = !isDefaultAvatar(currentAvatarUrl);
   const normalizedHistory = history
-    .map((avatar) => ({ ...avatar, fullUrl: resolveMediaUrl(avatar.avatar_url) }))
+    .map((avatar) => ({
+      ...avatar,
+      fullUrl: avatar.is_current && hasCurrentAvatar ? currentAvatarUrl : resolveMediaUrl(avatar.avatar_url),
+    }))
     .filter((avatar) => !isDefaultAvatar(avatar.avatar_url));
-  if (isDefaultAvatar(currentAvatarUrl)) return normalizedHistory;
+  if (!hasCurrentAvatar) return normalizedHistory;
   const currentExists = normalizedHistory.some((avatar) => avatar.is_current || avatar.fullUrl === currentAvatarUrl);
   if (currentExists) return normalizedHistory;
   return [

@@ -10,6 +10,7 @@ import { useSearchChatMessagesQuery } from '../api/messageApi';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 import { ImageViewer } from '@/shared/ui/image-viewer';
+import { useMediaPreload } from '@/shared/api/useMediaPreload';
 
 
 
@@ -142,6 +143,30 @@ export const ProfileSearchPanel: React.FC<{
   );
 };
 
+const ProfilePhotoThumb: React.FC<{ photo: ProfilePhotoItem; onOpen: () => void }> = ({ photo, onOpen }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const preloadHandlers = useMediaPreload(photo.url);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      {...preloadHandlers}
+      className={`group block aspect-square overflow-hidden rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isLoaded ? '' : 'animate-pulse'}`}
+      title={photo.name}
+    >
+      <AuthenticatedImage
+        src={photo.thumbnailUrl}
+        alt={photo.name}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setIsLoaded(true)}
+        className={`h-full w-full object-cover transition duration-150 group-hover:scale-105 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+      />
+    </button>
+  );
+};
+
 export const ProfilePhotosPanel: React.FC<{
   photos: ProfilePhotoItem[];
   isLoading?: boolean;
@@ -149,7 +174,7 @@ export const ProfilePhotosPanel: React.FC<{
 }> = ({ photos, isLoading, error }) => {
   const { translations } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const viewerImages = useMemo(() => photos.map((photo) => ({ url: photo.url, name: photo.name })), [photos]);
+  const viewerImages = useMemo(() => photos.map((photo) => ({ url: photo.url, name: photo.name, previewUrl: photo.thumbnailUrl })), [photos]);
 
   return (
     <section className="border-b border-gray-200 px-5 py-4">
@@ -172,15 +197,7 @@ export const ProfilePhotosPanel: React.FC<{
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-2">
             {photos.map((photo, index) => (
-              <button
-                key={photo.id}
-                type="button"
-                onClick={() => setOpenIndex(index)}
-                className="group block aspect-square overflow-hidden rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                title={photo.name}
-              >
-                <AuthenticatedImage src={photo.thumbnailUrl} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-150 group-hover:scale-105" />
-              </button>
+              <ProfilePhotoThumb key={photo.id} photo={photo} onOpen={() => setOpenIndex(index)} />
             ))}
           </div>
         </div>

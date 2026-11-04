@@ -41,6 +41,33 @@ describe('ImageViewer', () => {
     expect(image.style.transform).toMatch(/scale\(1\.[4-6]\d*\)/);
   });
 
+  it('shows the thumbnail until the full image has loaded', () => {
+    render(<ImageViewer images={[{ url: '/photo.png', name: 'photo.png', previewUrl: '/thumb.png' }]} onClose={vi.fn()} />);
+    const image = screen.getByAltText('photo.png');
+    expect(screen.getByTestId('image-viewer-preview').getAttribute('src')).toBe('/thumb.png');
+    expect(image.className).toContain('opacity-0');
+    fireEvent.load(image);
+    expect(screen.queryByTestId('image-viewer-preview')).toBeNull();
+    expect(image.className).toContain('opacity-100');
+  });
+
+  it('shows an image that is already loaded at once, without a fade or a spinner', () => {
+    const naturalWidth = vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(512);
+    const complete = vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
+    render(<ImageViewer images={[{ url: '/avatar.png', name: 'avatar.png' }]} onClose={vi.fn()} />);
+    expect(screen.getByAltText('avatar.png').className).toContain('opacity-100');
+    expect(screen.queryByTestId('image-viewer-loading')).toBeNull();
+    naturalWidth.mockRestore();
+    complete.mockRestore();
+  });
+
+  it('shows a small spinner while an image without a thumbnail loads', () => {
+    const { image } = renderViewer();
+    expect(screen.getByTestId('image-viewer-loading')).toBeTruthy();
+    fireEvent.load(image);
+    expect(screen.queryByTestId('image-viewer-loading')).toBeNull();
+  });
+
   it('closes on Escape and when the backdrop is clicked', () => {
     const { onClose, stage } = renderViewer();
     fireEvent.keyDown(window, { key: 'Escape' });

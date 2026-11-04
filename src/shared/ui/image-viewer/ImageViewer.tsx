@@ -1,8 +1,9 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeft, ChevronRight, Download, ImageOff, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { fetchMedia } from '@/shared/api/fetchMedia';
+import { preloadMedia } from '@/shared/api/mediaCache';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
 
@@ -12,6 +13,7 @@ export interface ViewerImage {
   url: string;
   name: string;
   downloadName?: string;
+  previewUrl?: string;
 }
 
 interface ImageViewerProps {
@@ -61,6 +63,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const imageRef = useRef<HTMLImageElement>(null);
   const [index, setIndex] = useState(() => Math.min(Math.max(initialIndex, 0), Math.max(images.length - 1, 0)));
   const [brokenUrls, setBrokenUrls] = useState<Record<string, true>>({});
+  const [loadedUrls, setLoadedUrls] = useState<Record<string, true>>({});
   const [isDownloading, setIsDownloading] = useState(false);
   const isGallery = images.length > 1;
   const canGoBack = index > 0;
@@ -76,6 +79,22 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   );
 
   useEffect(() => { reset(); }, [index, reset]);
+
+  const markLoaded = useCallback((url: string) => {
+    setLoadedUrls((loaded) => (loaded[url] ? loaded : { ...loaded, [url]: true }));
+  }, []);
+
+  const currentUrl = images[index]?.url;
+  const setImage = useCallback((node: HTMLImageElement | null) => {
+    imageRef.current = node;
+    if (node && currentUrl && node.getAttribute('src') && node.complete && node.naturalWidth > 0) markLoaded(currentUrl);
+  }, [currentUrl, markLoaded]);
+
+  useEffect(() => {
+    const cancelNext = preloadMedia(images[index + 1]?.url);
+    const cancelPrevious = preloadMedia(images[index - 1]?.url);
+    return () => { cancelNext(); cancelPrevious(); };
+  }, [images, index]);
 
   useEffect(() => {
     if (images.length === 0) onClose();
@@ -114,6 +133,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
 
   if (!image) return null;
   const isBroken = !!brokenUrls[image.url];
+  const isLoaded = !!loadedUrls[image.url];
+  const previewUrl = image.previewUrl && image.previewUrl !== image.url ? image.previewUrl : undefined;
   const handleDownload = async () => {
     if (isDownloading) return;
     setIsDownloading(true);
@@ -197,7 +218,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             <div
               ref={setStage}
               data-testid="image-viewer-stage"
-              className={`flex-1 flex items-center justify-center overflow-hidden p-8 select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+              className={`relative flex-1 flex items-center justify-center overflow-hidden p-8 select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
               style={{ touchAction: 'none' }}
               onClick={handleStageClick}
               {...pointerHandlers}
@@ -208,22 +229,39 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                   <span className="text-sm">{translations.failedToLoadImage || 'Failed to load image'}</span>
                 </div>
               ) : (
-                <AuthenticatedImage
-                  key={image.url}
-                  ref={imageRef}
-                  src={image.url}
-                  alt={image.name}
-                  className="max-h-[80vh] max-w-[80vw] select-none object-contain rounded-lg"
-                  style={{
-                    transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y}px) scale(${view.scale})`,
-                    transition: isGesturing ? 'none' : 'transform 0.2s',
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    pointerEvents: 'none',
-                  }}
-                  draggable={false}
-                  onError={() => setBrokenUrls((current) => ({ ...current, [image.url]: true }))}
-                />
+                <>
+                  {!isLoaded && (previewUrl ? (
+                    <AuthenticatedImage
+                      key={previewUrl}
+                      src={previewUrl}
+                      alt=""
+                      aria-hidden="true"
+                      data-testid="image-viewer-preview"
+                      className="pointer-events-none absolute inset-0 m-auto h-[80vh] w-[80vw] select-none object-contain"
+                      style={{ transform: `translate(${swipeX * edgeResistance}px, 0px)` }}
+                      draggable={false}
+                    />
+                  ) : (
+                    <Loader2 data-testid="image-viewer-loading" className="pointer-events-none absolute inset-0 m-auto h-6 w-6 animate-spin text-white/50" />
+                  ))}
+                  <AuthenticatedImage
+                    key={image.url}
+                    ref={setImage}
+                    src={image.url}
+                    alt={image.name}
+                    className={`max-h-[80vh] max-w-[80vw] select-none object-contain rounded-lg ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    style={{
+                      transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y}px) scale(${view.scale})`,
+                      transition: isGesturing ? 'opacity 0.15s' : 'transform 0.2s, opacity 0.15s',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      pointerEvents: 'none',
+                    }}
+                    draggable={false}
+                    onLoad={() => markLoaded(image.url)}
+                    onError={() => setBrokenUrls((current) => ({ ...current, [image.url]: true }))}
+                  />
+                </>
               )}
             </div>
           </div>

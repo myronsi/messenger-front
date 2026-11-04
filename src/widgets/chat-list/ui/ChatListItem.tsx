@@ -1,6 +1,8 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import type { EntityId } from '@/shared/api/entityId';
+import { preloadMedia } from '@/shared/api/mediaCache';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { BellOff, Check, CheckCheck, Pin } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
@@ -38,12 +40,18 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const unreadBadgeClass = isMuted
     ? isActive ? 'bg-primary-foreground/60 text-primary' : 'bg-gray-400 text-white'
     : isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground';
+  const preloadLastImage = () => {
+    const content = chat.last_message?.content;
+    if (typeof content === 'object' && content.thumbnail_url) preloadMedia(resolveMediaUrl(content.thumbnail_url));
+  };
 
   return (
     <div
       data-testid="chat-list-item"
       data-chat-name={chat.name}
       onClick={() => onClick(chat)}
+      onPointerEnter={preloadLastImage}
+      onPointerDown={preloadLastImage}
       onContextMenu={(event) => onContextMenu(event, chat)}
       className={`motion-list-item motion-press flex items-center p-3 rounded-lg cursor-pointer ${
         isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
