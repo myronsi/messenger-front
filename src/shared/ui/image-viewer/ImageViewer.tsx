@@ -1,11 +1,12 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, ZoomIn, ZoomOut, X } from 'lucide-react';
-import { fetchMedia } from '@/shared/api/fetchMedia';
+import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, Trash2, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { preloadMedia } from '@/shared/api/mediaCache';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
+import { downloadImage } from './downloadImage';
+import { DeleteImageConfirm } from './DeleteImageConfirm';
 
 const KEY_PAN_STEP = 80;
 
@@ -14,6 +15,7 @@ export interface ViewerImage {
   name: string;
   downloadName?: string;
   previewUrl?: string;
+  onDelete?: () => Promise<void>;
 }
 
 interface ImageViewerProps {
@@ -23,33 +25,6 @@ interface ImageViewerProps {
 }
 
 const stopPropagation = (event: React.SyntheticEvent) => event.stopPropagation();
-
-const clickLink = (href: string, filename: string, newTab = false) => {
-  const link = document.createElement('a');
-  link.style.display = 'none';
-  link.href = href;
-  link.download = filename;
-  if (newTab) {
-    link.target = '_blank';
-    link.rel = 'noreferrer';
-  }
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-const downloadImage = async (image: ViewerImage) => {
-  const filename = image.downloadName || image.name;
-  try {
-    const response = await fetchMedia(image.url, { credentials: 'include' });
-    if (!response.ok) throw new Error(`Download failed (${response.status})`);
-    const objectUrl = URL.createObjectURL(await response.blob());
-    clickLink(objectUrl, filename);
-    URL.revokeObjectURL(objectUrl);
-  } catch {
-    clickLink(image.url, filename, true);
-  }
-};
 
 const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onClose }) => {
   const { translations } = useLanguage();
@@ -65,6 +40,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const [brokenUrls, setBrokenUrls] = useState<Record<string, true>>({});
   const [loadedUrls, setLoadedUrls] = useState<Record<string, true>>({});
   const [isDownloading, setIsDownloading] = useState(false);
+  const [deleting, setDeleting] = useState<{ url: string; busy: boolean; failed: boolean } | null>(null);
   const isGallery = images.length > 1;
   const canGoBack = index > 0;
   const canGoForward = index < images.length - 1;
@@ -107,9 +83,26 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     return () => { document.body.style.overflow = previousOverflow; };
   }, []);
 
+  const confirmingRef = useRef(false);
+  confirmingRef.current = !!deleting;
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const wasConfirmingRef = useRef(false);
+
+  useEffect(() => {
+    if (wasConfirmingRef.current && !deleting && deleteButtonRef.current?.isConnected) deleteButtonRef.current.focus({ preventScroll: true });
+    wasConfirmingRef.current = !!deleting;
+  }, [deleting]);
+
   useEffect(() => {
     const zoomed = view.scale > 1;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (confirmingRef.current) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setDeleting((current) => (current?.busy ? current : null));
+        }
+        return;
+      }
       if (event.key === 'Escape') onClose();
       else if (event.key === '+' || event.key === '=') zoomBy(1.25);
       else if (event.key === '-' || event.key === '_') zoomBy(0.8);
@@ -139,11 +132,23 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadImage(image);
+      await downloadImage(image.url, image.downloadName || image.name);
     } finally {
       setIsDownloading(false);
     }
   };
+
+  const confirmDelete = async () => {
+    if (!image.onDelete) return;
+    setDeleting({ url: image.url, busy: true, failed: false });
+    try {
+      await image.onDelete();
+      setDeleting(null);
+    } catch {
+      setDeleting({ url: image.url, busy: false, failed: true });
+    }
+  };
+  const deleteState = deleting?.url === image.url ? deleting : null;
 
   const buttonClass = 'p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm';
   const sideButtonClass = 'absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
@@ -201,10 +206,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                   <Download className={`w-5 h-5 ${isDownloading ? 'animate-pulse' : ''}`} />
                 </button>
               )}
+              {image.onDelete && (
+                <button ref={deleteButtonRef} type="button" onClick={() => setDeleting({ url: image.url, busy: false, failed: false })} aria-label={translations.deletePhoto} className={buttonClass}>
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
               <button type="button" onClick={onClose} aria-label={translations.close || 'Close'} className={buttonClass}>
                 <X className="w-5 h-5" />
               </button>
             </div>
+            {deleteState && (
+              <DeleteImageConfirm
+                busy={deleteState.busy} failed={deleteState.failed} onCancel={() => setDeleting(null)} onConfirm={() => void confirmDelete()}
+              />
+            )}
             {isGallery && (
               <>
                 <button type="button" disabled={!canGoBack} onClick={() => go(-1)} aria-label={translations.previousImage} className={`${sideButtonClass} left-2 sm:left-4`}>

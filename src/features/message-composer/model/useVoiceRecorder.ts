@@ -95,10 +95,13 @@ export const useVoiceRecorder = ({
       mediaRecorderRef.current = mediaRecorder;
       recordingSessionRef.current = session;
 
-      const releaseRecorder = () => {
+      const releaseStream = () => {
         stream.getTracks().forEach((track) => track.stop());
         if (streamRef.current === stream) streamRef.current = null;
         setLiveStream((current) => (current === stream ? null : current));
+      };
+      const releaseRecorder = () => {
+        releaseStream();
         if (mediaRecorderRef.current === mediaRecorder) mediaRecorderRef.current = null;
         if (recordingSessionRef.current === session) recordingSessionRef.current = null;
       };
@@ -107,6 +110,7 @@ export const useVoiceRecorder = ({
         if (event.data.size > 0) session.chunks.push(event.data);
       };
       mediaRecorder.onstop = async () => {
+        releaseStream();
         if (session.discard) {
           session.chunks = [];
           releaseRecorder();

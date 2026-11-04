@@ -1,7 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import React, { MutableRefObject } from 'react';
-import { ChatSearchDialog, Message } from '@/entities/message';
-import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal } from '@/features/message-actions';
+import { ChatSearchDialog, Message, type MessageSelection } from '@/entities/message';
+import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal, SelectionBar } from '@/features/message-actions';
 
 type ContextMenuState = NonNullable<React.ComponentProps<typeof ContextMenu>['contextMenu']>;
 type ReactionMenuState = NonNullable<React.ComponentProps<typeof ReactionMenu>['reactionMenu']>;
@@ -32,8 +32,10 @@ interface ChatOverlaysProps {
   jumpToSearchResult: (messageId: EntityId) => void;
   forwardMessage: Message | null;
   username: string;
-  onForwarded: () => void;
   modal: ModalState;
+  selection?: MessageSelection;
+  onSelect?: (message: Message) => void;
+  onClearSelection: () => void;
 }
 
 const ChatOverlays: React.FC<ChatOverlaysProps> = ({
@@ -41,7 +43,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, setModal, closeMenus, onForward,
   isSearchOpen, setIsSearchOpen, jumpToSearchResult,
-  forwardMessage, username, onForwarded, modal,
+  forwardMessage, username, modal, selection, onSelect, onClearSelection,
 }) => (
   <>
     {contextMenu && userId !== null && (
@@ -65,6 +67,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         setReactionMenu={setReactionMenu}
         messageInputRef={messageInputRef}
         onForward={onForward}
+        onSelect={onSelect}
       />
     )}
     {reactionMenu && userId !== null && (
@@ -92,7 +95,14 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
       onOpenChange={(open) => { if (!open) onForward(null); }}
       message={forwardMessage}
       username={username}
-      onForwarded={onForwarded}
+    />
+    <SelectionBar
+      chatId={chatId}
+      messages={messages}
+      selection={selection}
+      username={username}
+      canDeleteForEveryone={(message) => !!message.is_own || (userId !== null && message.sender_id === userId)}
+      onClear={onClearSelection}
     />
     <Modal modal={modal} onClose={() => setModal(null)} />
   </>

@@ -5,7 +5,7 @@ import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Send } from 'lucide-react';
 import { Message } from '@/entities/message';
-import { useForwardMessageMutation } from '@/entities/message';
+import { useForwardMessageMutation, useForwardMessagesMutation } from '@/entities/message';
 import { useGetGroupChatsQuery, useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
@@ -15,11 +15,13 @@ import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { useGetBlockedUsersQuery } from '@/entities/user';
+import { forwardTargetLimit } from '../model/useMessageSelection';
 
 interface ForwardMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   message: Message | null;
+  bulk?: { chatId: EntityId; messageIds: EntityId[] } | null;
   username: string;
   onForwarded?: () => void;
 }
@@ -36,6 +38,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   open,
   onOpenChange,
   message,
+  bulk,
   username,
   onForwarded,
 }) => {
@@ -43,7 +46,9 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   const [query, setQuery] = useState('');
   const [selectedChatIds, setSelectedChatIds] = useState<EntityId[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [forwardMessage, { isLoading }] = useForwardMessageMutation();
+  const [forwardMessage, { isLoading: isForwardingOne }] = useForwardMessageMutation();
+  const [forwardMessages, { isLoading: isForwardingMany }] = useForwardMessagesMutation();
+  const isLoading = isForwardingOne || isForwardingMany;
   const { data: directChatsData, isLoading: isLoadingDirect } = useGetOneOnOneChatsQuery(username, { skip: !open || !username });
   const { data: groupChatsData, isLoading: isLoadingGroups } = useGetGroupChatsQuery(username, { skip: !open || !username });
   const { data: blockedUsersData } = useGetBlockedUsersQuery(undefined, { skip: !open });
@@ -89,19 +94,28 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     ));
   }, [blockedUsersData?.users, directChatsData?.chats, groupChatsData?.groups, query, translations.group]);
 
+  const maxTargets = forwardTargetLimit(bulk ? bulk.messageIds.length : 1);
+  const atTargetLimit = selectedChatIds.length >= maxTargets;
+
   const toggleTarget = (chatId: EntityId) => {
-    setSelectedChatIds((current) => (
-      current.includes(chatId)
-        ? current.filter((id) => id !== chatId)
-        : [...current, chatId]
-    ));
+    setSelectedChatIds((current) => {
+      if (current.includes(chatId)) return current.filter((id) => id !== chatId);
+      return current.length < maxTargets ? [...current, chatId] : current;
+    });
     setStatusMessage(null);
   };
 
   const handleForward = async () => {
-    if (!message || selectedChatIds.length === 0 || isLoading) return;
+    if ((!message && !bulk) || selectedChatIds.length === 0 || isLoading) return;
 
     try {
+      if (bulk) {
+        await forwardMessages({ chatId: bulk.chatId, messageIds: bulk.messageIds, targetChatIds: selectedChatIds }).unwrap();
+        onForwarded?.();
+        onOpenChange(false);
+        return;
+      }
+      if (!message) return;
       const result = await forwardMessage({
         sourceMessageId: message.id,
         targetChatIds: selectedChatIds,
@@ -129,7 +143,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
     <Dialog open={open} onOpenChange={(nextOpen) => !isLoading && onOpenChange(nextOpen)}>
       <DialogContent className="max-h-[85vh] max-w-md grid-rows-[auto_auto_minmax(0,1fr)_auto] p-0">
         <DialogHeader className="border-b border-border px-4 py-4">
-          <DialogTitle>{translations.forwardMessage || 'Forward message'}</DialogTitle>
+          <DialogTitle>{bulk ? translations.forward : translations.forwardMessage || 'Forward message'}</DialogTitle>
         </DialogHeader>
 
         <div className="px-4">
@@ -153,15 +167,18 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
             <div className="space-y-1">
               {targets.map((target) => {
                 const isSelected = selectedChatIds.includes(target.id);
+                const isBlocked = !isSelected && atTargetLimit;
                 return (
                   <button
                     key={`${target.type}-${target.id}`}
                     type="button"
+                    disabled={isBlocked}
                     onClick={() => toggleTarget(target.id)}
-                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
+                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
                   >
                     <Checkbox
                       checked={isSelected}
+                      disabled={isBlocked}
                       onClick={(event) => event.stopPropagation()}
                       onCheckedChange={() => toggleTarget(target.id)}
                     />
@@ -178,12 +195,15 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
         </div>
 
         <div className="border-t border-border px-4 py-3">
+          {atTargetLimit && (
+            <div className="mb-2 text-xs text-muted-foreground">{(translations.forwardTargetLimit || '').replace('{max}', String(maxTargets))}</div>
+          )}
           {statusMessage && <div className="mb-2 text-sm text-destructive">{statusMessage}</div>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               {translations.cancel}
             </Button>
-            <Button type="button" onClick={handleForward} disabled={!message || selectedChatIds.length === 0 || isLoading}>
+            <Button type="button" onClick={handleForward} disabled={(!message && !bulk) || selectedChatIds.length === 0 || isLoading}>
               <Send className="h-4 w-4" />
               {translations.forward || 'Forward'}
             </Button>

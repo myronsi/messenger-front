@@ -1,12 +1,16 @@
-export const SETTINGS_PAGES = ['profile', 'personal', 'privacy', 'security', 'notifications', 'requests'] as const;
+export const SETTINGS_PAGES = ['profile', 'personal', 'privacy', 'security', 'notifications', 'requests', 'language'] as const;
 export type SettingsPage = typeof SETTINGS_PAGES[number];
 
+export const PRIVACY_DETAILS = ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'direct_messages', 'group_invites', 'search_visibility'] as const;
+export type PrivacyDetail = typeof PRIVACY_DETAILS[number];
+
 export type UrlOverlay =
-  | { kind: 'settings'; page: SettingsPage }
+  | { kind: 'settings'; page: SettingsPage; detail?: PrivacyDetail; exceptions?: 'allow' | 'deny' }
   | { kind: 'profile' }
   | { kind: 'user'; username: string; overProfile?: boolean };
 
 const isSettingsPage = (value: string): value is SettingsPage => (SETTINGS_PAGES as readonly string[]).includes(value);
+const isPrivacyDetail = (value: string): value is PrivacyDetail => (PRIVACY_DETAILS as readonly string[]).includes(value);
 const isChatBase = (base: string) => /^\/(?:dm|direct)\/[^/]+$/.test(base) || /^\/chat\/\d+$/.test(base);
 const decode = (value: string) => {
   try {
@@ -18,6 +22,12 @@ const decode = (value: string) => {
 
 export const splitOverlayPath = (pathname: string): { base: string; overlay: UrlOverlay | null } => {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+
+  const privacy = path.match(/^(.*?)\/settings\/privacy\/([^/]+)(?:\/(allow|deny))?$/);
+  if (privacy && (!privacy[1] || isChatBase(privacy[1])) && isPrivacyDetail(privacy[2])) {
+    const exceptions = privacy[3] as 'allow' | 'deny' | undefined;
+    return { base: privacy[1] || '/', overlay: { kind: 'settings', page: 'privacy', detail: privacy[2], ...(exceptions ? { exceptions } : {}) } };
+  }
 
   const settings = path.match(/^(.*?)\/settings(?:\/([^/]+))?$/);
   if (settings && (!settings[1] || isChatBase(settings[1])) && (!settings[2] || (settings[2] !== 'profile' && isSettingsPage(settings[2])))) {
@@ -43,7 +53,10 @@ export const splitOverlayPath = (pathname: string): { base: string; overlay: Url
 export const joinOverlayPath = (base: string, overlay: UrlOverlay | null) => {
   const prefix = base === '/' ? '' : base.replace(/\/+$/, '');
   if (!overlay) return prefix || '/';
-  if (overlay.kind === 'settings') return `${prefix}/settings${overlay.page === 'profile' ? '' : `/${overlay.page}`}`;
+  if (overlay.kind === 'settings') {
+    const detail = overlay.page === 'privacy' && overlay.detail ? `/${overlay.detail}${overlay.exceptions ? `/${overlay.exceptions}` : ''}` : '';
+    return `${prefix}/settings${overlay.page === 'profile' ? '' : `/${overlay.page}`}${detail}`;
+  }
   if (overlay.kind === 'profile') return `${prefix}/profile`;
   return `${prefix}${overlay.overProfile ? '/profile' : ''}/@${encodeURIComponent(overlay.username.replace(/^@/, ''))}`;
 };

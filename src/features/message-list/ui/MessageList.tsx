@@ -7,7 +7,7 @@ import { isIgnoredTap } from '../model/tapFilter';
 import { nextVoiceMessageId } from '../model/nextVoiceMessage';
 import { MessageItem } from '@/entities/message';
 import ScrollToBottomButton from './ScrollToBottomButton';
-import { Message, ReactionInfo } from '@/entities/message';
+import { Message, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useStableCallback } from '@/shared/lib/useStableCallback';
@@ -48,6 +48,8 @@ interface MessageListProps {
   onResendMessage?: (message: Message) => void;
   scrollToBottomKey?: string | number;
   onScrollStart?: () => void;
+  selection?: MessageSelection;
+  onSwipeReply?: (message: Message) => void;
 }
 
 const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
@@ -85,7 +87,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   } = props;
   const bottomSpaceClass = bottomInset === undefined ? MESSAGE_LIST_BOTTOM_SPACE : '';
   const bottomSpaceStyle = bottomInset === undefined ? undefined : { paddingBottom: bottomInset + COMPOSER_GAP };
-
   const { getFileTypeConfig } = useFileTypes();
   const { translations } = useLanguage();
   const isGroup = props.isGroup || false;
@@ -95,7 +96,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   const scrollToBottomKey = props.scrollToBottomKey;
   const onScrollStart = props.onScrollStart;
   const onMarkMessagesRead = props.onMarkMessagesRead;
-
   const isOwnMessage = useCallback((message: Message) => {
     if (message.is_own) return true;
     if (userId && message.sender_id) return message.sender_id === userId;
@@ -235,7 +235,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               message={message}
               prevMessage={prevMessage}
               nextMessage={nextMessage}
-              replyMessage={message.reply_to ? messagesById.get(message.reply_to) : undefined}
+              replyMessage={message.reply_to ? messagesById.get(message.reply_to) ?? message.reply_preview : undefined}
               userId={userId}
               isGroup={isGroup}
               isImage={fileConfig?.replyText === translations.image}
@@ -258,6 +258,10 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               setPlayingMessageId={setPlayingMessageId}
               onMessageClick={stableOnMessageClick}
               onClick={handleMessageClick}
+              isSelected={!!props.selection?.ids.has(message.id)}
+              onToggleSelect={props.selection?.active ? props.selection.toggle : undefined}
+              onLongPress={props.selection?.start}
+              onSwipeReply={props.onSwipeReply}
               onAvatarClick={stableOnAvatarClick}
               onReplyClick={stableOnReplyClick}
               setTempHighlightedMessageId={stableSetTempHighlightedMessageId}

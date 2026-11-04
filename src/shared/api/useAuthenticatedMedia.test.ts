@@ -33,9 +33,28 @@ describe('useAuthenticatedMedia', () => {
 
     session.token = 'second';
     rerender();
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(result.current).toBe('blob:avatar-1');
     expect(session.authFetch).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  });
+
+  it('loads a failed image again once a new access token arrives', async () => {
+    session.authFetch
+      .mockResolvedValueOnce(new Response('', { status: 401 }))
+      .mockResolvedValueOnce(new Response('image', { status: 200 }));
+    const { result, rerender } = renderHook(() => useAuthenticatedMedia(source, 'fallback.png'));
+    await waitFor(() => expect(result.current).toBe('fallback.png'));
+
+    rerender();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(session.authFetch).toHaveBeenCalledTimes(1);
+
+    session.token = 'second';
+    rerender();
+    await waitFor(() => expect(result.current).toBe('blob:avatar-1'));
+    expect(session.authFetch).toHaveBeenCalledTimes(2);
   });
 
   it('shows an image another component already loaded on the first render', async () => {

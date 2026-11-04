@@ -3,11 +3,12 @@ import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CurrentChat, directChatPath, dmPath, parseDmIdentifier } from './messengerRoutes';
-import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
+import { currentEntryMarks, useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { authFetch } from '@/shared/auth/session';
 import { watchCurrentUser } from './watchCurrentUser';
+import { watchSessionChanges } from './watchSessionChanges';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
 import { notificationReturnPath } from './resolveNotificationChat';
@@ -34,9 +35,11 @@ export const useMessengerController = () => {
     : overlay?.kind === 'profile' && routeDirect ? routeChatUsername : null;
   const isUserProfileOpen = !!profileUsername;
   const setIsProfileOpen = useCallback((open: boolean) => {
-    if (open) openOverlay({ kind: 'settings', page: 'profile' });
+    const marks = currentEntryMarks();
+    if (open) openOverlay({ kind: 'settings', page: 'profile' }, { settingsOpened: true, settingsDepth: 0, settingsChain: 0 });
+    else if (isProfileOpen && marks.settingsOpened && marks.settingsChain && marks.settingsChain === marks.settingsDepth) navigate(-(marks.settingsChain + 1));
     else if (isProfileOpen) closeOverlay();
-  }, [closeOverlay, isProfileOpen, openOverlay]);
+  }, [closeOverlay, isProfileOpen, navigate, openOverlay]);
   const {
     backToChats,
     mobileChatPanelClass,
@@ -71,6 +74,16 @@ export const useMessengerController = () => {
       hasFetchedUser.current = false;
     };
   }, []);
+
+  useEffect(() => watchSessionChanges({
+    onSignedOut: () => {
+      setCurrentChat(null);
+      setIsLoggedIn(false);
+      setUsername('');
+      setIsLoading(false);
+    },
+    onAccountChanged: () => window.location.reload(),
+  }), []);
 
   const handleLoginSuccess = (user: string) => {
     setCurrentChat(null);

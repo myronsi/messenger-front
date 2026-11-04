@@ -59,6 +59,16 @@ export const userApi = messengerApi.injectEndpoints({
       providesTags: (result, error, username) => [{ type: 'Avatar', id: `${username}-history` }],
     }),
 
+    deleteMyAvatar: builder.mutation<unknown, { id: EntityId; username: string }>({
+      query: ({ id }) => ({ url: `/auth/me/avatars/${id}`, method: 'DELETE' }),
+      invalidatesTags: (result, error, { username }) => [
+        { type: 'Avatar', id: `${username}-history` },
+        { type: 'Avatar', id: username },
+        { type: 'User', id: username },
+        'Auth',
+      ],
+    }),
+
     getBlockedUsers: builder.query<BlockedUsersResponse, void>({
       query: () => '/auth/me/blocked-users',
       providesTags: ['Privacy'],
@@ -92,6 +102,7 @@ export const {
   useDeleteContactDisplayNameMutation,
   useGetUserAvatarQuery,
   useGetUserAvatarHistoryQuery,
+  useDeleteMyAvatarMutation,
   useGetBlockedUsersQuery,
   useBlockUserMutation,
   useUnblockUserMutation,

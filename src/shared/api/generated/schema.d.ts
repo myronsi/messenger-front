@@ -332,6 +332,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/avatars/{avatar_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description `id` of an `AvatarVersion` of the caller. */
+                avatar_id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete one of your avatars
+         * @description Removes the avatar from your history. When it is the current one, the newest remaining avatar becomes
+         *     current again; without one you get the default avatar. The image is deleted from storage once nothing
+         *     uses it any more.
+         */
+        delete: operations["deleteMyAvatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/password": {
         parameters: {
             query?: never;
@@ -535,7 +565,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -685,7 +715,9 @@ export interface paths {
         /**
          * Current avatar image
          * @description Respects the avatar visibility of the user; falls back to the default avatar. With `version`, an
-         *     earlier avatar of the history (`AvatarVersion.url`).
+         *     earlier avatar of the history (`AvatarVersion.url`). `avatar_url` carries `rev`, the revision of the
+         *     current avatar: while it matches, the answer may be cached for a year (`immutable`), because a new
+         *     avatar gets a new `rev` and so a new URL.
          */
         get: operations["getUserAvatar"];
         put?: never;
@@ -1033,7 +1065,10 @@ export interface paths {
         delete: operations["deleteMessage"];
         options?: never;
         head?: never;
-        /** Edit your text message */
+        /**
+         * Edit your text message or the caption of your file
+         * @description An empty `content` removes the caption of a file message; a text message needs at least one character.
+         */
         patch: operations["editMessage"];
         trace?: never;
     };
@@ -1055,6 +1090,63 @@ export interface paths {
         put?: never;
         /** Forward a message to other chats */
         post: operations["forwardMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/messages/forward": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forward several messages of a chat to other chats
+         * @description Copies up to 20 messages of the chat, oldest first, into every target chat, at most 20 copies in all. Every
+         *     copy counts against the sender's message rate. Every message and target is checked before anything is
+         *     written, so a refused one forwards nothing.
+         */
+        post: operations["forwardMessages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/messages/delete": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete several messages of a chat
+         * @description Deletes up to 100 messages of the chat with the rules of `DELETE /messages/{message_id}`. Every message
+         *     is checked first: when one may not be deleted, none is.
+         */
+        post: operations["deleteMessages"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1362,6 +1454,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notifications/avatar/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `avatar_token` of a push notification. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Sender avatar for a push notification
+         * @description For the service worker, which has no session: the token in the push payload names the recipient
+         *     and the sender and expires after an hour. Follows the sender's avatar visibility for the recipient.
+         */
+        get: operations["getNotificationAvatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/read/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `read_token` of a push notification. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a chat read from a push notification
+         * @description For the notification's "Mark as read" action: marks the chat read up to the notified message for
+         *     the recipient the token names. The token expires after seven days.
+         */
+        post: operations["markNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/notification-devices": {
         parameters: {
             query?: never;
@@ -1663,7 +1803,7 @@ export interface components {
             code: string;
         };
         /**
-         * @description Who may see the item. `*_except` scopes use the exception lists.
+         * @description Who may see the item. The exception lists apply to every value; `*_except` behave like `everyone` and `nobody`.
          * @enum {string}
          */
         Visibility: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody";
@@ -1673,7 +1813,7 @@ export interface components {
         GroupInvitePolicy: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody" | "wait_approval";
         /** @enum {string} */
         SearchVisibility: "everyone" | "nobody";
-        /** @description User IDs per setting; `allow` applies to `nobody_except`, `deny` to `everyone_except`. */
+        /** @description User IDs per setting. An exception wins over the setting whatever its value; `allow` always lets the user in, `deny` always keeps them out. */
         PrivacyExceptions: {
             [key: string]: {
                 allow: components["schemas"]["Id"][];
@@ -1709,7 +1849,7 @@ export interface components {
             display_name: string;
             /** @description The requesting user's own name for this user, if set. */
             contact_name?: string | null;
-            /** @description Path of the avatar, always same-origin (`/api/v2/users/{id}/avatar`). */
+            /** @description Path of the avatar, always same-origin (`/api/v2/users/{id}/avatar?rev={revision}`). */
             avatar_url: string | null;
             bio: string | null;
             is_online: boolean;
@@ -1779,6 +1919,20 @@ export interface components {
             sender_id: components["schemas"]["Id"] | null;
             sender_name: string;
         };
+        /**
+         * @description What a reply shows of the message it answers, so a client can draw the quote without loading that
+         *     message. Set on messages of history pages and `message` events when the recipient can see the answered
+         *     message; absent when it is gone or hidden for them, and on chat-list previews and search results.
+         */
+        ReplyPreview: {
+            id: components["schemas"]["Id"];
+            type: components["schemas"]["MessageType"];
+            sender: components["schemas"]["User"] | null;
+            /** @description The first 100 characters of the text or caption; `null` when deleted or empty. */
+            content: string | null;
+            attachment: components["schemas"]["Attachment"] | null;
+            is_deleted: boolean;
+        };
         Message: {
             id: components["schemas"]["Id"];
             chat_id: components["schemas"]["Id"];
@@ -1789,6 +1943,7 @@ export interface components {
             content: string | null;
             attachment: components["schemas"]["Attachment"] | null;
             reply_to: components["schemas"]["Id"] | null;
+            reply_preview?: components["schemas"]["ReplyPreview"];
             forwarded_from: components["schemas"]["ForwardedFrom"] | null;
             reactions: components["schemas"]["Reaction"][];
             read_by: components["schemas"]["ReadReceipt"][];
@@ -1832,10 +1987,20 @@ export interface components {
             reply_to?: components["schemas"]["Id"] | null;
         };
         EditMessageRequest: {
+            /** @description New text, or the new caption of a file. Empty removes a file's caption; a text message rejects it. */
             content: string;
         };
         ForwardMessageRequest: {
             chat_ids: components["schemas"]["Id"][];
+        };
+        ForwardMessagesRequest: {
+            message_ids: components["schemas"]["Id"][];
+            chat_ids: components["schemas"]["Id"][];
+        };
+        DeleteMessagesRequest: {
+            message_ids: components["schemas"]["Id"][];
+            /** @enum {string} */
+            scope: "me" | "everyone";
         };
         MarkReadRequest: {
             /** @description Everything up to and including this message is read. */
@@ -2576,6 +2741,38 @@ export interface operations {
             426: components["responses"]["ClientOutdated"];
         };
     };
+    deleteMyAvatar: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description `id` of an `AvatarVersion` of the caller. */
+                avatar_id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
     changePassword: {
         parameters: {
             query?: never;
@@ -2927,7 +3124,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -3147,6 +3344,8 @@ export interface operations {
             query?: {
                 /** @description `id` of an `AvatarVersion` of this user. */
                 version?: components["schemas"]["Id"];
+                /** @description Revision of the current avatar, as given in `avatar_url`. */
+                rev?: string;
             };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
@@ -3922,6 +4121,81 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    forwardMessages: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForwardMessagesRequest"];
+            };
+        };
+        responses: {
+            /** @description The new messages, per target chat oldest first */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Message"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    deleteMessages: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteMessagesRequest"];
+            };
+        };
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
     searchAllMessages: {
         parameters: {
             query: {
@@ -4492,6 +4766,82 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    getNotificationAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `avatar_token` of a push notification. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            /** @description The requested byte range (`Range` header) */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            /** @description Redirect to a short-lived signed storage URL (with `MEDIA_SIGNED_URLS`) */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not modified (`If-None-Match` with the `ETag` of an earlier answer) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            /** @description The requested range is outside the file */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `read_token` of a push notification. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked as read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
         };
     };
     registerNotificationDevice: {

@@ -5,6 +5,7 @@ import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { GroupCreateModal, type GroupCreatePayload } from '@/features/groups';
 import type { en } from '@/shared/lang/en';
 import type { User } from '@/entities/user';
+import type { EntityId } from '@/shared/api/entityId';
 import type { ProfileModalState } from '../useProfileAccountActions';
 
 interface ProfilePanelDialogsProps {
@@ -17,8 +18,6 @@ interface ProfilePanelDialogsProps {
   onCloseGroupModal: () => void;
   onCreateGroup: (payload: GroupCreatePayload) => Promise<void>;
   modal: ProfileModalState | null;
-  pendingBlockUsername: string;
-  onConfirmBlock: () => void;
   onCancel: () => void;
   setModal: (modal: ProfileModalState | null) => void;
   translations: typeof en;
@@ -29,6 +28,7 @@ interface ProfilePanelDialogsProps {
   onCancelAvatarCrop: () => void;
   isAvatarViewerOpen: boolean;
   onCloseAvatarViewer: () => void;
+  onDeleteAvatar: (id: EntityId) => Promise<void>;
 }
 
 const ProfilePanelDialogs = ({
@@ -41,8 +41,6 @@ const ProfilePanelDialogs = ({
   onCloseGroupModal,
   onCreateGroup,
   modal,
-  pendingBlockUsername,
-  onConfirmBlock,
   onCancel,
   setModal,
   translations,
@@ -53,6 +51,7 @@ const ProfilePanelDialogs = ({
   onCancelAvatarCrop,
   isAvatarViewerOpen,
   onCloseAvatarViewer,
+  onDeleteAvatar,
 }: ProfilePanelDialogsProps) => (
   <>
     {isGroupModalOpen && (
@@ -71,24 +70,20 @@ const ProfilePanelDialogs = ({
               ? translations.logout
               : modal.type === 'deleteAccount'
                 ? translations.deleteAccount
-                : modal.type === 'blockUser'
-                  ? translations.blockUserConfirmTitle || `Block ${pendingBlockUsername}?`
-                  : translations.error
+                : translations.error
         }
         message={modal.message}
         requirePassword={modal.type === 'deleteAccount' && isGoApi()}
         consequences={modal.consequences}
-        onConfirm={modal.type === 'blockUser' ? onConfirmBlock : modal.onConfirm || (() => setModal(null))}
+        onConfirm={modal.onConfirm || (() => setModal(null))}
         onCancel={onCancel}
         confirmText={
           modal.type === 'success' || modal.type === 'error'
             ? 'OK'
-            : modal.type === 'blockUser'
-              ? translations.block || 'Block'
-              : translations.confirm
+            : translations.confirm
         }
         isError={modal.type === 'error'}
-        isDestructive={modal.type === 'blockUser' || modal.type === 'deleteAccount'}
+        isDestructive={modal.type === 'deleteAccount'}
       />
     )}
     {avatarFile && avatarCropUrl && (
@@ -106,6 +101,7 @@ const ProfilePanelDialogs = ({
         displayName={displayName}
         currentAvatarUrl={avatarUrl}
         onClose={onCloseAvatarViewer}
+        onDeleteAvatar={onDeleteAvatar}
       />
     )}
   </>

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.7](https://github.com/myronsi/messenger-front/compare/v0.6.6...v0.6.7) (2026-11-03)
+
+
+### Features
+
+* **chat:** multi-select, swipe to reply, reply previews and a new privacy page ([#137](https://github.com/myronsi/messenger-front/issues/137)) ([1cb6fd8](https://github.com/myronsi/messenger-front/commit/1cb6fd8f6c8fdd4c275a80c648fc7b12df7369f2))
+
+
+### Bug Fixes
+
+* pin the released contract 2.1.0-alpha.9 and save privacy exceptions fail-closed ([#138](https://github.com/myronsi/messenger-front/issues/138)) ([a9c9c8f](https://github.com/myronsi/messenger-front/commit/a9c9c8f5fe8e6b1bf5c694c82884cc3d7dc71e0f))
+* **update:** show the update banner only for a new deploy and remember Later ([#135](https://github.com/myronsi/messenger-front/issues/135)) ([579dd67](https://github.com/myronsi/messenger-front/commit/579dd6754664a6473bc0018e2a12f8dc152129a0))
+
 ## [0.6.6](https://github.com/myronsi/messenger-front/compare/v0.6.5...v0.6.6) (2026-11-03)
 
 

@@ -4,19 +4,20 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
@@ -25,13 +26,17 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --ignore-scripts
       # Releases only use a stable, exactly pinned contract (docs/api-contract.md).
       - run: npm run check:contract -- --stable
       - run: npm run build
@@ -39,19 +44,35 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
           VITE_WS_URL: ${{ vars.VITE_WS_URL }}
-          # The contract version the target backend implements (Python backend: 1.0.0).
-          VITE_CLIENT_API_VERSION: ${{ vars.VITE_CLIENT_API_VERSION || '1.0.0' }}
+          # The contract version implemented by the target Go backend.
+          VITE_CLIENT_API_VERSION: ${{ vars.VITE_CLIENT_API_VERSION || '' }}
       - name: Package dist
         run: tar -czf messenger-front-${{ needs.release-please.outputs.tag_name }}-dist.tar.gz -C dist .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-dist
+          path: messenger-front-*-dist.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-artifact:
+    needs: [release-please, build-artifact]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-dist
       - name: Attach dist to the GitHub Release
-        run: gh release upload "${{ needs.release-please.outputs.tag_name }}" messenger-front-*-dist.tar.gz --clobber
+        run: gh release upload "${{ needs.release-please.outputs.tag_name }}" messenger-front-*-dist.tar.gz --clobber --repo "${{ github.repository }}"
         env:
           GH_TOKEN: ${{ github.token }}
 
   # The production environment only accepts deployments from `edge`, so the release
   # commit is moved there and the deploy workflow is dispatched on that branch.
   promote:
-    needs: [release-please, build-artifact]
+    needs: [release-please, publish-artifact]
     runs-on: ubuntu-latest
     permissions:
       contents: write

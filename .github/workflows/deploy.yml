@@ -26,6 +26,12 @@ jobs:
       WEB_ROOT: ${{ vars.FRONTEND_DEPLOY_PATH || '/var/www/messenger' }}
       KEEP_RELEASES: 5
     steps:
+      - name: Validate the tag
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::The tag must look like vX.Y.Z'
+            exit 1
+          fi
       - name: Download the release build
         env:
           GH_TOKEN: ${{ github.token }}

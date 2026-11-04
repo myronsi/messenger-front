@@ -10,8 +10,12 @@ import { isGoApi } from '@/shared/api/goSocket';
 import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
 import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/shared/api/reconnect';
 import { handleHelloEvent } from '@/shared/api/serverHello';
+import { coalesceTask } from '@/shared/lib/coalesceTask';
 import { handleChatListWebSocketMessage } from './chatListWebSocketHandlers';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap, WebSocketMessage } from './types';
+
+const CHAT_LIST_REFETCH_DELAY_MS = 750;
+const GO_CHAT_LIST_EVENTS = ['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence'];
 
 interface UseChatListWebSocketParams {
   token: string | null | undefined;
@@ -21,7 +25,7 @@ interface UseChatListWebSocketParams {
   onChatOpen: ChatsListComponentProps['onChatOpen'];
   onChatDeleted?: (chatId: EntityId) => void;
   currentUserId?: EntityId;
-  refetch: () => void;
+  refetch: () => unknown;
   refetchRequestInbox: () => void;
   chatsByIdRef: React.MutableRefObject<Record<EntityId, Chat>>;
   setChatOverrides: Dispatch<SetStateAction<ChatOverrideMap>>;
@@ -69,6 +73,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
     let hasOpened = false;
     let isRequestingTicket = false;
     let isRejected = false;
+    const listRefetch = coalesceTask(() => refetchRef.current(), CHAT_LIST_REFETCH_DELAY_MS);
 
     const scheduleReconnect = () => {
       reconnectAttempts += 1;
@@ -135,7 +140,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
         notifyMessageFrame(parsedData, activeChatIdRef.current);
         if (isGoApi()) {
           // Go broadcasts a global stream. Refresh authoritative list entries after updates.
-          if (['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence'].includes(parsedData.type)) refetchRef.current();
+          if (GO_CHAT_LIST_EVENTS.includes(parsedData.type)) listRefetch.schedule();
           if (parsedData.type === 'approval_request_created') refetchRequestInboxRef.current();
           if (parsedData.type === 'chat_deleted' && parsedData.chat_id) onChatDeletedRef.current?.(parsedData.chat_id);
           return;
@@ -178,6 +183,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
     return () => {
       setNotificationLive(false);
       isMounted = false;
+      listRefetch.cancel();
       stopWatchingConnectivity();
       if (reconnectTimeoutId) {
         clearTimeout(reconnectTimeoutId);

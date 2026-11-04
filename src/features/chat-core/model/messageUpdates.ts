@@ -30,6 +30,8 @@ export const buildMessageFromSocketEvent = (
   timestamp: event.timestamp,
   avatar_url: resolveMediaUrl(event.avatar_url),
   reply_to: event.data.reply_to || null,
+  reply_preview: event.reply_preview,
+  is_system: event.is_system,
   is_deleted: event.is_deleted || false,
   delivery_error: event.delivery_error || undefined,
   forwarded_from: event.forwarded_from || null,

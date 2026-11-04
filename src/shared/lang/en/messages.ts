@@ -7,6 +7,7 @@ export const messages = {
   messageCopied: "Message copied!",
   addCaption: "Add a caption",
   forwardMessage: "Forward message",
+  forwardTargetLimit: "You can forward to up to {max} chats at once",
   forwardedFrom: "Forwarded from {sender}",
   selectChats: "Select chats",
   messageForwarded: "Message forwarded",
@@ -24,4 +25,10 @@ export const messages = {
   resumeRecording: "Resume recording",
   messageTooLong: "Message is too long: {count} of {max} characters.",
   deleteForEveryoneShort: "For everyone",
+  selectMessage: "Select",
+  selectedMessages: "{count} selected",
+  cancelSelection: "Cancel selection",
+  deleteLimit: "You can delete up to {max} messages at once",
+  deleteMessagesConfirm: "Delete {count} messages?",
+  failedToDeleteMessages: "Failed to delete messages",
 };
