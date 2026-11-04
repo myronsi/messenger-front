@@ -16,6 +16,7 @@ export const useLongPress = (onLongPress?: () => void) => {
 
   const onTouchStart = useCallback((event: TouchEvent) => {
     cancel();
+    fired.current = false;
     if (!latest.current || event.touches.length !== 1) return;
     const { clientX: x, clientY: y } = event.touches[0];
     press.current = {
