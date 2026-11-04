@@ -1,4 +1,5 @@
-import { dropInvalidSession, getAccessToken } from '@/shared/auth/session';
+import { dropInvalidSession, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
+import { getTokenSubject } from '@/shared/auth/tokenClaims';
 
 export const CURRENT_USER_RETRY_DELAYS_MS = [1000, 3000, 10000];
 
@@ -13,11 +14,21 @@ export const watchCurrentUser = ({ fetchMe, onUser, onSignedOut }: WatchCurrentU
   let attempt = 0;
   let inFlight = false;
   let stopped = false;
-  const stop = () => {
+  let account = getTokenSubject(getAccessToken());
+  const unsubscribe = subscribeToAccessToken((token) => {
+    const next = getTokenSubject(token);
+    if (!token || (account && next !== account)) {
+      stop();
+      return;
+    }
+    account = account ?? next;
+  });
+  function stop() {
     stopped = true;
     window.clearTimeout(timer);
     window.removeEventListener('online', check);
-  };
+    unsubscribe();
+  }
   async function check() {
     if (stopped || inFlight) return;
     inFlight = true;

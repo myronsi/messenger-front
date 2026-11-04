@@ -88,6 +88,7 @@ const requestRefresh = async (startedWith: string | null) => {
   };
   const alreadyRefreshed = newerToken();
   if (alreadyRefreshed) return alreadyRefreshed;
+  if (startedWith && !getAccessToken()) return null;
   const response = await fetch(`${BASE_URL}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',

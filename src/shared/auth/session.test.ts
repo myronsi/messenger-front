@@ -37,6 +37,23 @@ describe('refreshAccessToken', () => {
     expect(getAccessToken()).toBe('new');
   });
 
+  it('skips a queued refresh when another tab signed out while it waited for the lock', async () => {
+    setAccessToken('old');
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: {
+      request: async (_name: string, task: () => Promise<unknown>) => { await held; return task(); },
+    } });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const refreshing = refreshAccessToken();
+    localStorage.removeItem('access_token');
+    release();
+    expect(await refreshing).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getAccessToken()).toBeNull();
+  });
+
   it('uses the token another tab stored while this tab waited for the refresh lock', async () => {
     setAccessToken('old');
     let release!: () => void;

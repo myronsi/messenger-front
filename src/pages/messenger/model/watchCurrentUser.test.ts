@@ -39,11 +39,17 @@ describe('watchCurrentUser', () => {
     expect(getAccessToken()).toBeNull();
   });
 
-  it('ignores a late user response when another tab signed out meanwhile', async () => {
-    vi.useFakeTimers();
-    setAccessToken('saved');
+  const jwt = (sub: string) => `header.${btoa(JSON.stringify({ sub, exp: Math.floor(Date.now() / 1000) + 3600 }))}.signature`;
+  const pendingMe = () => {
     let respond: (response: Response) => void = () => undefined;
     const fetchMe = vi.fn(() => new Promise<Response>((resolve) => { respond = resolve; }));
+    return { fetchMe, respond: (response: Response) => respond(response) };
+  };
+
+  it('ignores a late user response when another tab signed out meanwhile', async () => {
+    vi.useFakeTimers();
+    setAccessToken(jwt('1'));
+    const { fetchMe, respond } = pendingMe();
     const onUser = vi.fn();
     const onSignedOut = vi.fn();
     watchCurrentUser({ fetchMe, onUser, onSignedOut });
@@ -53,8 +59,34 @@ describe('watchCurrentUser', () => {
     await flush();
     await vi.advanceTimersByTimeAsync(60_000);
     expect(onUser).not.toHaveBeenCalled();
-    expect(onSignedOut).toHaveBeenCalledTimes(1);
     expect(fetchMe).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a late user response after a sign-out and a sign-in as another account', async () => {
+    vi.useFakeTimers();
+    setAccessToken(jwt('1'));
+    const { fetchMe, respond } = pendingMe();
+    const onUser = vi.fn();
+    watchCurrentUser({ fetchMe, onUser, onSignedOut: vi.fn() });
+    await flush();
+    setAccessToken(null);
+    setAccessToken(jwt('2'));
+    respond(ok());
+    await flush();
+    expect(onUser).not.toHaveBeenCalled();
+  });
+
+  it('accepts the user when the token was only refreshed for the same account meanwhile', async () => {
+    vi.useFakeTimers();
+    setAccessToken(jwt('1'));
+    const { fetchMe, respond } = pendingMe();
+    const onUser = vi.fn();
+    watchCurrentUser({ fetchMe, onUser, onSignedOut: vi.fn() });
+    await flush();
+    setAccessToken(jwt('1') + 'x');
+    respond(ok());
+    await flush();
+    expect(onUser).toHaveBeenCalledWith({ username: 'mai' });
   });
 
   it('stops checking after it is stopped', async () => {

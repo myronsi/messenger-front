@@ -215,9 +215,14 @@ export const useMessageSender = ({
 
   const replaceUnsavedMessage = (message: Message, changes: Partial<Message>) => {
     const tempId = -Date.now();
-    setMessages((previous) => previous.map((item) => String(item.id) === String(message.id)
-      ? { ...item, ...changes, id: tempId, client_temp_id: tempId, delivery_error: undefined, timestamp: new Date().toISOString() }
-      : item));
+    setMessages((previous) => {
+      const failed = previous.find((item) => String(item.id) === String(message.id));
+      if (!failed) return previous;
+      return [
+        ...previous.filter((item) => item !== failed),
+        { ...failed, ...changes, id: tempId, client_temp_id: tempId, delivery_error: undefined, timestamp: new Date().toISOString() },
+      ];
+    });
     return tempId;
   };
 

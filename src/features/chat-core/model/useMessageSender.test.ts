@@ -135,6 +135,15 @@ describe('useMessageSender resending messages that were never saved', () => {
     expect(pendingMessageIdsRef.current).toEqual([payload.client_temp_id]);
   });
 
+  it('moves a resent unsaved message after the messages sent since it failed', () => {
+    const failed: Message = { ...original, id: -5, client_temp_id: -5, sender_id: '1', delivery_error: 'Not delivered' };
+    const later: Message = { ...original, id: '9', sender_id: '1', content: 'Later' };
+    const { send, hook, getMessages } = setupWithState([failed, later]);
+    act(() => hook.result.current.handleResendMessage(failed));
+    const payload = JSON.parse(send.mock.calls[0][0]);
+    expect(getMessages().map((message) => message.id)).toEqual(['9', payload.client_temp_id]);
+  });
+
   it('still asks the server to resend a saved message', () => {
     const failed: Message = { ...original, sender_id: '1', delivery_error: 'Not delivered' };
     const { send, hook } = setupWithState([failed]);
