@@ -8,6 +8,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { authFetch } from '@/shared/auth/session';
 import { watchCurrentUser } from './watchCurrentUser';
+import { watchSessionChanges } from './watchSessionChanges';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
 import { notificationReturnPath } from './resolveNotificationChat';
@@ -73,6 +74,16 @@ export const useMessengerController = () => {
       hasFetchedUser.current = false;
     };
   }, []);
+
+  useEffect(() => watchSessionChanges({
+    onSignedOut: () => {
+      setCurrentChat(null);
+      setIsLoggedIn(false);
+      setUsername('');
+      setIsLoading(false);
+    },
+    onAccountChanged: () => window.location.reload(),
+  }), []);
 
   const handleLoginSuccess = (user: string) => {
     setCurrentChat(null);
