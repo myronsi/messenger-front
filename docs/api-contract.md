@@ -77,7 +77,9 @@ MINOR contract updates must not break the client:
 
 `deploy/nginx/cache-headers.conf` serves `index.html`, the service worker and the manifest with
 `Cache-Control: no-cache`, and hashed assets with
-`Cache-Control: public, max-age=31536000, immutable`.
+`Cache-Control: public, max-age=31536000, immutable`. Every location also includes
+`deploy/nginx/security-headers.conf` (installed as `/etc/nginx/snippets/messenger-security-headers.conf`), see
+[releasing](releasing.md#cicd-setup).
 
 ## Local backend and smoke tests
 

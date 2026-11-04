@@ -49,6 +49,11 @@ Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-o
 One-time setup:
 
 1. Server: create the web root `/var/www/messenger` owned by the deploy user (or set the repository variable `FRONTEND_DEPLOY_PATH`) and point nginx at `root /var/www/messenger/current;`.
+   Copy `deploy/nginx/security-headers.conf` to `/etc/nginx/snippets/messenger-security-headers.conf` and include
+   `deploy/nginx/cache-headers.conf` in the app's `server` block; every location there includes the security headers,
+   because nginx drops server-level `add_header` lines in a location that sets its own. Run `nginx -t` before reloading.
+   The full Content Security Policy is sent as `Content-Security-Policy-Report-Only` until the browser console shows no
+   violations on staging and production; only `frame-ancestors 'none'` is enforced.
 2. GitHub: create the environment `production` and add the secrets `SSH_HOST`, `SSH_USER`, `SSH_KEY` and `SSH_KNOWN_HOSTS` (output of `ssh-keyscan <host>`), as in the backend repository.
 3. GitHub repository variables (they are baked into the build): `VITE_BASE_URL` (for example `https://chat.example.com/api`) and `VITE_WS_URL` (for example `wss://chat.example.com/api`).
 4. Repository settings → Actions → General: allow workflows to create pull requests (needed by release-please).
