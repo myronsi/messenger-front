@@ -4,6 +4,7 @@ import { MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
 import { ImageViewer } from '@/shared/ui/image-viewer';
+import { useMediaPreload } from '@/shared/api/useMediaPreload';
 
 const MAX_HEIGHT = 300;
 const PLACEHOLDER = { width: 240, height: 180 };
@@ -27,6 +28,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
   const [isLoaded, setIsLoaded] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const previewUrl = thumbnailUrl && !thumbnailFailed ? thumbnailUrl : fileUrl;
+  const preloadHandlers = useMediaPreload(fileUrl);
 
   const closeViewer = useCallback(() => setIsExpanded(false), []);
 
@@ -62,6 +64,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
             if (previewUrl !== fileUrl) setThumbnailFailed(true);
             else setIsLoaded(true);
           }}
+          {...preloadHandlers}
           onClick={(event) => {
             event.stopPropagation();
             setIsExpanded(true);
@@ -90,7 +93,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
       </div>
 
       {isExpanded && (
-        <ImageViewer images={[{ url: fileUrl, name: fileName }]} onClose={closeViewer} />
+        <ImageViewer images={[{ url: fileUrl, name: fileName, previewUrl: thumbnailFailed ? undefined : thumbnailUrl }]} onClose={closeViewer} />
       )}
     </>
   );

@@ -1,12 +1,13 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { trapFocus } from '@/shared/lib/trapFocus';
-import { ChevronLeft, ChevronRight, Download, ImageOff, Trash2, ZoomIn, ZoomOut, X } from 'lucide-react';
-import { fetchMedia } from '@/shared/api/fetchMedia';
+import { ChevronLeft, ChevronRight, Download, ImageOff, Loader2, Trash2, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { preloadMedia } from '@/shared/api/mediaCache';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
-import { Button } from '@/shared/ui/button';
+import { downloadImage } from './downloadImage';
+import { isOnPicture } from './pictureRect';
+import { DeleteImageConfirm } from './DeleteImageConfirm';
 
 const KEY_PAN_STEP = 80;
 
@@ -14,6 +15,7 @@ export interface ViewerImage {
   url: string;
   name: string;
   downloadName?: string;
+  previewUrl?: string;
   onDelete?: () => Promise<void>;
 }
 
@@ -24,33 +26,6 @@ interface ImageViewerProps {
 }
 
 const stopPropagation = (event: React.SyntheticEvent) => event.stopPropagation();
-
-const clickLink = (href: string, filename: string, newTab = false) => {
-  const link = document.createElement('a');
-  link.style.display = 'none';
-  link.href = href;
-  link.download = filename;
-  if (newTab) {
-    link.target = '_blank';
-    link.rel = 'noreferrer';
-  }
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-const downloadImage = async (image: ViewerImage) => {
-  const filename = image.downloadName || image.name;
-  try {
-    const response = await fetchMedia(image.url, { credentials: 'include' });
-    if (!response.ok) throw new Error(`Download failed (${response.status})`);
-    const objectUrl = URL.createObjectURL(await response.blob());
-    clickLink(objectUrl, filename);
-    URL.revokeObjectURL(objectUrl);
-  } catch {
-    clickLink(image.url, filename, true);
-  }
-};
 
 const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onClose }) => {
   const { translations } = useLanguage();
@@ -64,6 +39,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const imageRef = useRef<HTMLImageElement>(null);
   const [index, setIndex] = useState(() => Math.min(Math.max(initialIndex, 0), Math.max(images.length - 1, 0)));
   const [brokenUrls, setBrokenUrls] = useState<Record<string, true>>({});
+  const [loadedUrls, setLoadedUrls] = useState<Record<string, true>>({});
   const [isDownloading, setIsDownloading] = useState(false);
   const [deleting, setDeleting] = useState<{ url: string; busy: boolean; failed: boolean } | null>(null);
   const isGallery = images.length > 1;
@@ -80,6 +56,22 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   );
 
   useEffect(() => { reset(); }, [index, reset]);
+
+  const markLoaded = useCallback((url: string) => {
+    setLoadedUrls((loaded) => (loaded[url] ? loaded : { ...loaded, [url]: true }));
+  }, []);
+
+  const currentUrl = images[index]?.url;
+  const setImage = useCallback((node: HTMLImageElement | null) => {
+    imageRef.current = node;
+    if (node && currentUrl && node.getAttribute('src') && node.complete && node.naturalWidth > 0) markLoaded(currentUrl);
+  }, [currentUrl, markLoaded]);
+
+  useEffect(() => {
+    const cancelNext = preloadMedia(images[index + 1]?.url);
+    const cancelPrevious = preloadMedia(images[index - 1]?.url);
+    return () => { cancelNext(); cancelPrevious(); };
+  }, [images, index]);
 
   useEffect(() => {
     if (images.length === 0) onClose();
@@ -126,20 +118,21 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [go, onClose, pan, view.scale, zoomBy]);
 
+  const previewRef = useRef<HTMLImageElement>(null);
   const handleStageClick = useCallback((event: React.MouseEvent) => {
     if (movedRef.current || view.scale > 1) return;
-    const rect = imageRef.current?.getBoundingClientRect();
-    const onImage = rect && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
-    if (!onImage) onClose();
+    if (!isOnPicture([imageRef.current, previewRef.current], event.clientX, event.clientY)) onClose();
   }, [movedRef, onClose, view.scale]);
 
   if (!image) return null;
   const isBroken = !!brokenUrls[image.url];
+  const isLoaded = !!loadedUrls[image.url];
+  const previewUrl = image.previewUrl && image.previewUrl !== image.url ? image.previewUrl : undefined;
   const handleDownload = async () => {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadImage(image);
+      await downloadImage(image.url, image.downloadName || image.name);
     } finally {
       setIsDownloading(false);
     }
@@ -223,19 +216,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
               </button>
             </div>
             {deleteState && (
-              <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
-                <button type="button" tabIndex={-1} aria-hidden="true" disabled={deleteState.busy} onClick={() => setDeleting(null)}
-                  className="absolute inset-0 cursor-default bg-black/40" />
-                <div role="alertdialog" aria-modal="true" aria-label={translations.deletePhotoConfirm} onKeyDown={trapFocus}
-                  className="motion-panel-in relative w-full max-w-sm rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg">
-                  <h3 className="mb-2 text-lg font-semibold leading-none tracking-tight">{translations.deletePhotoConfirm}</h3>
-                  {deleteState.failed && <p className="text-sm text-destructive">{translations.photoDeleteFailed}</p>}
-                  <div className="mt-4 flex justify-end gap-2">
-                    <Button type="button" variant="outline" autoFocus onClick={() => setDeleting(null)}>{translations.cancel}</Button>
-                    <Button type="button" variant="destructive" disabled={deleteState.busy} onClick={() => void confirmDelete()}>{translations.delete}</Button>
-                  </div>
-                </div>
-              </div>
+              <DeleteImageConfirm
+                busy={deleteState.busy} failed={deleteState.failed} onCancel={() => setDeleting(null)} onConfirm={() => void confirmDelete()}
+              />
             )}
             {isGallery && (
               <>
@@ -250,7 +233,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             <div
               ref={setStage}
               data-testid="image-viewer-stage"
-              className={`flex-1 flex items-center justify-center overflow-hidden p-8 select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+              className={`relative flex-1 flex items-center justify-center overflow-hidden p-8 select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
               style={{ touchAction: 'none' }}
               onClick={handleStageClick}
               {...pointerHandlers}
@@ -261,22 +244,40 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                   <span className="text-sm">{translations.failedToLoadImage || 'Failed to load image'}</span>
                 </div>
               ) : (
-                <AuthenticatedImage
-                  key={image.url}
-                  ref={imageRef}
-                  src={image.url}
-                  alt={image.name}
-                  className="max-h-[80vh] max-w-[80vw] select-none object-contain rounded-lg"
-                  style={{
-                    transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y}px) scale(${view.scale})`,
-                    transition: isGesturing ? 'none' : 'transform 0.2s',
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    pointerEvents: 'none',
-                  }}
-                  draggable={false}
-                  onError={() => setBrokenUrls((current) => ({ ...current, [image.url]: true }))}
-                />
+                <>
+                  {!isLoaded && (previewUrl ? (
+                    <AuthenticatedImage
+                      key={previewUrl}
+                      ref={previewRef}
+                      src={previewUrl}
+                      alt=""
+                      aria-hidden="true"
+                      data-testid="image-viewer-preview"
+                      className="pointer-events-none absolute inset-0 m-auto h-[80vh] w-[80vw] select-none object-contain"
+                      style={{ transform: `translate(${swipeX * edgeResistance}px, 0px)` }}
+                      draggable={false}
+                    />
+                  ) : (
+                    <Loader2 data-testid="image-viewer-loading" className="pointer-events-none absolute inset-0 m-auto h-6 w-6 animate-spin text-white/50" />
+                  ))}
+                  <AuthenticatedImage
+                    key={image.url}
+                    ref={setImage}
+                    src={image.url}
+                    alt={image.name}
+                    className={`max-h-[80vh] max-w-[80vw] select-none object-contain rounded-lg ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    style={{
+                      transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y}px) scale(${view.scale})`,
+                      transition: isGesturing ? 'opacity 0.15s' : 'transform 0.2s, opacity 0.15s',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      pointerEvents: 'none',
+                    }}
+                    draggable={false}
+                    onLoad={() => markLoaded(image.url)}
+                    onError={() => setBrokenUrls((current) => ({ ...current, [image.url]: true }))}
+                  />
+                </>
               )}
             </div>
           </div>

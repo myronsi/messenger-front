@@ -36,6 +36,10 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 
+  img.rounded-full {
+    background-color: hsl(var(--accent-darker));
+  }
+
   input, textarea, select, button, [contenteditable], .selectable {
     -webkit-user-select: text;
     -moz-user-select: text;

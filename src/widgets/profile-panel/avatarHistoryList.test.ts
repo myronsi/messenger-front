@@ -11,6 +11,11 @@ describe('buildAvatarList', () => {
     expect(buildAvatarList([item('2', '2', true)], current).map((avatar) => avatar.id)).toEqual(['2']);
   });
 
+  it('links the current avatar by the address the profile already shows, so the viewer opens it from the cache', () => {
+    const result = buildAvatarList([item('2', '2', true), item('1', '1', false)], current);
+    expect(result.map((avatar) => avatar.fullUrl)).toEqual([current, expect.stringContaining('version=1')]);
+  });
+
   it('adds the current avatar when the history does not contain it yet', () => {
     const result = buildAvatarList([item('1', '1', false)], current);
     expect(result.map((avatar) => avatar.fullUrl)).toEqual([current, expect.stringContaining('version=1')]);
