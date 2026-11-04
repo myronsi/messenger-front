@@ -54,6 +54,32 @@ describe('refreshAccessToken', () => {
     expect(getAccessToken()).toBeNull();
   });
 
+  it('does not restore the token when another tab signs out while the refresh is in flight', async () => {
+    setAccessToken('old');
+    let respond!: (response: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { respond = resolve; })));
+    const refreshing = refreshAccessToken();
+    await Promise.resolve();
+    localStorage.removeItem('access_token');
+    respond(new Response(JSON.stringify({ access_token: 'new' }), { status: 200 }));
+    expect(await refreshing).toBeNull();
+    expect(getAccessToken()).toBeNull();
+  });
+
+  it('keeps the other account when another tab switches accounts while the refresh is in flight', async () => {
+    const asUser = (sub: string) => `header.${btoa(JSON.stringify({ sub, exp: Math.floor(Date.now() / 1000) + 3600 }))}.signature`;
+    setAccessToken(asUser('1'));
+    let respond!: (response: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { respond = resolve; })));
+    const refreshing = refreshAccessToken();
+    await Promise.resolve();
+    const other = asUser('2');
+    localStorage.setItem('access_token', other);
+    respond(new Response('{}', { status: 401 }));
+    expect(await refreshing).toBeNull();
+    expect(getAccessToken()).toBe(other);
+  });
+
   it('uses the token another tab stored while this tab waited for the refresh lock', async () => {
     setAccessToken('old');
     let release!: () => void;
