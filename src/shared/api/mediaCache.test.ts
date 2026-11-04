@@ -11,7 +11,7 @@ vi.mock('@/shared/auth/session', () => ({
   subscribeToAccessToken: (listener: (token: string | null) => void) => { session.listeners.push(listener); return () => undefined; },
 }));
 
-import { acquireMedia, clearMediaCache, peekMedia, preloadMedia } from './mediaCache';
+import { acquireMedia, clearMediaCache, peekMedia, preloadMedia, storageLifetime } from './mediaCache';
 
 const attachment = (id: string) => `${window.location.origin}/api/v2/attachments/${id}/content?variant=thumbnail`;
 const avatar = `${window.location.origin}/api/v2/users/7/avatar`;
@@ -20,7 +20,7 @@ const store = {
   match: vi.fn(async (url: string) => stored.get(url)?.clone()),
   put: vi.fn(async (url: string, response: Response) => { stored.set(url, response); }),
   keys: vi.fn(async () => [...stored.keys()].map(url => new Request(url))),
-  delete: vi.fn(async (request: Request) => stored.delete(request.url)),
+  delete: vi.fn(async (request: Request | string) => stored.delete(typeof request === 'string' ? request : request.url)),
 };
 const cacheStorage = { open: vi.fn(async () => store), keys: vi.fn(async () => ['media-v1:1']), delete: vi.fn(async () => { stored.clear(); return true; }) };
 const jwt = (sub: string) => `x.${btoa(JSON.stringify({ sub }))}.y`;
@@ -34,7 +34,7 @@ beforeEach(() => {
   objectUrls = 0;
   Object.assign(URL, { createObjectURL: vi.fn(() => `blob:media-${++objectUrls}`), revokeObjectURL: vi.fn() });
   vi.stubGlobal('caches', cacheStorage);
-  session.authFetch.mockImplementation(async () => new Response('image', { status: 200, headers: { 'Content-Type': 'image/jpeg' } }));
+  session.authFetch.mockImplementation(async () => new Response('image', { status: 200, headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=3600' } }));
 });
 
 afterEach(() => {
@@ -70,7 +70,7 @@ describe('mediaCache', () => {
 
     clearMediaCache();
     await flush();
-    stored.set(attachment('a1'), new Response('image'));
+    stored.set(attachment('a1'), new Response('image', { headers: { 'X-Media-Expires': String(Date.now() + 60_000) } }));
     session.authFetch.mockClear();
 
     await acquireMedia(attachment('a1')).promise;
@@ -209,6 +209,31 @@ describe('mediaCache', () => {
     await flush();
 
     expect(session.authFetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps a stored copy only as long as the server allows caching it', () => {
+    expect(storageLifetime('private, max-age=3600')).toBe(3_600_000);
+    expect(storageLifetime('private, max-age=31536000, immutable')).toBe(31_536_000_000);
+    expect(storageLifetime('no-store')).toBe(0);
+    expect(storageLifetime('private, no-cache, max-age=60')).toBe(0);
+    expect(storageLifetime(null)).toBe(0);
+  });
+
+  it('does not store a response the server marks no-store', async () => {
+    session.authFetch.mockResolvedValueOnce(new Response('image', { status: 200, headers: { 'Cache-Control': 'no-store' } }));
+
+    await acquireMedia(`${avatar}?rev=a9`).promise;
+    await flush();
+
+    expect(store.put).not.toHaveBeenCalled();
+  });
+
+  it('downloads again once a stored copy has expired', async () => {
+    stored.set(attachment('a6'), new Response('old', { headers: { 'X-Media-Expires': String(Date.now() - 1) } }));
+
+    await acquireMedia(attachment('a6')).promise;
+
+    expect(session.authFetch).toHaveBeenCalledTimes(1);
   });
 
   it('ignores media outside the API', () => {

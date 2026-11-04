@@ -2,6 +2,7 @@ import { authFetch, getAccessToken, subscribeToAccessToken } from '@/shared/auth
 import { getTokenSubject } from '@/shared/auth/tokenClaims';
 
 const STORE_PREFIX = 'media-v1';
+const EXPIRES_HEADER = 'X-Media-Expires';
 const MAX_STORED = 500;
 const MAX_IDLE_ENTRIES = 300;
 const MAX_IDLE_BYTES = 64 * 1024 * 1024;
@@ -89,7 +90,7 @@ export const isProtectedMedia = (url: string) => {
   }
 };
 
-const isImmutable = (url: string) => {
+const isStorable = (url: string) => {
   try {
     const { pathname, searchParams } = new URL(url, window.location.href);
     return ATTACHMENT_CONTENT.test(pathname) || (USER_AVATAR.test(pathname) && searchParams.has('rev'));
@@ -113,10 +114,21 @@ const dropStores = (keep: string | null) => {
     .catch(() => undefined);
 };
 
+export const storageLifetime = (cacheControl: string | null) => {
+  const directives = (cacheControl || '').toLowerCase().split(',').map(part => part.trim());
+  if (directives.some(part => part === 'no-store' || part === 'no-cache')) return 0;
+  const maxAge = directives.find(part => part.startsWith('max-age='));
+  const seconds = maxAge ? Number(maxAge.slice('max-age='.length)) : 0;
+  return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
+};
+
 const readStored = async (url: string) => {
   const store = await openStore();
   const hit = await store?.match(url).catch(() => undefined);
-  return hit ? hit.blob() : null;
+  if (!hit) return null;
+  if (Number(hit.headers.get(EXPIRES_HEADER)) > Date.now()) return hit.blob();
+  void store?.delete(url).catch(() => undefined);
+  return null;
 };
 
 const trimStore = async (store: Cache) => {
@@ -124,17 +136,17 @@ const trimStore = async (store: Cache) => {
   await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_STORED)).map(key => store.delete(key)));
 };
 
-const writeStored = async (url: string, blob: Blob) => {
+const writeStored = async (url: string, blob: Blob, lifetime: number) => {
   const startedIn = generation;
   const store = await openStore();
   if (!store || startedIn !== generation) return;
-  await store.put(url, new Response(blob, { headers: { 'Content-Type': blob.type } }));
+  await store.put(url, new Response(blob, { headers: { 'Content-Type': blob.type, [EXPIRES_HEADER]: String(Date.now() + lifetime) } }));
   await trimStore(store);
 };
 
 const download = async (url: string, entry: Entry) => {
-  const immutable = isImmutable(url);
-  const stored = immutable ? await readStored(url).catch(() => null) : null;
+  const storable = isStorable(url);
+  const stored = storable ? await readStored(url).catch(() => null) : null;
   if (stored) return stored;
   const done = await takeSlot(entry);
   try {
@@ -142,7 +154,8 @@ const download = async (url: string, entry: Entry) => {
     const response = await authFetch(url, { signal, priority: entry.priority === 'low' ? 'low' : 'auto' });
     if (!response.ok) throw new Error(`Media request failed (${response.status})`);
     const blob = await response.blob();
-    if (immutable && response.status === 200) void writeStored(url, blob).catch(() => undefined);
+    const lifetime = storable && response.status === 200 ? storageLifetime(response.headers.get('Cache-Control')) : 0;
+    if (lifetime > 0) void writeStored(url, blob, lifetime).catch(() => undefined);
     return blob;
   } finally {
     done();
