@@ -39,6 +39,24 @@ describe('watchCurrentUser', () => {
     expect(getAccessToken()).toBeNull();
   });
 
+  it('ignores a late user response when another tab signed out meanwhile', async () => {
+    vi.useFakeTimers();
+    setAccessToken('saved');
+    let respond: (response: Response) => void = () => undefined;
+    const fetchMe = vi.fn(() => new Promise<Response>((resolve) => { respond = resolve; }));
+    const onUser = vi.fn();
+    const onSignedOut = vi.fn();
+    watchCurrentUser({ fetchMe, onUser, onSignedOut });
+    await flush();
+    setAccessToken(null);
+    respond(ok());
+    await flush();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(onUser).not.toHaveBeenCalled();
+    expect(onSignedOut).toHaveBeenCalledTimes(1);
+    expect(fetchMe).toHaveBeenCalledTimes(1);
+  });
+
   it('stops checking after it is stopped', async () => {
     vi.useFakeTimers();
     setAccessToken('saved');

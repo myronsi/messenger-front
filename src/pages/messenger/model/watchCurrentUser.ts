@@ -26,7 +26,7 @@ export const watchCurrentUser = ({ fetchMe, onUser, onSignedOut }: WatchCurrentU
     const user = response?.ok ? await response.json().catch(() => null) : null;
     inFlight = false;
     if (stopped) return;
-    if (user) {
+    if (user && getAccessToken()) {
       stop();
       onUser(user);
       return;
