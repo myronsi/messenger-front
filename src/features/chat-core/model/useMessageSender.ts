@@ -1,18 +1,24 @@
-import type { EntityId } from '@/shared/api/entityId';
+import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import type { FileMessageContent, Message } from '@/entities/message';
-import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { applyMessageEdit, editableText } from './messageUpdates';
 import { getLocalUploadFileType } from './uploadFileType';
+import { createOptimisticMessage } from './optimisticMessage';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const SOCKET_CONNECT_WAIT_ATTEMPTS = 30;
 const SOCKET_CONNECT_WAIT_MS = 100;
+
+interface UploadSource {
+  file: Blob;
+  fileName: string;
+  objectUrl: string;
+}
 
 interface MessageSenderOptions {
   chatId: EntityId;
@@ -72,6 +78,15 @@ export const useMessageSender = ({
 
   const replyToRef = useRef(replyTo);
   replyToRef.current = replyTo;
+  const uploadSourcesRef = useRef(new Map<string, UploadSource>());
+
+  useEffect(() => {
+    const sources = uploadSourcesRef.current;
+    return () => {
+      sources.forEach((source) => URL.revokeObjectURL(source.objectUrl));
+      sources.clear();
+    };
+  }, []);
 
   const createOptimisticUploadMessage = (
     file: Blob,
@@ -90,26 +105,11 @@ export const useMessageSender = ({
       file_size: file.size,
       ...(caption.trim() ? { caption: caption.trim() } : {}),
     };
-    const optimisticMessage: Message = {
-      id: tempId,
-      client_temp_id: tempId,
-      local_object_url: objectUrl,
-      upload_status: 'uploading',
-      upload_progress: 1,
-      sender_id: currentUserIdRef.current || currentUserId || undefined,
-      is_own: true,
-      sender: username,
-      sender_username: username,
-      content,
-      timestamp: new Date().toISOString(),
-      avatar_url: DEFAULT_AVATAR,
-      reply_to: reply?.id || null,
-      is_deleted: false,
-      type: 'file',
-      reactions: [],
-      read_by: [],
-    };
+    const optimisticMessage = createOptimisticMessage(tempId, username, currentUserIdRef.current || currentUserId || undefined, {
+      type: 'file', content, reply_to: reply?.id || null, local_object_url: objectUrl, upload_status: 'uploading', upload_progress: 1,
+    });
     setMessages((previous) => [...previous, optimisticMessage]);
+    uploadSourcesRef.current.set(String(tempId), { file, fileName, objectUrl });
     return tempId;
   };
 
@@ -125,7 +125,30 @@ export const useMessageSender = ({
       : message));
   };
 
-  const settleOptimisticUpload = (messageId: EntityId) => updateOptimisticUploadProgress(messageId, 99);
+  const settleOptimisticUpload = (messageId: EntityId) => {
+    uploadSourcesRef.current.delete(String(messageId));
+    updateOptimisticUploadProgress(messageId, 99);
+  };
+
+  const uploadOptimisticMessage = async (messageId: EntityId, file: Blob, fileName: string, voice: boolean, replyToId?: EntityId | null, caption = '') => {
+    const formData = new FormData();
+    formData.append('file', file, fileName);
+    formData.append('chat_id', chatId.toString());
+    formData.append('client_temp_id', String(messageId));
+    if (replyToId != null) formData.append('reply_to', String(replyToId));
+    if (caption.trim()) formData.append('caption', caption.trim());
+    try {
+      await uploadWithProgress({
+        url: `${BASE_URL}/messages/${voice ? 'vm' : 'upload'}`,
+        formData,
+        onProgress: (percent) => updateOptimisticUploadProgress(messageId, percent),
+      });
+      settleOptimisticUpload(messageId);
+    } catch {
+      markOptimisticUploadFailed(messageId, translations.errorLoading || 'Upload failed');
+      setModal({ type: 'error', message: translations.errorLoading });
+    }
+  };
 
   // Sends now when the socket is open, otherwise queues the payload for the next successful connection.
   const sendOrQueue = (payload: OutgoingPayload) => {
@@ -176,22 +199,9 @@ export const useMessageSender = ({
       payload = { type: 'edit', message_id: editingMessage.id, content: escapedMessage };
     } else {
       const tempId = -Date.now();
-      const optimisticMessage: Message = {
-        id: tempId,
-        client_temp_id: tempId,
-        sender_id: currentUserId || undefined,
-        is_own: true,
-        sender: username,
-        sender_username: username,
-        content: contentToSend,
-        timestamp: new Date().toISOString(),
-        avatar_url: DEFAULT_AVATAR,
-        reply_to: replyTo?.id || null,
-        is_deleted: false,
-        type: 'message',
-        reactions: [],
-        read_by: [],
-      };
+      const optimisticMessage = createOptimisticMessage(tempId, username, currentUserId || undefined, {
+        type: 'message', content: contentToSend, reply_to: replyTo?.id || null,
+      });
       pendingMessageIdsRef.current.push(tempId);
       setMessages((previous) => [...previous, optimisticMessage]);
       payload = { type: 'message', content: escapedMessage, reply_to: replyTo?.id || null, client_temp_id: tempId };
@@ -203,8 +213,44 @@ export const useMessageSender = ({
     setEditingMessage(null);
   };
 
+  const replaceUnsavedMessage = (message: Message, changes: Partial<Message>) => {
+    const tempId = -Date.now();
+    setMessages((previous) => {
+      const failed = previous.find((item) => String(item.id) === String(message.id));
+      if (!failed) return previous;
+      return [
+        ...previous.filter((item) => item !== failed),
+        { ...failed, ...changes, id: tempId, client_temp_id: tempId, delivery_error: undefined, timestamp: new Date().toISOString() },
+      ];
+    });
+    return tempId;
+  };
+
+  const resendUnsavedMessage = (message: Message) => {
+    if (message.type === 'file') {
+      const source = uploadSourcesRef.current.get(String(message.id));
+      if (!source || typeof message.content === 'string') return;
+      const content = message.content;
+      const tempId = replaceUnsavedMessage(message, { upload_status: 'uploading', upload_progress: 1 });
+      uploadSourcesRef.current.delete(String(message.id));
+      uploadSourcesRef.current.set(String(tempId), source);
+      void uploadOptimisticMessage(tempId, source.file, source.fileName, content.file_type === 'voice', message.reply_to, content.caption ?? '');
+      return;
+    }
+    if (typeof message.content !== 'string') return;
+    const tempId = replaceUnsavedMessage(message, {});
+    pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => String(id) !== String(message.id));
+    pendingMessageIdsRef.current.push(tempId);
+    const content = isGoApi() ? message.content : escapeCurlyBraces(message.content);
+    sendOrQueue({ type: 'message', content, reply_to: message.reply_to ?? null, client_temp_id: tempId });
+  };
+
   const handleResendMessage = (message: Message) => {
     if (!message.delivery_error || (currentUserId && message.sender_id !== currentUserId)) return;
+    if (!isPersistedId(message.id)) {
+      resendUnsavedMessage(message);
+      return;
+    }
     if (wsRef.current?.readyState !== WebSocket.OPEN) {
       markMessageFailed(message.id, translationsRef.current.webSocketError);
       requestReconnect();
@@ -218,23 +264,7 @@ export const useMessageSender = ({
     if (!file) return;
     const replyToId = replyToRef.current?.id;
     const optimisticMessageId = createOptimisticUploadMessage(file, file.name, undefined, caption);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('chat_id', chatId.toString());
-    formData.append('client_temp_id', String(optimisticMessageId));
-    if (replyToId != null) formData.append('reply_to', String(replyToId));
-    if (caption.trim()) formData.append('caption', caption.trim());
-    try {
-      await uploadWithProgress({
-        url: `${BASE_URL}/messages/upload`,
-        formData,
-        onProgress: (percent) => updateOptimisticUploadProgress(optimisticMessageId, percent),
-      });
-      settleOptimisticUpload(optimisticMessageId);
-    } catch {
-      markOptimisticUploadFailed(optimisticMessageId, translations.errorLoading || 'Upload failed');
-      setModal({ type: 'error', message: translations.errorLoading });
-    }
+    await uploadOptimisticMessage(optimisticMessageId, file, file.name, false, replyToId, caption);
   };
 
   return {

@@ -4,11 +4,12 @@ The backend always deploys first and stays compatible with the previous frontend
 
 ## Staging
 
-Every push to `main` automatically runs `deploy-staging.yml`. It builds the frontend for
+Every push to `main` runs `deploy-staging.yml` once CI for that push has succeeded. It checks out exactly the
+commit CI tested and builds the frontend for
 `https://staging.messenger.viserix.com/api/v2`, uploads it with the staging-only SSH account,
 and atomically switches `/var/www/messenger-staging/current`. The deployment checks the
 public `version.json` against the deployed commit and restores the previous frontend on
-failure. Five frontend builds are retained. The workflow can also be run manually from `main`.
+failure. Five frontend builds are retained. The workflow can also be run manually, but only from `main`.
 
 The GitHub `staging` environment permits only `main` and stores `STAGING_SSH_HOST`,
 `STAGING_SSH_USER`, `STAGING_SSH_KEY`, and `STAGING_SSH_KNOWN_HOSTS`. The staging account
@@ -43,11 +44,16 @@ It waits for all four commands and fails if any command fails. The existing
 for branch protection and require the combined job to succeed. Browser smoke
 tests keep their own job and installation, including on the nightly schedule.
 
-Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-only until existing errors are fixed), `pr-title.yml`, `release-please.yml` (release, `dist` archive, then promote to `edge` and deploy), `deploy-staging.yml` (every push to `main`, staging-only build and deployment), and `deploy.yml` (SSH deploy, also runnable manually for rollbacks).
+Workflows in `.github/workflows/`: `ci.yml` (build on every PR, lint is report-only until existing errors are fixed), `pr-title.yml`, `release-please.yml` (release, `dist` archive, then promote to `edge` and deploy), `deploy-staging.yml` (after a successful CI run for a push to `main`, staging-only build and deployment), and `deploy.yml` (SSH deploy, also runnable manually for rollbacks).
 
 One-time setup:
 
 1. Server: create the web root `/var/www/messenger` owned by the deploy user (or set the repository variable `FRONTEND_DEPLOY_PATH`) and point nginx at `root /var/www/messenger/current;`.
+   Copy `deploy/nginx/security-headers.conf` to `/etc/nginx/snippets/messenger-security-headers.conf` and include
+   `deploy/nginx/cache-headers.conf` in the app's `server` block; every location there includes the security headers,
+   because nginx drops server-level `add_header` lines in a location that sets its own. Run `nginx -t` before reloading.
+   The full Content Security Policy is sent as `Content-Security-Policy-Report-Only` until the browser console shows no
+   violations on staging and production; only `frame-ancestors 'none'` is enforced.
 2. GitHub: create the environment `production` and add the secrets `SSH_HOST`, `SSH_USER`, `SSH_KEY` and `SSH_KNOWN_HOSTS` (output of `ssh-keyscan <host>`), as in the backend repository.
 3. GitHub repository variables (they are baked into the build): `VITE_BASE_URL` (for example `https://chat.example.com/api`) and `VITE_WS_URL` (for example `wss://chat.example.com/api`).
 4. Repository settings → Actions → General: allow workflows to create pull requests (needed by release-please).

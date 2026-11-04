@@ -10,7 +10,7 @@ const { version: packageVersion } = JSON.parse(readFileSync(new URL("./package.j
 
 export const buildInfo = {
   version: process.env.npm_package_version ?? packageVersion,
-  commit: process.env.GITHUB_SHA?.slice(0, 7) ?? "dev",
+  commit: (process.env.BUILD_COMMIT || process.env.GITHUB_SHA)?.slice(0, 7) ?? "dev",
 };
 
 export const buildInfoPlugin = (): Plugin => ({

@@ -44,10 +44,7 @@ export function useChatsData(username: string) {
   const error = oneOnOneError || groupError;
 
   // Use useCallback to stabilize the refetch function reference
-  const refetch = useCallback(() => {
-    refetchOneOnOne();
-    refetchGroups();
-  }, [refetchOneOnOne, refetchGroups]);
+  const refetch = useCallback(() => Promise.all([refetchOneOnOne(), refetchGroups()]), [refetchOneOnOne, refetchGroups]);
 
   const [presenceByUsername, setPresenceByUsername] = useState<PresenceMap>({});
   const [chatOverrides, setRawChatOverrides] = useState<ChatOverrideMap>({});

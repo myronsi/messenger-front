@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { clearDrafts } from '@/shared/lib/drafts';
-import { getTokenExpiresAt } from '@/shared/auth/tokenClaims';
+import { getTokenExpiresAt, getTokenSubject } from '@/shared/auth/tokenClaims';
 import { getUpdateStatus } from '@/shared/api/updateGate';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -75,23 +75,51 @@ export const subscribeToAccessToken = (listener: TokenListener) => {
   return () => listeners.delete(listener);
 };
 
+const withRefreshLock = async <T>(task: () => Promise<T>): Promise<T> => {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  if (!locks?.request) return task();
+  return locks.request('auth-refresh', task);
+};
+
+const requestRefresh = async (startedWith: string | null) => {
+  const startedAs = getTokenSubject(startedWith);
+  const sameAccount = (token: string) => {
+    const subject = getTokenSubject(token);
+    return !startedAs || !subject || subject === startedAs;
+  };
+  const sessionEnded = () => {
+    const current = getAccessToken();
+    return Boolean(startedWith) && (!current || !sameAccount(current));
+  };
+  const newerToken = () => {
+    const current = getAccessToken();
+    return current && current !== startedWith && sameAccount(current) && !isTokenExpired(current) ? current : null;
+  };
+  const alreadyRefreshed = newerToken();
+  if (alreadyRefreshed) return alreadyRefreshed;
+  if (sessionEnded()) return null;
+  const response = await fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (sessionEnded()) return null;
+  if (response.status === 401 || response.status === 403) {
+    const refreshedElsewhere = newerToken();
+    if (refreshedElsewhere) return refreshedElsewhere;
+    dropInvalidSession();
+    return null;
+  }
+  if (!response.ok) return null;
+  const refreshed = await response.json();
+  if (!refreshed.access_token) return null;
+  setAccessToken(refreshed.access_token);
+  return refreshed.access_token as string;
+};
+
 export const refreshAccessToken = async () => {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-      .then(async (response) => {
-        if (response.status === 401 || response.status === 403) {
-          dropInvalidSession();
-          return null;
-        }
-        if (!response.ok) return null;
-        const refreshed = await response.json();
-        if (!refreshed.access_token) return null;
-        setAccessToken(refreshed.access_token);
-        return refreshed.access_token as string;
-      })
+    const startedWith = getAccessToken();
+    refreshPromise = withRefreshLock(() => requestRefresh(startedWith))
       .catch(() => null)
       .finally(() => {
         refreshPromise = null;

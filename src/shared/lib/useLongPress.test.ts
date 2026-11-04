@@ -30,6 +30,16 @@ describe('useLongPress', () => {
     expect(result.current.consumeClick()).toBe(false);
   });
 
+  it('lets the first tap after a long press through when that click was never delivered', () => {
+    const onLongPress = vi.fn();
+    const { result } = renderHook(() => useLongPress(onLongPress));
+    act(() => result.current.handlers.onTouchStart(touch()));
+    act(() => { vi.advanceTimersByTime(450); result.current.handlers.onTouchEnd(); });
+    act(() => result.current.handlers.onTouchStart(touch()));
+    act(() => { vi.advanceTimersByTime(100); result.current.handlers.onTouchEnd(); });
+    expect(result.current.consumeClick()).toBe(false);
+  });
+
   it('does nothing without a handler', () => {
     const { result } = renderHook(() => useLongPress(undefined));
     act(() => result.current.handlers.onTouchStart(touch()));
