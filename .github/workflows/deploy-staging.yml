@@ -1,7 +1,9 @@
 name: Deploy staging frontend
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -14,6 +16,10 @@ concurrency:
 
 jobs:
   deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     environment:
       name: staging
@@ -22,8 +28,11 @@ jobs:
       STAGING_ORIGIN: https://staging.messenger.viserix.com
       WEB_ROOT: /var/www/messenger-staging
       DEPLOYMENT_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -33,6 +42,7 @@ jobs:
       - name: Build for the staging API
         run: npm run build
         env:
+          BUILD_COMMIT: ${{ env.DEPLOY_SHA }}
           VITE_BASE_URL: https://staging.messenger.viserix.com/api/v2
           VITE_WS_URL: wss://staging.messenger.viserix.com/api/v2
           VITE_CLIENT_API_VERSION: ''
@@ -56,4 +66,5 @@ jobs:
           tar -czf dist.tar.gz -C dist .
           ssh staging "mkdir -p '$WEB_ROOT/incoming'"
           scp dist.tar.gz "staging:$WEB_ROOT/incoming/$DEPLOYMENT_ID.tar.gz"
-          ssh staging "bash -s -- '$WEB_ROOT' '$GITHUB_SHA' '$STAGING_ORIGIN' '$DEPLOYMENT_ID'" < deploy/activate-staging.sh
+          [[ "$DEPLOY_SHA" =~ ^[a-f0-9]{40}$ ]]
+          ssh staging "bash -s -- '$WEB_ROOT' '$DEPLOY_SHA' '$STAGING_ORIGIN' '$DEPLOYMENT_ID'" < deploy/activate-staging.sh
