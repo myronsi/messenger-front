@@ -65,7 +65,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const currentDate = useCurrentDateLabel({ messages, messageRefs, chatContainerRef, getFormattedDateLabel });
   useHighlightScroll({
     targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, hasMoreMessages,
-    isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(),
+    isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(), chatContainerRef,
   });
 
   const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
