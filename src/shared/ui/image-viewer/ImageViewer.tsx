@@ -15,6 +15,7 @@ import { useSwipeMorph } from './useSwipeMorph';
 import { useFadeClose } from './useFadeClose';
 import { mobileImageDirection } from './mobileImageDirection';
 import { MobileGalleryEdges } from './MobileGalleryEdges';
+import ImageViewerHeader, { type ViewerImageInfo } from './ImageViewerHeader';
 const KEY_PAN_STEP = 80;
 export interface ViewerImage {
   url: string;
@@ -22,6 +23,8 @@ export interface ViewerImage {
   downloadName?: string;
   previewUrl?: string;
   thumbnailSource?: string;
+  info?: ViewerImageInfo;
+  onShowInChat?: () => void;
   onDelete?: () => Promise<void>;
 }
 interface ImageViewerProps {
@@ -182,11 +185,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             }}
           >
             <DialogPrimitive.Title className="sr-only">{image.name}</DialogPrimitive.Title>
-            {isGallery && (
-              <div aria-live="polite" className="fixed left-4 top-5 z-[10000] rounded-full bg-black/30 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm">
-                {index + 1} / {images.length}
-              </div>
-            )}
+            <ImageViewerHeader info={image.info} index={index} total={images.length} onShowInChat={image.onShowInChat} onClose={onClose} />
             <div className="fixed top-4 right-4 flex gap-2 z-[10000]">
               <button type="button" onClick={() => zoomBy(1.25)} aria-label={translations.zoomIn || 'Zoom in'} className={`max-sm:sr-only max-sm:focus-visible:not-sr-only ${buttonClass}`}>
                 <ZoomIn className="w-5 h-5" />

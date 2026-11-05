@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
 import { thumbnailTarget } from './thumbnailTarget';
+import { openerElement } from './openerElement';
 
 export function thumbnailShape(target: HTMLImageElement) {
   const parent = target.parentElement;
@@ -25,7 +26,7 @@ export function morphClip(width: number, height: number, naturalWidth: number, n
 }
 
 export function useSwipeMorph(stage: RefObject<HTMLDivElement | null>, displacement: number, sources: (string | undefined)[]) {
-  const opener = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  const opener = useRef(openerElement());
   useLayoutEffect(() => {
     const images = stage.current?.querySelectorAll<HTMLImageElement>('[data-active-slide]');
     if (!images) return;

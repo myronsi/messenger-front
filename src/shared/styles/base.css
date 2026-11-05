@@ -176,6 +176,10 @@
 
   /* Skips layout and paint of off-screen messages. The padding and negative margins give
      the paint containment room for tails, reactions and shadows that overflow the row. */
+  .date-separator[data-covered] {
+    visibility: hidden;
+  }
+
   .message-cv {
     content-visibility: auto;
     contain-intrinsic-size: auto 72px;

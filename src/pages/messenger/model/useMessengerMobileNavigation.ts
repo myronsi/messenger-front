@@ -16,7 +16,9 @@ export const useMessengerMobileNavigation = ({
   setCurrentChat,
 }: MessengerMobileNavigationOptions) => {
   const [mobileChatStage, setMobileChatStage] = useState<'closed' | 'open' | 'closing'>('closed');
+  const [lastMobileChat, setLastMobileChat] = useState<CurrentChat | null>(currentChat);
   const mobileChatCloseTimerRef = useRef<number | null>(null);
+  if (currentChat && currentChat !== lastMobileChat) setLastMobileChat(currentChat);
 
   const clearMobileChatCloseTimer = useCallback(() => {
     if (mobileChatCloseTimerRef.current !== null) {
@@ -71,10 +73,21 @@ export const useMessengerMobileNavigation = ({
     }
   }, [clearMobileChatCloseTimer, isMobile]);
 
+  useEffect(() => {
+    if (currentChat || !lastMobileChat) return;
+    if (!isMobile) {
+      setLastMobileChat(null);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setLastMobileChat(null), 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentChat, isMobile, lastMobileChat]);
+
   useEffect(() => () => clearMobileChatCloseTimer(), [clearMobileChatCloseTimer]);
 
   return {
     backToChats,
+    mobilePanelChat: isMobile ? currentChat ?? lastMobileChat : currentChat,
     mobileChatPanelClass: currentChat && mobileChatStage === 'open'
       ? 'translate-x-0'
       : 'translate-x-full',

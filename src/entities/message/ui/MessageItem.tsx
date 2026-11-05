@@ -6,6 +6,8 @@ import React, { MutableRefObject, memo } from 'react';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import { combineTouchHandlers, useSwipeAction } from '@/shared/lib/useSwipeAction';
 import SwipeReplyIcon from './SwipeReplyIcon';
+import SystemMessageLine from './SystemMessageLine';
+import DateSeparator from './DateSeparator';
 import { Message, ReactionInfo } from '../model/types';
 import { isValidTimestamp } from '../model/messageListScrollUtils';
 import ReplyPreview from './ReplyPreview';
@@ -136,6 +138,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
     />
   );
 
+  const dateSeparator = showDateSeparator && isValidTimestamp(message.timestamp) && <DateSeparator label={getFormattedDateLabel(message.timestamp)} />;
+  if (message.system_event) {
+    const isMe = (id?: EntityId | null) => !!id && isOwnMessage({ ...message, is_own: false, sender_id: id, sender_username: null, sender: '' });
+    return <>{dateSeparator}<SystemMessageLine event={message.system_event} isMe={isMe} /></>;
+  }
+
   const handleReply = () => {
     if (!message.reply_to) return;
     onReplyClick(message.reply_to);
@@ -159,11 +167,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">{translations.newMessages}</div>
         </div>
       )}
-      {showDateSeparator && isValidTimestamp(message.timestamp) && (
-        <div className="flex justify-center date-separator" data-date={getFormattedDateLabel(message.timestamp)}>
-          <div className="px-3 py-1 bg-accent rounded-full text-sm text-accent-foreground">{getFormattedDateLabel(message.timestamp)}</div>
-        </div>
-      )}
+      {dateSeparator}
       <div
         data-image-message={isImage || undefined}
         ref={(element) => {
@@ -205,6 +209,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         <div className={`${message.is_deleting ? 'flex w-full' : 'message-cv flex'} ${isMine ? 'justify-end' : 'justify-start'}`}
           style={{ transform: swipe.offset || (onToggleSelect && !isMine)
             ? `translateX(${swipe.offset + (onToggleSelect && !isMine ? 32 : 0)}px)` : undefined,
+            ...(onToggleSelect && !isMine ? { width: message.is_deleting ? 'calc(100% - 32px)' : 'calc(100% + 1.5rem - 32px)' } : {}),
             transition: swipe.offset || reducedMotion ? 'none' : 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
         <div className={`flex min-w-0 items-end space-x-2 max-w-[85%] md:max-w-[70%] ${isText ? 'w-full' : ''} ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
           {showAvatar && (
@@ -235,7 +240,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <ForwardedLabel forwardedFrom={message.forwarded_from} translations={translations} isMine={isMine} isImage={isImage} />
               )}
               {message.reply_to && (
-                <ReplyPreview replyMessage={replyMessage} isMine={isMine} isImage={isImage} onClick={interlocutorDeleted ? undefined : handleReply} />
+                <ReplyPreview replyMessage={replyMessage} isMine={isMine} isReplyToOwn={!!replyMessage && isOwnMessage(replyMessage)} isImage={isImage}
+                  onClick={interlocutorDeleted ? undefined : handleReply} />
               )}
               <div className="relative">
                 {message.is_deleting && !reducedMotion && <DissolveParticles />}

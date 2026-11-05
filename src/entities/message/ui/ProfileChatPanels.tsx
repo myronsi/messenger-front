@@ -1,12 +1,13 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import { AuthenticatedAudio } from '@/shared/ui/AuthenticatedAudio';
+import ProfileAudioRow from './ProfileAudioRow';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image as ImageIcon, Loader2, Music, Search } from 'lucide-react';
-import type { ChatAudio, ChatPhoto, ChatSearchResult } from '../model/types';
+import type { ChatAudio, ChatPhoto } from '../model/types';
 import { useSearchChatMessagesQuery } from '../api/messageApi';
+import { getSearchText } from '../model/searchText';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 import { ImageViewer } from '@/shared/ui/image-viewer';
@@ -25,6 +26,9 @@ export interface ProfilePhotoItem {
   thumbnailUrl: string;
   name: string;
   timestamp: string;
+  sender?: string;
+  senderUsername?: string | null;
+  avatarUrl?: string;
 }
 
 export interface ProfileAudioItem {
@@ -33,6 +37,10 @@ export interface ProfileAudioItem {
   name: string;
   kind: 'voice' | 'file';
   timestamp: string;
+  duration?: number;
+  waveform?: number[];
+  sender?: string;
+  senderUsername?: string | null;
 }
 
 export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string): ProfilePhotoItem[] => (
@@ -45,6 +53,9 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
         thumbnailUrl: photo.thumbnail_url ? normalizeProfileMediaUrl(photo.thumbnail_url) : (url ? normalizeProfileMediaUrl(url) : ''),
         name: photo.file_name || photo.name || fallbackName,
         timestamp: photo.timestamp,
+        sender: photo.sender,
+        senderUsername: photo.sender_username,
+        avatarUrl: photo.avatar_url,
       };
     })
     .filter((photo) => !!photo.url)
@@ -61,16 +72,15 @@ export const toProfileAudios = (audios: ChatAudio[] = [], fallbackName: string):
         name: audio.file_name || audio.name || fallbackName,
         kind: audio.audio_kind,
         timestamp: audio.timestamp,
+        duration: audio.audio_metadata?.duration,
+        waveform: audio.audio_metadata?.waveform,
+        sender: audio.sender,
+        senderUsername: audio.sender_username,
       };
     })
     .filter((audio) => !!audio.url)
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 );
-
-const getSearchText = (result: ChatSearchResult) => {
-  if (typeof result.content === 'string') return result.content;
-  return result.content?.file_name || '';
-};
 
 export const ProfileSearchPanel: React.FC<{
   chatId: EntityId;
@@ -171,10 +181,19 @@ export const ProfilePhotosPanel: React.FC<{
   photos: ProfilePhotoItem[];
   isLoading?: boolean;
   error?: string | null;
-}> = ({ photos, isLoading, error }) => {
+  currentUsername?: string;
+  onJumpToMessage?: (messageId: EntityId) => void;
+}> = ({ photos, isLoading, error, currentUsername, onJumpToMessage }) => {
   const { translations } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const viewerImages = useMemo(() => photos.map((photo) => ({ url: photo.url, name: photo.name, previewUrl: photo.thumbnailUrl })), [photos]);
+  const viewerImages = useMemo(() => photos.map((photo) => {
+    const isMine = !!currentUsername && photo.senderUsername?.toLowerCase() === currentUsername.toLowerCase();
+    const info = photo.sender
+      ? { sender: isMine ? translations.replyFromYou : photo.sender, avatarName: photo.sender, avatarUrl: photo.avatarUrl, sentAt: photo.timestamp }
+      : undefined;
+    const onShowInChat = onJumpToMessage && isPersistedId(photo.id) ? () => onJumpToMessage(photo.id) : undefined;
+    return { url: photo.url, name: photo.name, previewUrl: photo.thumbnailUrl, info, onShowInChat };
+  }), [currentUsername, onJumpToMessage, photos, translations.replyFromYou]);
 
   return (
     <section className="border-b border-gray-200 px-5 py-4">
@@ -217,8 +236,15 @@ export const ProfileAudiosPanel: React.FC<{
   audios: ProfileAudioItem[];
   isLoading?: boolean;
   error?: string | null;
-}> = ({ audios, isLoading, error }) => {
+  currentUsername?: string;
+  onJumpToMessage?: (messageId: EntityId) => void;
+}> = ({ audios, isLoading, error, currentUsername, onJumpToMessage }) => {
   const { translations } = useLanguage();
+  const [playingId, setPlayingId] = useState<EntityId | null>(null);
+  const setPlaying = (id: EntityId | null, endedId?: EntityId) => {
+    const ended = endedId == null ? -1 : audios.findIndex((audio) => audio.id === endedId);
+    setPlayingId(id === null && ended >= 0 ? audios[ended + 1]?.id ?? null : id);
+  };
 
   return (
     <section className="border-b border-gray-200 px-5 py-4">
@@ -238,21 +264,13 @@ export const ProfileAudiosPanel: React.FC<{
           ))}
         </div>
       ) : audios.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {audios.map((audio) => (
-            <div key={audio.id} className="rounded-md border border-gray-200 bg-white p-3">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-gray-900">{audio.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {audio.kind === 'voice'
-                      ? translations.voiceMessagePreview || 'Voice message'
-                      : translations.audioFile || 'Audio file'}
-                  </div>
-                </div>
-              </div>
-              <AuthenticatedAudio controls preload="metadata" src={audio.url} className="h-9 w-full" />
-            </div>
+            <ProfileAudioRow
+              key={audio.id} audio={audio} isPlaying={playingId === audio.id} setPlayingMessageId={setPlaying}
+              onShowInChat={onJumpToMessage && isPersistedId(audio.id) ? () => onJumpToMessage(audio.id) : undefined}
+              isMine={!!currentUsername && audio.senderUsername?.toLowerCase() === currentUsername.toLowerCase()}
+            />
           ))}
         </div>
       ) : (

@@ -1,4 +1,3 @@
-import { ModalSurface } from '@/shared/ui/ModalSurface';
 import React from 'react';
 import { UserRound, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -12,7 +11,7 @@ interface UserProfileShellProps {
 export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, onClose }) => {
   const { translations } = useLanguage();
   return (
-    <ModalSurface label={translations.userProfile} onPointerDownOutside={onClose} className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950">
+    <div className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
         <div className="flex items-center gap-2">
           <UserRound className="h-5 w-5 text-gray-500" />
@@ -23,7 +22,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, on
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">{children}</div>
-    </ModalSurface>
+    </div>
   );
 };
 

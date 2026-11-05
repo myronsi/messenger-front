@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
-import { ImageViewer } from '@/shared/ui/image-viewer';
+import { ImageViewer, type ViewerImageInfo } from '@/shared/ui/image-viewer';
 import { useMediaPreload } from '@/shared/api/useMediaPreload';
 
 const MAX_HEIGHT = 300;
@@ -18,9 +18,10 @@ interface ImageMessageProps {
   fileName: string;
   isMine: boolean;
   onReply?: () => void;
+  viewerInfo?: ViewerImageInfo;
 }
 
-const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, width, height, fileName, onReply }) => {
+const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, width, height, fileName, onReply, viewerInfo }) => {
   const { translations } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -94,7 +95,10 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
       </div>
 
       {isExpanded && (
-        <ImageViewer images={[{ url: fileUrl, name: fileName, previewUrl: thumbnailFailed ? undefined : thumbnailUrl }]} onClose={closeViewer} />
+        <ImageViewer
+          images={[{ url: fileUrl, name: fileName, previewUrl: thumbnailFailed ? undefined : thumbnailUrl, info: viewerInfo }]}
+          onClose={closeViewer}
+        />
       )}
     </>
   );

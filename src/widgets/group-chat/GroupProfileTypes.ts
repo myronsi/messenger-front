@@ -83,6 +83,7 @@ export interface GroupProfileDialogProps {
   onLeaveGroup: () => void;
   onDeleteGroup: () => void;
   onOpenUserProfile: (username: string) => void;
+  onJumpToMessage?: (messageId: EntityId) => void;
   groupConfirm: GroupProfileConfirmState | null;
   onCloseGroupConfirm: () => void;
 }

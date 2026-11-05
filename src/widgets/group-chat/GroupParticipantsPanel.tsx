@@ -1,5 +1,4 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import { isGoApi } from '@/shared/api/goSocket';
 import React from 'react';
 import { ChevronDown, Crown, MoreVertical, Trash2, UserPlus } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -62,7 +61,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
               </SelectTrigger>
               <SelectContent className="z-[1300]">
                 <SelectItem value="member">{roleLabel('member', translations)}</SelectItem>
-                {!isGoApi() && <SelectItem value="moderator">{roleLabel('moderator', translations)}</SelectItem>}
+                <SelectItem value="moderator">{roleLabel('moderator', translations)}</SelectItem>
                 <SelectItem value="admin">{roleLabel('admin', translations)}</SelectItem>
               </SelectContent>
             </Select>

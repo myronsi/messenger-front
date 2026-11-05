@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchMedia } from '@/shared/api/fetchMedia';
 import ImageViewer from './ImageViewer';
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { previousImage: 'Previous image', nextImage: 'Next image' } }) }));
+vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: { previousImage: 'Previous image', nextImage: 'Next image' } }) }));
 vi.mock('@/shared/api/fetchMedia', () => ({ fetchMedia: vi.fn(async () => new Response('png', { status: 200 })) }));
 vi.mock('@/shared/ui/AuthenticatedImage', async () => {
   const { forwardRef } = await import('react');

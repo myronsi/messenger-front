@@ -24,6 +24,16 @@ export interface ForwardedFrom {
   sender_username?: string | null;
 }
 
+export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left';
+
+export interface SystemEventInfo {
+  kind: SystemEventKind;
+  actor_id?: EntityId | null;
+  actor_name: string;
+  target_id?: EntityId;
+  target_name?: string;
+}
+
 export interface ChatLastMessage {
   id: EntityId;
   sender_id: EntityId;
@@ -35,6 +45,7 @@ export interface ChatLastMessage {
   read_by?: ReadReceiptInfo[];
   delivery_error?: string | null;
   forwarded_from?: ForwardedFrom | null;
+  system_event?: SystemEventInfo;
 }
 
 export interface UserMessageMeta {
@@ -69,6 +80,7 @@ export interface Message {
   reply_to?: EntityId | null;
   reply_preview?: Message;
   is_system?: boolean;
+  system_event?: SystemEventInfo;
   is_deleted?: boolean;
   is_deleting?: boolean;
   edited_at?: string | null;
@@ -98,6 +110,9 @@ export interface ChatPhoto {
   image_width?: number;
   image_height?: number;
   thumbnail_url?: string;
+  sender?: string;
+  sender_username?: string | null;
+  avatar_url?: string;
   timestamp: string;
 }
 
@@ -115,6 +130,8 @@ export interface ChatAudio {
   file_size?: number;
   audio_metadata?: AudioMetadata;
   audio_kind: 'voice' | 'file';
+  sender?: string;
+  sender_username?: string | null;
   timestamp: string;
 }
 

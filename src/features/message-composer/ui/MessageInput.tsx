@@ -1,5 +1,5 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { isMobileComposer } from '@/shared/lib/composerFocus';
+import { isMobileComposer, isMobileKeyboardOpen } from '@/shared/lib/composerFocus';
 import React, { useCallback, useRef, forwardRef, useState, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Paperclip, Upload } from 'lucide-react';
@@ -176,10 +176,10 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
 
   const cancelKeepingFocus = () => {
     const field = inputRef.current;
-    const keepFocus = document.activeElement === field;
+    const keepFocus = document.activeElement === field && (!isMobileComposer() || (!isEditing && isMobileKeyboardOpen()));
     onCancelReplyOrEdit();
-    if (isEditing && isMobileComposer()) field?.blur();
-    else if (keepFocus) field?.focus({ preventScroll: true });
+    if (keepFocus) field?.focus({ preventScroll: true });
+    else if (isMobileComposer()) field?.blur();
   };
 
   const hold = useHoldToRecord({
@@ -273,7 +273,8 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 data-testid="message-input-field"
                 value={messageInput}
                 onChange={(event) => setMessageInput(event.target.value)}
-                placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : selectedFile ? (translations.addCaption || 'Add a caption') : translations.writeMessage}
+                placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : selectedFile ? (translations.addCaption || 'Add a caption')
+                  : editingMessage?.type === 'file' ? translations.writeCaption : translations.writeMessage}
                 className="block max-h-[min(10rem,35vh)] min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 leading-6 text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none"
                 onKeyDown={handleFieldKeyDown}
                 disabled={isDisabled}

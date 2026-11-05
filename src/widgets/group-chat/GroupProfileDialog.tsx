@@ -146,10 +146,18 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
 
   const renderPanelContent = (view: GroupProfileView) => {
     if (view === 'photos' && canShowPhotosAction) {
-      return <ProfilePhotosPanel photos={photos} isLoading={isLoadingPhotos} error={photosError} />;
+      return (
+        <ProfilePhotosPanel
+          photos={photos} isLoading={isLoadingPhotos} error={photosError} currentUsername={currentUsername} onJumpToMessage={model.onJumpToMessage}
+        />
+      );
     }
     if (view === 'audios' && canShowAudiosAction) {
-      return <ProfileAudiosPanel audios={audios} isLoading={isLoadingAudios} error={audiosError} />;
+      return (
+        <ProfileAudiosPanel
+          audios={audios} isLoading={isLoadingAudios} error={audiosError} currentUsername={currentUsername} onJumpToMessage={model.onJumpToMessage}
+        />
+      );
     }
     if (view === 'participants') {
       return (

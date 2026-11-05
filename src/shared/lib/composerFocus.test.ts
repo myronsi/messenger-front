@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { focusComposer } from './composerFocus';
+import { focusComposer, isMobileKeyboardOpen } from './composerFocus';
 
 afterEach(() => { vi.unstubAllGlobals(); document.body.replaceChildren(); });
 
@@ -30,4 +30,14 @@ it('does not blur a focused desktop composer', () => {
   focusComposer(field);
   expect(blur).not.toHaveBeenCalled();
   expect(field).toHaveFocus();
+});
+
+it('detects the mobile keyboard from a shorter visual viewport', () => {
+  const viewport = { width: 391, height: 800, scale: 1, addEventListener: vi.fn() };
+  vi.stubGlobal('visualViewport', viewport);
+  expect(isMobileKeyboardOpen()).toBe(false);
+  viewport.height = 460;
+  expect(isMobileKeyboardOpen()).toBe(true);
+  viewport.height = 800;
+  expect(isMobileKeyboardOpen()).toBe(false);
 });

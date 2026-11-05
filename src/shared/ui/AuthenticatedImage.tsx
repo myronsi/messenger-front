@@ -1,7 +1,8 @@
 import { forwardRef, useCallback, useEffect, useRef, useState, type ImgHTMLAttributes } from 'react';
 import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
+import { isDefaultAvatar, letterAvatar } from '@/shared/lib/letterAvatar';
 
-interface Props extends ImgHTMLAttributes<HTMLImageElement> { fallbackSrc?: string; }
+interface Props extends ImgHTMLAttributes<HTMLImageElement> { fallbackSrc?: string; initialsFrom?: string; }
 
 const scrollParent = (node: HTMLElement) => {
   for (let parent = node.parentElement; parent; parent = parent.parentElement) {
@@ -10,7 +11,7 @@ const scrollParent = (node: HTMLElement) => {
   return null;
 };
 
-export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fallbackSrc, onError, ...props }, ref) => {
+export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fallbackSrc, initialsFrom, onError, ...props }, ref) => {
   const [brokenSource, setBrokenSource] = useState<string>();
   const imageRef = useRef<HTMLImageElement>(null);
   const [visible, setVisible] = useState(false);
@@ -28,7 +29,9 @@ export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fa
     if (fallbackSrc && brokenSource !== src) setBrokenSource(src);
     if (imageRef.current) onError?.({ currentTarget: imageRef.current, target: imageRef.current } as unknown as React.SyntheticEvent<HTMLImageElement, Event>);
   }, [brokenSource, fallbackSrc, onError, src]);
-  const authenticatedSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : src, fallbackSrc, visible || props.loading === 'eager', handleFailure);
+  const mediaSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : src, fallbackSrc, visible || props.loading === 'eager', handleFailure);
+  const name = initialsFrom ?? props.alt;
+  const authenticatedSource = name && isDefaultAvatar(mediaSource ?? fallbackSrc) ? letterAvatar(name) : mediaSource;
   return <img {...props} data-media-source={src} alt={authenticatedSource ? props.alt : ''} src={authenticatedSource} ref={node => {
     imageRef.current = node;
     if (typeof ref === 'function') ref(node);

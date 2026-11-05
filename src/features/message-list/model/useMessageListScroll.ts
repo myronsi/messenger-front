@@ -4,7 +4,7 @@ import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { useRowScrollAnchoring } from './useRowScrollAnchoring';
 import { getAppendedMessages } from '@/entities/message';
-import { useCurrentDateLabel } from './useCurrentDateLabel';
+import { useStickyDateBadge } from './useStickyDateBadge';
 import { useHighlightScroll } from './useHighlightScroll';
 import { getScrollBehavior, useScrollToBottom } from './useScrollToBottom';
 import { listenForScrollIntent } from './scrollIntent';
@@ -35,7 +35,7 @@ const USER_SCROLL_WINDOW_MS = 1000;
 export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const {
     messages, messageRefs, firstUnreadMessageId, highlightedMessageId, tempHighlightedMessageId,
-    getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages, isLoadingOlderMessages,
+    hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages, isLoadingOlderMessages,
     onLoadOlderMessages, onLoadLatestMessages, scrollToBottomKey, isOwnMessage,
   } = options;
   const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<EntityId | null>(firstUnreadMessageId ?? null);
@@ -63,7 +63,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
     scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, autoScrollUntilRef,
   });
-  const currentDate = useCurrentDateLabel({ messages, messageRefs, chatContainerRef, getFormattedDateLabel });
+  const { label: currentDate, badgeRef: dateBadgeRef } = useStickyDateBadge({ chatContainerRef, active: isScrolling, contentKey: messages });
   useHighlightScroll({
     targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, hasMoreMessages,
     isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(), chatContainerRef,
@@ -275,7 +275,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView, countIncoming, hasMoreMessages, isOwnMessageRef]);
 
   return {
-    currentDate, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, contentRef, firstUnreadMarkerRef,
+    currentDate, dateBadgeRef, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, contentRef, firstUnreadMarkerRef,
     isPositioned, unseenCount, showScrollToBottom, scrollToBottom,
   };
 };

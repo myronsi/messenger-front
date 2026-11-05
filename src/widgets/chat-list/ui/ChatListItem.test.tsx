@@ -45,3 +45,27 @@ describe('ChatListItem', () => {
     expect(screen.getByText('3')).not.toHaveClass('bg-primary');
   });
 });
+
+describe('ChatListItem layout', () => {
+  const base = { getLastMessagePreview: () => 'Hello there', getLastMessageTime: () => '09:30', onClick: vi.fn(), onContextMenu: vi.fn(), translations: en };
+  const message = { id: '1', sender_id: '5', sender_name: 'Anna', content: 'Hello there', type: 'message' as const, timestamp: 't' };
+
+  it('names the sender in groups and shows a group icon instead of a text label', () => {
+    render(<ChatListItem {...base} chat={{ id: '9', name: 'team', display_name: 'Team', type: 'group', last_message: message } as Chat}
+      isOwnLastMessage={() => false} isOwnLastMessageRead={() => false} />);
+    expect(screen.getByText('Anna:', { exact: false })).toBeInTheDocument();
+    expect(screen.getByLabelText(en.group)).toBeInTheDocument();
+    expect(screen.queryByText(`(${en.group})`)).not.toBeInTheDocument();
+  });
+
+  it('shows the presence dot only for online contacts and no sender prefix in direct chats', () => {
+    const { rerender } = render(<ChatListItem {...base} chat={{ ...chat, unread_count: 0, is_online: false, last_message: message }}
+      isOwnLastMessage={() => false} isOwnLastMessageRead={() => false} />);
+    expect(screen.queryByTestId('chat-online-dot')).not.toBeInTheDocument();
+    expect(screen.queryByText('Anna:', { exact: false })).not.toBeInTheDocument();
+    rerender(<ChatListItem {...base} chat={{ ...chat, unread_count: 0, is_online: true, is_pinned: true, last_message: message }}
+      isOwnLastMessage={() => false} isOwnLastMessageRead={() => false} />);
+    expect(screen.getByTestId('chat-online-dot')).toBeInTheDocument();
+    expect(screen.getByLabelText(en.pinned)).toBeInTheDocument();
+  });
+});

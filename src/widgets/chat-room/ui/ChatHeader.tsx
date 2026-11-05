@@ -3,6 +3,7 @@ import React from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
+import { useLongPress } from '@/shared/lib/useLongPress';
 
 interface ChatHeaderProps {
   chatName: string;
@@ -23,14 +24,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const { translations } = useLanguage();
   const displayName = chatDisplayName || chatName;
+  const longPress = useLongPress(onOpenSearch);
 
   return (
-    <div className="motion-panel-in h-[72px] shrink-0 px-4 sm:px-6 border-b border-border flex justify-between items-center">
+    <div data-testid="chat-header" {...longPress.handlers} className="motion-panel-in h-[72px] shrink-0 px-4 sm:px-6 border-b border-border flex justify-between items-center">
       <div className="flex min-w-0 items-center space-x-4 md:space-x-0">
         <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press p-2 hover:bg-accent rounded-full transition-colors md:hidden">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <button onClick={!interlocutorDeleted ? onOpenProfile : undefined} className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 md:space-x-0">
+        <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 md:space-x-0">
           <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-gray-200 object-cover md:hidden" />
           <span className="flex min-w-0 flex-col items-start">
             <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>

@@ -4,7 +4,7 @@ import type { Message } from '../model/types';
 import ReplyPreview from './ReplyPreview';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { replyUnavailable: 'Original message', messageDeleted: '[Message deleted]', voiceMessage: 'Voice Message', image: 'Image' } }),
+  useLanguage: () => ({ translations: { replyUnavailable: 'Original message', replyFromYou: 'You', messageDeleted: '[Message deleted]', voiceMessage: 'Voice Message', image: 'Image' } }),
 }));
 vi.mock('@/shared/contexts/fileTypesConfig', () => ({ useFileTypes: () => ({ getFileTypeConfig: () => null }) }));
 
@@ -27,6 +27,12 @@ describe('ReplyPreview', () => {
     render(<ReplyPreview replyMessage={photo} isMine={false} />);
     expect(screen.getByText('Mai')).toBeInTheDocument();
     expect(screen.queryByText('Image')).not.toBeInTheDocument();
+  });
+
+  it('says you instead of your own name when the quoted message is yours', () => {
+    render(<ReplyPreview replyMessage={original} isMine={false} isReplyToOwn />);
+    expect(screen.getByText('You')).toBeInTheDocument();
+    expect(screen.queryByText('Mai')).not.toBeInTheDocument();
   });
 
   it('says original message instead of deleted when the quoted message is not loaded', () => {

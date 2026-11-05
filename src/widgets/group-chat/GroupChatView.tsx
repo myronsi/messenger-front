@@ -1,14 +1,15 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useState } from 'react';
-import { ArrowLeft, Search } from 'lucide-react';
-import { ChatSearchDialog, type Message } from '@/entities/message';
+import { ChatHeaderSearch, type Message } from '@/entities/message';
 import { unescapeCurlyBraces } from '@/features/chat-core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { MessageList } from '@/features/message-list';
 import { MessageInput } from '@/features/message-composer';
 import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog, SelectionBar, useMessageSelection, useReplyAction } from '@/features/message-actions';
+import { useBackToClose } from '@/shared/lib/useBackToClose';
 import GroupProfileDialog from './GroupProfileDialog';
+import GroupChatHeader from './GroupChatHeader';
 
 import type { GroupChatViewModel } from './groupChatTypes';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
@@ -38,42 +39,18 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
   const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, messages);
+  useBackToClose(selection.active, clearSelection, 'selection');
+  useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
   const startReply = useReplyAction({ setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
   return (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
-      <div className="motion-panel-in flex h-[72px] shrink-0 items-center justify-between border-b border-border px-4 sm:px-6">
-        <div className="flex min-w-0 items-center space-x-4 md:space-x-0">
-          <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press rounded-full p-2 transition-colors hover:bg-accent md:hidden">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={openGroupProfile}
-            className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 text-left outline-none focus:outline-none md:space-x-0"
-          >
-            <AuthenticatedImage src={currentGroupAvatar} alt={currentGroupName} className="motion-avatar h-9 w-9 rounded-full border border-gray-200 object-cover md:hidden" />
-            <span className="flex min-w-0 flex-col items-start">
-              <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{currentGroupName}</span>
-              <span className="max-w-[52vw] truncate text-xs font-normal text-muted-foreground sm:max-w-none">
-                {groupDetails?.participants.length || 0} {translations.participants || 'participants'}
-                {groupDetails?.description ? ` - ${groupDetails.description}` : ''}
-              </span>
-            </span>
-          </button>
-        </div>
-        {isPersistedId(chatId) && (
-          <button
-            type="button"
-            onClick={() => setIsSearchOpen(true)}
-            aria-label={translations.search || 'Search'}
-            title={translations.search || 'Search'}
-            className="motion-press shrink-0 rounded-full p-2 transition-colors hover:bg-accent"
-          >
-            <Search className="h-5 w-5" />
-          </button>
-        )}
-        <ChatSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} chatId={chatId} onJumpToMessage={jumpToSearchResult} />
-      </div>
+      {isSearchOpen ? (
+        <ChatHeaderSearch chatId={chatId} onClose={() => setIsSearchOpen(false)} onJumpToMessage={jumpToSearchResult} />
+      ) : (
+      <GroupChatHeader name={currentGroupName} avatar={currentGroupAvatar} participantCount={groupDetails?.participants.length || 0}
+        description={groupDetails?.description} translations={translations} onBack={onBack} onOpenProfile={openGroupProfile}
+        onOpenSearch={isPersistedId(chatId) ? () => setIsSearchOpen(true) : undefined} />
+      )}
 
       <MessageList
         messages={messages}
@@ -119,7 +96,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         }}
       />
 
-      <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active ? 'is-hidden' : ''}`}>
+      <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
         <MessageInput
           ref={messageInputRef}
           messageInput={messageInput}
@@ -184,13 +161,8 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
       <GroupProfileDialog
         open={renderGroupProfile}
         isClosing={isGroupProfileClosing}
-        onOpenChange={(nextOpen) => {
-          if (nextOpen) {
-            openGroupProfile();
-          } else {
-            requestCloseGroupProfile();
-          }
-        }}
+        onOpenChange={(nextOpen) => (nextOpen ? openGroupProfile() : requestCloseGroupProfile())}
+        onJumpToMessage={(messageId) => { requestCloseGroupProfile(); jumpToSearchResult(messageId); }}
         chatId={chatId}
         groupDetails={groupDetails}
         currentGroupName={currentGroupName}

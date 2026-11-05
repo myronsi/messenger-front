@@ -1,7 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useRef, useState, useEffect } from 'react';
-import { Message } from '@/entities/message';
+import { ChatHeaderSearch, Message } from '@/entities/message';
 import ChatHeader from './ui/ChatHeader';
 import { MessageList } from '@/features/message-list';
 import { MessageInput } from '@/features/message-composer';
@@ -13,6 +13,7 @@ import { useChatInteractions } from './model/useChatInteractions';
 import { ChatProps } from './model/types';
 import ChatOverlays from './ui/ChatOverlays';
 import { useMessageSelection, useReplyAction } from '@/features/message-actions';
+import { useBackToClose } from '@/shared/lib/useBackToClose';
 import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
 import { useGetBlockedUsersQuery } from '@/entities/user';
@@ -158,11 +159,13 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
 
   const displayedMessages = isPreview ? previewFailedMessages : messages;
   const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, displayedMessages);
+  useBackToClose(selection.active, clearSelection, 'selection');
+  useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
   const startReply = useReplyAction({ setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
 
   const content = (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
-      <ChatHeader
+      {isSearchOpen ? <ChatHeaderSearch chatId={chatId} onClose={() => setIsSearchOpen(false)} onJumpToMessage={jumpToSearchResult} /> : (<ChatHeader
         chatName={chatName}
         chatDisplayName={chatDisplayName}
         isOnline={presence.is_online}
@@ -173,7 +176,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         onOpenProfile={onOpenProfile}
         onOpenSearch={!isPreview && !interlocutorDeleted ? () => setIsSearchOpen(true) : undefined}
         interlocutorAvatar={interlocutorAvatar}
-      />
+      />)}
       <MessageList
           ref={chatWindowRef}
           messages={displayedMessages}
@@ -218,7 +221,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           onSwipeReply={isPreview ? undefined : startReply}
         />
       {!interlocutorDeleted && !isBlockedByMe && (
-        <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active ? 'is-hidden' : ''}`}>
+        <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
           <MessageInput
             ref={messageInputRef}
             messageInput={isPreview ? previewMessageInput : messageInput}
@@ -278,9 +281,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         setModal={setModal}
         closeMenus={closeMenus}
         onForward={setForwardMessage}
-        isSearchOpen={isSearchOpen}
-        setIsSearchOpen={setIsSearchOpen}
-        jumpToSearchResult={jumpToSearchResult}
         forwardMessage={forwardMessage}
         username={username}
         modal={modal}

@@ -43,6 +43,7 @@ export const useMessengerController = () => {
   const {
     backToChats,
     mobileChatPanelClass,
+    mobilePanelChat,
     prepareChatNavigation,
     showMobileChatPanel,
   } = useMessengerMobileNavigation({
@@ -266,5 +267,6 @@ export const useMessengerController = () => {
     handleChatDeleted,
     handleDeleteCurrentChat,
     mobileChatPanelClass,
+    mobilePanelChat,
   };
 };
