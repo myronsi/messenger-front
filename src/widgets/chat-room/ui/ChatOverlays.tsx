@@ -1,7 +1,8 @@
 import type { EntityId } from '@/shared/api/entityId';
 import React, { MutableRefObject } from 'react';
-import { ChatSearchDialog, Message, type MessageSelection } from '@/entities/message';
+import { Message, type MessageSelection } from '@/entities/message';
 import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal, SelectionBar } from '@/features/message-actions';
+import { isGoApi } from '@/shared/api/goSocket';
 
 type ContextMenuState = NonNullable<React.ComponentProps<typeof ContextMenu>['contextMenu']>;
 type ReactionMenuState = NonNullable<React.ComponentProps<typeof ReactionMenu>['reactionMenu']>;
@@ -27,9 +28,6 @@ interface ChatOverlaysProps {
   setModal: (modal: ModalState) => void;
   closeMenus: () => void;
   onForward: (message: Message | null) => void;
-  isSearchOpen: boolean;
-  setIsSearchOpen: (open: boolean) => void;
-  jumpToSearchResult: (messageId: EntityId) => void;
   forwardMessage: Message | null;
   username: string;
   modal: ModalState;
@@ -38,11 +36,13 @@ interface ChatOverlaysProps {
   onClearSelection: () => void;
 }
 
+const mayDeleteForBoth = (userId: EntityId | null) => (message: Message) =>
+  !message.system_event && (isGoApi() || !!message.is_own || (userId !== null && message.sender_id === userId));
+
 const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
   token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, setModal, closeMenus, onForward,
-  isSearchOpen, setIsSearchOpen, jumpToSearchResult,
   forwardMessage, username, modal, selection, onSelect, onClearSelection,
 }) => (
   <>
@@ -68,6 +68,8 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         messageInputRef={messageInputRef}
         onForward={onForward}
         onSelect={onSelect}
+        canDeleteMessage={mayDeleteForBoth(userId)}
+        isDirect
       />
     )}
     {reactionMenu && userId !== null && (
@@ -84,12 +86,6 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         contextMenuRef={contextMenuRef}
       />
     )}
-    <ChatSearchDialog
-      open={isSearchOpen}
-      onOpenChange={setIsSearchOpen}
-      chatId={chatId}
-      onJumpToMessage={jumpToSearchResult}
-    />
     <ForwardMessageDialog
       open={!!forwardMessage}
       onOpenChange={(open) => { if (!open) onForward(null); }}
@@ -101,7 +97,8 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
       messages={messages}
       selection={selection}
       username={username}
-      canDeleteForEveryone={(message) => !!message.is_own || (userId !== null && message.sender_id === userId)}
+      canDeleteForEveryone={mayDeleteForBoth(userId)}
+      isDirect
       onClear={onClearSelection}
     />
     <Modal modal={modal} onClose={() => setModal(null)} />

@@ -4,7 +4,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import { useMediaPreload } from '@/shared/api/useMediaPreload';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { BellOff, Check, CheckCheck, Pin } from 'lucide-react';
+import { BellOff, Check, CheckCheck, Pin, Users } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import { useChatMuteStatus } from '@/features/chat-mute';
 
@@ -45,6 +45,11 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const lastContent = chat.last_message?.content;
   const lastThumbnail = typeof lastContent === 'object' && lastContent.thumbnail_url ? resolveMediaUrl(lastContent.thumbnail_url) : undefined;
   const preloadHandlers = useMediaPreload(lastThumbnail);
+  const muted = isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground';
+  const showSender = chat.type === 'group' && !!chat.last_message && !chat.last_message.system_event && !chat.last_message.delivery_error;
+  const sender = ownLastMessage ? translations.replyFromYou : chat.last_message?.sender_name;
+  const previewTone = unreadCount ? 'text-foreground' : 'text-muted-foreground';
+  const ticksTone = ownLastMessageRead ? 'text-primary' : 'text-muted-foreground';
 
   return (
     <div
@@ -54,68 +59,59 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       onClick={() => onClick(chat)}
       {...preloadHandlers}
       onContextMenu={(event) => onContextMenu(event, chat)}
-      className={`motion-list-item motion-press flex items-center p-3 rounded-lg cursor-pointer ${
+      className={`motion-list-item motion-press flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer ${
         isContextSelected ? 'bg-gray-100 text-foreground' : isActive ? 'md:bg-primary md:text-primary-foreground'
           : '[@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground'
       }`}
     >
-      <div className="relative mr-3">
+      <div className="relative shrink-0">
         <AuthenticatedImage
           src={chat.avatar_url}
           fallbackSrc={chat.type === 'group' ? DEFAULT_GROUP_AVATAR : DEFAULT_AVATAR}
           alt={chat.display_name || chat.name}
-          className={`motion-avatar w-10 h-10 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}
+          className={`motion-avatar h-12 w-12 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}
         />
-        {chat.type === 'one-on-one' && !chat.interlocutor_deleted && (
-          <span
-            className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
-              chat.is_online ? 'motion-presence bg-green-500' : 'bg-gray-400'
-            }`}
-          />
+        {chat.type === 'one-on-one' && !chat.interlocutor_deleted && chat.is_online && (
+          <span data-testid="chat-online-dot" className="motion-presence absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-green-500" />
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className={`flex min-w-0 items-center gap-1.5 ${unreadCount ? 'font-semibold' : 'font-medium'}`}>
-          {chat.is_pinned && (
-            <Pin className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`} />
+        <div className="flex min-w-0 items-center gap-2">
+          <div className={`flex min-w-0 flex-1 items-center gap-1.5 text-[15px] leading-5 ${unreadCount ? 'font-semibold' : 'font-medium'}`}>
+            {chat.type === 'group' && <Users aria-label={translations.group} className={`h-4 w-4 shrink-0 ${muted}`} />}
+            <span className="truncate">
+              {chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
+            </span>
+            {isMuted && (
+              <BellOff data-testid="chat-muted-icon" aria-label={translations.mutedForever} className={`h-3.5 w-3.5 shrink-0 ${muted}`} />
+            )}
+          </div>
+          {ownLastMessage && !ownLastMessageFailed && (
+            <span className={`flex shrink-0 items-center transition-colors duration-150 ${isActive ? `${ticksTone} md:text-primary-foreground/80` : ticksTone}`}
+              title={ownLastMessageRead ? 'Read' : 'Unread'}>
+              {ownLastMessageRead ? <CheckCheck size={16} /> : <Check size={16} />}
+            </span>
           )}
-          <span className="truncate">
-            {chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
-          </span>
-          {isMuted && (
-            <BellOff
-              data-testid="chat-muted-icon"
-              aria-label={translations.mutedForever}
-              className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`}
-            />
+          {chat.last_message && (
+            <span className={`shrink-0 text-xs ${unreadCount && !isMuted ? 'font-medium text-primary' : ''} ${muted}`}>
+              {getLastMessageTime(chat.last_message)}
+            </span>
           )}
         </div>
-        <div className={`truncate text-xs ${isActive ? `${unreadCount ? 'text-foreground font-medium' : 'text-muted-foreground'} md:text-primary-foreground/80` : unreadCount ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-          {getLastMessagePreview(chat.last_message)}
+        <div className="mt-0.5 flex min-w-0 items-center gap-2">
+          <div className={`min-w-0 flex-1 truncate text-sm leading-5 ${isActive ? `${previewTone} md:text-primary-foreground/80` : previewTone}`}>
+            {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}>{sender}: </span>}
+            {getLastMessagePreview(chat.last_message)}
+          </div>
+          {chat.is_pinned && !unreadCount && <Pin aria-label={translations.pinned} className={`h-3.5 w-3.5 shrink-0 rotate-45 ${muted}`} />}
+          <span
+            aria-hidden={unreadCount === 0}
+            className={`motion-unread-indicator flex shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold ${unreadCount ? `is-visible ${unreadBadgeClass}` : ''}`}
+          >
+            {unreadCount > 99 ? '99+' : unreadCount || ''}
+          </span>
         </div>
-      </div>
-
-      <div className="ml-2 flex min-w-[44px] flex-col items-end">
-        {chat.last_message && (
-          <span className={`motion-unread-time text-[11px] leading-none ${unreadCount ? 'has-unread' : ''} ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`}>
-            {getLastMessageTime(chat.last_message)}
-          </span>
-        )}
-        {ownLastMessage && !ownLastMessageFailed && !unreadCount ? (
-          <span className={`flex h-5 items-center transition-colors duration-150 ${isActive ? `${ownLastMessageRead ? 'text-primary' : 'text-muted-foreground'} md:text-primary-foreground/80` : ownLastMessageRead ? 'text-primary' : 'text-muted-foreground'}`} title={ownLastMessageRead ? 'Read' : 'Unread'}>
-            {ownLastMessageRead ? <CheckCheck size={16} /> : <Check size={16} />}
-          </span>
-        ) : null}
-        <span
-          aria-hidden={unreadCount === 0}
-          className={`motion-unread-indicator flex items-center justify-center overflow-hidden rounded-full text-xs font-semibold ${unreadCount ? `is-visible ${unreadBadgeClass}` : ''}`}
-        >
-          {unreadCount > 99 ? '99+' : unreadCount || ''}
-        </span>
-        {chat.type === 'group' && (
-          <span className={`text-xs ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`}>({translations.group})</span>
-        )}
       </div>
     </div>
   );

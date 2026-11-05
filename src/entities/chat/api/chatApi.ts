@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
-import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
+import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, GroupRoleLog, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
 
 export const chatApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -18,6 +18,11 @@ export const chatApi = messengerApi.injectEndpoints({
       query: (chatId) => `/groups/${chatId}`,
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-details-${chatId}` }],
+    }),
+
+    getGroupRoleLog: builder.query<GroupRoleLog, EntityId>({
+      query: (chatId) => `/groups/${chatId}/role-log`,
+      providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-role-log-${chatId}` }],
     }),
 
     getChatById: builder.query<ApiChat, EntityId>({
@@ -95,6 +100,7 @@ export const {
   useGetOneOnOneChatsQuery,
   useGetGroupChatsQuery,
   useGetGroupDetailsQuery,
+  useGetGroupRoleLogQuery,
   useGetChatByIdQuery,
   useCreateChatMutation,
   useGetApprovalRequestInboxQuery,

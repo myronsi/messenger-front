@@ -10,6 +10,7 @@ interface ContextMenuProps {
   onEdit?: () => void;
   onDeleteForMe?: () => void;
   onDeleteForEveryone?: () => void;
+  forBoth?: boolean;
   onCopy?: () => void;
   onReply: () => void;
   onForward?: () => void;
@@ -22,7 +23,9 @@ const EDGE = 8;
 const REACTION_MENU_OFFSET = 48;
 
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ x, y, isMine, openLeft = false, onEdit, onDeleteForMe, onDeleteForEveryone, onCopy, onReply, onForward, onSelect, isClosing, onClose }, ref) => {
+  ({
+    x, y, isMine, openLeft = false, onEdit, onDeleteForMe, onDeleteForEveryone, forBoth = false, onCopy, onReply, onForward, onSelect, isClosing, onClose,
+  }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
@@ -88,7 +91,7 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
             </button>
             <button type="button" className={`${itemClass} font-medium text-destructive hover:text-destructive`} onClick={onDeleteForEveryone}>
               <Trash2 className="w-4 h-4 mr-2" />
-              <span className="truncate">{translations.deleteForEveryoneShort || 'For everyone'}</span>
+              <span className="truncate">{forBoth ? translations.deleteForBothShort : translations.deleteForEveryoneShort || 'For everyone'}</span>
             </button>
           </div>
         ) : (

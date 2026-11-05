@@ -17,6 +17,7 @@ const mediaScreenModel = (items: Array<S['Message'] | S['SearchHit']>, kind: str
   const messages = items.map(item => messageModel('message' in item ? item.message : item));
   return kind === 'search' ? { results: messages } : {
     [kind]: messages.map(message => ({ id: message.id, timestamp: message.timestamp,
+      sender: message.sender, sender_username: message.sender_username, avatar_url: message.avatar_url,
       ...(typeof message.content === 'string' ? {} : message.content),
       audio_kind: message.attachment?.kind === 'voice' ? 'voice' : 'file',
     })),

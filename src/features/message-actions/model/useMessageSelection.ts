@@ -11,7 +11,7 @@ export const SELECTION_CLOSE_MS = 180;
 const EMPTY: ReadonlySet<EntityId> = new Set();
 
 export const isSelectableMessage = (message: Message) =>
-  isPersistedId(message.id) && !message.is_deleted && !message.is_deleting && !message.upload_status;
+  isPersistedId(message.id) && !message.is_deleted && !message.is_deleting && !message.upload_status && !message.system_event;
 
 export const isForwardableMessage = (message: Message) => isSelectableMessage(message) && !message.is_system;
 

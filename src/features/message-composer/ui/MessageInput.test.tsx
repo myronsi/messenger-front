@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MessageInput from './MessageInput';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: {
-  writeMessage: 'Write a message', attachFile: 'Attach file', dropFileToAttach: 'Drop a file to attach it', attachDisabledWhileEditing: 'Not while editing',
+  writeMessage: 'Write a message', writeCaption: 'Write a caption...', attachFile: 'Attach file', dropFileToAttach: 'Drop a file to attach it', attachDisabledWhileEditing: 'Not while editing',
 } }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 const setErrorMessage = vi.fn();
@@ -38,6 +38,17 @@ const renderInput = (messageInput = 'Hello', editingMessage: Message | null = nu
 describe('MessageInput', () => {
   beforeEach(() => setPointer(false));
 
+  it('asks for a caption while editing a file message', () => {
+    const photo: Message = { ...editing, type: 'file', content: { file_url: '/a.png', file_name: 'a.png', file_type: 'image/png', file_size: 5 } };
+    const { field } = renderInput('', photo);
+    expect(field).toHaveAttribute('placeholder', 'Write a caption...');
+  });
+
+  it('asks for a message while editing a text message', () => {
+    const { field } = renderInput('', editing);
+    expect(field).toHaveAttribute('placeholder', 'Write a message');
+  });
+
   it('blurs a cancelled mobile edit without disabling the composer or scheduling refocus', () => {
     setPointer(true);
     const { field, onCancel } = renderInput('New text', editing);
@@ -49,6 +60,17 @@ describe('MessageInput', () => {
     expect(field).not.toBeDisabled();
     expect(frame).not.toHaveBeenCalled();
     frame.mockRestore();
+  });
+
+  it('lets the keyboard stay closed when a mobile reply is cancelled after hiding it', () => {
+    setPointer(true);
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: { width: 390, height: 800, scale: 1, addEventListener: vi.fn() } });
+    const { field, onCancel } = renderInput('Reply text', null, editing);
+    field.focus();
+    fireEvent.click(screen.getByTestId('reply-edit-bar').querySelector('button')!);
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(field).not.toHaveFocus();
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: undefined });
   });
 
   it('keeps focus when cancelling mobile replies repeatedly without delayed refocus', () => {

@@ -25,6 +25,7 @@ interface ContextMenuProps {
   setReactionMenu: (value: { message: Message; x: number; y: number; isClosing?: boolean } | null) => void;
   messageInputRef: React.RefObject<HTMLTextAreaElement | null>;
   canDeleteMessage?: (message: Message) => boolean;
+  isDirect?: boolean;
   onForward?: (message: Message) => void;
   onSelect?: (message: Message) => void;
 }
@@ -46,6 +47,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     setReactionMenu,
     messageInputRef,
     canDeleteMessage,
+    isDirect = false,
     onForward,
     onSelect,
   }, ref) => {
@@ -183,6 +185,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         {...(canEdit && { onEdit: handleEdit })}
         onDeleteForMe={() => void handleDeleteForMe()}
         onDeleteForEveryone={canDelete ? handleDeleteForEveryone : undefined}
+        forBoth={isDirect}
         {...(!isFile && { onCopy: handleCopy })}
         onReply={handleReply}
         onForward={onForward && message ? handleForward : undefined}

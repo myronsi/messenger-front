@@ -5,6 +5,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel } from './groupProfileHelpers';
+import GroupRoleHistory from './GroupRoleHistory';
 
 interface Props {
   model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
@@ -103,6 +104,8 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({ model, canEdit, canDeleteGr
           </div>
         </div>
       </section>
+
+      <GroupRoleHistory chatId={model.chatId} rolesKey={participants.map((participant) => `${participant.id}:${participant.role}`).join(',')} />
 
       <button
         type="button"

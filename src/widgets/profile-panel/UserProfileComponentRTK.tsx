@@ -34,6 +34,7 @@ interface UserProfileComponentRTKProps {
   }) => void;
   onDeleteChat?: () => void;
   hideMessageAction?: boolean;
+  onJumpToMessage?: (messageId: EntityId) => void;
 }
 
 const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
@@ -43,6 +44,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   onMessage,
   onDeleteChat,
   hideMessageAction = false,
+  onJumpToMessage,
 }) => {
   const { translations, language } = useLanguage();
   const { activeView, panelTransition, selectView: transitionToView } = useProfilePanelTransition(directChatId, username);
@@ -221,7 +223,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
       view={view} canShowPhotos={canShowPhotosAction} canShowAudios={canShowAudiosAction}
       photos={dmPhotos} audios={dmAudios}
       isLoadingPhotos={isLoadingDmPhotos} isLoadingAudios={isLoadingDmAudios}
-      photosError={dmPhotosError} audiosError={dmAudiosError} infoPanel={infoPanel}
+      photosError={dmPhotosError} audiosError={dmAudiosError} infoPanel={infoPanel} currentUsername={currentUser?.username}
+      onJumpToMessage={onJumpToMessage}
     />
   );
 

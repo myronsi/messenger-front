@@ -34,24 +34,34 @@ export const formatDateOnly = (date: string | Date, language: 'en' | 'ru') => {
   return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', options).format(dateObj);
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
 export const formatDateLabel = (date: string | Date, language: 'en' | 'ru', today: Date, yesterday: Date): string => {
   const dateObj = parseUtcDate(date);
-  
+  const locale = language === 'ru' ? 'ru-RU' : 'en-GB';
+
   if (dateObj.toDateString() === today.toDateString()) {
     return language === 'ru' ? 'Сегодня' : 'Today';
   }
-  
+
   if (dateObj.toDateString() === yesterday.toDateString()) {
     return language === 'ru' ? 'Вчера' : 'Yesterday';
   }
-  
-  const options: Intl.DateTimeFormatOptions = {
-    day: 'numeric',
-    month: 'long',
-    year: dateObj.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
-  };
-  
-  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', options).format(dateObj);
+
+  const daysAgo = Math.round((startOfDay(today).getTime() - startOfDay(dateObj).getTime()) / DAY_MS);
+  if (daysAgo >= 2 && daysAgo <= 6) {
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(dateObj);
+    return weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  }
+
+  const yearAgo = new Date(startOfDay(today));
+  yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+  const withYear = startOfDay(dateObj) <= yearAgo || daysAgo < 0 && dateObj.getFullYear() !== today.getFullYear();
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', ...(withYear ? { year: 'numeric' } : {}) })
+    .format(dateObj)
+    .replace(/\s?г\.$/, '');
 };
 
 export const formatTime = (date: string | Date, language: 'en' | 'ru'): string => {

@@ -91,3 +91,18 @@ describe('SelectionBar actions', () => {
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveAttribute('aria-label', 'Delete');
   });
 });
+
+describe('SelectionBar after the selection closes', () => {
+  it('does not reopen an old dialog for the next selection', () => {
+    const bar = (active: boolean) => (
+      <SelectionBar chatId="5" messages={[message('1'), message('2')]} username="me" canDeleteForEveryone={(m) => !!m.is_own} onClear={vi.fn()}
+        selection={{ ids: new Set<EntityId>(active ? ['1'] : []), active, closing: false, toggle: vi.fn(), start: vi.fn() }} />
+    );
+    const view = render(bar(true));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getByText('Delete 1 messages?')).toBeInTheDocument();
+    view.rerender(bar(false));
+    view.rerender(bar(true));
+    expect(screen.queryByText('Delete 1 messages?')).not.toBeInTheDocument();
+  });
+});

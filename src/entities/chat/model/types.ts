@@ -125,3 +125,6 @@ export interface RawGroupDetails {
   owner_username?: string; admin_id?: EntityId; admin_username?: string; current_user_role?: GroupRole;
   participants?: RawGroupParticipant[]; pending_invites?: RawGroupPendingInvite[];
 }
+export interface GroupRoleLogUser { id: EntityId; username: string; display_name: string }
+export interface GroupRoleEvent { id: EntityId; actor: GroupRoleLogUser | null; target: GroupRoleLogUser; role: GroupRole; created_at: string }
+export interface GroupRoleLog { items: GroupRoleEvent[] }

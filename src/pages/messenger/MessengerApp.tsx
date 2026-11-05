@@ -1,17 +1,18 @@
 import { RecoverySetupPrompt } from '@/widgets/profile-panel';
 import { isGoApi } from '@/shared/api/goSocket';
-import { isPersistedId } from '@/shared/api/entityId';
+import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
 import ChatsListComponentRTK from '@/widgets/chat-list';
 import Chat from '@/widgets/chat-room';
 import GroupComponent from '@/widgets/group-chat';
 import ProfileComponentRTK from '@/widgets/profile-panel';
-import { UserProfileComponentRTK } from '@/widgets/profile-panel';
+import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-panel';
 import { useMessengerController } from './model/useMessengerController';
 import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
 import { DesktopChatLayout } from './ui/DesktopChatLayout';
+import { useJumpRequest } from './model/useJumpRequest';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -42,6 +43,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     handleChatDeleted,
     handleDeleteCurrentChat,
     mobileChatPanelClass,
+    mobilePanelChat,
   } = useMessengerController();
 
   const currentUserProfileProps = useMemo(() => ({
@@ -61,6 +63,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   ]);
   const [renderUserProfile, setRenderUserProfile] = useState(isUserProfileOpen);
   const [isUserProfileClosing, setIsUserProfileClosing] = useState(false);
+  const { requestJump, requestFor } = useJumpRequest(currentChat?.id);
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
   useVisualViewport(isMobile && isLoggedIn);
 
@@ -90,43 +93,49 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     }, 160);
   };
 
+  const jumpChatId = renderedUserProfileProps.directChatId;
   const userProfileProps = {
     ...renderedUserProfileProps,
+    onJumpToMessage: jumpChatId ? (messageId: EntityId) => {
+      requestCloseUserProfile();
+      requestJump(jumpChatId, messageId);
+    } : undefined,
     onClose: requestCloseUserProfile,
   };
 
-  const activeChat = currentChat
-    ? currentChat.type === 'group'
+  const activeChat = mobilePanelChat
+    ? mobilePanelChat.type === 'group'
       ? (
         <GroupComponent
-          key={currentChat.id}
-          chatId={currentChat.id}
-          groupName={currentChat.name}
+          key={mobilePanelChat.id}
+          chatId={mobilePanelChat.id}
+          groupName={mobilePanelChat.name}
           username={username}
-          firstUnreadMessageId={currentChat.firstUnreadMessageId}
+          firstUnreadMessageId={mobilePanelChat.firstUnreadMessageId}
           onBack={backToChats}
           onOpenUserProfile={openUserProfile}
         />
       )
       : (
         <Chat
-          key={`${currentChat.type}-${currentChat.id}-${currentChat.name}`}
-          chatId={currentChat.id}
-          chatName={currentChat.name}
-          chatDisplayName={currentChat.displayName}
-          interlocutorIsOnline={currentChat.isOnline}
-          interlocutorLastSeen={currentChat.lastSeen}
-          interlocutorAvatarUrl={currentChat.avatarUrl}
+          key={`${mobilePanelChat.type}-${mobilePanelChat.id}-${mobilePanelChat.name}`}
+          chatId={mobilePanelChat.id}
+          chatName={mobilePanelChat.name}
+          chatDisplayName={mobilePanelChat.displayName}
+          interlocutorIsOnline={mobilePanelChat.isOnline}
+          interlocutorLastSeen={mobilePanelChat.lastSeen}
+          interlocutorAvatarUrl={mobilePanelChat.avatarUrl}
           username={username}
-          interlocutorDeleted={currentChat.interlocutorDeleted}
-          firstUnreadMessageId={currentChat.firstUnreadMessageId}
+          interlocutorDeleted={mobilePanelChat.interlocutorDeleted}
+          firstUnreadMessageId={mobilePanelChat.firstUnreadMessageId}
           onBack={backToChats}
           setIsUserProfileOpen={setIsUserProfileOpen}
           onOpenUserProfile={openUserProfile}
-          directDraftDisabled={currentChat.directDraftDisabled}
-          directDraftReason={currentChat.directDraftReason}
-          initialPendingApprovalRequest={currentChat.pendingApprovalRequest}
-          initialPendingApprovalMessage={currentChat.pendingApprovalMessage}
+          messageJumpRequest={requestFor(mobilePanelChat.id)}
+          directDraftDisabled={mobilePanelChat.directDraftDisabled}
+          directDraftReason={mobilePanelChat.directDraftReason}
+          initialPendingApprovalRequest={mobilePanelChat.pendingApprovalRequest}
+          initialPendingApprovalMessage={mobilePanelChat.pendingApprovalMessage}
           onChatCreated={handleDirectChatCreated}
         />
       )
@@ -171,13 +180,9 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
               </div>
 
               {renderUserProfile && (
-                <div
-                  className={`fixed inset-0 z-[1000] bg-white transition-transform duration-200 ease-out ${
-                    isUserProfileClosing ? 'translate-x-full opacity-95' : 'translate-x-0 opacity-100'
-                  }`}
-                >
+                <UserProfileLayer isMobile isClosing={isUserProfileClosing} onClose={requestCloseUserProfile}>
                   <UserProfileComponentRTK {...userProfileProps} />
-                </div>
+                </UserProfileLayer>
               )}
             </div>
           ) : (
@@ -203,20 +208,9 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
               </DesktopChatLayout>
 
               {renderUserProfile && (
-                <div
-                  className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-6 py-6 transition-opacity duration-200 ease-out ${
-                    isUserProfileClosing ? 'opacity-0' : 'opacity-100'
-                  }`}
-                >
-                  <div
-                    className={`h-[min(780px,calc(100vh-3rem))] w-[420px] max-w-full overflow-hidden rounded-lg bg-white shadow-2xl transition-all duration-200 ease-out ${
-                      isUserProfileClosing ? 'translate-y-3 scale-95 opacity-0' : 'translate-y-0 scale-100 opacity-100'
-                    }`}
-                    onMouseDown={(event) => event.stopPropagation()}
-                  >
-                    <UserProfileComponentRTK {...userProfileProps} />
-                  </div>
-                </div>
+                <UserProfileLayer isMobile={false} isClosing={isUserProfileClosing} onClose={requestCloseUserProfile}>
+                  <UserProfileComponentRTK {...userProfileProps} />
+                </UserProfileLayer>
               )}
             </div>
           )}

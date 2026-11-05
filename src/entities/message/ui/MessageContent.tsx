@@ -9,6 +9,8 @@ import ImageMessage from './ImageMessage';
 import FileMessage from './FileMessage';
 import { LinkedMessageText } from './LinkedMessageText';
 import { MessageTextBody } from './MessageTextBody';
+import LinkPreviewCard from './LinkPreviewCard';
+import { messageLinks } from '@/shared/lib/messageLinks';
 
 
 
@@ -37,7 +39,14 @@ const MessageContent: React.FC<MessageContentProps> = ({
 }) => {
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
-    return typeof content === 'string' ? <MessageTextBody text={content} trailing={trailing} /> : <>{content}{trailing}</>;
+    if (typeof content !== 'string') return <>{content}{trailing}</>;
+    const link = message.is_deleted || message.system_event ? undefined : messageLinks(content).find((part) => part.href)?.href;
+    return (
+      <>
+        <MessageTextBody text={content} trailing={trailing} />
+        {link && <LinkPreviewCard url={link} isMine={isOwnMessage(message)} />}
+      </>
+    );
   }
 
   const fileName = message.content.file_name || '';
@@ -78,6 +87,10 @@ const MessageContent: React.FC<MessageContentProps> = ({
         height={message.content.image_height}
         fileName={fileName}
         isMine={isOwnMessage(message)}
+        viewerInfo={{
+          sender: isOwnMessage(message) ? translations.replyFromYou : message.sender,
+          avatarName: message.sender, avatarUrl: message.avatar_url, sentAt: message.timestamp,
+        }}
       />,
       true
     );

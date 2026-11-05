@@ -8,13 +8,14 @@ import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 interface ReplyPreviewProps {
   replyMessage: Message | undefined;
   isMine: boolean;
+  isReplyToOwn?: boolean;
   isImage?: boolean;
   onClick?: () => void;
 }
 
 const IMAGE_NAME = /\.(jpg|jpeg|png|gif|webp)$/i;
 
-const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isImage = false, onClick }) => {
+const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isReplyToOwn = false, isImage = false, onClick }) => {
   const { translations } = useLanguage();
   const { getFileTypeConfig } = useFileTypes();
 
@@ -31,7 +32,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isIma
   };
 
   const content = describe(replyMessage);
-  const sender = replyMessage?.sender || '';
+  const sender = replyMessage && isReplyToOwn ? translations.replyFromYou : replyMessage?.sender || '';
 
   return (
     <button
@@ -41,8 +42,8 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isIma
         event.stopPropagation();
         onClick?.();
       }}
-      className={`flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border-l-[3px] py-1 pl-2 pr-2.5 text-left transition-colors ${
-        isImage ? 'mx-1.5 mb-1.5 mt-1.5 w-[calc(100%-0.75rem)] max-w-[calc(100%-0.75rem)]' : 'mb-1.5 w-full max-w-full'
+      className={`flex min-w-0 items-center gap-2 overflow-hidden border-l-[3px] py-1 pl-2 pr-2.5 text-left transition-colors ${
+        isImage ? 'mx-1.5 mb-1.5 mt-1.5 w-[calc(100%-0.75rem)] max-w-[calc(100%-0.75rem)] rounded-lg' : '-mx-2 mb-1.5 w-[calc(100%+1rem)] max-w-[calc(100%+1rem)] rounded-xl'
       } ${isMine ? 'border-white/80 bg-white/15 hover:bg-white/20' : 'border-primary bg-primary/10 hover:bg-primary/15'}`}
     >
       {content.imageUrl && (

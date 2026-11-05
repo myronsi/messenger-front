@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Copy, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { copyText } from '@/shared/lib/copyText';
@@ -6,7 +6,7 @@ import { useDismissFirstMenu } from '@/shared/lib/useDismissFirstMenu';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/shared/ui/context-menu';
 import { ExternalLinkConfirm } from './ExternalLinkConfirm';
 
-export function MessageLink({ href, children }: { href: string; children: string }) {
+export function MessageLink({ href, children }: { href: string; children: React.ReactNode }) {
   const { translations } = useLanguage();
   const [open, setOpen] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);

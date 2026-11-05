@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { thumbnailTarget } from './thumbnailTarget';
+import { openerElement } from './openerElement';
 import { returnToThumbnail } from './returnToThumbnail';
 
 export function useSwipeDismiss(stage: RefObject<HTMLDivElement | null>, onClose: () => void, sources: (string | undefined)[] = []) {
   const running = useRef<Animation[]>([]);
-  const opener = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  const opener = useRef(openerElement());
   const cleanup = useRef<(() => void) | undefined>(undefined);
   const sourceRef = useRef(sources);
   sourceRef.current = sources;

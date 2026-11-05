@@ -664,7 +664,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Profile by username */
+        /**
+         * Profile by username
+         * @description Like `GET /users/{user_id}`: a user whose `search_visibility` hides them from the current user (`nobody`
+         *     without an `allow` exception, or a `deny` exception) is `404` unless the two share a chat. Lookups are
+         *     rate limited per user.
+         */
         get: operations["getUserByUsername"];
         put?: never;
         post?: never;
@@ -688,7 +693,12 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Profile by ID */
+        /**
+         * Profile by ID
+         * @description A user whose `search_visibility` hides them from the current user (`nobody` without an `allow` exception,
+         *     or a `deny` exception) is `404` unless the two share a chat. Your own profile is always found. Lookups are
+         *     rate limited per user.
+         */
         get: operations["getUser"];
         put?: never;
         post?: never;
@@ -767,7 +777,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set your own display name for a user */
+        /**
+         * Set your own display name for a user
+         * @description Follows the rules of `GET /users/{user_id}`: a user whose `search_visibility` hides them from you is `404`
+         *     unless the two of you share a chat, and the calls count against the same per-user limit.
+         */
         put: operations["setContactName"];
         post?: never;
         /** Remove your display name for a user */
@@ -1060,7 +1074,8 @@ export interface paths {
         /**
          * Delete a message
          * @description `scope=me` hides it for the current user only (any message). `scope=everyone` removes
-         *     it for all participants (own messages, and any message for group admins).
+         *     it for all participants: own messages, any message of a direct chat (either side), and any message
+         *     for group owners, admins and moderators.
          */
         delete: operations["deleteMessage"];
         options?: never;
@@ -1144,7 +1159,8 @@ export interface paths {
         /**
          * Delete several messages of a chat
          * @description Deletes up to 100 messages of the chat with the rules of `DELETE /messages/{message_id}`. Every message
-         *     is checked first: when one may not be deleted, none is.
+         *     is checked first: when one may not be deleted, none is. With `scope` everyone, messages that are already
+         *     deleted for everyone count as done, so a retry after a partial failure finishes the rest.
          */
         post: operations["deleteMessages"];
         delete?: never;
@@ -1430,6 +1446,88 @@ export interface paths {
          * @description The owner has to transfer ownership first.
          */
         post: operations["leaveGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{chat_id}/role-log": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Role changes of the group's members
+         * @description Who made whom an admin or a member, or transferred ownership, and when. Members only.
+         */
+        get: operations["getGroupRoleLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/link-preview": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview of a web page for a link in a message
+         * @description Reads the page's Open Graph data (`og:title`, `og:description`, `og:site_name`, `og:image`; falling back to
+         *     `<title>`, `description` and `twitter:image`). Only public `http`/`https` addresses on ports 80 and 443
+         *     are fetched. Answers are cached for a day (a page without a preview for an hour). `image.url` points to
+         *     `GET /link-preview/image`, so clients never load third-party images directly. `404` when the page has
+         *     no preview or cannot be fetched.
+         */
+        get: operations["getLinkPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/link-preview/image": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The image of a link preview, through the server
+         * @description Use the `image.url` of a link preview as it is; `sig` proves the server made it. PNG, JPEG, GIF and WebP
+         *     up to 5 MB, sent with `X-Content-Type-Options: nosniff`.
+         */
+        get: operations["getLinkPreviewImage"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1804,6 +1902,7 @@ export interface components {
         };
         /**
          * @description Who may see the item. The exception lists apply to every value; `*_except` behave like `everyone` and `nobody`.
+         *     `contacts` are the users you share a group with, or a direct chat that you opened or read in.
          * @enum {string}
          */
         Visibility: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody";
@@ -1899,6 +1998,8 @@ export interface components {
             width?: number | null;
             height?: number | null;
             readonly thumbnail_url?: string | null;
+            /** @description A JPEG of at most 1600 px to show in an image viewer instead of the original; `null` for small images and GIFs, which are shown as they are. */
+            readonly display_url?: string | null;
             duration_ms?: number | null;
             waveform?: number[] | null;
         };
@@ -1950,7 +2051,36 @@ export interface components {
             created_at: components["schemas"]["Timestamp"];
             edited_at: components["schemas"]["Timestamp"] | null;
             is_deleted: boolean;
+            system_event?: components["schemas"]["SystemEvent"];
             client_temp_id?: components["schemas"]["ClientTempId"];
+        };
+        LinkPreview: {
+            /** @description The page after redirects */
+            url: string;
+            title: string | null;
+            description: string | null;
+            site_name: string | null;
+            image: components["schemas"]["LinkPreviewImage"] | null;
+        };
+        LinkPreviewImage: {
+            /** @description `GET /link-preview/image` with the signed address of the page's image */
+            url: string;
+            width: number | null;
+            height: number | null;
+        };
+        /** @enum {string} */
+        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left";
+        /**
+         * @description What a `system` message records; set on system messages only, whose `content` is then `null`. The names
+         *     are the display names at the time of the event. `target` fields are set for `member_added` and
+         *     `member_removed`.
+         */
+        SystemEvent: {
+            kind: components["schemas"]["SystemEventKind"];
+            actor_id: components["schemas"]["Id"] | null;
+            actor_name: string;
+            target_id?: components["schemas"]["Id"];
+            target_name?: string;
         };
         MessagePage: {
             /** @description Oldest to newest */
@@ -2008,8 +2138,24 @@ export interface components {
         };
         /** @enum {string} */
         ChatType: "direct" | "group";
-        /** @enum {string} */
-        GroupRole: "owner" | "admin" | "member";
+        /**
+         * @description A moderator may delete other members' messages; owners and admins also manage the group.
+         * @enum {string}
+         */
+        GroupRole: "owner" | "admin" | "moderator" | "member";
+        /** @description A member got a new role; `owner` means the actor transferred ownership to them. */
+        GroupRoleEvent: {
+            id: components["schemas"]["Id"];
+            /** @description `null` when the account is gone. */
+            actor: components["schemas"]["User"] | null;
+            target: components["schemas"]["User"];
+            role: components["schemas"]["GroupRole"];
+            created_at: components["schemas"]["Timestamp"];
+        };
+        GroupRoleLog: {
+            /** @description Newest first, at most 100 */
+            items: components["schemas"]["GroupRoleEvent"][];
+        };
         Chat: {
             id: components["schemas"]["Id"];
             type: components["schemas"]["ChatType"];
@@ -2062,7 +2208,7 @@ export interface components {
         };
         UpdateRoleRequest: {
             /** @enum {string} */
-            role: "admin" | "member";
+            role: "admin" | "moderator" | "member";
         };
         TransferOwnerRequest: {
             user_id: components["schemas"]["Id"];
@@ -3306,6 +3452,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     getUser: {
@@ -3337,6 +3484,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     getUserAvatar: {
@@ -3471,6 +3619,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     removeContactName: {
@@ -3540,8 +3689,12 @@ export interface operations {
     getAttachmentContent: {
         parameters: {
             query?: {
-                /** @description `thumbnail`: a JPEG of at most 320 px (images only; `thumbnail_url` of the attachment). */
-                variant?: "thumbnail";
+                /**
+                 * @description `thumbnail`: a JPEG of at most 320 px (images only; `thumbnail_url` of the attachment).
+                 *     `display`: a JPEG of at most 1600 px for viewing a large still image (`display_url` of the attachment);
+                 *     the original for any other attachment.
+                 */
+                variant?: "thumbnail" | "display";
             };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
@@ -4716,6 +4869,104 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getGroupRoleLog: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Role changes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRoleLog"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getLinkPreview: {
+        parameters: {
+            query: {
+                url: string;
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getLinkPreviewImage: {
+        parameters: {
+            query: {
+                url: string;
+                sig: string;
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image content */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     getNotificationSettings: {

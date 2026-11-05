@@ -14,15 +14,22 @@ interface SelectionBarProps {
   selection?: MessageSelection;
   username: string;
   canDeleteForEveryone: (message: Message) => boolean;
+  isDirect?: boolean;
   onClear: () => void;
 }
 
-const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection, username, canDeleteForEveryone, onClear }) => {
+const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection, username, canDeleteForEveryone, isDirect = false, onClear }) => {
   const { translations } = useLanguage();
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteFailed, setDeleteFailed] = useState(false);
   const [deleteMessages, { isLoading: isDeleting }] = useDeleteMessagesMutation();
+  const active = !!selection?.active;
+  useEffect(() => {
+    if (active) return;
+    setIsForwardOpen(false);
+    setIsDeleteOpen(false);
+  }, [active]);
 
   const selected = useMemo(() => messages.filter((message) => selection?.ids.has(message.id)), [messages, selection]);
   const ids = selected.map((message) => message.id);
@@ -93,7 +100,9 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
           {deleteFailed && <p className="text-sm text-destructive">{translations.failedToDeleteMessages}</p>}
           <div className="flex flex-col gap-2">
             {forEveryone && (
-              <Button type="button" variant="destructive" disabled={isDeleting} onClick={() => void remove('everyone')}>{translations.deleteForEveryone}</Button>
+              <Button type="button" variant="destructive" disabled={isDeleting} onClick={() => void remove('everyone')}>
+                {isDirect ? translations.deleteForBoth : translations.deleteForEveryone}
+              </Button>
             )}
             <Button type="button" variant={forEveryone ? 'outline' : 'destructive'} disabled={isDeleting} onClick={() => void remove('me')}>{translations.deleteForMe}</Button>
             <Button type="button" variant="ghost" disabled={isDeleting} onClick={() => setIsDeleteOpen(false)}>{translations.cancel}</Button>
