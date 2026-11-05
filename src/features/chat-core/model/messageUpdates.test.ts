@@ -47,16 +47,16 @@ describe('mergeIncomingMessage', () => {
   it('replaces the optimistic text message and reports its temp id', () => {
     const onResolved = vi.fn();
     const pending = msg(-5, { content: 'hello', is_own: true });
-    const result = mergeIncomingMessage([msg(1), pending], msg(10, { content: 'hello' }), onResolved);
+    const result = mergeIncomingMessage([msg(1), pending], msg(10, { content: 'hello', client_temp_id: '-5' }), onResolved);
     expect(result.map((m) => m.id)).toEqual([1, 10]);
     expect(result[1]).toMatchObject({ client_temp_id: -5, is_own: true });
     expect(onResolved).toHaveBeenCalledWith(-5);
   });
 
-  it('replaces an uploading file placeholder with the same name and size', () => {
+  it('replaces an uploading file placeholder by its client temp id', () => {
     const content = { file_url: '', file_name: 'a.png', file_type: 'image/png', file_size: 5 };
     const pending = msg(-2, { type: 'file', content, upload_status: 'uploading' });
-    const incoming = msg(20, { type: 'file', content: { ...content, file_url: '/a.png' } });
+    const incoming = msg(20, { type: 'file', client_temp_id: '-2', content: { ...content, file_url: '/a.png' } });
     const result = mergeIncomingMessage([pending], incoming);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: 20, client_temp_id: -2 });
@@ -75,7 +75,7 @@ describe('mergeIncomingMessage', () => {
     const content = { file_url: '', file_name: 'a.png', file_type: 'image/png', file_size: 5 };
     const pending = msg(-2, { type: 'file', content, client_temp_id: -2, upload_status: 'uploading' });
     const incoming = msg('20', { type: 'file', client_temp_id: 'other-device', content });
-    expect(mergeIncomingMessage([pending], incoming).map((m) => m.id)).toEqual([-2, '20']);
+    expect(mergeIncomingMessage([pending], incoming).map((m) => m.id)).toEqual(['20', -2]);
   });
 
   it('keeps an uploading placeholder when another member sends a file with the same temp id', () => {
@@ -83,12 +83,29 @@ describe('mergeIncomingMessage', () => {
     const pending = msg(-2, { type: 'file', content, client_temp_id: -2, upload_status: 'uploading', is_own: true });
     const incoming = msg('20', { type: 'file', client_temp_id: '-2', sender: 'bob', sender_id: 2, content });
     const result = mergeIncomingMessage([pending], incoming);
-    expect(result.map((m) => m.id)).toEqual([-2, '20']);
-    expect(result[1].is_own).toBeUndefined();
+    expect(result.map((m) => m.id)).toEqual(['20', -2]);
+    expect(result[0].is_own).toBeUndefined();
   });
 
   it('appends unrelated messages', () => {
     expect(mergeIncomingMessage([msg(1)], msg(2)).map((m) => m.id)).toEqual([1, 2]);
+  });
+
+  it('sorts late live messages without losing precision', () => {
+    const result = mergeIncomingMessage([msg('9007199254740993'), msg(-1)], msg('9007199254740992'));
+    expect(result.map(m => m.id)).toEqual(['9007199254740992', '9007199254740993', -1]);
+  });
+
+  it('does not match identical text without a client temp id', () => {
+    const pending = msg(-1, { content: 'ok' });
+    expect(mergeIncomingMessage([pending], msg('2', { content: 'ok' })).map(m => m.id)).toEqual(['2', -1]);
+  });
+
+  it('matches two identical sends by their individual client ids even in reverse delivery order', () => {
+    const start = [msg(-1, { content: 'ok' }), msg(-2, { content: 'ok' })];
+    const second = mergeIncomingMessage(start, msg('11', { content: 'ok', client_temp_id: '-2' }));
+    const first = mergeIncomingMessage(second, msg('10', { content: 'ok', client_temp_id: '-1' }));
+    expect(first.map(m => [m.id, m.client_temp_id])).toEqual([['10', -1], ['11', -2]]);
   });
 });
 

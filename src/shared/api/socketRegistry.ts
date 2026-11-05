@@ -1,3 +1,4 @@
+import { realtime } from '@/shared/api/realtime';
 const openSockets = new Set<WebSocket>();
 
 export const trackWebSocket = (socket: WebSocket) => {
@@ -7,6 +8,7 @@ export const trackWebSocket = (socket: WebSocket) => {
 };
 
 export const closeAllWebSockets = () => {
+  realtime.stop();
   openSockets.forEach((socket) => {
     try {
       socket.close(1000, 'Session ended');

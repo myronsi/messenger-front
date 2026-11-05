@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import { focusComposer } from '@/shared/lib/composerFocus';
 import React, { forwardRef, useEffect } from 'react';
@@ -18,7 +19,7 @@ interface ContextMenuProps {
   setMessageInput: (value: string) => void;
   setReplyTo: (message: Message | null) => void;
   setModal: (modal: ModalState | null) => void;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  wsRef: React.MutableRefObject<SocketSender | null>;
   isClosing: boolean;
   onClose: () => void;
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean } | null;

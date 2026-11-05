@@ -1,8 +1,9 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { setAccessToken } from '@/shared/auth/session';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 
 const normalizeDisplayName = (value: string) => value.trim().replace(/\s+/g, ' ');
 const isValidDisplayName = (value: string) => {
@@ -19,7 +20,6 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const [qrPart, setQrPart] = useState('');
   const [recoveryKey, setRecoveryKey] = useState('');
   const [showQr, setShowQr] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -71,20 +71,14 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
         if (!data.access_token) throw new Error(translations.registerFailed || 'Registration failed');
         setAccessToken(data.access_token);
         setUsername(normalizedUsername);
-        if (typeof data.device_part === 'string' && data.device_part) {
-          const existingDeviceParts = JSON.parse(localStorage.getItem('device_parts') || '{}');
-          existingDeviceParts[normalizedUsername] = data.device_part;
-          localStorage.setItem('device_parts', JSON.stringify(existingDeviceParts));
-          localStorage.setItem('device_part', data.device_part);
-        } else {
-          localStorage.removeItem('device_part');
-        }
-        const hasRecoveryQr = typeof data.qr_part === 'string' && Boolean(data.qr_part);
+        // Recovery secrets live only in this step's memory, never browser storage.
+        localStorage.removeItem('device_part');
+        localStorage.removeItem('device_parts');
+        setPassword('');
         setRecoveryKey(typeof data.recovery_key === 'string' ? data.recovery_key : '');
-        setQrPart(hasRecoveryQr ? data.qr_part : '');
-        setShowQr(hasRecoveryQr || Boolean(data.recovery_key));
-        setShowProfileSetup(!hasRecoveryQr && !data.recovery_key);
-        setMessage(hasRecoveryQr ? `${translations.registerSuccess} ${translations.saveQrPart}` : '');
+        setShowQr(Boolean(data.recovery_key));
+        setShowProfileSetup(!data.recovery_key);
+        setMessage('');
       } else {
         setMessage(response.status === 429 ? 'Too many registration attempts. Please try again later.' : data.detail || translations.registerFailed);
       }
@@ -188,56 +182,6 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
     }
   }, [finishRegistration, profileAvatarFile, profileBio, translations]);
 
-  const downloadQR = useCallback(() => {
-    const svg = document.getElementById('qr-code');
-    if (!(svg instanceof SVGSVGElement)) {
-      console.error('QR code SVG element not found or invalid');
-      setMessage(translations.qrDownloadError);
-      return;
-    }
-    try {
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement('canvas');
-      canvas.width = 220;
-      canvas.height = 220;
-      const context = canvas.getContext('2d');
-      if (!context) {
-        setMessage(translations.qrDownloadError);
-        return;
-      }
-      const image = new Image();
-      image.onload = () => {
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 10, 10, 200, 200);
-        const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
-        const downloadLink = document.createElement('a');
-        downloadLink.href = pngUrl;
-        downloadLink.download = `recovery-qr-${username}.png`;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-      };
-      image.onerror = () => {
-        console.error('Failed to load SVG image');
-        setMessage(translations.qrDownloadError);
-      };
-      image.src = `data:image/svg+xml;base64,${btoa(svgData)}`;
-    } catch (error) {
-      console.error('Error downloading QR code:', error);
-      setMessage(translations.qrDownloadError);
-    }
-  }, [username, translations]);
-
-  const copyQrPart = useCallback(() => {
-    navigator.clipboard.writeText(qrPart).then(() => {
-      setMessage(translations.qrPartCopied);
-      setTimeout(() => setMessage(''), 3000);
-    }).catch(() => {
-      setMessage(translations.qrPartCopyFailed);
-    });
-  }, [qrPart, translations]);
-
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     handleRegister();
@@ -246,12 +190,12 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const inputsFilled = Boolean(username && normalizeDisplayName(displayName) && password);
 
   return {
-    avatarCropFile, avatarCropPreview, cancelAvatarCrop, copyQrPart, displayName,
-    downloadQR, finishRegistration, handleContinue, handleCroppedAvatar,
+    avatarCropFile, avatarCropPreview, cancelAvatarCrop, displayName,
+    finishRegistration, handleContinue, handleCroppedAvatar,
     handleProfileAvatarChange, handleRegister, handleSaveProfileSetup, handleSubmit,
     inputsFilled, isDisplayNameValid: isValidDisplayName(displayName),
     isSavingProfile, message, password, profileAvatarFile,
-    profileAvatarPreview, profileBio, qrPart, recoveryKey, removeProfileAvatar, setDisplayName,
+    profileAvatarPreview, profileBio, recoveryKey, removeProfileAvatar, setDisplayName,
     setPassword, setProfileBio, setShowPassword, setUsername, showPassword,
     showProfileSetup, showQr, translations, username,
   };

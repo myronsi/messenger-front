@@ -45,3 +45,6 @@ ios/DerivedData
 
 # Keep backend checkouts separate; do not commit a nested Git repository.
 /messenger-back/
+
+# npm pack's working output; the content-addressed contract archive is tracked.
+/vendor/myronsi-messenger-api-*.tgz

@@ -1,8 +1,7 @@
 export * from './model/types';
 export { RecoveryKeyComponent } from './RecoveryKeyComponent';
+export { DeviceRecoveryComponent } from './DeviceRecoveryComponent';
+export { EmailRecoveryComponent } from './EmailRecoveryComponent';
 export * from './api/authApi';
 export { default as LoginComponent } from './LoginComponent';
 export { default as RegisterComponent } from './RegisterComponent';
-export { default as UsernameRecoveryComponent } from './UsernameRecoveryComponent';
-export { default as PartsRecoveryComponent } from './PartsRecoveryComponent';
-export { default as PasswordResetComponent } from './PasswordResetComponent';

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { createEnglishContext, createSmokeUser, loginUser, logoutUser, waitForMessenger } from './helpers';
+import { readFile } from 'node:fs/promises';
+import { confirmRecoveryReceipt, createEnglishContext, createSmokeUser, loginUser, logoutUser, waitForMessenger } from './helpers';
 
 test('an existing Go user can enroll a recovery key after signing in', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1' || !process.env.GO_LEGACY_USERNAME || !process.env.GO_LEGACY_PASSWORD, 'Requires a synthetic account without a recovery key');
@@ -15,7 +16,7 @@ test('an existing Go user can enroll a recovery key after signing in', async ({ 
     await dialog.getByLabel('Current password').fill(process.env.GO_LEGACY_PASSWORD!);
     await dialog.getByRole('button', { name: 'Create recovery key', exact: true }).click();
     await expect(dialog.getByTestId('recovery-key')).toBeVisible();
-    await dialog.getByLabel('I saved my recovery key').check();
+    await confirmRecoveryReceipt(dialog);
     await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(dialog.getByText('A recovery key is set up.', { exact: false })).toBeVisible();
     await dialog.getByRole('button', { name: 'Close', exact: true }).click();
@@ -41,8 +42,19 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await page.getByRole('button', { name: 'Register', exact: true }).click();
     const key = await page.getByTestId('recovery-key').innerText();
     expect(key).toMatch(/^(?:[A-Z2-7]{4}-){7}[A-Z2-7]{4}$/);
+    const textDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download .txt', exact: true }).click();
+    const text = await textDownload;
+    expect(text.suggestedFilename()).toMatch(/\.txt$/);
+    expect(await readFile((await text.path())!, 'utf8')).toContain(`Username: ${user.username}\nRecovery key: ${key}`);
+    await page.getByRole('button', { name: 'Show QR', exact: true }).click();
+    const qrDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download QR', exact: true }).click();
+    const qr = await qrDownload;
+    expect(qr.suggestedFilename()).toMatch(/\.svg$/);
+    expect(await readFile((await qr.path())!, 'utf8')).toContain('<svg');
     await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
-    await page.getByLabel('I saved my recovery key').check();
+    await confirmRecoveryReceipt(page);
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('button', { name: 'Skip for now', exact: true }).click();
     await waitForMessenger(page);
@@ -62,7 +74,7 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await expect(otherPage.getByText('Your password was reset using account recovery. Please sign in again.', { exact: true })).toBeVisible();
     const replacement = await page.getByTestId('recovery-key').innerText();
     expect(replacement).not.toBe(key);
-    await page.getByLabel('I saved my recovery key').check();
+    await confirmRecoveryReceipt(page);
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await waitForMessenger(page);
     const checks = await page.evaluate(async ({ oldToken, username, key, password, api }) => {

@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useRef, useState } from 'react';
 import { useDeleteAccountMutation } from '@/features/profile';
 import { useLogoutMutation } from '@/features/auth';
@@ -6,7 +7,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useDeleteMyAvatarMutation, type User } from '@/entities/user';
 import type { EntityId } from '@/shared/api/entityId';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 const BIO_MAX_LENGTH = 500;
 const normalizeDisplayName = (value: string) => value.trim().replace(/\s+/g, ' ');
 const isValidDisplayName = (value: string) => {

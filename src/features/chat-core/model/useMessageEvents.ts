@@ -1,9 +1,10 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import { compareIds, isPersistedId } from '@/shared/api/entityId';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
+import { useLocalMessageDeletion, removeMessageAnimated, sortMessages } from '@/entities/message';
 import {
   addReaction, addReadReceipts, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
 } from './messageUpdates';
@@ -26,7 +27,7 @@ interface MessageEventsOptions {
   // Translation key shown when the whole chat is deleted (differs for one-to-one and group chats).
   chatDeletedKey: 'chatDeleted' | 'groupDeleted';
   // Events that only one chat kind cares about (presence, group updates, ...).
-  onExtraEvent?: (event: ServerEvent, socket: WebSocket) => void;
+  onExtraEvent?: (event: ServerEvent, socket: SocketSender) => void;
 }
 
 const readerFrom = (event: ReadEvent | ReadBatchEvent) => ({
@@ -43,8 +44,19 @@ export const useMessageEvents = ({
   useLocalMessageDeletion(chatId, setMessages);
   const { pendingMessageIdsRef } = transport;
 
-  return useCallback((event: ServerEvent, socket: WebSocket) => {
+  return useCallback((event: ServerEvent, socket: SocketSender) => {
     switch (event.type) {
+      case 'ack':
+        pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter(id => String(id) !== String(event.client_temp_id));
+        setMessages(previous => {
+          const exists = previous.some(message => String(message.id) === String(event.message_id));
+          return sortMessages(previous.flatMap(message => {
+            if (isPersistedId(message.id) || String(message.client_temp_id ?? message.id) !== String(event.client_temp_id)) return [message];
+            return exists ? [] : [{ ...message, id: event.message_id, timestamp: event.timestamp || message.timestamp,
+              delivery_error: undefined, is_live: true }];
+          }));
+        });
+        return;
       case 'message':
       case 'file': {
         if (event.data?.chat_id != null && String(event.data.chat_id) !== String(chatId)) return;

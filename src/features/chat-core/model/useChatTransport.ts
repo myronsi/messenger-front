@@ -1,9 +1,10 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useRef, useState } from 'react';
 import type { ChatTransport, OutgoingPayload } from './types';
 
 export const useChatTransport = (): ChatTransport => {
-  const wsRef = useRef<WebSocket | null>(null);
+  const wsRef = useRef<SocketSender | null>(null);
   const messageQueueRef = useRef<OutgoingPayload[]>([]);
   const pendingMessageIdsRef = useRef<EntityId[]>([]);
   const [connectionRetryKey, setConnectionRetryKey] = useState(0);

@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import type * as React from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
@@ -47,7 +48,7 @@ export interface GroupChatViewModel {
   setHighlightedMessageId: Setter<EntityId | null>;
   messageRefs: React.MutableRefObject<Record<EntityId, HTMLDivElement | null>>;
   scrollToMessage: (messageId: EntityId) => void;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  wsRef: React.MutableRefObject<SocketSender | null>;
   openMenus: (message: Message, event: React.MouseEvent) => void;
   tempHighlightedMessageId: EntityId | null;
   setTempHighlightedMessageId: Setter<EntityId | null>;

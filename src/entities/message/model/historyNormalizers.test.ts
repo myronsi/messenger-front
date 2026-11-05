@@ -85,8 +85,8 @@ describe('mergeFreshHistoryMessages', () => {
     expect(ids(mergeFreshHistoryMessages([live], [msg('9007199254740992')]))).toEqual(['9007199254740992', '9007199254740993']);
     expect(ids(mergeFreshHistoryMessages([live], []))).toEqual(['9007199254740993']);
   });
-  it('keeps only unsent messages when the fresh page is empty', () => {
-    expect(ids(mergeFreshHistoryMessages([msg(1), msg(-1)], []))).toEqual([-1]);
+  it('keeps confirmed and unsent messages when the fresh page is empty', () => {
+    expect(ids(mergeFreshHistoryMessages([msg(1), msg(-1)], []))).toEqual([1, -1]);
   });
 
   it('keeps older loaded messages, replaces the window and keeps pending ones', () => {
@@ -99,5 +99,9 @@ describe('mergeFreshHistoryMessages', () => {
     const result = mergeFreshHistoryMessages([current], [msg(5)]);
     expect(result[0].is_own).toBe(true);
     expect(result[0].client_temp_id).toBe(-9);
+  });
+
+  it('retains confirmed messages outside and inside a partial refresh window', () => {
+    expect(ids(mergeFreshHistoryMessages([msg('2'), msg('4'), msg('8')], [msg('3'), msg('5')]))).toEqual(['2', '3', '4', '5', '8']);
   });
 });

@@ -1,14 +1,10 @@
-import { RecoveryKeyComponent } from '@/features/auth';
-import { isGoApi } from '@/shared/api/goSocket';
+import { RecoveryKeyComponent, DeviceRecoveryComponent, EmailRecoveryComponent } from '@/features/auth';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { DocsLink } from '@/shared/ui/DocsLink';
 import { notificationReturnPath } from '@/shared/lib/notifications/navigation';
 import {
   LoginComponent,
-  PartsRecoveryComponent,
-  PasswordResetComponent,
   RegisterComponent,
-  UsernameRecoveryComponent,
 } from '@/features/auth';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -59,9 +55,13 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
               }
             />
             <Route path="/register" element={<RegisterComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin} />} />
-            <Route path="/recover-username" element={isGoApi() ? <RecoveryKeyComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin} /> : <UsernameRecoveryComponent onBackToLogin={handleBackToLogin} />} />
-            <Route path="/recover-parts" element={<PartsRecoveryComponent onBackToLogin={handleBackToLogin} />} />
-            <Route path="/reset-password" element={<PasswordResetComponent onBackToLogin={handleBackToLogin} />} />
+            <Route path="/recover-username" element={<RecoveryKeyComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin}
+              onDeviceRecovery={() => navigate('/recover-device', { state: authState })}
+              onEmailRecovery={() => navigate('/recover-email', { state: authState })} />} />
+            <Route path="/recover-email" element={<EmailRecoveryComponent mode="request" onLoginSuccess={onLoginSuccess} onBack={handleBackToLogin} />} />
+            <Route path="/recover-device" element={<DeviceRecoveryComponent onLoginSuccess={onLoginSuccess}
+              onBack={() => navigate('/recover-username', { state: authState })} />} />
+            <Route path="/recover-parts" element={<Navigate to="/recover-username" state={authState} replace />} />
             <Route path="/" element={<Navigate to="/login" state={authState} replace />} />
             <Route path="*" element={<Navigate to="/login" state={authState} replace />} />
           </Routes>

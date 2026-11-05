@@ -31,9 +31,9 @@ export const buildInfoPlugin = (): Plugin => ({
 // so the API and WebSocket URLs must be absolute and point at the real backend.
 const assertAbsoluteMobileUrls = (env: Record<string, string>) => {
   const errors: string[] = [];
-  const baseUrl = env.VITE_BASE_URL?.trim();
+  const baseUrl = (env.VITE_API_URL || env.VITE_BASE_URL)?.trim();
   if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
-    errors.push("VITE_BASE_URL must be an absolute http(s) URL (for example https://chat.example.com/api)");
+    errors.push("VITE_API_URL must be an absolute http(s) URL (for example https://chat.example.com/api/v2)");
   }
   const wsUrl = env.VITE_WS_URL?.trim();
   if (wsUrl && !/^wss?:\/\//i.test(wsUrl)) {
@@ -79,6 +79,7 @@ export default defineConfig(({ command, mode }) => {
     server: {
       host: "::",
       port: 8080,
+      watch: { ignored: ['**/playwright-report/**', '**/test-results/**'] },
     },
     define: {
       __APP_VERSION__: JSON.stringify(buildInfo.version),

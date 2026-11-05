@@ -1,95 +1,93 @@
+import { apiClient } from '@/shared/api/client';
+import { apiTask, collectPages, contractData } from '@/shared/api/tasks';
+import { listChats, resolveUsername } from '@/shared/api/users';
+import { directChatModel, groupChatModel, groupModel, userModel } from '@/shared/api/goModels';
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
-import type { ApiChat, ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, GroupRoleLog, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
+import type { ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, GroupRoleLog, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
 
 export const chatApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
     getOneOnOneChats: builder.query<OneOnOneChatResponse, string>({
-      query: (username) => `/chats/list/${username}`,
+      queryFn: (_, { signal }) => apiTask(async () => ({ chats: (await listChats(signal)).filter(chat => chat.type === 'direct').map(directChatModel) })),
       providesTags: ['Chat'],
     }),
 
     getGroupChats: builder.query<GroupChatResponse, string>({
-      query: (username) => `/groups/list/${username}`,
+      queryFn: (_, { signal }) => apiTask(async () => ({ groups: (await listChats(signal)).filter(chat => chat.type === 'group').map(groupChatModel) })),
       providesTags: ['Chat'],
     }),
 
     getGroupDetails: builder.query<RawGroupDetails, EntityId>({
-      query: (chatId) => `/groups/${chatId}`,
+      queryFn: (id, { signal }) => apiTask(async () => groupModel(contractData(await apiClient.GET('/groups/{chat_id}', { params: { path: { chat_id: String(id) } }, signal })))),
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-details-${chatId}` }],
     }),
 
     getGroupRoleLog: builder.query<GroupRoleLog, EntityId>({
-      query: (chatId) => `/groups/${chatId}/role-log`,
+      queryFn: (id, { signal }) => apiTask(async () => contractData(await apiClient.GET('/groups/{chat_id}/role-log', { params: { path: { chat_id: String(id) } }, signal }))),
       providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-role-log-${chatId}` }],
     }),
 
-    getChatById: builder.query<ApiChat, EntityId>({
-      query: (id) => `/chats/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Chat', id }],
-    }),
-
     createChat: builder.mutation<CreateChatResponse, { user1: string; user2: string; initial_message?: string }>({
-      query: (chatData) => ({
-        url: '/chats/create',
-        method: 'POST',
-        body: chatData,
+      queryFn: ({ user2, initial_message }, { signal }) => apiTask(async () => {
+        const user = await resolveUsername(user2, signal);
+        const result = await apiClient.POST('/chats', { body: { user_id: user.id, initial_message }, signal });
+        const data = contractData(result);
+        return result.response.status === 202
+          ? { message: 'Approval required', approval_required: true, request_id: data.id }
+          : { message: 'Chat created', chat_id: data.id };
       }),
       invalidatesTags: ['Chat', 'Request'],
     }),
 
     getApprovalRequestInbox: builder.query<ApprovalRequestInboxResponse, void>({
-      query: () => '/requests/inbox',
+      queryFn: (_, { signal }) => apiTask(async () => {
+        const requests = await collectPages(async after => contractData(await apiClient.GET('/requests', {
+          params: { query: { limit: 100, ...(after ? { after } : {}) } }, signal,
+        })));
+        return {
+          requests: requests.map(item => ({ ...item, requester: userModel(item.requester), message_text: item.preview || undefined })),
+          unread_count: requests.length,
+        };
+      }),
       providesTags: ['Request'],
     }),
 
     approveApprovalRequest: builder.mutation<{ message: string; chat_id?: EntityId }, EntityId>({
-      query: (requestId) => ({
-        url: `/requests/${requestId}/approve`,
-        method: 'POST',
-      }),
+      queryFn: (id, { signal }) => apiTask(async () => ({ message: 'Approved', chat_id: contractData(await apiClient.POST('/requests/{request_id}/approve', { params: { path: { request_id: String(id) } }, signal })).id })),
       invalidatesTags: ['Request', 'Chat', 'Message'],
     }),
 
     rejectApprovalRequest: builder.mutation<{ message: string }, EntityId>({
-      query: (requestId) => ({
-        url: `/requests/${requestId}/reject`,
-        method: 'POST',
-      }),
+      queryFn: (id, { signal }) => apiTask(async () => { contractData(await apiClient.POST('/requests/{request_id}/reject', { params: { path: { request_id: String(id) } }, signal })); return { message: 'Success' }; }),
       invalidatesTags: ['Request'],
     }),
 
-    updateChat: builder.mutation<ApiChat, { id: EntityId; name?: string; description?: string }>({
-      query: ({ id, ...patch }) => ({
-        url: `/chats/${id}`,
-        method: 'PATCH',
-        body: patch,
-      }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Chat', id }],
-    }),
-
     deleteChat: builder.mutation<void, EntityId>({
-      query: (id) => ({
-        url: `/chats/${id}`,
-        method: 'DELETE',
-      }),
+      queryFn: (id, { signal }) => apiTask(async () => { contractData(await apiClient.DELETE('/chats/{chat_id}', { params: { path: { chat_id: String(id) } }, signal })); }),
       invalidatesTags: ['Chat'],
     }),
 
     setChatPinned: builder.mutation<{ chat_id: EntityId; is_pinned: boolean }, { chatId: EntityId; pinned: boolean }>({
-      query: ({ chatId, pinned }) => ({
-        url: `/chats/${chatId}/pin`,
-        method: pinned ? 'PUT' : 'DELETE',
+      queryFn: ({ chatId, pinned }, { signal }) => apiTask(async () => {
+        const params = { path: { chat_id: String(chatId) } };
+        contractData(pinned ? await apiClient.PUT('/chats/{chat_id}/pin', { params, signal }) : await apiClient.DELETE('/chats/{chat_id}/pin', { params, signal }));
+        return { chat_id: chatId, is_pinned: pinned };
       }),
       invalidatesTags: ['Chat'],
     }),
 
     markChatRead: builder.mutation<MarkChatReadResponse, MarkChatReadRequest>({
-      query: ({ chatId, messageIds = [], markAll = false }) => ({
-        url: `/chats/${chatId}/read`,
-        method: 'POST',
-        body: markAll ? { mark_all: true } : { message_ids: messageIds },
+      queryFn: ({ chatId, messageIds = [], markAll = false }, { signal }) => apiTask(async () => {
+        const params = { path: { chat_id: String(chatId) } };
+        const ids = markAll ? contractData(await apiClient.GET('/chats/{chat_id}/messages', { params: { ...params, query: { limit: 1 } }, signal })).items.map(item => item.id) : messageIds.map(String);
+        let unread = 0;
+        if (ids.length) {
+          const newest = ids.reduce((a, b) => BigInt(a) > BigInt(b) ? a : b);
+          unread = contractData(await apiClient.POST('/chats/{chat_id}/read', { params, body: { message_id: newest }, signal })).unread_count;
+        }
+        return { chat_id: chatId, read_message_ids: ids, unread_count: unread, first_unread_message_id: null, read_at: new Date().toISOString() };
       }),
       invalidatesTags: ['Chat'],
     }),
@@ -101,12 +99,10 @@ export const {
   useGetGroupChatsQuery,
   useGetGroupDetailsQuery,
   useGetGroupRoleLogQuery,
-  useGetChatByIdQuery,
   useCreateChatMutation,
   useGetApprovalRequestInboxQuery,
   useApproveApprovalRequestMutation,
   useRejectApprovalRequestMutation,
-  useUpdateChatMutation,
   useDeleteChatMutation,
   useSetChatPinnedMutation,
   useMarkChatReadMutation,

@@ -2,6 +2,7 @@ export * from './model/types';
 export * from './model/history';
 export * from './model/historyNormalizers';
 export * from './model/reactions';
+export * from './model/useConversationMessages';
 export * from './model/systemEvents';
 export * from './api/messageApi';
 export * from './model/messageDeletion';

@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
@@ -7,7 +8,7 @@ import { useCreateChatMutation } from '@/entities/chat';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { getLocalUploadFileType } from '@/features/chat-core';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 
 interface PreviewChatOptions {
   chatId: EntityId;

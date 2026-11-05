@@ -11,7 +11,6 @@ import {
 } from '@/shared/ui/card';
 import { RegisterCredentialsForm } from './components/RegisterCredentialsForm';
 import { RegisterProfileSetup } from './components/RegisterProfileSetup';
-import { RegisterQrStep } from './components/RegisterQrStep';
 import { useRegistrationFlow } from './model/useRegistrationFlow';
 
 interface RegisterComponentProps {
@@ -43,16 +42,8 @@ const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackT
             onPasswordVisibilityChange={flow.setShowPassword}
             onSubmit={flow.handleSubmit}
           />
-        ) : flow.showQr && flow.recoveryKey ? (
-          <RecoveryKeyReceipt recoveryKey={flow.recoveryKey} onContinue={flow.handleContinue} />
         ) : flow.showQr ? (
-          <RegisterQrStep
-            qrPart={flow.qrPart}
-            translations={flow.translations}
-            onDownload={flow.downloadQR}
-            onCopy={flow.copyQrPart}
-            onContinue={flow.handleContinue}
-          />
+          <RecoveryKeyReceipt recoveryKey={flow.recoveryKey} username={flow.username} onContinue={flow.handleContinue} />
         ) : (
           <RegisterProfileSetup
             profileAvatarFile={flow.profileAvatarFile}

@@ -1,8 +1,9 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef, useState } from 'react';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 const OPUS_AUDIO_BITS_PER_SECOND = 48_000;
 const MIN_RECORDING_MS = 1000;
 const RECORDING_TOO_SHORT_MESSAGE = 'Recording was too short and was not sent. Hold the mic to record, or slide up to lock it.';

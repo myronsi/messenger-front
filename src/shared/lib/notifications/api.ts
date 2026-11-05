@@ -1,9 +1,10 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { authFetch } from '@/shared/auth/session';
 import type { components } from '@/shared/api/generated/schema';
 
 export type NotificationPreferences = components['schemas']['NotificationPreferences'];
 export type NotificationSettings = components['schemas']['NotificationSettings'];
-const base = `${import.meta.env.VITE_BASE_URL}`;
+const base = `${getApiBaseUrl()}`;
 let current: NotificationSettings | null = null;
 let account = '';
 let sequence = 0;

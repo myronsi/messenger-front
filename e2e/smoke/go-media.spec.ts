@@ -1,8 +1,7 @@
-import { resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { createEnglishContext, loginUser } from './helpers';
 
-test('byte-based voice waveforms stay inside the message bubble', async ({ browser }) => {
+test('byte-based voice waveforms stay inside the message bubble', async ({ browser }, testInfo) => {
   test.skip(process.env.GO_API_TESTS !== '1' || !process.env.GO_TEST_USER_A || !process.env.GO_TEST_PASSWORD_A ||
     !process.env.GO_TEST_USER_B, 'Uses existing synthetic Go staging fixtures');
   const context = await createEnglishContext(browser);
@@ -10,8 +9,8 @@ test('byte-based voice waveforms stay inside the message bubble', async ({ brows
   const peer = process.env.GO_TEST_USER_B!;
   try {
     await loginUser(page, { username: process.env.GO_TEST_USER_A!, password: process.env.GO_TEST_PASSWORD_A!, displayName: 'Go fixture' });
-    const messageId = await page.evaluate(async peer => {
-      const base = `${location.origin}/api/v2`;
+    const messageId = await page.evaluate(async ({ peer, api }) => {
+      const base = api || `${location.origin}/api/v2`;
       const request = async (path: string, body: unknown) => {
         const response = await fetch(`${base}${path}`, {
           method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`,
@@ -42,7 +41,7 @@ test('byte-based voice waveforms stay inside the message bubble', async ({ brows
         client_temp_id: crypto.randomUUID(), type: 'voice', attachment_id: attachment.id,
       });
       return message.id as string;
-    }, peer);
+    }, { peer, api: process.env.E2E_API_URL });
     await page.goto(`/dm/@${peer}`);
     const player = page.locator(`[data-message-id="${messageId}"] .voice-message-player`);
     await expect(player).toBeVisible();
@@ -55,7 +54,7 @@ test('byte-based voice waveforms stay inside the message bubble', async ({ brows
       });
     });
     expect(contained).toBe(true);
-    await player.screenshot({ path: resolve('../../outputs/voice-waveform-after.png') });
+    await player.screenshot({ path: testInfo.outputPath('voice-waveform.png') });
   } finally {
     await context.close();
   }

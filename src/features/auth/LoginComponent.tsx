@@ -1,4 +1,5 @@
 import { asApiError } from '@/shared/lib/apiError';
+import { PasskeySignIn } from './components/PasskeySignIn';
 import React, { useState, useCallback } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
@@ -156,6 +157,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
               <Label htmlFor="username">{translations.username}</Label>
               <Input
                 id="username"
+                autoComplete="username webauthn"
                 type="text"
                 placeholder={translations.username}
                 autoCapitalize="none"
@@ -212,6 +214,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
       </CardContent>
 
       <CardFooter className="flex-col gap-2">
+        <PasskeySignIn username={username} onSignedIn={onLoginSuccess} />
         {inputsFilled ? (
           <Button 
             type="submit" 

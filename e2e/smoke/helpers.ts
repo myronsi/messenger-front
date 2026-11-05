@@ -1,4 +1,4 @@
-import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { expect, type Browser, type BrowserContext, type Page, type Locator } from '@playwright/test';
 
 const MESSENGER_HEADING = 'Chats';
 const PROFILE_BUTTON_NAME = 'Open profile';
@@ -46,6 +46,12 @@ export const waitForLoginPage = async (page: Page) => {
   await expect(page.getByLabel('Username')).toBeVisible();
 };
 
+export const confirmRecoveryReceipt = async (scope: Page | Locator) => {
+  const key = await scope.getByTestId('recovery-key').innerText();
+  await scope.getByLabel('Type the last group of your recovery key to confirm you saved it').fill(key.trim().split('-').at(-1)!);
+  await scope.getByLabel('I saved my recovery key').check();
+};
+
 export const registerUser = async (page: Page, user: SmokeUser) => {
   await page.goto('/register');
 
@@ -58,9 +64,9 @@ export const registerUser = async (page: Page, user: SmokeUser) => {
   expect(response.ok(), `Registration returned HTTP ${response.status()}`).toBe(true);
   const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
   const skipButton = page.getByRole('button', { name: 'Skip for now', exact: true });
-  await expect(continueButton.or(skipButton)).toBeVisible();
+  await expect(continueButton.or(skipButton).first()).toBeVisible();
   const savedKey = page.getByLabel('I saved my recovery key');
-  if (await savedKey.isVisible()) await savedKey.check();
+  if (await savedKey.isVisible()) await confirmRecoveryReceipt(page);
   if (await continueButton.isVisible()) await continueButton.click();
   await page.getByRole('button', { name: 'Skip for now' }).click();
 
@@ -73,7 +79,7 @@ export const loginUser = async (page: Page, user: SmokeUser) => {
 
   await page.getByLabel('Username').fill(user.username);
   await page.getByLabel('Password').fill(user.password);
-  await page.getByRole('button', { name: LOGIN_BUTTON_NAME }).click();
+  await page.getByRole('button', { name: LOGIN_BUTTON_NAME, exact: true }).click();
 
   await waitForMessenger(page);
 };

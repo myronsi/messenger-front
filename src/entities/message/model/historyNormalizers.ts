@@ -64,12 +64,18 @@ export const normalizeHistoryMessages = (messages: RawHistoryMessage[] = []) => 
   messages.map((message) => normalizeHistoryMessage(message))
 );
 
+// Server IDs can exceed Number.MAX_SAFE_INTEGER. Pending sends keep their local order.
+export const sortMessages = (messages: Message[]): Message[] => [
+  ...messages.filter(message => isPersistedId(message.id)).sort((a, b) => compareIds(a.id, b.id)),
+  ...messages.filter(message => !isPersistedId(message.id)),
+];
+
 export const prependUniqueMessages = (currentMessages: Message[], olderMessages: Message[]) => {
   const existingIds = new Set(currentMessages.map((message) => message.id));
-  return [
+  return sortMessages([
     ...olderMessages.filter((message) => !existingIds.has(message.id)),
     ...currentMessages,
-  ];
+  ]);
 };
 
 // Live messages can already sit at the end of a window that was trimmed, so the page that fills
@@ -82,7 +88,7 @@ export const appendUniqueMessages = (currentMessages: Message[], newerMessages: 
   ];
   const confirmed = merged.filter((message) => isPersistedId(message.id));
   const isOrdered = confirmed.every((message, index) => index === 0 || compareIds(confirmed[index - 1].id, message.id) < 0);
-  if (isOrdered) return merged;
+  if (isOrdered) return sortMessages(merged);
   return [...confirmed.sort((a, b) => compareIds(a.id, b.id)), ...merged.filter((message) => !isPersistedId(message.id))];
 };
 
@@ -101,40 +107,20 @@ export const trimNewestMessages = (messages: Message[], limit: number) => {
   return { messages: kept, newestId: newest?.id ?? null };
 };
 
+// Refreshing a window updates known rows without discarding server messages
+// received by another page or over realtime while the request was in flight.
 export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {
-  if (freshMessages.length === 0) {
-    return currentMessages.filter((message) => !isPersistedId(message.id) || message.is_live);
+  const byId = new Map(currentMessages.map(message => [String(message.id), message]));
+  for (const message of freshMessages) {
+    const current = byId.get(String(message.id));
+    byId.set(String(message.id), current ? {
+      ...message,
+      client_temp_id: current.client_temp_id ?? message.client_temp_id,
+      is_own: current.is_own || message.is_own,
+      delivery_error: current.delivery_error || message.delivery_error,
+      is_deleting: current.is_deleting,
+      is_live: current.is_live || message.is_live,
+    } : message);
   }
-
-  const freshIds = new Set(freshMessages.map((message) => message.id));
-  const currentById = new Map(currentMessages.map((message) => [message.id, message]));
-  const oldestFreshId = freshMessages[0].id;
-  const olderMessages = currentMessages.filter((message) => (
-    isPersistedId(message.id) &&
-    compareIds(message.id, oldestFreshId) < 0 &&
-    !freshIds.has(message.id)
-  ));
-  const pendingMessages = currentMessages.filter((message) => !isPersistedId(message.id));
-  const newestFreshId = freshMessages[freshMessages.length - 1].id;
-  const liveNewerMessages = currentMessages.filter(message => message.is_live &&
-    isPersistedId(message.id) && compareIds(message.id, newestFreshId) > 0 && !freshIds.has(message.id));
-  const mergedFreshMessages = freshMessages.map((message) => {
-    const current = currentById.get(message.id);
-    return current
-      ? {
-          ...message,
-          client_temp_id: current.client_temp_id ?? message.client_temp_id,
-          is_own: current.is_own || message.is_own,
-          delivery_error: current.delivery_error || message.delivery_error,
-          is_deleting: current.is_deleting,
-        }
-      : message;
-  });
-
-  return [
-    ...olderMessages,
-    ...mergedFreshMessages,
-    ...liveNewerMessages,
-    ...pendingMessages,
-  ];
+  return sortMessages([...byId.values()]);
 };

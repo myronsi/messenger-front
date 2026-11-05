@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
@@ -9,7 +10,7 @@ import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { resolveNotificationChat } from './resolveNotificationChat';
 import { focusComposerWhenReady } from '@/shared/lib/notifications/replyFocus';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 
 interface MessengerRouteState {
   chatId?: EntityId;

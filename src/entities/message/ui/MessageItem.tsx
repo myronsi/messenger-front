@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
@@ -19,7 +20,6 @@ import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import { AlertCircle, Check } from 'lucide-react';
-
 const PARTICLE_COUNT = 36;
 
 const DissolveParticles: React.FC = () => {
@@ -84,7 +84,7 @@ interface MessageItemProps {
   onAvatarClick: (username: string) => void;
   onReplyClick: (messageId: EntityId) => void;
   setTempHighlightedMessageId: (id: EntityId | null) => void;
-  wsRef: MutableRefObject<WebSocket | null>;
+  wsRef: MutableRefObject<SocketSender | null>;
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
   onResendMessage?: (message: Message) => void;

@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -11,7 +12,7 @@ interface ReactionListProps {
   isMine: boolean;
   /** Image bubbles keep their time badge inside the image, so the strip overlaps the bubble less. */
   isImage?: boolean;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  wsRef: React.MutableRefObject<SocketSender | null>;
   onOpenReactionDetails?: (reaction: string, reactions: ReactionInfo[]) => void;
 }
 

@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useRef, useState, useEffect } from 'react';
@@ -18,7 +19,7 @@ import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
 import { useGetBlockedUsersQuery } from '@/entities/user';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 
 export type { ChatProps } from './model/types';
 

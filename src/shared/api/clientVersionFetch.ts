@@ -1,8 +1,10 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { clientVersionHeaders } from './clientVersion';
 import { reportClientOutdated } from './updateGate';
 import { withGoTransport } from './goTransport';
+import { setContractFetch } from './contractFetch';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 
 const getApiPrefix = () => new URL(BASE_URL || '/', window.location.href).href.replace(/\/$/, '');
 
@@ -62,6 +64,7 @@ export const installClientVersionFetch = () => {
   const current = window.fetch as typeof fetch & { clientVersionInstalled?: boolean };
   if (current.clientVersionInstalled) return;
   const versioned = withClientVersion(current.bind(window));
+  setContractFetch(versioned);
   const wrapped = withGoTransport(versioned, BASE_URL || window.location.origin) as typeof fetch & { clientVersionInstalled?: boolean };
   wrapped.clientVersionInstalled = true;
   window.fetch = wrapped;

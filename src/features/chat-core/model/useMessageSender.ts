@@ -1,3 +1,5 @@
+import { createTempMessageId } from '@/shared/api/tempMessageId';
+import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useEffect, useRef, type MutableRefObject } from 'react';
@@ -10,7 +12,7 @@ import { getLocalUploadFileType } from './uploadFileType';
 import { createOptimisticMessage } from './optimisticMessage';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 const SOCKET_CONNECT_WAIT_ATTEMPTS = 30;
 const SOCKET_CONNECT_WAIT_MS = 100;
 
@@ -94,7 +96,7 @@ export const useMessageSender = ({
     fileType = getLocalUploadFileType(fileName, file.type),
     caption = ''
   ) => {
-    const tempId = -Date.now();
+    const tempId = createTempMessageId();
     const reply = replyToRef.current;
     if (reply) setReplyTo(null);
     const objectUrl = URL.createObjectURL(file);
@@ -198,7 +200,7 @@ export const useMessageSender = ({
       if (!isGoApi()) setMessages((previous) => applyMessageEdit(previous, editingMessage.id, contentToSend));
       payload = { type: 'edit', message_id: editingMessage.id, content: escapedMessage };
     } else {
-      const tempId = -Date.now();
+      const tempId = createTempMessageId();
       const optimisticMessage = createOptimisticMessage(tempId, username, currentUserId || undefined, {
         type: 'message', content: contentToSend, reply_to: replyTo?.id || null,
       });
@@ -214,7 +216,7 @@ export const useMessageSender = ({
   };
 
   const replaceUnsavedMessage = (message: Message, changes: Partial<Message>) => {
-    const tempId = -Date.now();
+    const tempId = createTempMessageId();
     setMessages((previous) => {
       const failed = previous.find((item) => String(item.id) === String(message.id));
       if (!failed) return previous;

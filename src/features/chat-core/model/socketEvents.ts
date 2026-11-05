@@ -33,6 +33,13 @@ export interface EditEvent {
   timestamp?: string;
 }
 
+export interface AckEvent {
+  type: 'ack';
+  message_id: EntityId;
+  client_temp_id: EntityId;
+  timestamp?: string;
+}
+
 export interface DeleteEvent {
   type: 'delete';
   message_id: EntityId;
@@ -113,6 +120,7 @@ export interface UnknownEvent {
 }
 
 export type ServerEvent =
+  | AckEvent
   | NewMessageEvent
   | EditEvent
   | DeleteEvent
@@ -128,6 +136,7 @@ export type ServerEvent =
   | UnknownEvent;
 
 const KNOWN_TYPES = new Set<string>([
+  'ack',
   'message', 'file', 'edit', 'delete', 'reaction_add', 'reaction_remove', 'is_read', 'chat_list_read',
   'chat_read_batch', 'error', 'chat_deleted', 'presence_update', 'group_updated', 'group_invite_rejected',
   'group_invite_approved',
