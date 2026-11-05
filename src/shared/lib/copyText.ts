@@ -10,13 +10,22 @@ const viaClipboard = async (text: string) => {
 const viaSelection = (text: string) => {
   const textarea = document.createElement('textarea');
   textarea.value = text;
+  textarea.readOnly = true;
+  textarea.tabIndex = -1;
   textarea.style.position = 'fixed';
   textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  const copied = document.execCommand('copy');
-  document.body.removeChild(textarea);
-  return copied;
+  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  (previousFocus?.closest('[role="dialog"], [role="alertdialog"]') || document.body).appendChild(textarea);
+  try {
+    textarea.select();
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+    window.getSelection()?.removeAllRanges();
+    if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+  }
 };
 
 export const copyText = async (text: string) =>

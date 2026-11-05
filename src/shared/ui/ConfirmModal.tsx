@@ -1,7 +1,9 @@
+import { ModalSurface } from '@/shared/ui/ModalSurface';
 
 import React from 'react';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { cn } from '@/shared/lib/utils';
 
 interface ConfirmModalProps {
   title: string;
@@ -15,6 +17,9 @@ interface ConfirmModalProps {
   isError?: boolean;
   isDestructive?: boolean;
   contained?: boolean;
+  details?: React.ReactNode;
+  overlayClassName?: string;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -29,12 +34,16 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isDestructive = false,
   contained = false,
   requirePassword = false,
+  details, overlayClassName, returnFocusRef,
 }) => {
   const { translations } = useLanguage();
   const [password, setPassword] = React.useState('');
 
   return (
-    <div className={`${contained ? 'absolute' : 'fixed'} inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4`}>
+    <ModalSurface label={title} returnFocusRef={returnFocusRef}
+      className={cn(`${contained ? 'absolute' : 'fixed'} inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4`, overlayClassName)}
+      onClick={event => event.stopPropagation()} onTouchStart={event => event.stopPropagation()}
+      onTouchEnd={event => event.stopPropagation()} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}>
       <div className="motion-panel-in relative bg-card w-full max-w-lg p-6 rounded-lg shadow-lg border border-border">
         <button
           onClick={onCancel}
@@ -45,6 +54,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </button>
         <h3 className="text-lg font-semibold leading-none tracking-tight mb-2">{title}</h3>
         <p className="text-muted-foreground mb-3">{message}</p>
+        {details}
         {!!consequences?.length && (
           <ul className="mb-4 space-y-2 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             {consequences.map((item) => (
@@ -84,7 +94,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   );
 };
 

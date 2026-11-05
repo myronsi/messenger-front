@@ -7,6 +7,7 @@ import { getAppendedMessages } from '@/entities/message';
 import { useCurrentDateLabel } from './useCurrentDateLabel';
 import { useHighlightScroll } from './useHighlightScroll';
 import { getScrollBehavior, useScrollToBottom } from './useScrollToBottom';
+import { listenForScrollIntent } from './scrollIntent';
 
 interface MessageListScrollOptions {
   messages: Message[];
@@ -203,16 +204,10 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     });
     observer.observe(content, { box: 'border-box' });
     observer.observe(container);
-    const stopSettling = () => {
-      settleRef.current = null;
+    const stopInput = listenForScrollIntent(container, () => { settleRef.current = null; }, () => {
       lastUserInputAtRef.current = Date.now();
-    };
-    const userInput = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
-    userInput.forEach((name) => container.addEventListener(name, stopSettling, { passive: true }));
-    return () => {
-      observer.disconnect();
-      userInput.forEach((name) => container.removeEventListener(name, stopSettling));
-    };
+    });
+    return () => { observer.disconnect(); stopInput(); };
   }, []);
 
   useLayoutEffect(() => {

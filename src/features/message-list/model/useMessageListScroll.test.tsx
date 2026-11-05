@@ -155,6 +155,32 @@ describe('useMessageListScroll', () => {
     expect(container.scrollTop).toBe(200);
   });
 
+  it.each(['pointerdown', 'touchstart'])('keeps the bottom anchor after a selection tap (%s) and layout reflow', async (event) => {
+    const { view, container, grow } = setup([]);
+    view.rerender(<List messages={[message('1'), message('2')]} />);
+    await act(async () => { flushFrames(); });
+    container.dispatchEvent(new Event(event));
+    grow(1200);
+    container.dispatchEvent(new Event('scroll'));
+    await act(async () => { flushFrames(); });
+    act(() => resize());
+    expect(container.scrollTop).toBe(700);
+  });
+
+  it('releases the bottom anchor when a finger actually scrolls the history', async () => {
+    const { view, container, grow } = setup([]);
+    view.rerender(<List messages={[message('1'), message('2')]} />);
+    await act(async () => { flushFrames(); });
+    container.dispatchEvent(new Event('touchstart'));
+    container.dispatchEvent(new Event('touchmove'));
+    container.scrollTop = 200;
+    container.dispatchEvent(new Event('scroll'));
+    await act(async () => { flushFrames(); });
+    grow(1300);
+    act(() => resize());
+    expect(container.scrollTop).toBe(200);
+  });
+
   it('stays on a search result it jumped to when new content arrives', async () => {
     const { view, container, grow } = setup([]);
     view.rerender(<List messages={[message('1'), message('2')]} />);

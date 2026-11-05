@@ -4,6 +4,11 @@ export const messages = {
   replyToMessage: "Ответить",
   forward: "Переслать",
   copy: "Скопировать",
+  openLink: "Открыть ссылку",
+  externalLinkTitle: "Открыть внешнюю ссылку?",
+  externalLinkDescription: "Эта ссылка ведёт на страницу за пределами Messenger.",
+  copyLink: "Скопировать ссылку",
+  copyLinkFailed: "Не удалось скопировать. Повторить",
   messageCopied: "Сообщение скопировано!",
   addCaption: "Добавьте подпись",
   forwardMessage: "Переслать сообщение",
@@ -31,4 +36,5 @@ export const messages = {
   deleteLimit: "За раз можно удалить не больше {max} сообщений",
   deleteMessagesConfirm: "Удалить сообщения ({count})?",
   failedToDeleteMessages: "Не удалось удалить сообщения",
+  resizeChatList: "Изменить ширину списка чатов",
 };

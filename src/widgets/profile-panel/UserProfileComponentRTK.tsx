@@ -152,6 +152,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     if (isCurrentUser || isSavingContactName) return;
     const nextName = customNameInput.trim().replace(/\s+/g, ' ');
     setActionError(null);
+    setIsEditingContactName(false);
     try {
       if (!nextName) {
         if (contactDisplayName) await deleteContactDisplayName(username).unwrap();
@@ -226,7 +227,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
 
   return (
     <UserProfileShell onClose={onClose}>
-      <div className="flex h-full min-h-0 flex-col">
+      <div data-profile-swipe className="flex h-full min-h-0 flex-col">
         <UserProfileHeader
           avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName}
           isCurrentUser={isCurrentUser} isEditingContactName={isEditingContactName} customNameInput={customNameInput}
@@ -245,7 +246,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           onSelectView={selectView} onMessage={handleMessage}
         />
 
-        <UserProfilePanelContent activeView={activeView} transition={panelTransition} renderPanelContent={renderPanelContent} />
+        <UserProfilePanelContent activeView={activeView} visibleViews={visiblePanelOrder} onSelectView={selectView}
+          transition={panelTransition} renderPanelContent={renderPanelContent} />
       </div>
       <UserProfileConfirmations
         isBlockConfirmOpen={isBlockConfirmOpen} isDeleteChatConfirmOpen={isDeleteChatConfirmOpen}

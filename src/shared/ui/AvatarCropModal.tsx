@@ -1,3 +1,4 @@
+import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
@@ -134,7 +135,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
   const isBusy = isUploading || isCropping;
 
   return (
-    <div
+    <ModalSurface label="Crop profile photo"
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
       onPointerDown={(event) => {
         if (event.target === event.currentTarget && !isBusy) onCancel();
@@ -225,7 +226,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
           </div>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   );
 };
 

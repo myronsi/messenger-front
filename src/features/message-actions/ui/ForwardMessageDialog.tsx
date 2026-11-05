@@ -2,7 +2,8 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { asApiError } from '@/shared/lib/apiError';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { isMobileComposer } from '@/shared/lib/composerFocus';
 import { Search, Send } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useForwardMessageMutation, useForwardMessagesMutation } from '@/entities/message';
@@ -43,6 +44,7 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
   onForwarded,
 }) => {
   const { translations } = useLanguage();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [selectedChatIds, setSelectedChatIds] = useState<EntityId[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -141,7 +143,11 @@ const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !isLoading && onOpenChange(nextOpen)}>
-      <DialogContent className="max-h-[85vh] max-w-md grid-rows-[auto_auto_minmax(0,1fr)_auto] p-0">
+      <DialogContent ref={dialogRef} onOpenAutoFocus={event => {
+        if (!isMobileComposer()) return;
+        event.preventDefault();
+        dialogRef.current?.focus({ preventScroll: true });
+      }} className="max-h-[85vh] max-w-md grid-rows-[auto_auto_minmax(0,1fr)_auto] p-0">
         <DialogHeader className="border-b border-border px-4 py-4">
           <DialogTitle>{bulk ? translations.forward : translations.forwardMessage || 'Forward message'}</DialogTitle>
         </DialogHeader>

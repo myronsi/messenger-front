@@ -7,6 +7,8 @@ import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
 import FileMessage from './FileMessage';
+import { LinkedMessageText } from './LinkedMessageText';
+import { MessageTextBody } from './MessageTextBody';
 
 
 
@@ -35,7 +37,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
 }) => {
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
-    return typeof content === 'string' ? <div className="whitespace-pre-wrap">{content}{trailing}</div> : <>{content}{trailing}</>;
+    return typeof content === 'string' ? <MessageTextBody text={content} trailing={trailing} /> : <>{content}{trailing}</>;
   }
 
   const fileName = message.content.file_name || '';
@@ -49,7 +51,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
       {content}
       {caption && (
         <div data-testid="message-caption" className={`whitespace-pre-wrap text-sm leading-snug ${isImage ? 'w-0 min-w-full px-3 pb-2 pt-1' : 'mt-2'}`}>
-          {caption}
+          <LinkedMessageText text={caption} />
         </div>
       )}
     </>

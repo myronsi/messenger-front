@@ -25,6 +25,18 @@ export const userApi = messengerApi.injectEndpoints({
     }),
 
     updateContactDisplayName: builder.mutation<User, { username: string; displayName?: string | null }>({
+      async onQueryStarted({ username, displayName }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(userApi.util.updateQueryData('getUserByUsername', username, user => {
+          user.contact_display_name = displayName || null;
+          user.display_name = displayName || user.account_display_name || user.username;
+        }));
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(userApi.util.updateQueryData('getUserByUsername', username, user => { Object.assign(user, data); }));
+        } catch {
+          patch.undo();
+        }
+      },
       query: ({ username, displayName }) => ({
         url: `/users/users/${encodeURIComponent(username)}/contact-name`,
         method: 'PUT',
@@ -38,6 +50,18 @@ export const userApi = messengerApi.injectEndpoints({
     }),
 
     deleteContactDisplayName: builder.mutation<User, string>({
+      async onQueryStarted(username, { dispatch, queryFulfilled }) {
+        const patch = dispatch(userApi.util.updateQueryData('getUserByUsername', username, user => {
+          user.contact_display_name = null;
+          user.display_name = user.account_display_name || user.username;
+        }));
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(userApi.util.updateQueryData('getUserByUsername', username, user => { Object.assign(user, data); }));
+        } catch {
+          patch.undo();
+        }
+      },
       query: (username) => ({
         url: `/users/users/${encodeURIComponent(username)}/contact-name`,
         method: 'DELETE',

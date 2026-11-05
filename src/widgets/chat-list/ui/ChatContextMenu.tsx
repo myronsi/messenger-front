@@ -4,9 +4,10 @@ import { CheckCheck, Pin, PinOff } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChatMuteMenuItems } from '@/features/chat-mute';
 import type { ChatContextMenuState } from '../model/types';
+import { useDismissFirstMenu } from '@/shared/lib/useDismissFirstMenu';
 
 const EDGE_GAP = 8;
-const CLOSE_MS = 200;
+const CLOSE_MS = 100;
 
 interface ChatContextMenuProps {
   menu: ChatContextMenuState | null;
@@ -22,6 +23,7 @@ type MenuView = { chatId: EntityId | null; name: 'main' | 'mute'; direction: 'fo
 
 const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, translations, onMarkAsRead, onTogglePinned, onClose, onError }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  useDismissFirstMenu(!!menu, menuRef, onClose);
   const [shown, setShown] = useState(menu);
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
@@ -79,7 +81,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
         visibility: position ? 'visible' : 'hidden',
         transform: isVisible ? 'scale(1)' : 'scale(0)',
         opacity: isVisible ? 1 : 0,
-        transition: isVisible ? 'transform 0.2s, opacity 0.2s, left 0.2s ease-out, top 0.2s ease-out' : 'transform 0.2s, opacity 0.2s',
+        transition: isVisible ? 'transform 0.1s ease-out, opacity 0.1s ease-out, left 0.1s ease-out, top 0.1s ease-out' : 'transform 0.1s ease-out, opacity 0.1s ease-out',
         transformOrigin: `${shown.x - left}px ${shown.y - top}px`,
         pointerEvents: menu ? undefined : 'none',
       }}

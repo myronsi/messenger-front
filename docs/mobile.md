@@ -2,6 +2,23 @@
 
 The same React build can be used in two ways on a phone.
 
+## Chat and profile interactions
+
+- Swipe photos sideways or tap an available screen edge to change images. Pinch to zoom;
+  swipe down to close and return the image to its thumbnail. Mobile viewers use the screen
+  width with a small margin and hide the desktop navigation and zoom buttons.
+- Swipe profile sections horizontally to move between Info, Photos, Audio and group members.
+  The panels and active section highlight follow the drag; vertical scrolling stays inside
+  the section. Inactive sections and controls behind a modal are excluded from Tab navigation.
+- Long-press a message link to copy or open it. Opening a link asks for confirmation before
+  leaving the app. A tap outside an open context menu dismisses that menu first.
+- Help opens above the current view. Its Back button and browser Back return to the previous
+  URL with the existing draft, profile/settings state and scroll position preserved.
+- On desktop, drag the divider between the chat list and chat to change their widths.
+  The split is saved locally; double-click the divider to reset it. Arrow keys also resize
+  a focused divider. Chat headers keep the same height as the chat list header and hide
+  the mobile back button and avatar.
+
 ## 1. PWA (install from the browser)
 
 `npm run build` generates `manifest.webmanifest`, `sw.js` and the app icons in `dist/` via

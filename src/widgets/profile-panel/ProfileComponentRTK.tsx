@@ -1,3 +1,4 @@
+import { ModalSurface } from '@/shared/ui/ModalSurface';
 import React, { forwardRef, useCallback, useRef, useState } from 'react';
 import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
 import BlockedUsersSection from './ui/BlockedUsersSection';
@@ -68,18 +69,18 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
 
   if (isLoadingUser) {
     return (
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-white sm:bg-white/80 sm:backdrop-blur-sm">
+      <ModalSurface label="Profile" className="fixed inset-0 z-[1000] flex items-center justify-center bg-white sm:bg-white/80 sm:backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>{translations.loading}</span>
         </div>
-      </div>
+      </ModalSurface>
     );
   }
 
   if (userError || !userData) {
     return (
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-white p-4 sm:bg-white/80 sm:backdrop-blur-sm">
+      <ModalSurface label="Profile" className="fixed inset-0 z-[1000] flex items-center justify-center bg-white p-4 sm:bg-white/80 sm:backdrop-blur-sm">
         <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-lg">
           <p className="text-red-500 mb-4">Failed to load profile</p>
           <button 
@@ -89,7 +90,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
             Close
           </button>
         </div>
-      </div>
+      </ModalSurface>
     );
   }
 
@@ -130,7 +131,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   ];
   const futureSettingsRows: [] = [];
   return (
-    <div
+    <ModalSurface label="Profile"
       onPointerDown={(e) => {
         if (e.target === e.currentTarget && !dismissBlockedRef.current) handleClose();
       }}
@@ -261,7 +262,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         onDeleteAvatar={handleAvatarDelete}
       />
 
-    </div>
+    </ModalSurface>
   );
 });
 

@@ -54,6 +54,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
       <ChatListBody
         chats={model.chats}
         activeChatId={props.activeChatId}
+        contextChatId={model.chatContextMenu?.chatId}
         translations={model.translations}
         getLastMessagePreview={model.getLastMessagePreview}
         getLastMessageTime={model.getLastMessageTime}

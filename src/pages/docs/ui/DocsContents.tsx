@@ -1,4 +1,5 @@
 import { ChevronRight, History, Sparkles } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { getDocsIcon } from '../model/docsIcons';
@@ -13,6 +14,7 @@ interface ContentsRow {
 }
 
 const DocsContents = ({ docs }: { docs: Translations['docs'] }) => {
+  const location = useLocation();
   const rows: ContentsRow[] = [
     ...docs.sections.map((section) => ({
       id: section.id,
@@ -28,9 +30,9 @@ const DocsContents = ({ docs }: { docs: Translations['docs'] }) => {
     <nav aria-label={docs.contents}>
       <DocsCard title={docs.contents}>
         {rows.map((row) => (
-          <a
+          <Link
             key={row.id}
-            href={`#${row.id}`}
+            to={{ hash: `#${row.id}` }} replace state={location.state}
             className="flex w-full items-center gap-3 border-b border-gray-200 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-gray-50"
           >
             <IconTile icon={row.icon} />
@@ -39,7 +41,7 @@ const DocsContents = ({ docs }: { docs: Translations['docs'] }) => {
               <span className="block truncate text-xs text-gray-500">{row.description}</span>
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
-          </a>
+          </Link>
         ))}
       </DocsCard>
     </nav>

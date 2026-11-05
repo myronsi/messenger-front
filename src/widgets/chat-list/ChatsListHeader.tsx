@@ -24,7 +24,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({ translations, onOpenP
   };
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-border">
+    <div className="flex h-[72px] shrink-0 items-center justify-between px-4 border-b border-border">
       <h2 className="text-xl font-semibold flex items-center gap-2">
         <MessageSquare className="w-6 h-6" />
         {translations.chats}

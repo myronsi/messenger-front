@@ -1,3 +1,6 @@
+import { ModalSurface } from '@/shared/ui/ModalSurface';
+import { SwipeProfilePanels } from '@/shared/ui/SwipeProfilePanels';
+import { ProfileTabHighlight } from '@/shared/ui/ProfileTabHighlight';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import type { EntityId } from '@/shared/api/entityId';
@@ -36,7 +39,7 @@ interface Props {
 }
 
 const GroupProfileDialogShell: React.FC<Props> = ({
-  chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, actionColumns,
+  chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, actionColumns,
   canShowPhotosAction, canShowAudiosAction, activeView, panelTransition, onSelectView, renderPanelContent,
   groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen,
 }) => {
@@ -44,14 +47,17 @@ const GroupProfileDialogShell: React.FC<Props> = ({
   const translations = rawTranslations as unknown as GroupTranslations;
   const requestClose = () => onOpenChange(false);
   const hasCustomAvatar = !!currentGroupAvatar && currentGroupAvatar !== getAvatarSrc(DEFAULT_GROUP_AVATAR);
+  const visibleViews: GroupProfileView[] = ['details', 'participants', ...(canShowPhotosAction ? ['photos' as const] : []), ...(canShowAudiosAction ? ['audios' as const] : [])];
   const actionButton = (view: GroupProfileView, icon: React.ReactNode, label: string) => (
     <button
       type="button"
+      data-profile-tab={view}
       onClick={() => onSelectView(view)}
-      className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-        activeView === view ? 'bg-gray-100 text-primary' : 'text-gray-700 hover:bg-gray-100'
+      className={`relative isolate flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
+        activeView === view ? 'text-primary' : 'text-gray-700 [@media(hover:hover)]:hover:bg-gray-100'
       }`}
     >
+
       {icon}
       <span className="text-xs font-medium">{label}</span>
     </button>
@@ -62,7 +68,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
 
 
   return (
-    <div
+    <ModalSurface label={translations.groupProfile || 'Group profile'}
       className={`fixed inset-0 z-[1000] flex items-center justify-center bg-white px-0 py-0 transition-opacity duration-200 ease-out sm:bg-black/40 sm:px-6 sm:py-6 ${
         isClosing ? 'opacity-95 sm:opacity-0' : 'opacity-100'
       }`}
@@ -76,7 +82,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
         }`}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950">
+        <div data-profile-swipe className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950">
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-gray-500" />
@@ -115,15 +121,13 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                   />
                 )}
                 <h3 className="mt-3 break-words text-xl font-semibold leading-tight text-gray-950">{currentGroupName}</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {participants.length} {translations.participants || 'participants'}
-                </p>
               </div>
 
               <div
-                className="grid gap-2 border-y border-gray-200 px-4 py-3"
+                className="relative isolate grid gap-2 border-y border-gray-200 px-4 py-3"
                 style={{ gridTemplateColumns: `repeat(${actionColumns}, minmax(0, 1fr))` }}
               >
+                <ProfileTabHighlight active={activeView} layoutKey={`${actionColumns}:${visibleViews.join(',')}:${canMute}`} />
                 {actionButton('details', <Users className="h-5 w-5" />, translations.info || 'Info')}
                 {actionButton('participants', <UserPlus className="h-5 w-5" />, translations.participants || 'Participants')}
                 {canShowPhotosAction && actionButton('photos', <ImageIcon className="h-5 w-5" />, translations.photos || 'Photos')}
@@ -136,38 +140,8 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                 )}
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
-                {panelTransition ? (
-                  <>
-                    <div
-                      key={`from-${panelTransition.key}-${panelTransition.from}`}
-                      aria-hidden
-                      inert
-                      className={`absolute inset-0 overflow-y-auto bg-white ${
-                        panelTransition.direction === 'forward'
-                          ? 'profile-panel-slide-out-left'
-                          : 'profile-panel-slide-out-right'
-                      }`}
-                    >
-                      {renderPanelContent(panelTransition.from)}
-                    </div>
-                    <div
-                      key={`to-${panelTransition.key}-${panelTransition.to}`}
-                      className={`absolute inset-0 overflow-y-auto bg-white ${
-                        panelTransition.direction === 'forward'
-                          ? 'profile-panel-slide-in-right'
-                          : 'profile-panel-slide-in-left'
-                      }`}
-                    >
-                      {renderPanelContent(panelTransition.to)}
-                    </div>
-                  </>
-                ) : (
-                  <div key={`active-${activeView}`} className="absolute inset-0 overflow-y-auto bg-white">
-                    {renderPanelContent(activeView)}
-                  </div>
-                )}
-              </div>
+              <SwipeProfilePanels active={activeView} views={visibleViews} onSelect={onSelectView}
+                renderPanel={renderPanelContent} enabled={open && !isClosing && !panelTransition && !groupConfirm && !isAvatarViewerOpen} />
             </div>
           </div>
         </div>
@@ -192,7 +166,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
           />
         )}
       </div>
-    </div>
+    </ModalSurface>
   );
 };
 

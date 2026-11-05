@@ -1,3 +1,4 @@
+import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { Camera, Check, ChevronDown, ChevronLeft, Loader2, Search, UserPlus, X } from 'lucide-react';
@@ -22,7 +23,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
   } = useGroupCreateForm({ currentUsername, onCreate });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm animate-fade-in">
+    <ModalSurface label={translations.createGroup || 'Create group'} className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm animate-fade-in">
       <div className="motion-panel-in relative flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
           <div>
@@ -272,7 +273,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
           )}
         </div>
       </div>
-    </div>
+    </ModalSurface>
   );
 };
 

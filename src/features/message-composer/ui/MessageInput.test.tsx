@@ -21,13 +21,13 @@ const setPointer = (coarse: boolean) => {
 
 const editing: Message = { id: '7', sender: 'me', sender_id: '1', content: 'Old text', timestamp: '2026-11-02T10:00:00Z', type: 'message', read_by: [] };
 
-const renderInput = (messageInput = 'Hello', editingMessage: Message | null = null) => {
+const renderInput = (messageInput = 'Hello', editingMessage: Message | null = null, replyTo: Message | null = null) => {
   const onSendMessage = vi.fn();
   const onFileUpload = vi.fn();
   const onCancel = vi.fn();
   const element = (editingValue: Message | null) => (
     <MessageInput
-      chatId="3" token="" messageInput={messageInput} setMessageInput={vi.fn()} replyTo={null} editingMessage={editingValue}
+      chatId="3" token="" messageInput={messageInput} setMessageInput={vi.fn()} replyTo={replyTo} editingMessage={editingValue}
       onSendMessage={onSendMessage} onFileUpload={onFileUpload} onCancelReplyOrEdit={onCancel}
     />
   );
@@ -37,6 +37,34 @@ const renderInput = (messageInput = 'Hello', editingMessage: Message | null = nu
 
 describe('MessageInput', () => {
   beforeEach(() => setPointer(false));
+
+  it('blurs a cancelled mobile edit without disabling the composer or scheduling refocus', () => {
+    setPointer(true);
+    const { field, onCancel } = renderInput('New text', editing);
+    field.focus();
+    const frame = vi.spyOn(window, 'requestAnimationFrame');
+    fireEvent.click(screen.getByTestId('reply-edit-bar').querySelector('button')!);
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(field).not.toHaveFocus();
+    expect(field).not.toBeDisabled();
+    expect(frame).not.toHaveBeenCalled();
+    frame.mockRestore();
+  });
+
+  it('keeps focus when cancelling mobile replies repeatedly without delayed refocus', () => {
+    setPointer(true);
+    const { field, onCancel } = renderInput('Reply text', null, editing);
+    field.focus();
+    const frame = vi.spyOn(window, 'requestAnimationFrame');
+    const cancel = screen.getByTestId('reply-edit-bar').querySelector('button')!;
+    fireEvent.click(cancel);
+    fireEvent.click(cancel);
+    expect(onCancel).toHaveBeenCalledTimes(2);
+    expect(field).toHaveFocus();
+    expect(field).not.toBeDisabled();
+    expect(frame).not.toHaveBeenCalled();
+    frame.mockRestore();
+  });
 
   it('is a multi-line field', () => {
     const { field } = renderInput();

@@ -90,3 +90,10 @@
     animation: none !important;
   }
 }
+/* Keep horizontal profile gestures from chaining into browser back/forward. */
+html:has([data-profile-swipe]),
+body:has([data-profile-swipe]),
+[data-profile-swipe],
+[data-profile-swipe] [data-profile-panel] {
+  overscroll-behavior-x: none;
+}

@@ -28,8 +28,8 @@ export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fa
     if (fallbackSrc && brokenSource !== src) setBrokenSource(src);
     if (imageRef.current) onError?.({ currentTarget: imageRef.current, target: imageRef.current } as unknown as React.SyntheticEvent<HTMLImageElement, Event>);
   }, [brokenSource, fallbackSrc, onError, src]);
-  const authenticatedSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : src, fallbackSrc, visible, handleFailure);
-  return <img {...props} alt={authenticatedSource ? props.alt : ''} src={authenticatedSource} ref={node => {
+  const authenticatedSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : src, fallbackSrc, visible || props.loading === 'eager', handleFailure);
+  return <img {...props} data-media-source={src} alt={authenticatedSource ? props.alt : ''} src={authenticatedSource} ref={node => {
     imageRef.current = node;
     if (typeof ref === 'function') ref(node);
     else if (ref) ref.current = node;

@@ -30,6 +30,7 @@ export function useChatListModel(props: ChatsListComponentProps) {
 
   const actions = useChatListActions({
     username,
+    chatContextMenu,
     activeChatId,
     onChatOpen,
     createChat,

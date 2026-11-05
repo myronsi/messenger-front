@@ -4,6 +4,11 @@ export const messages = {
   replyToMessage: "Reply",
   forward: "Forward",
   copy: "Copy",
+  openLink: "Open link",
+  externalLinkTitle: "Open external link?",
+  externalLinkDescription: "This link takes you to a page outside Messenger.",
+  copyLink: "Copy link",
+  copyLinkFailed: "Couldn't copy. Try again",
   messageCopied: "Message copied!",
   addCaption: "Add a caption",
   forwardMessage: "Forward message",
@@ -31,4 +36,5 @@ export const messages = {
   deleteLimit: "You can delete up to {max} messages at once",
   deleteMessagesConfirm: "Delete {count} messages?",
   failedToDeleteMessages: "Failed to delete messages",
+  resizeChatList: "Resize chat list",
 };

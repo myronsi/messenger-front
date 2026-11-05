@@ -25,7 +25,7 @@ describe('DocsPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: en.docs.title })).toBeInTheDocument();
     for (const section of en.docs.sections) {
       expect(screen.getByRole('heading', { level: 2, name: section.title })).toBeInTheDocument();
-      expect(within(screen.getByRole('navigation')).getByRole('link', { name: new RegExp(section.title) })).toHaveAttribute('href', `#${section.id}`);
+      expect(within(screen.getByRole('navigation')).getByRole('link', { name: new RegExp(section.title) })).toHaveAttribute('href', `/docs#${section.id}`);
     }
     for (const item of en.docs.upcoming) {
       expect(screen.getByText(item.title)).toBeInTheDocument();

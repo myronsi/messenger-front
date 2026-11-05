@@ -22,6 +22,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({ username, dis
     const list = avatars.length > 0 ? avatars : [{ id: 0, fullUrl: currentAvatarUrl }];
     return list.map(({ id, fullUrl: url }, index) => ({
       url,
+      thumbnailSource: currentAvatarUrl,
       name: `${displayName} avatar`,
       downloadName: `${username}-avatar-${index + 1}.${fileExtension(url)}`,
       onDelete: onDeleteAvatar && id ? () => onDeleteAvatar(id) : undefined,

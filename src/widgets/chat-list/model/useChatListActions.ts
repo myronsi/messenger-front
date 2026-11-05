@@ -9,6 +9,7 @@ import type { ChatContextMenuState, ChatListModal, ChatOverrideMap, ChatsListCom
 interface UseChatListActionsParams {
   username: string;
   activeChatId?: EntityId;
+  chatContextMenu: ChatContextMenuState | null;
   onChatOpen: ChatsListComponentProps['onChatOpen'];
   createChat: (args: { user1: string; user2: string }) => { unwrap: () => Promise<unknown> };
   setChatPinned: (args: { chatId: EntityId; pinned: boolean }) => { unwrap: () => Promise<unknown> };
@@ -27,7 +28,7 @@ interface UseChatListActionsParams {
 // menu, pinning, and marking a chat read (each with optimistic updates).
 export function useChatListActions(params: UseChatListActionsParams) {
   const {
-    username, activeChatId, onChatOpen, createChat, setChatPinned, markChatRead, refetch,
+    username, activeChatId, chatContextMenu, onChatOpen, createChat, setChatPinned, markChatRead, refetch,
     chatsByIdRef, setChatOverrides, setChatContextMenu, setModal, translations,
   } = params;
 
@@ -79,6 +80,10 @@ export function useChatListActions(params: UseChatListActionsParams) {
   };
 
   const handleChatClick = (chat: Chat) => {
+    if (chatContextMenu) {
+      setChatContextMenu(null);
+      return;
+    }
     // Don't re-open if this chat is already active
     if (chat.id === activeChatId) {
       return;

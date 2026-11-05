@@ -14,7 +14,7 @@ const LANGUAGES = [
   { value: 'ru', label: 'RU' },
 ] as const;
 
-const DocsPage = () => {
+const DocsPage = ({ onClose }: { onClose?: () => void }) => {
   const { language, setLanguage, translations } = useLanguage();
   const { docs } = translations;
   const { hash } = useLocation();
@@ -40,18 +40,22 @@ const DocsPage = () => {
   }, [hash]);
 
   return (
-    <div className="flex min-h-[100dvh] justify-center bg-gradient-to-br from-blue-100 to-white sm:px-4 sm:py-6">
-      <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white text-gray-950 sm:h-[calc(100dvh-3rem)] sm:max-w-xl sm:rounded-lg sm:border sm:border-gray-200 sm:shadow-2xl">
+    <div className={`flex justify-center sm:px-4 sm:py-6 ${onClose ? 'h-full bg-black/40' : 'min-h-[100dvh] bg-gradient-to-br from-blue-100 to-white'}`}
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose?.(); }}>
+      <div className={`flex w-full flex-col overflow-hidden bg-white text-gray-950 sm:max-w-xl sm:rounded-lg sm:border sm:border-gray-200 sm:shadow-2xl ${onClose ? 'h-full' : 'h-[100dvh] sm:h-[calc(100dvh-3rem)]'}`}>
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4">
           <div className="flex min-w-0 items-center gap-2">
-            <Link
+            {onClose ? <button type="button" onClick={onClose} aria-label={docs.backToApp} title={docs.backToApp}
+              className="-ml-2 rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900">
+              <ArrowLeft className="h-5 w-5" />
+            </button> : <Link
               to="/"
               aria-label={docs.backToApp}
               title={docs.backToApp}
               className="-ml-2 rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
             >
               <ArrowLeft className="h-5 w-5" />
-            </Link>
+            </Link>}
             <BookOpen className="h-5 w-5 shrink-0 text-gray-500" />
             <span className="truncate text-base font-semibold">{translations.docsLink}</span>
           </div>
@@ -72,7 +76,7 @@ const DocsPage = () => {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="border-b border-gray-200 px-6 pb-5 pt-7 text-center">
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
               <BookOpen className="h-7 w-7" />

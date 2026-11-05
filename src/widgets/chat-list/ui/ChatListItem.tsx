@@ -11,6 +11,7 @@ import { useChatMuteStatus } from '@/features/chat-mute';
 interface ChatListItemProps {
   chat: Chat;
   activeChatId?: EntityId;
+  isContextSelected?: boolean;
   translations: Translations;
   getLastMessagePreview: (lastMessage?: ChatLastMessage | null) => string;
   getLastMessageTime: (lastMessage?: ChatLastMessage | null) => string;
@@ -23,6 +24,7 @@ interface ChatListItemProps {
 const ChatListItem: React.FC<ChatListItemProps> = ({
   chat,
   activeChatId,
+  isContextSelected = false,
   translations,
   getLastMessagePreview,
   getLastMessageTime,
@@ -34,12 +36,12 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const ownLastMessage = isOwnLastMessage(chat.last_message);
   const ownLastMessageRead = isOwnLastMessageRead(chat.last_message);
   const ownLastMessageFailed = ownLastMessage && !!chat.last_message?.delivery_error;
-  const isActive = chat.id === activeChatId;
+  const isActive = chat.id === activeChatId && !isContextSelected;
   const unreadCount = chat.unread_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
   const unreadBadgeClass = isMuted
-    ? isActive ? 'bg-primary-foreground/60 text-primary' : 'bg-gray-400 text-white'
-    : isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground';
+    ? isActive ? 'bg-gray-400 text-white md:bg-primary-foreground/60 md:text-primary' : 'bg-gray-400 text-white'
+    : isActive ? 'bg-primary text-primary-foreground md:bg-primary-foreground md:text-primary' : 'bg-primary text-primary-foreground';
   const lastContent = chat.last_message?.content;
   const lastThumbnail = typeof lastContent === 'object' && lastContent.thumbnail_url ? resolveMediaUrl(lastContent.thumbnail_url) : undefined;
   const preloadHandlers = useMediaPreload(lastThumbnail);
@@ -48,11 +50,13 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
     <div
       data-testid="chat-list-item"
       data-chat-name={chat.name}
+      data-context-selected={isContextSelected || undefined}
       onClick={() => onClick(chat)}
       {...preloadHandlers}
       onContextMenu={(event) => onContextMenu(event, chat)}
       className={`motion-list-item motion-press flex items-center p-3 rounded-lg cursor-pointer ${
-        isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+        isContextSelected ? 'bg-gray-100 text-foreground' : isActive ? 'md:bg-primary md:text-primary-foreground'
+          : '[@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground'
       }`}
     >
       <div className="relative mr-3">
@@ -74,7 +78,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       <div className="min-w-0 flex-1">
         <div className={`flex min-w-0 items-center gap-1.5 ${unreadCount ? 'font-semibold' : 'font-medium'}`}>
           {chat.is_pinned && (
-            <Pin className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`} />
+            <Pin className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`} />
           )}
           <span className="truncate">
             {chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
@@ -83,23 +87,23 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
             <BellOff
               data-testid="chat-muted-icon"
               aria-label={translations.mutedForever}
-              className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+              className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`}
             />
           )}
         </div>
-        <div className={`truncate text-xs ${isActive ? 'text-primary-foreground/80' : unreadCount ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+        <div className={`truncate text-xs ${isActive ? `${unreadCount ? 'text-foreground font-medium' : 'text-muted-foreground'} md:text-primary-foreground/80` : unreadCount ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
           {getLastMessagePreview(chat.last_message)}
         </div>
       </div>
 
       <div className="ml-2 flex min-w-[44px] flex-col items-end">
         {chat.last_message && (
-          <span className={`motion-unread-time text-[11px] leading-none ${unreadCount ? 'has-unread' : ''} ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+          <span className={`motion-unread-time text-[11px] leading-none ${unreadCount ? 'has-unread' : ''} ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`}>
             {getLastMessageTime(chat.last_message)}
           </span>
         )}
         {ownLastMessage && !ownLastMessageFailed && !unreadCount ? (
-          <span className={`flex h-5 items-center transition-colors duration-150 ${isActive ? 'text-primary-foreground/80' : ownLastMessageRead ? 'text-primary' : 'text-muted-foreground'}`} title={ownLastMessageRead ? 'Read' : 'Unread'}>
+          <span className={`flex h-5 items-center transition-colors duration-150 ${isActive ? `${ownLastMessageRead ? 'text-primary' : 'text-muted-foreground'} md:text-primary-foreground/80` : ownLastMessageRead ? 'text-primary' : 'text-muted-foreground'}`} title={ownLastMessageRead ? 'Read' : 'Unread'}>
             {ownLastMessageRead ? <CheckCheck size={16} /> : <Check size={16} />}
           </span>
         ) : null}
@@ -110,7 +114,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           {unreadCount > 99 ? '99+' : unreadCount || ''}
         </span>
         {chat.type === 'group' && (
-          <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>({translations.group})</span>
+          <span className={`text-xs ${isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground'}`}>({translations.group})</span>
         )}
       </div>
     </div>

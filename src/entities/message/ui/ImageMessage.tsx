@@ -7,6 +7,7 @@ import { ImageViewer } from '@/shared/ui/image-viewer';
 import { useMediaPreload } from '@/shared/api/useMediaPreload';
 
 const MAX_HEIGHT = 300;
+const MAX_WIDTH = 300;
 const PLACEHOLDER = { width: 240, height: 180 };
 
 interface ImageMessageProps {
@@ -39,7 +40,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
       <div
         className="relative group max-w-full overflow-hidden rounded-2xl"
         style={{
-          width: `${Math.min(box.width, MAX_HEIGHT * (box.width / box.height))}px`,
+          width: `${Math.min(MAX_WIDTH, MAX_HEIGHT * (box.width / box.height))}px`,
           aspectRatio: `${box.width} / ${box.height}`,
         }}
       >

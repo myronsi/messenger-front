@@ -1,5 +1,6 @@
 import { useCallback, type RefObject } from 'react';
 import type { Message } from '@/entities/message';
+import { focusComposer } from '@/shared/lib/composerFocus';
 
 interface ReplyTargets {
   setReplyTo: (message: Message | null) => void;
@@ -13,5 +14,5 @@ export const useReplyAction = ({ setReplyTo, setEditingMessage, setMessageInput,
     setReplyTo(message);
     setEditingMessage(null);
     setMessageInput('');
-    messageInputRef.current?.focus();
+    focusComposer(messageInputRef.current);
   }, [messageInputRef, setEditingMessage, setMessageInput, setReplyTo]);

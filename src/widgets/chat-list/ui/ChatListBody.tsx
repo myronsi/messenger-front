@@ -7,6 +7,7 @@ import ChatListItem from './ChatListItem';
 interface ChatListBodyProps {
   chats: Chat[];
   activeChatId?: EntityId;
+  contextChatId?: EntityId;
   translations: Translations;
   getLastMessagePreview: (lastMessage?: ChatLastMessage | null) => string;
   getLastMessageTime: (lastMessage?: ChatLastMessage | null) => string;
@@ -19,6 +20,7 @@ interface ChatListBodyProps {
 const ChatListBody: React.FC<ChatListBodyProps> = ({
   chats,
   activeChatId,
+  contextChatId,
   translations,
   getLastMessagePreview,
   getLastMessageTime,
@@ -45,6 +47,7 @@ const ChatListBody: React.FC<ChatListBodyProps> = ({
           key={chat.id}
           chat={chat}
           activeChatId={activeChatId}
+          isContextSelected={chat.id === contextChatId}
           translations={translations}
           getLastMessagePreview={getLastMessagePreview}
           getLastMessageTime={getLastMessageTime}
