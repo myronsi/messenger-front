@@ -16,9 +16,9 @@ test('registers a user and logs back in', async ({ browser }) => {
     await logoutUser(page);
     await loginUser(page, user);
     await expect(page.getByRole('heading', { name: 'Chats' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Profile', exact: true })).not.toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Profile', exact: true })).not.toBeVisible();
     await page.getByRole('button', { name: 'Open profile', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Profile', exact: true })).toBeVisible();
   } finally {
     await context.close();
   }
