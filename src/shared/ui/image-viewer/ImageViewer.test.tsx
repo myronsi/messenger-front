@@ -48,7 +48,7 @@ describe('ImageViewer', () => {
     const onClose = vi.fn();
     render(<ImageViewer images={[{ url: '/a.png', name: 'A' }, { url: '/b.png', name: 'B' }]} onClose={onClose} />);
     const stage = screen.getByTestId('image-viewer-stage');
-    expect(screen.getByRole('button', { name: 'Next image' })).toHaveClass('hidden', 'sm:block');
+    expect(screen.getByRole('button', { name: 'Next image' })).toHaveClass('max-sm:opacity-0', 'max-sm:pointer-events-none', 'max-sm:focus-visible:opacity-100');
     expect(screen.getByTestId('mobile-gallery-edges')).toHaveClass('pointer-events-none', 'sm:hidden');
     fireEvent.click(stage, { clientX: 5, clientY: 300 });
     expect(screen.getByText('1 / 2')).toBeInTheDocument();
