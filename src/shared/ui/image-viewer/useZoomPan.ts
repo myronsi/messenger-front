@@ -213,6 +213,8 @@ export const useZoomPan = (
     const lastTap = lastTapRef.current;
     if (lastTap && event.timeStamp - lastTap.at < DOUBLE_TAP_MS && distance(point, lastTap.point) < TAP_SLOP * 4) {
       lastTapRef.current = null;
+      // Consume the trailing click so a zoom-out double-tap cannot navigate the gallery.
+      movedRef.current = true;
       toggleAt(point);
     } else {
       lastTapRef.current = { at: event.timeStamp, point };
