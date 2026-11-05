@@ -27,7 +27,14 @@ export function MessageLink({ href, children }: { href: string; children: string
           onContextMenu={event => event.stopPropagation()}
           onClick={event => {
             event.preventDefault(); event.stopPropagation();
-            if (held.current) { held.current = false; return; }
+            // detail === 0 means keyboard activation, which never follows a long-press release.
+            if (held.current && event.detail !== 0) { held.current = false; return; }
+            held.current = false;
+            setConfirming(true);
+          }}
+          onAuxClick={event => {
+            if (event.button !== 1) return;
+            event.preventDefault(); event.stopPropagation();
             setConfirming(true);
           }}>
           {children}

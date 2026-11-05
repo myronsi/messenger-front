@@ -98,14 +98,36 @@ export function useCompactMessageWidth(ref: RefObject<HTMLDivElement | null>, te
         element.style.width = `${width}px`;
       } finally { probe.remove(); }
     };
-    measure();
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    const margin = 300;
+    const rect = element.getBoundingClientRect();
+    let visible = typeof IntersectionObserver === 'undefined' || (rect.bottom > -margin && rect.top < window.innerHeight + margin);
+    let frame = 0;
+    const schedule = () => {
+      if (!visible || frame) return;
+      frame = requestAnimationFrame(() => { frame = 0; measure(); });
+    };
+    if (visible) measure();
+    const visibility = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => {
+      const next = entries[entries.length - 1]?.isIntersecting ?? visible;
+      if (next === visible) return;
+      visible = next;
+      schedule();
+    }, { rootMargin: `${margin}px` });
+    visibility?.observe(element);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
     observer?.observe(column);
     observer?.observe(element);
     observer?.observe(spacer);
-    const fontsChanged = () => { previous.current = ''; measure(); };
+    const fontsChanged = () => { previous.current = ''; schedule(); };
     document.fonts?.addEventListener('loadingdone', fontsChanged);
-    window.addEventListener('resize', measure);
-    return () => { mounted = false; observer?.disconnect(); document.fonts?.removeEventListener('loadingdone', fontsChanged); window.removeEventListener('resize', measure); };
+    window.addEventListener('resize', schedule);
+    return () => {
+      mounted = false;
+      cancelAnimationFrame(frame);
+      visibility?.disconnect();
+      observer?.disconnect();
+      document.fonts?.removeEventListener('loadingdone', fontsChanged);
+      window.removeEventListener('resize', schedule);
+    };
   }, [ref, text, trailing]);
 }

@@ -9,7 +9,7 @@ export const isIgnoredTap = (event: Tap, lastScrollAt: number, now = Date.now())
   const target = event.target instanceof Element ? event.target : null;
   if (event.ctrlKey || event.metaKey || event.shiftKey) return !target || !!target.closest(CONTROLS);
   const surface = target?.closest('.motion-message-bubble')
-    || (window.innerWidth < 768 && target?.closest('.motion-message[data-image-message="true"]'));
+    || (window.innerWidth < 768 && target?.closest('[data-image-message="true"]'));
   if (!surface || target?.closest(INTERACTIVE)) return true;
   return !!window.getSelection()?.toString();
 };

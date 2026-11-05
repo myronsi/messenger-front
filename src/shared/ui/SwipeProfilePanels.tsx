@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useSwipeTabs } from '@/shared/lib/useSwipeTabs';
 
 interface Props<T extends string> {
@@ -16,6 +16,14 @@ export function SwipeProfilePanels<T extends string>({ active, views, onSelect, 
   orderRef.current = views;
   const { offset, dragging, releaseRef, ...handlers } = useSwipeTabs(active, views, onSelect, enabled);
   const index = views.indexOf(active);
+  const missing = index < 0 && views.length > 0;
+  const fallback = missing ? views[0] : undefined;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  useEffect(() => {
+    if (fallback !== undefined) onSelectRef.current(fallback);
+  }, [fallback]);
+  const shown = missing ? 0 : index;
   useLayoutEffect(() => {
     const scope = root.current?.closest<HTMLElement>('[data-profile-swipe]');
     if (!scope) return;
@@ -49,9 +57,9 @@ export function SwipeProfilePanels<T extends string>({ active, views, onSelect, 
   return (
     <div ref={root} {...handlers} data-testid="swipe-profile-panels" className="relative min-h-0 flex-1 touch-pan-y overflow-hidden bg-white">
       {views.map((view, i) => (
-        <div key={view} aria-hidden={view !== active} inert={view !== active} data-profile-panel={view}
+        <div key={view} aria-hidden={i !== shown} inert={i !== shown} data-profile-panel={view}
           className="absolute inset-0 touch-pan-y overflow-y-auto bg-white"
-          style={{ transform: `translateX(calc(${(i - index) * 100}% + ${offset}px))`,
+          style={{ transform: `translateX(calc(${(i - shown) * 100}% + ${offset}px))`,
             transition: dragging || previous.current !== active ? 'none' : 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
             willChange: dragging ? 'transform' : undefined }}>
           {renderPanel(view)}

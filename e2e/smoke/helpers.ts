@@ -80,12 +80,12 @@ export const loginUser = async (page: Page, user: SmokeUser) => {
 
 export const openProfile = async (page: Page) => {
   await page.getByRole('button', { name: PROFILE_BUTTON_NAME }).click();
-  await expect(page.getByRole('heading', { name: PROFILE_HEADING })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: PROFILE_HEADING })).toBeVisible();
 };
 
 export const closeProfile = async (page: Page) => {
   await page.getByRole('button', { name: 'Close' }).first().click();
-  await expect(page.getByRole('heading', { name: PROFILE_HEADING })).not.toBeVisible();
+  await expect(page.getByRole('dialog', { name: PROFILE_HEADING })).not.toBeVisible();
 };
 
 export const logoutUser = async (page: Page) => {

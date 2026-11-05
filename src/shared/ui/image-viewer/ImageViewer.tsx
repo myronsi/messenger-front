@@ -145,7 +145,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   };
   const deleteState = deleting?.url === image.url ? deleting : null;
   const buttonClass = 'p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm';
-  const sideButtonClass = 'hidden sm:block absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
+  const sideButtonClass = 'max-sm:pointer-events-none max-sm:opacity-0 max-sm:focus-visible:pointer-events-auto max-sm:focus-visible:opacity-100 absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
   const edgeResistance = (!canGoBack && swipeX > 0) || (!canGoForward && swipeX < 0) ? 0.3 : 1;
   return (
     <DialogPrimitive.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -188,10 +188,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
               </div>
             )}
             <div className="fixed top-4 right-4 flex gap-2 z-[10000]">
-              <button type="button" onClick={() => zoomBy(1.25)} aria-label={translations.zoomIn || 'Zoom in'} className={`hidden sm:block ${buttonClass}`}>
+              <button type="button" onClick={() => zoomBy(1.25)} aria-label={translations.zoomIn || 'Zoom in'} className={`max-sm:sr-only max-sm:focus-visible:not-sr-only ${buttonClass}`}>
                 <ZoomIn className="w-5 h-5" />
               </button>
-              <button type="button" onClick={() => zoomBy(0.8)} aria-label={translations.zoomOut || 'Zoom out'} className={`hidden sm:block ${buttonClass}`}>
+              <button type="button" onClick={() => zoomBy(0.8)} aria-label={translations.zoomOut || 'Zoom out'} className={`max-sm:sr-only max-sm:focus-visible:not-sr-only ${buttonClass}`}>
                 <ZoomOut className="w-5 h-5" />
               </button>
               {!isBroken && (

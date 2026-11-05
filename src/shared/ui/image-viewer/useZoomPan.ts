@@ -16,6 +16,14 @@ const SWIPE_DISTANCE = 60;
 const midpoint = (a: Point, b: Point) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
+// The viewer frame is letterboxed by object-contain, so pan bounds follow the rendered picture rather than the frame.
+const fittedSize = (element: HTMLElement): Size => {
+  const frame = { width: element.offsetWidth, height: element.offsetHeight };
+  if (!(element instanceof HTMLImageElement) || !element.naturalWidth || !element.naturalHeight || !frame.width || !frame.height) return frame;
+  const fit = Math.min(frame.width / element.naturalWidth, frame.height / element.naturalHeight);
+  return { width: element.naturalWidth * fit, height: element.naturalHeight * fit };
+};
+
 interface ZoomPanOptions {
   onSwipe?: (direction: -1 | 1, displacement: number) => void;
   onDismiss?: (displacement: number) => void;
@@ -44,7 +52,7 @@ export const useZoomPan = (
     if (!stage || !image) return null;
     return {
       stage: { width: stage.clientWidth, height: stage.clientHeight },
-      image: { width: image.offsetWidth, height: image.offsetHeight },
+      image: fittedSize(image),
       rect: stage.getBoundingClientRect(),
     };
   }, [stageRef, imageRef]);
@@ -200,7 +208,7 @@ export const useZoomPan = (
       return;
     }
     if (movedRef.current) return;
-    if (onSwipe && mobileImageDirection(event.clientX, stageRef.current)) { lastTapRef.current = null; return; }
+    if (onSwipe && viewRef.current.scale === 1 && mobileImageDirection(event.clientX, stageRef.current)) { lastTapRef.current = null; return; }
     const point = { x: event.clientX, y: event.clientY };
     const lastTap = lastTapRef.current;
     if (lastTap && event.timeStamp - lastTap.at < DOUBLE_TAP_MS && distance(point, lastTap.point) < TAP_SLOP * 4) {
