@@ -22,3 +22,8 @@ describe('systemEventText', () => {
     expect(systemEventText({ kind: 'member_joined', actor_id: null, actor_name: '' }, translations, me)).toBe('Someone joined the group');
   });
 });
+
+it('shows names with special characters as they are', () => {
+  expect(systemEventText({ kind: 'member_added', actor_id: '2', actor_name: 'Cost $&', target_id: '3', target_name: 'Max' }, en, (id) => id === '1'))
+    .toBe('Cost $& added Max');
+});

@@ -3,6 +3,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import { useGetGroupRoleLogQuery, type GroupRoleEvent } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
 
 interface Props {
   chatId: EntityId;
@@ -19,10 +20,10 @@ const GroupRoleHistory: React.FC<Props> = ({ chatId, rolesKey }) => {
     const templates = {
       owner: translations.roleMadeOwner, admin: translations.roleMadeAdmin, moderator: translations.roleMadeModerator, member: translations.roleMadeMember,
     };
-    const template = templates[event.role];
-    return template
-      .replace('{actor}', event.actor?.display_name || translations.systemSomeone)
-      .replace('{target}', event.target.display_name || event.target.username);
+    return fillTemplate(templates[event.role], {
+      actor: event.actor?.display_name || translations.systemSomeone,
+      target: event.target.display_name || event.target.username,
+    });
   };
 
   return (

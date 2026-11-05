@@ -24,6 +24,12 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteFailed, setDeleteFailed] = useState(false);
   const [deleteMessages, { isLoading: isDeleting }] = useDeleteMessagesMutation();
+  const active = !!selection?.active;
+  useEffect(() => {
+    if (active) return;
+    setIsForwardOpen(false);
+    setIsDeleteOpen(false);
+  }, [active]);
 
   const selected = useMemo(() => messages.filter((message) => selection?.ids.has(message.id)), [messages, selection]);
   const ids = selected.map((message) => message.id);

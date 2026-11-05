@@ -95,3 +95,22 @@ describe('glideToCenter', () => {
     expect(scrollTop()).toBe(position);
   });
 });
+
+describe('useHighlightScroll loading', () => {
+  it('loads newer pages for a message newer than the loaded window, older pages otherwise', async () => {
+    const { renderHook } = await import('@testing-library/react');
+    const { useHighlightScroll } = await import('./useHighlightScroll');
+    const loaded = ['100', '101'].map((id) => ({ id, sender: 'a', content: 'x', timestamp: 't', type: 'message' as const, read_by: [] }));
+    const onLoadOlderMessages = vi.fn(async () => undefined);
+    const onLoadNewerMessages = vi.fn(async () => undefined);
+    const run = (targetId: string) => renderHook(() => useHighlightScroll({
+      targetId, messages: loaded, messageRefs: { current: {} }, hasMoreMessages: true, isLoadingOlderMessages: false, onLoadOlderMessages,
+      hasMoreNewerMessages: true, isLoadingNewerMessages: false, onLoadNewerMessages, behavior: 'auto', chatContainerRef: { current: null },
+    }));
+    run('500');
+    expect(onLoadNewerMessages).toHaveBeenCalledOnce();
+    expect(onLoadOlderMessages).not.toHaveBeenCalled();
+    run('50');
+    expect(onLoadOlderMessages).toHaveBeenCalledOnce();
+  });
+});

@@ -1,4 +1,4 @@
-import type { EntityId } from '@/shared/api/entityId';
+import { compareIds, isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, RefObject, useEffect, useRef } from 'react';
 import { Message } from '@/entities/message';
 
@@ -14,6 +14,9 @@ interface HighlightScrollOptions {
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
   onLoadOlderMessages?: () => Promise<void>;
+  hasMoreNewerMessages?: boolean;
+  isLoadingNewerMessages?: boolean;
+  onLoadNewerMessages?: () => Promise<void>;
   behavior: ScrollBehavior;
   chatContainerRef: RefObject<HTMLDivElement | null>;
 }
@@ -50,10 +53,16 @@ export const glideToCenter = (container: HTMLElement, element: HTMLElement, smoo
   return stop;
 };
 
+const isNewerThanLoaded = (targetId: EntityId, messages: Message[]) => {
+  const newest = [...messages].reverse().find((message) => isPersistedId(message.id));
+  return !!newest && isPersistedId(targetId) && compareIds(targetId, newest.id) > 0;
+};
+
 // Scrolls to a highlighted message once per request. If the message is not loaded yet, older pages are
 // loaded until it appears or there is nothing left to load.
 export const useHighlightScroll = ({
   targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior, chatContainerRef,
+  hasMoreNewerMessages = false, isLoadingNewerMessages = false, onLoadNewerMessages,
 }: HighlightScrollOptions) => {
   const requestRef = useRef<{ id: EntityId; done: boolean } | null>(null);
   const stopGlideRef = useRef<(() => void) | null>(null);
@@ -75,10 +84,13 @@ export const useHighlightScroll = ({
       stopGlideRef.current?.();
       if (container) stopGlideRef.current = glideToCenter(container, element, behavior === 'smooth');
       else element.scrollIntoView({ behavior, block: 'center' });
+    } else if (isNewerThanLoaded(targetId, messages) && hasMoreNewerMessages && onLoadNewerMessages) {
+      if (!isLoadingNewerMessages) onLoadNewerMessages();
     } else if (!hasMoreMessages || !onLoadOlderMessages) {
       request.done = true;
     } else if (!isLoadingOlderMessages) {
       onLoadOlderMessages();
     }
-  }, [targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior, chatContainerRef]);
+  }, [targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior, chatContainerRef,
+    hasMoreNewerMessages, isLoadingNewerMessages, onLoadNewerMessages]);
 };

@@ -67,6 +67,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   useHighlightScroll({
     targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, hasMoreMessages,
     isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(), chatContainerRef,
+    hasMoreNewerMessages, isLoadingNewerMessages: options.isLoadingNewerMessages, onLoadNewerMessages: options.onLoadNewerMessages,
   });
 
   const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
