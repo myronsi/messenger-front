@@ -21,8 +21,8 @@ const ChatHeaderSearch: React.FC<ChatHeaderSearchProps> = ({ chatId, onClose, on
   const inputRef = useRef<HTMLInputElement>(null);
   const jumpRef = useRef(onJumpToMessage);
   jumpRef.current = onJumpToMessage;
-  const { data, isFetching, error } = useSearchChatMessagesQuery({ chatId, query: searched }, { skip: !isPersistedId(chatId) || !searched });
-  const results = searched ? data?.results ?? [] : [];
+  const { currentData, isFetching, error } = useSearchChatMessagesQuery({ chatId, query: searched }, { skip: !isPersistedId(chatId) || !searched });
+  const results = searched ? currentData?.results ?? [] : [];
   const total = results.length;
 
   useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);

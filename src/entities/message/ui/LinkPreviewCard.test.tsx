@@ -14,7 +14,7 @@ describe('LinkPreviewCard', () => {
   beforeEach(() => query.mockReset());
 
   it('shows the site, title, description and a wide image as a banner', () => {
-    query.mockReturnValue({ data: {
+    query.mockReturnValue({ currentData: {
       url: 'https://example.com/post', title: 'A post', description: 'About it', site_name: 'Example',
       image: { url: '/api/v2/link-preview/image?url=x&sig=y', width: 1200, height: 630 },
     } });
@@ -34,14 +34,22 @@ describe('LinkPreviewCard', () => {
   });
 
   it('uses a small thumbnail when the image size is unknown', () => {
-    query.mockReturnValue({ data: { url: 'https://example.com', title: 'Home', description: null, site_name: null, image: { url: '/i', width: null, height: null } } });
+    query.mockReturnValue({ currentData: { url: 'https://example.com', title: 'Home', description: null, site_name: null, image: { url: '/i', width: null, height: null } } });
     render(<LinkPreviewCard url="https://example.com" isMine />);
     expect(screen.getByTestId('preview-image').className).toContain('h-14');
   });
 
   it('shows nothing until there is a preview', () => {
-    query.mockReturnValue({ data: undefined });
+    query.mockReturnValue({ currentData: undefined });
     render(<LinkPreviewCard url="https://example.com" isMine={false} />);
     expect(screen.queryByTestId('link-preview')).not.toBeInTheDocument();
+  });
+});
+
+describe('LinkPreviewCard with a changed link', () => {
+  it('does not show the previous link preview while the new one loads', () => {
+    query.mockReturnValue({ currentData: undefined, data: { url: 'https://old.example', title: 'Old site', description: null, site_name: null, image: null } });
+    render(<LinkPreviewCard url="https://new.example" isMine={false} />);
+    expect(screen.queryByText('Old site')).not.toBeInTheDocument();
   });
 });

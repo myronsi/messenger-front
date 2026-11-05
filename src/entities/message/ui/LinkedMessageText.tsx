@@ -11,5 +11,6 @@ export function LinkedMessageText({ text }: { text: string }) {
   const query = useSearchHighlight();
   const displayText = text.replace(/[ \t]+(?=\r?$)/gm, '');
   return <>{messageLinks(displayText).map((part, index) => part.href
-    ? <MessageLink key={index} href={part.href}>{part.text}</MessageLink> : <Highlighted key={index} text={part.text} query={query} />)}</>;
+    ? <MessageLink key={index} href={part.href}><Highlighted text={part.text} query={query} /></MessageLink>
+    : <Highlighted key={index} text={part.text} query={query} />)}</>;
 }

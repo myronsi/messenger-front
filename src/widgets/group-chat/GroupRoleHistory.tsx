@@ -11,7 +11,7 @@ interface Props {
 
 const GroupRoleHistory: React.FC<Props> = ({ chatId, rolesKey }) => {
   const { translations, language } = useLanguage();
-  const { data, refetch } = useGetGroupRoleLogQuery(chatId, { refetchOnMountOrArgChange: true });
+  const { currentData: data, refetch } = useGetGroupRoleLogQuery(chatId, { refetchOnMountOrArgChange: true });
   useEffect(() => { refetch(); }, [refetch, rolesKey]);
   const items = data?.items ?? [];
   const formatter = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' });

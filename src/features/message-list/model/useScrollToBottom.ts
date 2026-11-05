@@ -54,7 +54,7 @@ export const useScrollToBottom = ({
   // Only messages that arrived over the socket count, and each id counts once.
   const countIncoming = useCallback((appended: Message[]) => {
     const incoming = appended.filter((item) => (
-      item.is_live && !isOwnMessageRef.current(item) && !countedIdsRef.current.has(item.id)
+      item.is_live && !item.system_event && !isOwnMessageRef.current(item) && !countedIdsRef.current.has(item.id)
     ));
     if (incoming.length === 0) return;
     incoming.forEach((item) => countedIdsRef.current.add(item.id));

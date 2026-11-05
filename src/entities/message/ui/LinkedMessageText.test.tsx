@@ -1,9 +1,10 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { setSearchHighlight } from '@/shared/lib/searchHighlight';
+import type { ReactNode } from 'react';
 import { LinkedMessageText } from './LinkedMessageText';
 
-vi.mock('./MessageLink', () => ({ MessageLink: ({ children }: { children: string }) => <a href="#x">{children}</a> }));
+vi.mock('./MessageLink', () => ({ MessageLink: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a> }));
 
 afterEach(() => act(() => setSearchHighlight('')));
 
@@ -22,4 +23,12 @@ it('marks every match of the search inside the message, ignoring case', () => {
   expect(container.textContent).toBe('Old friends meet the OLD town');
   act(() => setSearchHighlight(''));
   expect(container.querySelectorAll('mark')).toHaveLength(0);
+});
+
+it('marks matches inside links and keeps the original address', () => {
+  const { container } = render(<LinkedMessageText text="see https://example.com/docs" />);
+  act(() => setSearchHighlight('example'));
+  const link = container.querySelector('a')!;
+  expect(link.getAttribute('href')).toBe('https://example.com/docs');
+  expect(link.querySelector('mark')?.textContent).toBe('example');
 });

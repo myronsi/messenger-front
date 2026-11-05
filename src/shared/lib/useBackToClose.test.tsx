@@ -64,3 +64,23 @@ it('stacks two panels so each back press closes the top one', () => {
   expect(closeSearch).toHaveBeenCalledOnce();
   expect(view.result.current.location.pathname).toBe('/chat/7');
 });
+
+it('closing a lower panel keeps the upper one open and back skips the stale entry', () => {
+  const closeSearch = vi.fn();
+  const closeSelection = vi.fn();
+  const view = renderHook(({ search, select }) => {
+    useBackToClose(select, closeSelection, 'selection');
+    useBackToClose(search, closeSearch, 'search');
+    return { location: useLocation(), navigate: useNavigate() };
+  }, { wrapper, initialProps: { search: false, select: false } });
+  view.rerender({ search: false, select: true });
+  view.rerender({ search: true, select: true });
+  view.rerender({ search: true, select: false });
+  expect(closeSearch).not.toHaveBeenCalled();
+  expect(view.result.current.location.state).toMatchObject({ search: true });
+  act(() => view.result.current.navigate(-1));
+  expect(closeSearch).toHaveBeenCalledOnce();
+  expect(view.result.current.location.state).toEqual({ chatName: 'alice' });
+  act(() => view.result.current.navigate(-1));
+  expect(view.result.current.location.pathname).toBe('/');
+});

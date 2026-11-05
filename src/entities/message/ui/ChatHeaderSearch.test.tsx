@@ -12,7 +12,7 @@ const results = [{ id: '9', sender: 'Bob', content: 'old news', timestamp: 't', 
 vi.mock('../api/messageApi', () => ({
   useSearchChatMessagesQuery: (args: { chatId: string; query: string }, options: { skip: boolean }) => {
     search(args, options);
-    return { data: options.skip ? undefined : { results: args.query === 'zzz' ? [] : results }, isFetching: false, error: undefined };
+    return { currentData: options.skip ? undefined : { results: args.query === 'zzz' ? [] : results }, isFetching: false, error: undefined };
   },
 }));
 

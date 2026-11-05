@@ -28,7 +28,7 @@ const useNearViewport = <T extends HTMLElement>() => {
 
 const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({ url, isMine }) => {
   const { ref, near } = useNearViewport<HTMLDivElement>();
-  const { data } = useGetLinkPreviewQuery(url, { skip: !near || !isGoApi() });
+  const { currentData: data } = useGetLinkPreviewQuery(url, { skip: !near || !isGoApi() });
   const [imageFailed, setImageFailed] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const cardRef = useRef<HTMLAnchorElement>(null);

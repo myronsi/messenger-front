@@ -26,3 +26,11 @@ it('closes the viewer and jumps to the message with Show in chat', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Show in chat' }));
   expect(calls).toEqual(['close', 'jump']);
 });
+
+it('offers Show in chat even without sender details', () => {
+  const onShowInChat = vi.fn();
+  render(<ImageViewerHeader index={0} total={2} onShowInChat={onShowInChat} />);
+  expect(screen.getByText('1 / 2')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Show in chat' }));
+  expect(onShowInChat).toHaveBeenCalledOnce();
+});

@@ -12,6 +12,7 @@ import { useMessengerController } from './model/useMessengerController';
 import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
 import { DesktopChatLayout } from './ui/DesktopChatLayout';
+import { useJumpRequest } from './model/useJumpRequest';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -62,7 +63,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   ]);
   const [renderUserProfile, setRenderUserProfile] = useState(isUserProfileOpen);
   const [isUserProfileClosing, setIsUserProfileClosing] = useState(false);
-  const [jumpRequest, setJumpRequest] = useState<{ chatId: EntityId; messageId: EntityId; key: number } | null>(null);
+  const { requestJump, requestFor } = useJumpRequest(currentChat?.id);
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
   useVisualViewport(isMobile && isLoggedIn);
 
@@ -97,7 +98,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     ...renderedUserProfileProps,
     onJumpToMessage: jumpChatId ? (messageId: EntityId) => {
       requestCloseUserProfile();
-      setJumpRequest({ chatId: jumpChatId, messageId, key: Date.now() });
+      requestJump(jumpChatId, messageId);
     } : undefined,
     onClose: requestCloseUserProfile,
   };
@@ -130,7 +131,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
           onBack={backToChats}
           setIsUserProfileOpen={setIsUserProfileOpen}
           onOpenUserProfile={openUserProfile}
-          messageJumpRequest={jumpRequest && String(jumpRequest.chatId) === String(mobilePanelChat.id) ? jumpRequest : null}
+          messageJumpRequest={requestFor(mobilePanelChat.id)}
           directDraftDisabled={mobilePanelChat.directDraftDisabled}
           directDraftReason={mobilePanelChat.directDraftReason}
           initialPendingApprovalRequest={mobilePanelChat.pendingApprovalRequest}

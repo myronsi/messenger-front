@@ -40,11 +40,13 @@ const ImageViewerHeader: React.FC<ImageViewerHeaderProps> = ({ info, index, tota
   );
   const counter = total > 1 ? `${index + 1} / ${total}` : '';
   if (!info) {
-    return counter ? (
-      <div aria-live="polite" className="fixed left-4 top-5 z-[10000] rounded-full bg-black/30 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm">
-        {counter}
+    if (!counter && !showInChat) return null;
+    return (
+      <div className="fixed left-4 top-4 z-[10000] flex items-center gap-2">
+        {counter && <div aria-live="polite" className="rounded-full bg-black/30 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm">{counter}</div>}
+        {showInChat}
       </div>
-    ) : null;
+    );
   }
   const sentAt = info.sentAt ? formatSentAt(info.sentAt, language) : '';
   return (
