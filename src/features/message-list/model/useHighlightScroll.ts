@@ -85,11 +85,11 @@ export const useHighlightScroll = ({
       if (container) stopGlideRef.current = glideToCenter(container, element, behavior === 'smooth');
       else element.scrollIntoView({ behavior, block: 'center' });
     } else if (isNewerThanLoaded(targetId, messages) && hasMoreNewerMessages && onLoadNewerMessages) {
-      if (!isLoadingNewerMessages) onLoadNewerMessages();
+      if (!isLoadingNewerMessages) void onLoadNewerMessages();
     } else if (!hasMoreMessages || !onLoadOlderMessages) {
       request.done = true;
     } else if (!isLoadingOlderMessages) {
-      onLoadOlderMessages();
+      void onLoadOlderMessages();
     }
   }, [targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior, chatContainerRef,
     hasMoreNewerMessages, isLoadingNewerMessages, onLoadNewerMessages]);
