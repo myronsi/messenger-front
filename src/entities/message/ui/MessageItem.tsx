@@ -93,8 +93,6 @@ interface MessageItemProps {
   onLongPress?: (message: Message) => void;
   onSwipeReply?: (message: Message) => void;
 }
-
-
 const MessageItem: React.FC<MessageItemProps> = ({
   message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage, isMobile, showNewMessagesMarker,
   nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
@@ -270,7 +268,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
               </div>
               {message.reactions?.length ? (
                 <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} wsRef={wsRef}
-                  onOpenReactionDetails={(reaction, reactions) => onOpenReactionDetails?.(message, reaction, reactions)} />
+                  onOpenReactionDetails={isGroup && onOpenReactionDetails
+                    ? (reaction, reactions) => onOpenReactionDetails(message, reaction, reactions)
+                    : undefined} />
               ) : null}
               {!isText && (!isImage || hasImageCaption) && hasTime && (
                 <div className={`text-[10px] opacity-80 select-none flex items-center ${hasImageCaption ? '-mt-1 px-3 pb-2' : 'mt-1'} ${isMine ? 'justify-end text-white' : 'text-muted-foreground'}`}>
