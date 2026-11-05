@@ -1,4 +1,5 @@
 import type { EntityId } from '@/shared/api/entityId';
+import { focusComposer } from '@/shared/lib/composerFocus';
 import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
@@ -103,9 +104,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         setEditingMessage(message);
         setMessageInput(typeof message.content === 'string' ? message.content : fileContent?.caption || '');
         setReplyTo(null);
-        if (messageInputRef.current) {
-          messageInputRef.current.focus();
-        }
+        focusComposer(messageInputRef.current);
       }
       setContextMenu({ ...contextMenu, isClosing: true });
       setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
@@ -158,9 +157,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         setReplyTo(message);
         setEditingMessage(null);
         setMessageInput('');
-        if (messageInputRef.current) {
-          messageInputRef.current.focus();
-        }
+        focusComposer(messageInputRef.current);
       }
       setContextMenu({ ...contextMenu, isClosing: true });
       setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);

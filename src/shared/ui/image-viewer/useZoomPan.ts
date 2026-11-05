@@ -1,5 +1,6 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
+import { mobileImageDirection } from './mobileImageDirection';
 import { IDENTITY, panBy, pinchTo, wheelZoomFactor, zoomAt, clampZoomPan, type Size, type ZoomPan } from './zoomPan';
 
 interface Point { x: number; y: number }
@@ -15,17 +16,31 @@ const SWIPE_DISTANCE = 60;
 const midpoint = (a: Point, b: Point) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
-interface ZoomPanOptions { onSwipe?: (direction: -1 | 1) => void }
+// The viewer frame is letterboxed by object-contain, so pan bounds follow the rendered picture rather than the frame.
+const fittedSize = (element: HTMLElement): Size => {
+  const frame = { width: element.offsetWidth, height: element.offsetHeight };
+  if (!(element instanceof HTMLImageElement) || !element.naturalWidth || !element.naturalHeight || !frame.width || !frame.height) return frame;
+  const fit = Math.min(frame.width / element.naturalWidth, frame.height / element.naturalHeight);
+  return { width: element.naturalWidth * fit, height: element.naturalHeight * fit };
+};
+
+interface ZoomPanOptions {
+  onSwipe?: (direction: -1 | 1, displacement: number) => void;
+  onDismiss?: (displacement: number) => void;
+}
 
 export const useZoomPan = (
-  stageRef: RefObject<HTMLElement | null>, imageRef: RefObject<HTMLElement | null>, enabled: boolean, { onSwipe }: ZoomPanOptions = {},
+  stageRef: RefObject<HTMLElement | null>, imageRef: RefObject<HTMLElement | null>, enabled: boolean, { onSwipe, onDismiss }: ZoomPanOptions = {},
 ) => {
   const [view, setView] = useState<ZoomPan>(IDENTITY);
   const [swipeX, setSwipeX] = useState(0);
+  const [swipeY, setSwipeY] = useState(0);
   const swipeRef = useRef({ x: 0, y: 0 });
+  const swipeAxis = useRef<'horizontal' | 'vertical' | null>(null);
   const [isGesturing, setIsGesturing] = useState(false);
   const viewRef = useRef<ZoomPan>(IDENTITY);
   const pointersRef = useRef(new Map<number, Point>());
+  const pinchedRef = useRef(false);
   const gestureRef = useRef<Gesture | null>(null);
   const startRef = useRef<Point | null>(null);
   const movedRef = useRef(false);
@@ -37,7 +52,7 @@ export const useZoomPan = (
     if (!stage || !image) return null;
     return {
       stage: { width: stage.clientWidth, height: stage.clientHeight },
-      image: { width: image.offsetWidth, height: image.offsetHeight },
+      image: fittedSize(image),
       rect: stage.getBoundingClientRect(),
     };
   }, [stageRef, imageRef]);
@@ -94,10 +109,15 @@ export const useZoomPan = (
   }, [enabled, stageRef, update]);
 
   const startGesture = () => {
+    swipeAxis.current = null;
     const points = [...pointersRef.current.values()];
     swipeRef.current = { x: 0, y: 0 };
     setSwipeX(0);
+    setSwipeY(0);
     if (points.length >= 2) {
+      pinchedRef.current = true;
+      movedRef.current = true;
+      lastTapRef.current = null;
       gestureRef.current = {
         type: 'pinch', startDistance: Math.max(1, distance(points[0], points[1])),
         startScale: viewRef.current.scale, lastMid: midpoint(points[0], points[1]),
@@ -118,6 +138,7 @@ export const useZoomPan = (
     }
     const point = { x: event.clientX, y: event.clientY };
     if (pointersRef.current.size === 0) {
+      pinchedRef.current = false;
       movedRef.current = false;
       startRef.current = point;
     }
@@ -145,9 +166,15 @@ export const useZoomPan = (
       const { last } = gesture;
       gesture.last = point;
       if (viewRef.current.scale > 1) pan(point.x - last.x, point.y - last.y);
-      else if (onSwipe && startRef.current) {
+      else if (!pinchedRef.current && (onSwipe || onDismiss) && startRef.current) {
         swipeRef.current = { x: point.x - startRef.current.x, y: point.y - startRef.current.y };
-        setSwipeX(Math.abs(swipeRef.current.x) > Math.abs(swipeRef.current.y) ? swipeRef.current.x : 0);
+        const { x, y } = swipeRef.current;
+        if (!swipeAxis.current && Math.max(Math.abs(x), Math.abs(y)) > 10) {
+          if (Math.abs(x) > Math.abs(y) * 1.2) swipeAxis.current = 'horizontal';
+          else if (Math.abs(y) > Math.abs(x) * 1.2) swipeAxis.current = 'vertical';
+        }
+        setSwipeX(onSwipe && swipeAxis.current === 'horizontal' ? x : 0);
+        setSwipeY(onDismiss && swipeAxis.current === 'vertical' ? Math.max(0, y) : 0);
       }
     }
   };
@@ -164,15 +191,30 @@ export const useZoomPan = (
     swipeRef.current = { x: 0, y: 0 };
     setSwipeX(0);
     setIsGesturing(false);
-    if (onSwipe && Math.abs(swipe.x) > SWIPE_DISTANCE && Math.abs(swipe.x) > Math.abs(swipe.y) * 1.2) {
-      onSwipe(swipe.x < 0 ? 1 : -1);
+    if (pinchedRef.current) {
+      setSwipeY(0);
+      lastTapRef.current = null;
+      return;
+    }
+    const dismiss = event.type !== 'pointercancel' && onDismiss && viewRef.current.scale === 1 && swipeAxis.current === 'vertical' && swipe.y > 100;
+    if (dismiss) {
+      onDismiss(swipe.y);
+      return;
+    }
+    setSwipeY(0);
+    if (event.type === 'pointercancel') return;
+    if (onSwipe && swipeAxis.current === 'horizontal' && Math.abs(swipe.x) > SWIPE_DISTANCE) {
+      onSwipe(swipe.x < 0 ? 1 : -1, swipe.x);
       return;
     }
     if (movedRef.current) return;
+    if (onSwipe && viewRef.current.scale === 1 && mobileImageDirection(event.clientX, stageRef.current)) { lastTapRef.current = null; return; }
     const point = { x: event.clientX, y: event.clientY };
     const lastTap = lastTapRef.current;
     if (lastTap && event.timeStamp - lastTap.at < DOUBLE_TAP_MS && distance(point, lastTap.point) < TAP_SLOP * 4) {
       lastTapRef.current = null;
+      // Consume the trailing click so a zoom-out double-tap cannot navigate the gallery.
+      movedRef.current = true;
       toggleAt(point);
     } else {
       lastTapRef.current = { at: event.timeStamp, point };
@@ -180,7 +222,7 @@ export const useZoomPan = (
   };
 
   return {
-    view, swipeX, isGesturing, movedRef, reset, zoomBy, pan, toggleAt,
+    view, swipeX, swipeY, isGesturing, movedRef, reset, zoomBy, pan, toggleAt,
     pointerHandlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp },
   };
 };

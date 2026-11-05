@@ -13,6 +13,21 @@ const drag = (handlers: ReturnType<typeof useSwipeAction>['handlers'], to: numbe
 };
 
 describe('useSwipeAction', () => {
+  it.each([1, -1] as const)('requires a firmer drag with resistance in direction %s', direction => {
+    const onSwipe = vi.fn();
+    const { result } = renderHook(() => useSwipeAction(direction, onSwipe));
+    drag(result.current.handlers, direction * 56);
+    expect(Math.abs(result.current.offset)).toBeCloseTo(33.6);
+    expect(result.current.progress).toBeLessThan(1);
+    act(() => result.current.handlers.onTouchEnd(none));
+    expect(onSwipe).not.toHaveBeenCalled();
+    drag(result.current.handlers, direction * 96);
+    expect(Math.abs(result.current.offset)).toBeCloseTo(57.6);
+    expect(result.current.progress).toBe(1);
+    act(() => result.current.handlers.onTouchEnd(none));
+    expect(onSwipe).toHaveBeenCalledOnce();
+  });
+
   it('replies after a long enough swipe in its direction and springs back', () => {
     const onSwipe = vi.fn();
     const { result } = renderHook(() => useSwipeAction(1, onSwipe));

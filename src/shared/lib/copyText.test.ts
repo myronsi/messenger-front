@@ -18,4 +18,17 @@ describe('copyText', () => {
     expect(await copyText('@ann')).toBe(true);
     expect(execCommand).toHaveBeenCalledWith('copy');
   });
+
+  it('cleans up and restores focus even if the fallback copy throws', async () => {
+    vi.stubGlobal('navigator', {});
+    const button = document.createElement('button');
+    document.body.append(button);
+    button.focus();
+    Object.assign(document, { execCommand: () => { throw new Error('denied'); } });
+    expect(await copyText('@ann')).toBe(false);
+    expect(document.querySelector('textarea')).toBeNull();
+    expect(window.getSelection()?.toString()).toBe('');
+    expect(button).toHaveFocus();
+    button.remove();
+  });
 });

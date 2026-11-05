@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState, type TouchEvent } from 'react';
 
-export const SWIPE_THRESHOLD = 56;
+export const SWIPE_THRESHOLD = 96;
 const SWIPE_MAX = 72;
+const SWIPE_RESISTANCE = 0.6;
 const DIRECTION_LOCK = 10;
 
 type TouchHandlers = Record<'onTouchStart' | 'onTouchMove' | 'onTouchEnd' | 'onTouchCancel', (event: TouchEvent) => void>;
@@ -32,7 +33,7 @@ export const useSwipeAction = (direction: 1 | -1, onSwipe?: () => void) => {
     const distance = Math.max(0, dx * direction);
     if (current.distance < SWIPE_THRESHOLD && distance >= SWIPE_THRESHOLD) navigator.vibrate?.(10);
     current.distance = distance;
-    setOffset(distance ? Math.min(SWIPE_MAX, distance) * direction : 0);
+    setOffset(distance ? Math.min(SWIPE_MAX, distance * SWIPE_RESISTANCE) * direction : 0);
   }, [direction]);
 
   const onTouchEnd = useCallback(() => {
@@ -48,7 +49,7 @@ export const useSwipeAction = (direction: 1 | -1, onSwipe?: () => void) => {
   }, []);
 
   const handlers: TouchHandlers = { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel };
-  return { offset, progress: Math.min(1, Math.abs(offset) / SWIPE_THRESHOLD), handlers };
+  return { offset, progress: Math.min(1, Math.abs(offset) / (SWIPE_THRESHOLD * SWIPE_RESISTANCE)), handlers };
 };
 
 export const combineTouchHandlers = (...list: Partial<TouchHandlers>[]): TouchHandlers => ({

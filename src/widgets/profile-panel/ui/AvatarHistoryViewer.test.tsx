@@ -12,7 +12,7 @@ vi.mock('@/shared/ui/AuthenticatedImage', async () => {
 
 const current = 'http://localhost:3000/api/v2/users/7/avatar';
 const item = (version: string, isCurrent: boolean) => ({ id: version, avatar_url: `/api/v2/users/7/avatar?version=${version}`, created_at: '2026-11-02T10:00:00Z', is_current: isCurrent });
-const shownSrc = () => screen.getByRole('dialog').querySelector('img')?.getAttribute('src');
+const shownSrc = () => screen.getByRole('img', { name: 'Alice avatar' }).getAttribute('src');
 
 describe('AvatarHistoryViewer', () => {
   it('shows the current avatar at once while the history loads', () => {

@@ -1,3 +1,4 @@
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/shared/ui/breadcrumb';
 import React, { useState } from 'react';
 import { Camera, Check, Loader2, UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -44,13 +45,15 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
   return (
     <div className="flex h-full flex-col bg-white">
       <div className="border-b border-border px-5 py-4">
-        <nav className="flex items-center gap-2 text-sm">
-          <button type="button" onClick={requestBack}>{translations.profile || 'Profile'}</button>
-          <span>/</span>
-          <button type="button" onClick={requestBack}>{translations.settings || 'Settings'}</button>
-          <span>/</span>
-          <span className="inline-flex items-center gap-2 font-medium"><UserRound className="h-4 w-4 text-muted-foreground" />{translations.personalInfo || 'Personal info'}</span>
-        </nav>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbLink asChild className="cursor-pointer"><button type="button" onClick={requestBack}>{translations.profile || 'Profile'}</button></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbLink asChild className="cursor-pointer"><button type="button" onClick={requestBack}>{translations.settings || 'Settings'}</button></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage className="inline-flex items-center gap-2 font-medium"><UserRound className="h-4 w-4 text-muted-foreground" />{translations.personalInfo || 'Personal info'}</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         <p className="text-sm text-muted-foreground">{translations.editProfile || 'Edit how other people see you.'}</p>

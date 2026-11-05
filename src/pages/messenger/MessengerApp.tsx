@@ -11,6 +11,7 @@ import { UserProfileComponentRTK } from '@/widgets/profile-panel';
 import { useMessengerController } from './model/useMessengerController';
 import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
+import { DesktopChatLayout } from './ui/DesktopChatLayout';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -181,7 +182,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
             </div>
           ) : (
             <div className="flex h-screen max-h-screen min-w-full overflow-hidden">
-              <div className="w-1/4 bg-white rounded-lg shadow-lg overflow-auto">
+              <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={
                 <ChatsListComponentRTK
                   username={username}
                   onChatOpen={openChat}
@@ -191,9 +192,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                   onActiveChatUpdate={updateActiveChatFromList}
                   onChatDeleted={handleChatDeleted}
                 />
-              </div>
-
-              <div className="w-3/4 bg-white rounded-lg shadow-lg overflow-hidden">
+              }>
                 {activeChat || (
                   <div className="h-full flex items-center justify-center">
                     <div className="bg-gray-100 px-3 py-1 rounded-xl">
@@ -201,14 +200,13 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                     </div>
                   </div>
                 )}
-              </div>
+              </DesktopChatLayout>
 
               {renderUserProfile && (
                 <div
                   className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-6 py-6 transition-opacity duration-200 ease-out ${
                     isUserProfileClosing ? 'opacity-0' : 'opacity-100'
                   }`}
-                  onMouseDown={requestCloseUserProfile}
                 >
                   <div
                     className={`h-[min(780px,calc(100vh-3rem))] w-[420px] max-w-full overflow-hidden rounded-lg bg-white shadow-2xl transition-all duration-200 ease-out ${

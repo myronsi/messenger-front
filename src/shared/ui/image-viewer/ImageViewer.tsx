@@ -8,25 +8,28 @@ import { useZoomPan } from './useZoomPan';
 import { downloadImage } from './downloadImage';
 import { isOnPicture } from './pictureRect';
 import { DeleteImageConfirm } from './DeleteImageConfirm';
-
+import { NeighborSlide } from './NeighborSlide';
+import { useGallerySwipe } from './useGallerySwipe';
+import { useSwipeDismiss } from './useSwipeDismiss';
+import { useSwipeMorph } from './useSwipeMorph';
+import { useFadeClose } from './useFadeClose';
+import { mobileImageDirection } from './mobileImageDirection';
+import { MobileGalleryEdges } from './MobileGalleryEdges';
 const KEY_PAN_STEP = 80;
-
 export interface ViewerImage {
   url: string;
   name: string;
   downloadName?: string;
   previewUrl?: string;
+  thumbnailSource?: string;
   onDelete?: () => Promise<void>;
 }
-
 interface ImageViewerProps {
   images: ViewerImage[];
   initialIndex?: number;
   onClose: () => void;
 }
-
 const stopPropagation = (event: React.SyntheticEvent) => event.stopPropagation();
-
 const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onClose }) => {
   const { translations } = useLanguage();
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -46,54 +49,47 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const canGoBack = index > 0;
   const canGoForward = index < images.length - 1;
   const image = images[index];
-
   const go = useCallback((direction: -1 | 1) => {
     setIndex((current) => Math.min(Math.max(current + direction, 0), images.length - 1));
   }, [images.length]);
-
-  const { view, swipeX, isGesturing, movedRef, reset, zoomBy, pan, pointerHandlers } = useZoomPan(
-    stageRef, imageRef, isStageMounted, { onSwipe: isGallery ? go : undefined },
+  const onSwipe = useGallerySwipe(stageRef, index, images.length, go);
+  const fadeClose = useFadeClose(stageRef, onClose);
+  const onDismiss = useSwipeDismiss(stageRef, onClose, [image?.thumbnailSource, image?.url, image?.previewUrl]);
+  const { view, swipeX, swipeY, isGesturing, movedRef, reset, zoomBy, pan, pointerHandlers } = useZoomPan(
+    stageRef, imageRef, isStageMounted, { onSwipe: isGallery ? onSwipe : undefined, onDismiss },
   );
-
+  useSwipeMorph(stageRef, swipeY, [image?.thumbnailSource, image?.url, image?.previewUrl]);
   useEffect(() => { reset(); }, [index, reset]);
-
   const markLoaded = useCallback((url: string) => {
     setLoadedUrls((loaded) => (loaded[url] ? loaded : { ...loaded, [url]: true }));
   }, []);
-
   const currentUrl = images[index]?.url;
   const setImage = useCallback((node: HTMLImageElement | null) => {
     imageRef.current = node;
     if (node && currentUrl && node.getAttribute('src') && node.complete && node.naturalWidth > 0) markLoaded(currentUrl);
   }, [currentUrl, markLoaded]);
-
   useEffect(() => {
     const cancelNext = preloadMedia(images[index + 1]?.url);
     const cancelPrevious = preloadMedia(images[index - 1]?.url);
     return () => { cancelNext(); cancelPrevious(); };
   }, [images, index]);
-
   useEffect(() => {
     if (images.length === 0) onClose();
     else if (index > images.length - 1) setIndex(images.length - 1);
   }, [images.length, index, onClose]);
-
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = previousOverflow; };
   }, []);
-
   const confirmingRef = useRef(false);
   confirmingRef.current = !!deleting;
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const wasConfirmingRef = useRef(false);
-
   useEffect(() => {
     if (wasConfirmingRef.current && !deleting && deleteButtonRef.current?.isConnected) deleteButtonRef.current.focus({ preventScroll: true });
     wasConfirmingRef.current = !!deleting;
   }, [deleting]);
-
   useEffect(() => {
     const zoomed = view.scale > 1;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -117,13 +113,13 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [go, onClose, pan, view.scale, zoomBy]);
-
   const previewRef = useRef<HTMLImageElement>(null);
   const handleStageClick = useCallback((event: React.MouseEvent) => {
     if (movedRef.current || view.scale > 1) return;
-    if (!isOnPicture([imageRef.current, previewRef.current], event.clientX, event.clientY)) onClose();
-  }, [movedRef, onClose, view.scale]);
-
+    const direction = isGallery ? mobileImageDirection(event.clientX, stageRef.current) : null;
+    if (direction) { onSwipe(direction, 0); return; }
+    if (!isOnPicture([imageRef.current, previewRef.current], event.clientX, event.clientY)) fadeClose();
+  }, [movedRef, fadeClose, view.scale, isGallery, onSwipe]);
   if (!image) return null;
   const isBroken = !!brokenUrls[image.url];
   const isLoaded = !!loadedUrls[image.url];
@@ -137,7 +133,6 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
       setIsDownloading(false);
     }
   };
-
   const confirmDelete = async () => {
     if (!image.onDelete) return;
     setDeleting({ url: image.url, busy: true, failed: false });
@@ -149,11 +144,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     }
   };
   const deleteState = deleting?.url === image.url ? deleting : null;
-
   const buttonClass = 'p-2 bg-black/30 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm';
-  const sideButtonClass = 'absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
+  const sideButtonClass = 'max-sm:pointer-events-none max-sm:opacity-0 max-sm:focus-visible:pointer-events-auto max-sm:focus-visible:opacity-100 absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
   const edgeResistance = (!canGoBack && swipeX > 0) || (!canGoForward && swipeX < 0) ? 0.3 : 1;
-
   return (
     <DialogPrimitive.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogPrimitive.Portal>
@@ -172,8 +165,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
         >
           <div
             aria-label={image.name}
-            className="motion-image-viewer-backdrop fixed inset-0 z-[9999] bg-black/70 flex flex-col outline-none"
-            style={{ isolation: 'isolate' }}
+            className="motion-image-viewer-backdrop fixed inset-0 z-[9999] bg-black flex flex-col outline-none"
+            style={{ isolation: 'isolate', backgroundColor: `rgba(0, 0, 0, ${Math.max(0, 1 - swipeY / Math.max(1, window.innerHeight * 0.65))})`, transition: isGesturing ? 'none' : 'background-color 240ms ease-out' }}
             onClick={stopPropagation}
             onDoubleClick={stopPropagation}
             onMouseDown={stopPropagation}
@@ -195,10 +188,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
               </div>
             )}
             <div className="fixed top-4 right-4 flex gap-2 z-[10000]">
-              <button type="button" onClick={() => zoomBy(1.25)} aria-label={translations.zoomIn || 'Zoom in'} className={buttonClass}>
+              <button type="button" onClick={() => zoomBy(1.25)} aria-label={translations.zoomIn || 'Zoom in'} className={`max-sm:sr-only max-sm:focus-visible:not-sr-only ${buttonClass}`}>
                 <ZoomIn className="w-5 h-5" />
               </button>
-              <button type="button" onClick={() => zoomBy(0.8)} aria-label={translations.zoomOut || 'Zoom out'} className={buttonClass}>
+              <button type="button" onClick={() => zoomBy(0.8)} aria-label={translations.zoomOut || 'Zoom out'} className={`max-sm:sr-only max-sm:focus-visible:not-sr-only ${buttonClass}`}>
                 <ZoomOut className="w-5 h-5" />
               </button>
               {!isBroken && (
@@ -211,7 +204,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                   <Trash2 className="w-5 h-5" />
                 </button>
               )}
-              <button type="button" onClick={onClose} aria-label={translations.close || 'Close'} className={buttonClass}>
+              <button type="button" onClick={fadeClose} aria-label={translations.close || 'Close'} className={buttonClass}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -222,10 +215,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             )}
             {isGallery && (
               <>
-                <button type="button" disabled={!canGoBack} onClick={() => go(-1)} aria-label={translations.previousImage} className={`${sideButtonClass} left-2 sm:left-4`}>
+                <button type="button" disabled={!canGoBack} onClick={() => onSwipe(-1, 0)} aria-label={translations.previousImage} className={`${sideButtonClass} left-2 sm:left-4`}>
                   <ChevronLeft className="h-6 w-6" />
                 </button>
-                <button type="button" disabled={!canGoForward} onClick={() => go(1)} aria-label={translations.nextImage} className={`${sideButtonClass} right-2 sm:right-4`}>
+                <button type="button" disabled={!canGoForward} onClick={() => onSwipe(1, 0)} aria-label={translations.nextImage} className={`${sideButtonClass} right-2 sm:right-4`}>
                   <ChevronRight className="h-6 w-6" />
                 </button>
               </>
@@ -233,11 +226,25 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             <div
               ref={setStage}
               data-testid="image-viewer-stage"
-              className={`relative flex-1 flex items-center justify-center overflow-hidden p-8 select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+              className={`relative flex-1 flex items-center justify-center overflow-hidden px-0 py-8 sm:px-8 select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
               style={{ touchAction: 'none' }}
               onClick={handleStageClick}
               {...pointerHandlers}
             >
+              {isGallery && <MobileGalleryEdges previous={canGoBack} next={canGoForward} zoomed={view.scale > 1} />}
+              {view.scale === 1 && ([-1, 1] as const).map((direction) => {
+                const neighbor = images[index + direction];
+                if (!neighbor) return null;
+                return (
+                  <NeighborSlide
+                    key={`${index + direction}:${neighbor.url}`}
+                    image={neighbor} direction={direction} offset={swipeX * edgeResistance}
+                    gesturing={isGesturing} broken={!!brokenUrls[neighbor.url]}
+                    onLoad={() => markLoaded(neighbor.url)}
+                    onError={() => setBrokenUrls((current) => ({ ...current, [neighbor.url]: true }))}
+                  />
+                );
+              })}
               {isBroken ? (
                 <div className="flex flex-col items-center gap-3 text-white/70">
                   <ImageOff className="h-10 w-10" />
@@ -253,8 +260,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                       alt=""
                       aria-hidden="true"
                       data-testid="image-viewer-preview"
-                      className="pointer-events-none absolute inset-0 m-auto h-[80vh] w-[80vw] select-none object-contain"
-                      style={{ transform: `translate(${swipeX * edgeResistance}px, 0px)` }}
+                      data-active-slide
+                      className="pointer-events-none absolute inset-0 m-auto h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw] select-none object-contain"
+                      style={{ transform: `translate(${swipeX * edgeResistance}px, ${swipeY}px) scale(${Math.max(0.65, 1 - swipeY / window.innerHeight * 0.5)})` }}
                       draggable={false}
                     />
                   ) : (
@@ -265,12 +273,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                     ref={setImage}
                     src={image.url}
                     alt={image.name}
-                    className={`max-h-[80vh] max-w-[80vw] select-none object-contain rounded-lg ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    data-active-slide
+                    className={`h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw] select-none object-contain rounded-lg ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
                     style={{
-                      transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y}px) scale(${view.scale})`,
-                      transition: isGesturing ? 'opacity 0.15s' : 'transform 0.2s, opacity 0.15s',
+                      transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y + swipeY}px) scale(${view.scale * Math.max(0.65, 1 - swipeY / window.innerHeight * 0.5)})`,
+                      transition: isGesturing ? 'opacity 0.15s' : 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s',
                       userSelect: 'none',
                       WebkitUserSelect: 'none',
+                      backfaceVisibility: 'hidden', willChange: isGesturing ? 'transform' : undefined,
                       pointerEvents: 'none',
                     }}
                     draggable={false}
@@ -286,5 +296,4 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     </DialogPrimitive.Root>
   );
 };
-
 export default ImageViewer;

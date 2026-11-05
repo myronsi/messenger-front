@@ -1,6 +1,7 @@
 import { RecoveryKeyComponent } from '@/features/auth';
 import { isGoApi } from '@/shared/api/goSocket';
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { DocsLink } from '@/shared/ui/DocsLink';
 import { notificationReturnPath } from '@/shared/lib/notifications/navigation';
 import {
   LoginComponent,
@@ -65,7 +66,7 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
             <Route path="*" element={<Navigate to="/login" state={authState} replace />} />
           </Routes>
           <p className="text-center text-sm">
-            <Link to="/docs" className="text-blue-600 hover:underline">{translations.docsLink}</Link>
+            <DocsLink className="text-blue-600 hover:underline">{translations.docsLink}</DocsLink>
           </p>
         </div>
       </div>

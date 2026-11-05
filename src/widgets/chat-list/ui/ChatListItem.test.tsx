@@ -13,15 +13,23 @@ vi.mock('@/shared/lib/notifications/api', () => ({
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { alt?: string }) => <img alt={props.alt} /> }));
 
 const chat = { id: '7', name: 'alice', display_name: 'Alice', type: 'one-on-one', unread_count: 3 } as Chat;
-const renderItem = () => render(
+const renderItem = (isContextSelected = false) => render(
   <ChatListItem
-    chat={chat} translations={en} getLastMessagePreview={() => ''} getLastMessageTime={() => ''}
+    chat={chat} activeChatId="7" isContextSelected={isContextSelected} translations={en} getLastMessagePreview={() => ''} getLastMessageTime={() => ''}
     isOwnLastMessage={() => false} isOwnLastMessageRead={() => false} onClick={vi.fn()} onContextMenu={vi.fn()}
   />,
 );
 
 describe('ChatListItem', () => {
   beforeEach(() => { snapshot = { ...snapshot, mutes: [] }; });
+
+  it('uses a gray context selection instead of the active chat color', () => {
+    renderItem(true);
+    const row = screen.getByTestId('chat-list-item');
+    expect(row).toHaveClass('bg-gray-100', 'text-foreground');
+    expect(row).not.toHaveClass('md:bg-primary');
+    expect(row).toHaveAttribute('data-context-selected', 'true');
+  });
 
   it('shows the unread count in the accent colour for a normal chat', () => {
     renderItem();

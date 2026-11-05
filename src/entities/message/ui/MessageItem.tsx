@@ -165,6 +165,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       )}
       <div
+        data-image-message={isImage || undefined}
         ref={(element) => {
           messageRefs.current[message.id] = element;
           if (element && observerRef.current) {
@@ -172,7 +173,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             observerRef.current.observe(element);
           }
         }}
-        className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} motion-selection-row ${onToggleSelect ? 'relative pl-8' : swipe.offset ? 'relative' : ''} ${canSwipe ? 'touch-pan-y' : ''} flex ${isMine ? 'justify-end' : 'justify-start'} ${
+        className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} ${onToggleSelect || swipe.offset ? 'relative' : ''} ${canSwipe ? 'touch-pan-y' : ''} flex ${isMine ? 'justify-end' : 'justify-start'} ${
           isHighlighted ? 'highlight' : ''
         } ${isContextHighlighted ? 'context-menu-highlight' : ''} ${
           message.is_deleting ? (reducedMotion ? 'message-deleting message-deleting-reduced' : 'message-deleting') : ''
@@ -202,8 +203,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
         )}
         {swipe.offset !== 0 && <SwipeReplyIcon side={isMine ? 'right' : 'left'} progress={swipe.progress} />}
         <div className={`${message.is_deleting ? 'flex w-full' : 'message-cv flex'} ${isMine ? 'justify-end' : 'justify-start'}`}
-          style={swipe.offset ? { transform: `translateX(${swipe.offset}px)` } : { transition: 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
-        <div className={`flex min-w-0 items-end space-x-2 max-w-[85%] md:max-w-[70%] ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
+          style={{ transform: swipe.offset || (onToggleSelect && !isMine)
+            ? `translateX(${swipe.offset + (onToggleSelect && !isMine ? 32 : 0)}px)` : undefined,
+            transition: swipe.offset || reducedMotion ? 'none' : 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
+        <div className={`flex min-w-0 items-end space-x-2 max-w-[85%] md:max-w-[70%] ${isText ? 'w-full' : ''} ${isMine ? 'flex-row-reverse space-x-reverse' : ''}`}>
           {showAvatar && (
             <button type="button" className="mb-1 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={(event) => {
               event.stopPropagation();
@@ -213,7 +216,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             </button>
           )}
           {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}
-          <div className={`group relative flex min-w-0 flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+          <div data-message-column className={`group relative flex min-w-0 flex-col ${isText ? 'flex-1' : ''} ${isMine ? 'items-end' : 'items-start'}`}>
             {showSenderName && (
               <button type="button" onClick={(event) => {
                 event.stopPropagation();
@@ -224,7 +227,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
             )}
             <div className={`motion-message-bubble relative w-fit min-w-0 max-w-full rounded-2xl [overflow-wrap:anywhere] ${message.is_deleting ? 'message-dissolve' : ''} ${
               isMine ? `bg-primary text-primary-foreground${showTail ? ' message-tail-right' : ''}` : `bg-accent text-accent-foreground${showTail ? ' message-tail-left' : ''}`
-            } ${isImage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}` : `px-4 py-2 border${isMine ? ' border-primary' : ' border-accent'}`} ${
+            } ${isImage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}`
+              : `px-3 ${isText ? 'pt-0.5 pb-1.5' : 'py-1.5'} border${isMine ? ' border-primary' : ' border-accent'}`} ${
               hasReactions ? (isImage ? 'mb-4' : 'mb-3.5') : ''
             }`}>
               {message.forwarded_from && (
@@ -244,7 +248,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   renderMessageContent={renderMessageContent}
                   isAudioPlaying={isAudioPlaying}
                   setPlayingMessageId={setPlayingMessageId}
-                  trailing={isText && hasTime ? <span aria-hidden="true" className="invisible ml-2 inline-block text-[10px]">{time(false)}</span> : undefined}
+                  trailing={isText && hasTime
+                    ? <span data-message-time-spacer aria-hidden="true" className="invisible ml-2 inline-block text-[10px]">{time(false)}</span> : undefined}
                 />
                 {isText && hasTime && (
                   <div data-testid="message-time" className={`absolute bottom-0 right-0 translate-y-1 select-none text-[10px] opacity-80 ${isMine ? 'text-white' : 'text-muted-foreground'}`}>

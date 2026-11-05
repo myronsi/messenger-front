@@ -1,4 +1,5 @@
 import type { EntityId } from '@/shared/api/entityId';
+import { isMobileComposer } from '@/shared/lib/composerFocus';
 import React, { useCallback, useRef, forwardRef, useState, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Paperclip, Upload } from 'lucide-react';
@@ -174,9 +175,11 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const dismissError = useCallback(() => setErrorMessage(null), [setErrorMessage]);
 
   const cancelKeepingFocus = () => {
-    const keepFocus = document.activeElement === inputRef.current;
+    const field = inputRef.current;
+    const keepFocus = document.activeElement === field;
     onCancelReplyOrEdit();
-    if (keepFocus) requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
+    if (isEditing && isMobileComposer()) field?.blur();
+    else if (keepFocus) field?.focus({ preventScroll: true });
   };
 
   const hold = useHoldToRecord({

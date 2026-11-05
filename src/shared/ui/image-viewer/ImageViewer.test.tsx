@@ -1,15 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchMedia } from '@/shared/api/fetchMedia';
 import ImageViewer from './ImageViewer';
-
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { previousImage: 'Previous image', nextImage: 'Next image' } }) }));
 vi.mock('@/shared/api/fetchMedia', () => ({ fetchMedia: vi.fn(async () => new Response('png', { status: 200 })) }));
 vi.mock('@/shared/ui/AuthenticatedImage', async () => {
   const { forwardRef } = await import('react');
   return { AuthenticatedImage: forwardRef<HTMLImageElement, React.ImgHTMLAttributes<HTMLImageElement>>((props, ref) => <img ref={ref} {...props} />) };
 });
-
 const renderViewer = () => {
   const parent = { onContextMenu: vi.fn(), onClick: vi.fn(), onPointerDown: vi.fn() };
   const onClose = vi.fn();
@@ -20,8 +18,123 @@ const renderViewer = () => {
   );
   return { parent, onClose, stage: screen.getByTestId('image-viewer-stage'), image: screen.getByAltText('photo.png') };
 };
-
 describe('ImageViewer', () => {
+  it('does not turn the remaining finger of a pinch into a dismiss swipe', () => {
+    const { stage, image, onClose } = renderViewer();
+    const point = (pointerId: number, clientX: number, clientY: number) => ({ pointerId, clientX, clientY, pointerType: 'touch' });
+    fireEvent.pointerDown(stage, point(1, 100, 100));
+    fireEvent.pointerDown(stage, point(2, 300, 100));
+    fireEvent.pointerMove(stage, point(2, 500, 100));
+    fireEvent.pointerMove(stage, point(2, 200, 100));
+    fireEvent.pointerUp(stage, point(2, 200, 100));
+    fireEvent.pointerMove(stage, point(1, 100, 280));
+    expect(image.style.transform).toContain('translate(0px, 0px)');
+    expect(screen.getByRole('dialog').style.backgroundColor).toBe('rgb(0, 0, 0)');
+    expect(image.style.clipPath).toBe('');
+    fireEvent.pointerUp(stage, point(1, 100, 280));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(stage, { clientX: 100, clientY: 280 });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.pointerDown(stage, point(3, 100, 100));
+    fireEvent.pointerMove(stage, point(3, 100, 260));
+    fireEvent.pointerUp(stage, point(3, 100, 260));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('switches photos with mobile edge taps, stays at gallery boundaries, and ignores taps while zoomed', () => {
+    vi.stubGlobal('innerWidth', 390);
+    const onClose = vi.fn();
+    render(<ImageViewer images={[{ url: '/a.png', name: 'A' }, { url: '/b.png', name: 'B' }]} onClose={onClose} />);
+    const stage = screen.getByTestId('image-viewer-stage');
+    expect(screen.getByRole('button', { name: 'Next image' })).toHaveClass('max-sm:opacity-0', 'max-sm:pointer-events-none', 'max-sm:focus-visible:opacity-100');
+    expect(screen.getByTestId('mobile-gallery-edges')).toHaveClass('pointer-events-none', 'sm:hidden');
+    fireEvent.click(stage, { clientX: 5, clientY: 300 });
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    fireEvent.click(stage, { clientX: 380, clientY: 300 });
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    fireEvent.click(stage, { clientX: 380, clientY: 300 });
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    fireEvent.click(stage, { clientX: 5, clientY: 300 });
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    for (const edge of screen.getByTestId('mobile-gallery-edges').children) expect(edge).toHaveClass('opacity-0', 'duration-200');
+    fireEvent.click(stage, { clientX: 380, clientY: 300 });
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('keeps a downward swipe vertical after moving sideways and fades with drag progress', () => {
+    const onClose = vi.fn();
+    render(<ImageViewer images={[{ url: '/a.png', name: 'A' }, { url: '/b.png', name: 'B' }]} onClose={onClose} />);
+    const stage = screen.getByTestId('image-viewer-stage');
+    const backdrop = screen.getByRole('dialog');
+    const alpha = () => Number(backdrop.style.backgroundColor.match(/[\d.]+/g)?.[3] ?? 1);
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 300, clientY: 100, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 300, clientY: 140, pointerType: 'touch' });
+    const firstAlpha = alpha();
+    expect(firstAlpha).toBeLessThan(1);
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 50, clientY: 180, pointerType: 'touch' });
+    expect(screen.getByAltText('A').style.transform).toContain('translate(0px, 80px)');
+    expect(alpha()).toBeLessThan(firstAlpha);
+    fireEvent.pointerUp(stage, { pointerId: 1, clientX: 50, clientY: 180, pointerType: 'touch' });
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(alpha()).toBe(1);
+  });
+
+  it('follows a downward drag and closes a single photo only after a deliberate swipe', () => {
+    const { stage, image, onClose } = renderViewer();
+    const drag = (dy: number, cancel = false) => {
+      fireEvent.pointerDown(stage, { pointerId: 1, clientX: 200, clientY: 100, pointerType: 'touch' });
+      fireEvent.pointerMove(stage, { pointerId: 1, clientX: 200, clientY: 100 + dy, pointerType: 'touch' });
+      if (dy > 0) expect(image.style.transform).toContain(`, ${dy}px)`);
+      const finish = cancel ? fireEvent.pointerCancel : fireEvent.pointerUp;
+      finish(stage, { pointerId: 1, clientX: 200, clientY: 100 + dy, pointerType: 'touch' });
+    };
+    drag(40);
+    drag(-150);
+    drag(150, true);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(image.style.transform).toContain(', 0px)');
+    drag(150);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('pans a zoomed photo instead of dismissing it on a downward swipe', () => {
+    const { stage, onClose } = renderViewer();
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 200, clientY: 100, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 200, clientY: 300, pointerType: 'touch' });
+    fireEvent.pointerUp(stage, { pointerId: 1, clientX: 200, clientY: 300, pointerType: 'touch' });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('reveals the adjacent photo during the drag, before changing the current photo', () => {
+    render(<ImageViewer images={[{ url: '/first.png', name: 'First' }, { url: '/second.png', name: 'Second' }]} onClose={vi.fn()} />);
+    const stage = screen.getByTestId('image-viewer-stage');
+    const next = screen.getByTestId('image-viewer-next-slide');
+    expect(next.querySelector('img')).toHaveAttribute('src', '/second.png');
+    expect(next.querySelector('img')).toHaveAttribute('loading', 'eager');
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 300, clientY: 200, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 180, clientY: 200, pointerType: 'touch' });
+    expect(next.style.transform).toBe('translateX(calc(100% + -120px))');
+    expect(next.style.transition).toBe('none');
+    expect(screen.getByAltText('First')).toBeInTheDocument();
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    fireEvent.pointerUp(stage, { pointerId: 1, clientX: 180, clientY: 200, pointerType: 'touch' });
+    expect(screen.getByAltText('Second')).toBeInTheDocument();
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    const previous = screen.getByTestId('image-viewer-previous-slide');
+    fireEvent.pointerDown(stage, { pointerId: 2, clientX: 180, clientY: 200, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 210, clientY: 200, pointerType: 'touch' });
+    expect(previous.style.transform).toBe('translateX(calc(-100% + 30px))');
+    fireEvent.pointerUp(stage, { pointerId: 2, clientX: 210, clientY: 200, pointerType: 'touch' });
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    expect(previous.style.transform).toBe('translateX(calc(-100% + 0px))');
+  });
+
   it('keeps right-clicks and clicks away from the message behind it', () => {
     const { parent, stage, image } = renderViewer();
     const menu = fireEvent.contextMenu(image);

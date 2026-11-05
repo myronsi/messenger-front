@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isIgnoredTap } from './tapFilter';
 
 const bubble = () => {
@@ -12,6 +12,29 @@ const bubble = () => {
 };
 
 describe('isIgnoredTap', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('allows the image message row on phones, while keeping photo and control taps separate', () => {
+    vi.stubGlobal('innerWidth', 390);
+    const { row, image, reaction } = bubble();
+    row.classList.add('motion-message');
+    row.setAttribute('data-image-message', 'true');
+    expect(isIgnoredTap({ target: row }, 0, 10_000)).toBe(false);
+    expect(isIgnoredTap({ target: image }, 0, 10_000)).toBe(true);
+    expect(isIgnoredTap({ target: reaction }, 0, 10_000)).toBe(true);
+    expect(isIgnoredTap({ target: row }, 9_900, 10_000)).toBe(true);
+    vi.stubGlobal('innerWidth', 1024);
+    expect(isIgnoredTap({ target: row }, 0, 10_000)).toBe(true);
+  });
+
+  it('allows outgoing image rows that carry the send animation class', () => {
+    vi.stubGlobal('innerWidth', 390);
+    const { row } = bubble();
+    row.classList.add('motion-message-send');
+    row.setAttribute('data-image-message', 'true');
+    expect(isIgnoredTap({ target: row }, 0, 10_000)).toBe(false);
+  });
+
   it('opens the menu only for a plain tap on the bubble', () => {
     const { text } = bubble();
     expect(isIgnoredTap({ target: text }, 0, 10_000)).toBe(false);
