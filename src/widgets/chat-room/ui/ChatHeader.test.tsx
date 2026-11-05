@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import { longPress } from '@/test/longPress';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import ChatHeader from './ChatHeader';
 
@@ -7,13 +8,6 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ tran
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
-
-const longPress = (element: HTMLElement) => {
-  fireEvent.touchStart(element, { touches: [{ clientX: 10, clientY: 10 }] });
-  act(() => { vi.advanceTimersByTime(500); });
-  fireEvent.touchEnd(element);
-  fireEvent.click(element);
-};
 
 it('opens the direct chat search with a long press on the header', () => {
   const onOpenSearch = vi.fn();

@@ -15,6 +15,17 @@ const setup = (initial: boolean) => {
   return { clear, view };
 };
 
+const twoPanels = () => {
+  const closeSearch = vi.fn();
+  const closeSelection = vi.fn();
+  const view = renderHook(({ search, select }) => {
+    useBackToClose(select, closeSelection, 'selection');
+    useBackToClose(search, closeSearch, 'search');
+    return { location: useLocation(), navigate: useNavigate() };
+  }, { wrapper, initialProps: { search: false, select: false } });
+  return { view, closeSearch, closeSelection };
+};
+
 beforeEach(() => vi.stubGlobal('innerWidth', 390));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -47,13 +58,7 @@ it('leaves desktop history alone', () => {
 });
 
 it('stacks two panels so each back press closes the top one', () => {
-  const closeSearch = vi.fn();
-  const closeSelection = vi.fn();
-  const view = renderHook(({ search, select }) => {
-    useBackToClose(search, closeSearch, 'search');
-    useBackToClose(select, closeSelection, 'selection');
-    return { location: useLocation(), navigate: useNavigate() };
-  }, { wrapper, initialProps: { search: false, select: false } });
+  const { view, closeSearch, closeSelection } = twoPanels();
   view.rerender({ search: true, select: false });
   view.rerender({ search: true, select: true });
   expect(view.result.current.location.state).toEqual({ chatName: 'alice', search: expect.any(String), selection: expect.any(String) });
@@ -66,13 +71,7 @@ it('stacks two panels so each back press closes the top one', () => {
 });
 
 it('closing a lower panel keeps the upper one open and back skips the stale entry', () => {
-  const closeSearch = vi.fn();
-  const closeSelection = vi.fn();
-  const view = renderHook(({ search, select }) => {
-    useBackToClose(select, closeSelection, 'selection');
-    useBackToClose(search, closeSearch, 'search');
-    return { location: useLocation(), navigate: useNavigate() };
-  }, { wrapper, initialProps: { search: false, select: false } });
+  const { view, closeSearch } = twoPanels();
   view.rerender({ search: false, select: true });
   view.rerender({ search: true, select: true });
   view.rerender({ search: true, select: false });
@@ -86,13 +85,7 @@ it('closing a lower panel keeps the upper one open and back skips the stale entr
 });
 
 it('clears a selection that was reopened while search stayed open', () => {
-  const closeSearch = vi.fn();
-  const closeSelection = vi.fn();
-  const view = renderHook(({ search, select }) => {
-    useBackToClose(select, closeSelection, 'selection');
-    useBackToClose(search, closeSearch, 'search');
-    return { location: useLocation(), navigate: useNavigate() };
-  }, { wrapper, initialProps: { search: false, select: false } });
+  const { view, closeSearch, closeSelection } = twoPanels();
   view.rerender({ search: false, select: true });
   view.rerender({ search: true, select: true });
   view.rerender({ search: true, select: false });
