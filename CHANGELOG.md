@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.9](https://github.com/myronsi/messenger-front/compare/v0.6.8...v0.6.9) (2026-11-05)
+
+
+### Features
+
+* mobile chat polish, header search, link previews and group logs ([#148](https://github.com/myronsi/messenger-front/issues/148)) ([0924212](https://github.com/myronsi/messenger-front/commit/0924212945bd0f7db3b33940224abe7473c8e91a))
+
 ## [0.6.8](https://github.com/myronsi/messenger-front/compare/v0.6.7...v0.6.8) (2026-11-05)
 
 
