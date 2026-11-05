@@ -59,4 +59,9 @@ describe('AuthenticatedImage', () => {
     expect(screen.getByAltText('Mai').getAttribute('src')).toBe('blob:avatar-1');
     expect(session.authFetch).toHaveBeenCalledTimes(1);
   });
+  it('shows a letter avatar for the default picture even though it loads as a protected blob', async () => {
+    session.authFetch.mockImplementation(async () => new Response('png', { status: 200 }));
+    render(<AuthenticatedImage src={`${window.location.origin}/api/v2/static/avatars/default.jpg`} alt="Anna" />);
+    await waitFor(() => expect(screen.getByAltText('Anna').getAttribute('src')).toMatch(/^data:image\/svg\+xml/));
+  });
 });

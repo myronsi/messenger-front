@@ -36,7 +36,11 @@ const ChatHeaderSearch: React.FC<ChatHeaderSearchProps> = ({ chatId, onClose, on
     setIndex(0);
   }, [searched]);
   const first = results[0]?.id;
-  useEffect(() => { if (first !== undefined) jumpRef.current(first); }, [first, searched]);
+  useEffect(() => {
+    if (first === undefined) return;
+    setIndex(0);
+    jumpRef.current(first);
+  }, [first, searched]);
 
   const go = (step: 1 | -1) => {
     if (!total) return;

@@ -58,6 +58,7 @@ export const messages = {
   systemMemberLeftYou: "You left the group",
   systemSomeone: "Someone",
   roleHistory: "Role history",
+  roleHistoryError: "Couldn't load the role history",
   roleHistoryEmpty: "No role changes yet",
   roleMadeAdmin: "{actor} made {target} an admin",
   roleMadeModerator: "{actor} made {target} a moderator",

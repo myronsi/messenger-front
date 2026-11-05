@@ -8,7 +8,11 @@ vi.mock('@/shared/api/goSocket', () => ({ isGoApi: () => true }));
 vi.mock('./ExternalLinkConfirm', () => ({
   ExternalLinkConfirm: ({ href, open }: { href: string; open: boolean }) => (open ? <div role="dialog">{href}</div> : null),
 }));
-vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { src: string; className: string }) => <img alt="" data-testid="preview-image" src={props.src} className={props.className} /> }));
+vi.mock('@/shared/ui/AuthenticatedImage', () => ({
+  AuthenticatedImage: (props: { src: string; className: string; onError?: () => void }) => (
+    <img alt="" data-testid="preview-image" src={props.src} className={props.className} onError={props.onError} />
+  ),
+}));
 
 describe('LinkPreviewCard', () => {
   beforeEach(() => query.mockReset());
@@ -51,5 +55,20 @@ describe('LinkPreviewCard with a changed link', () => {
     query.mockReturnValue({ currentData: undefined, data: { url: 'https://old.example', title: 'Old site', description: null, site_name: null, image: null } });
     render(<LinkPreviewCard url="https://new.example" isMine={false} />);
     expect(screen.queryByText('Old site')).not.toBeInTheDocument();
+  });
+});
+
+describe('LinkPreviewCard image failures', () => {
+  it('shows the image of a new link even after the previous image failed', () => {
+    const preview = (url: string, image: string) => ({
+      currentData: { url, title: url, description: null, site_name: null, image: { url: image, width: null, height: null } },
+    });
+    query.mockReturnValue(preview('https://a.example', '/img-a'));
+    const view = render(<LinkPreviewCard url="https://a.example" isMine={false} />);
+    fireEvent.error(screen.getByTestId('preview-image'));
+    expect(screen.queryByTestId('preview-image')).not.toBeInTheDocument();
+    query.mockReturnValue(preview('https://b.example', '/img-b'));
+    view.rerender(<LinkPreviewCard url="https://b.example" isMine={false} />);
+    expect(screen.getByTestId('preview-image')).toBeInTheDocument();
   });
 });

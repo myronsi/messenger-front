@@ -9,10 +9,11 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({ translations: { close: 'Close', olderSearchResult: 'Older match', newerSearchResult: 'Newer match', noSearchResults: 'No results' }, language: 'en' }),
 }));
 const results = [{ id: '9', sender: 'Bob', content: 'old news', timestamp: 't', type: 'message' }, { id: '4', sender: 'Ann', content: 'very old', timestamp: 't', type: 'message' }];
+const served = { results };
 vi.mock('../api/messageApi', () => ({
   useSearchChatMessagesQuery: (args: { chatId: string; query: string }, options: { skip: boolean }) => {
     search(args, options);
-    return { currentData: options.skip ? undefined : { results: args.query === 'zzz' ? [] : results }, isFetching: false, error: undefined };
+    return { currentData: options.skip ? undefined : { results: args.query === 'zzz' ? [] : served.results }, isFetching: false, error: undefined };
   },
 }));
 
@@ -42,6 +43,19 @@ describe('ChatHeaderSearch', () => {
 
     fireEvent.keyDown(screen.getByPlaceholderText('Search in chat'), { key: 'Enter', shiftKey: true });
     expect(onJump).toHaveBeenLastCalledWith('9');
+  });
+
+  it('goes back to the first match when refreshed results bring a newer one', () => {
+    const onJump = vi.fn();
+    const view = render(<ChatHeaderSearch chatId="31" onClose={vi.fn()} onJumpToMessage={onJump} />);
+    type('old');
+    fireEvent.click(screen.getByRole('button', { name: 'Older match' }));
+    expect(screen.getByTestId('chat-search-status')).toHaveTextContent('2 / 2');
+    served.results = [{ id: '11', sender: 'Cy', content: 'old again', timestamp: 't', type: 'message' }, ...results];
+    view.rerender(<ChatHeaderSearch chatId="31" onClose={vi.fn()} onJumpToMessage={onJump} />);
+    expect(onJump).toHaveBeenLastCalledWith('11');
+    expect(screen.getByTestId('chat-search-status')).toHaveTextContent('1 / 3');
+    served.results = results;
   });
 
   it('says when nothing matches, and closes with the X or Escape', () => {

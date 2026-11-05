@@ -7,24 +7,27 @@ type EntryState = Record<string, unknown>;
 
 const stateOf = (state: unknown): EntryState => (state && typeof state === 'object' ? state as EntryState : {});
 
+let openings = 0;
+
 export const useBackToClose = (active: boolean, close: () => void, flag: string) => {
   const navigate = useNavigate();
   const location = useLocation();
   const locationRef = useLatestRef(location);
   const closeRef = useLatestRef(close);
-  const pending = useRef(false);
+  const token = useRef<string | null>(null);
   const ownedKey = useRef<string | null>(null);
   const staleKey = useRef<string | null>(null);
 
   useEffect(() => {
     const current = locationRef.current;
-    if (active && !pending.current && !ownedKey.current && isMobileComposer()) {
-      pending.current = true;
+    if (active && !token.current && isMobileComposer()) {
+      openings += 1;
+      token.current = `${flag}-${openings}`;
       const { pathname, search, hash } = current;
-      navigate({ pathname, search, hash }, { state: { ...stateOf(current.state), [flag]: true } });
-    } else if (!active && (pending.current || ownedKey.current)) {
+      navigate({ pathname, search, hash }, { state: { ...stateOf(current.state), [flag]: token.current } });
+    } else if (!active && token.current) {
       const owned = ownedKey.current;
-      pending.current = false;
+      token.current = null;
       ownedKey.current = null;
       if (owned && current.key === owned) navigate(-1);
       else if (owned) staleKey.current = owned;
@@ -32,18 +35,19 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
   }, [active, flag, navigate, locationRef]);
 
   useEffect(() => {
-    const flagged = !!stateOf(location.state)[flag];
     if (staleKey.current && location.key === staleKey.current) {
       staleKey.current = null;
       navigate(-1);
       return;
     }
-    if (pending.current && flagged) {
-      pending.current = false;
-      ownedKey.current = location.key;
+    if (!token.current) return;
+    const mine = stateOf(location.state)[flag] === token.current;
+    if (!ownedKey.current) {
+      if (mine) ownedKey.current = location.key;
       return;
     }
-    if (ownedKey.current && !flagged) {
+    if (!mine) {
+      token.current = null;
       ownedKey.current = null;
       closeRef.current();
     }

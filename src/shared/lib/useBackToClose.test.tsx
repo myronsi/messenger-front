@@ -21,7 +21,7 @@ afterEach(() => vi.unstubAllGlobals());
 it('closes the selection with the back button and stays in the chat', () => {
   const { clear, view } = setup(false);
   view.rerender({ active: true });
-  expect(view.result.current.location.state).toEqual({ chatName: 'alice', selection: true });
+  expect(view.result.current.location.state).toEqual({ chatName: 'alice', selection: expect.any(String) });
   act(() => view.result.current.navigate(-1));
   expect(clear).toHaveBeenCalledOnce();
   expect(view.result.current.location.pathname).toBe('/chat/7');
@@ -56,7 +56,7 @@ it('stacks two panels so each back press closes the top one', () => {
   }, { wrapper, initialProps: { search: false, select: false } });
   view.rerender({ search: true, select: false });
   view.rerender({ search: true, select: true });
-  expect(view.result.current.location.state).toEqual({ chatName: 'alice', search: true, selection: true });
+  expect(view.result.current.location.state).toEqual({ chatName: 'alice', search: expect.any(String), selection: expect.any(String) });
   act(() => view.result.current.navigate(-1));
   expect(closeSelection).toHaveBeenCalledOnce();
   expect(closeSearch).not.toHaveBeenCalled();
@@ -77,10 +77,27 @@ it('closing a lower panel keeps the upper one open and back skips the stale entr
   view.rerender({ search: true, select: true });
   view.rerender({ search: true, select: false });
   expect(closeSearch).not.toHaveBeenCalled();
-  expect(view.result.current.location.state).toMatchObject({ search: true });
+  expect(view.result.current.location.state).toMatchObject({ search: expect.any(String) });
   act(() => view.result.current.navigate(-1));
   expect(closeSearch).toHaveBeenCalledOnce();
   expect(view.result.current.location.state).toEqual({ chatName: 'alice' });
   act(() => view.result.current.navigate(-1));
   expect(view.result.current.location.pathname).toBe('/');
+});
+
+it('clears a selection that was reopened while search stayed open', () => {
+  const closeSearch = vi.fn();
+  const closeSelection = vi.fn();
+  const view = renderHook(({ search, select }) => {
+    useBackToClose(select, closeSelection, 'selection');
+    useBackToClose(search, closeSearch, 'search');
+    return { location: useLocation(), navigate: useNavigate() };
+  }, { wrapper, initialProps: { search: false, select: false } });
+  view.rerender({ search: false, select: true });
+  view.rerender({ search: true, select: true });
+  view.rerender({ search: true, select: false });
+  view.rerender({ search: true, select: true });
+  act(() => view.result.current.navigate(-1));
+  expect(closeSelection).toHaveBeenCalledOnce();
+  expect(closeSearch).not.toHaveBeenCalled();
 });

@@ -11,7 +11,7 @@ interface Props {
 
 const GroupRoleHistory: React.FC<Props> = ({ chatId, rolesKey }) => {
   const { translations, language } = useLanguage();
-  const { currentData: data, refetch } = useGetGroupRoleLogQuery(chatId, { refetchOnMountOrArgChange: true });
+  const { currentData: data, isError, refetch } = useGetGroupRoleLogQuery(chatId, { refetchOnMountOrArgChange: true });
   useEffect(() => { refetch(); }, [refetch, rolesKey]);
   const items = data?.items ?? [];
   const formatter = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' });
@@ -28,7 +28,9 @@ const GroupRoleHistory: React.FC<Props> = ({ chatId, rolesKey }) => {
   return (
     <section data-testid="group-role-history" className="rounded-lg border border-gray-200 bg-white p-3">
       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{translations.roleHistory}</div>
-      {items.length === 0 ? (
+      {!data ? (
+        <p className="text-sm text-gray-500">{isError ? translations.roleHistoryError : translations.loading}</p>
+      ) : items.length === 0 ? (
         <p className="text-sm text-gray-500">{translations.roleHistoryEmpty}</p>
       ) : (
         <ul className="max-h-60 space-y-2 overflow-y-auto">

@@ -29,7 +29,7 @@ const useNearViewport = <T extends HTMLElement>() => {
 const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({ url, isMine }) => {
   const { ref, near } = useNearViewport<HTMLDivElement>();
   const { currentData: data } = useGetLinkPreviewQuery(url, { skip: !near || !isGoApi() });
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const cardRef = useRef<HTMLAnchorElement>(null);
   const confirm = (event: React.MouseEvent) => {
@@ -37,10 +37,10 @@ const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({ url, isMine }) => {
     event.stopPropagation();
     setConfirming(true);
   };
-  const image = data?.image && !imageFailed ? data.image : null;
+  const image = data?.image && data.image.url !== failedImage ? data.image : null;
   const large = !!image?.width && !!image.height && image.width >= 400 && image.width / image.height >= 1.3;
   const imageNode = (className: string) => image && (
-    <AuthenticatedImage src={resolveMediaUrl(image.url)} alt="" draggable={false} onError={() => setImageFailed(true)} className={className} />
+    <AuthenticatedImage src={resolveMediaUrl(image.url)} alt="" draggable={false} onError={() => setFailedImage(image.url)} className={className} />
   );
 
   const visible = !!data && (!!data.title || !!image);

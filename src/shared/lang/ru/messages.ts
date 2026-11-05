@@ -45,6 +45,7 @@ export const messages = {
   systemMemberLeftYou: "Вы покинули группу",
   systemSomeone: "Кто-то",
   roleHistory: "История ролей",
+  roleHistoryError: "Не удалось загрузить историю ролей",
   roleHistoryEmpty: "Роли ещё не менялись",
   roleMadeAdmin: "{actor} назначил(а) {target} администратором",
   roleMadeModerator: "{actor} назначил(а) {target} модератором",

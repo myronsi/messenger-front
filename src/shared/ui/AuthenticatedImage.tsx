@@ -31,7 +31,9 @@ export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fa
   }, [brokenSource, fallbackSrc, onError, src]);
   const mediaSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : src, fallbackSrc, visible || props.loading === 'eager', handleFailure);
   const name = initialsFrom ?? props.alt;
-  const authenticatedSource = name && isDefaultAvatar(mediaSource ?? fallbackSrc) ? letterAvatar(name) : mediaSource;
+  const showsFallback = !src || (brokenSource === src && !!fallbackSrc);
+  const showsDefault = isDefaultAvatar(src) || (showsFallback && isDefaultAvatar(fallbackSrc)) || isDefaultAvatar(mediaSource);
+  const authenticatedSource = name && showsDefault ? letterAvatar(name) : mediaSource;
   return <img {...props} data-media-source={src} alt={authenticatedSource ? props.alt : ''} src={authenticatedSource} ref={node => {
     imageRef.current = node;
     if (typeof ref === 'function') ref(node);
