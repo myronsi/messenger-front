@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.8](https://github.com/myronsi/messenger-front/compare/v0.6.7...v0.6.8) (2026-11-05)
+
+
+### Features
+
+* improve mobile chat, profiles and desktop navigation ([#147](https://github.com/myronsi/messenger-front/issues/147)) ([b1db6ea](https://github.com/myronsi/messenger-front/commit/b1db6ea90c7cc2760dc0e3a91ea3084ba1d57e75))
+* **media:** shared media cache, instant viewer and no flashing avatars ([#146](https://github.com/myronsi/messenger-front/issues/146)) ([3d40f3f](https://github.com/myronsi/messenger-front/commit/3d40f3ff82fe80302fd49493bb1ce9b24734a0e0))
+
+
+### Bug Fixes
+
+* deploy frontend main to staging automatically ([#141](https://github.com/myronsi/messenger-front/issues/141)) ([893cd4a](https://github.com/myronsi/messenger-front/commit/893cd4aa86b89d7681b7573c44ef06825438a1e6))
+* **docs:** update help for the completed Go migration ([#143](https://github.com/myronsi/messenger-front/issues/143)) ([a0a2ece](https://github.com/myronsi/messenger-front/commit/a0a2ece911b8a0763863e64903bfe060400b0f29))
+* review findings for auth, media, resend, CI and security headers ([#145](https://github.com/myronsi/messenger-front/issues/145)) ([9d26083](https://github.com/myronsi/messenger-front/commit/9d260831c633bea3c0190d05605ba056fb9bd9b1))
+* use Go backend exclusively for development and CI ([#139](https://github.com/myronsi/messenger-front/issues/139)) ([f9e2f81](https://github.com/myronsi/messenger-front/commit/f9e2f8191a69e3503c1bfd57329ba373c43c54df))
+
 ## [0.6.7](https://github.com/myronsi/messenger-front/compare/v0.6.6...v0.6.7) (2026-11-03)
 
 
