@@ -1,26 +1,29 @@
+import { apiClient } from '@/shared/api/client';
+import { apiTask, collectPages, contractData } from '@/shared/api/tasks';
+import { resolveUsername, userProfileByUsername } from '@/shared/api/users';
+import { userModel } from '@/shared/api/goModels';
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { BlockedUsersResponse, User, UserAvatarHistoryResponse } from '../model/types';
 
 export const userApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
-    getUsers: builder.query<User[], void>({
-      query: () => '/users',
-      providesTags: ['User'],
-    }),
-
     searchUsers: builder.query<{ users: User[] }, string>({
-      query: (searchTerm) => `/users/search?q=${encodeURIComponent(searchTerm)}`,
+      queryFn: (q, { signal }) => apiTask(async () => ({ users: (await collectPages(async after => contractData(await apiClient.GET('/users', {
+        params: { query: { q, limit: 100, ...(after ? { after } : {}) } }, signal,
+      })))).map(userModel) })),
       providesTags: ['User'],
     }),
 
     getUserByUsername: builder.query<User, string>({
-      query: (username) => `/users/users/${username}`,
+      queryFn: (username, { signal }) => apiTask(() => userProfileByUsername(username, signal)),
       providesTags: (result, error, username) => [{ type: 'User', id: username }],
     }),
 
     getUserById: builder.query<User, EntityId>({
-      query: (id) => `/users/${id}`,
+      queryFn: (id, { signal }) => apiTask(async () => userModel(contractData(await apiClient.GET('/users/{user_id}', {
+        params: { path: { user_id: String(id) } }, signal,
+      })))),
       providesTags: (result, error, id) => [{ type: 'User', id }],
     }),
 
@@ -37,10 +40,11 @@ export const userApi = messengerApi.injectEndpoints({
           patch.undo();
         }
       },
-      query: ({ username, displayName }) => ({
-        url: `/users/users/${encodeURIComponent(username)}/contact-name`,
-        method: 'PUT',
-        body: { display_name: displayName || '' },
+      queryFn: ({ username, displayName }, { signal }) => apiTask(async () => {
+        const user = await resolveUsername(username, signal);
+        return userModel(contractData(await apiClient.PUT('/users/{user_id}/contact-name', {
+          params: { path: { user_id: user.id } }, body: { contact_name: displayName || '' }, signal,
+        })));
       }),
       invalidatesTags: (result, error, { username }) => [
         { type: 'User', id: username },
@@ -62,9 +66,12 @@ export const userApi = messengerApi.injectEndpoints({
           patch.undo();
         }
       },
-      query: (username) => ({
-        url: `/users/users/${encodeURIComponent(username)}/contact-name`,
-        method: 'DELETE',
+      queryFn: (username, { signal }) => apiTask(async () => {
+        const user = await resolveUsername(username, signal);
+        contractData(await apiClient.DELETE('/users/{user_id}/contact-name', {
+          params: { path: { user_id: user.id } }, signal,
+        }));
+        return userProfileByUsername(username, signal);
       }),
       invalidatesTags: (result, error, username) => [
         { type: 'User', id: username },
@@ -74,17 +81,26 @@ export const userApi = messengerApi.injectEndpoints({
     }),
 
     getUserAvatar: builder.query<{ avatar_url: string }, string>({
-      query: (username) => `/users/avatar/${username}`,
+      queryFn: (username, { signal }) => apiTask(async () => ({ avatar_url: (await resolveUsername(username, signal)).avatar_url || '' })),
       providesTags: (result, error, username) => [{ type: 'Avatar', id: username }],
     }),
 
     getUserAvatarHistory: builder.query<UserAvatarHistoryResponse, string>({
-      query: (username) => `/users/users/${username}/avatars`,
+      queryFn: (username, { signal }) => apiTask(async () => {
+        const user = await resolveUsername(username, signal);
+        const items = await collectPages(async after => contractData(await apiClient.GET('/users/{user_id}/avatars', {
+          params: { path: { user_id: user.id }, query: { limit: 100, ...(after ? { after } : {}) } }, signal,
+        })));
+        return { avatars: items.map((item, index) => ({ ...item, avatar_url: item.url, is_current: index === 0 })) };
+      }),
       providesTags: (result, error, username) => [{ type: 'Avatar', id: `${username}-history` }],
     }),
 
     deleteMyAvatar: builder.mutation<unknown, { id: EntityId; username: string }>({
-      query: ({ id }) => ({ url: `/auth/me/avatars/${id}`, method: 'DELETE' }),
+      queryFn: ({ id }, { signal }) => apiTask(async () => {
+        contractData(await apiClient.DELETE('/me/avatars/{avatar_id}', { params: { path: { avatar_id: String(id) } }, signal }));
+        return { message: 'Avatar deleted' };
+      }),
       invalidatesTags: (result, error, { username }) => [
         { type: 'Avatar', id: `${username}-history` },
         { type: 'Avatar', id: username },
@@ -94,22 +110,26 @@ export const userApi = messengerApi.injectEndpoints({
     }),
 
     getBlockedUsers: builder.query<BlockedUsersResponse, void>({
-      query: () => '/auth/me/blocked-users',
+      queryFn: (_, { signal }) => apiTask(async () => ({ users: (await collectPages(async after => contractData(await apiClient.GET('/me/blocked-users', {
+        params: { query: { limit: 100, ...(after ? { after } : {}) } }, signal,
+      })))).map(userModel) })),
       providesTags: ['Privacy'],
     }),
 
     blockUser: builder.mutation<{ message: string }, string>({
-      query: (username) => ({
-        url: `/auth/me/blocked-users/${encodeURIComponent(username)}`,
-        method: 'POST',
+      queryFn: (username, { signal }) => apiTask(async () => {
+        const user = await resolveUsername(username, signal);
+        contractData(await apiClient.PUT('/me/blocked-users/{user_id}', { params: { path: { user_id: user.id } }, signal }));
+        return { message: 'Success' };
       }),
       invalidatesTags: ['Privacy', 'User', 'Chat'],
     }),
 
     unblockUser: builder.mutation<{ message: string }, string>({
-      query: (username) => ({
-        url: `/auth/me/blocked-users/${encodeURIComponent(username)}`,
-        method: 'DELETE',
+      queryFn: (username, { signal }) => apiTask(async () => {
+        const user = await resolveUsername(username, signal);
+        contractData(await apiClient.DELETE('/me/blocked-users/{user_id}', { params: { path: { user_id: user.id } }, signal }));
+        return { message: 'Success' };
       }),
       invalidatesTags: ['Privacy', 'User', 'Chat'],
     }),
@@ -117,7 +137,6 @@ export const userApi = messengerApi.injectEndpoints({
 });
 
 export const {
-  useGetUsersQuery,
   useSearchUsersQuery,
   useGetUserByUsernameQuery,
   useLazyGetUserByUsernameQuery,

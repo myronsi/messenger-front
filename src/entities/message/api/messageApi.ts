@@ -1,3 +1,6 @@
+import { apiClient } from '@/shared/api/client';
+import { contractQuery } from '@/shared/api/queryResult';
+import { messageModel } from '@/shared/api/goModels';
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { ChatAudiosResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message } from '../model/types';
@@ -56,13 +59,22 @@ export const messageApi = messengerApi.injectEndpoints({
       chatId: EntityId; limit?: number; beforeId?: EntityId | null; afterId?: EntityId | null;
       aroundId?: EntityId | null;
     }>({
-      query: ({ chatId, limit = 50, beforeId, afterId, aroundId }) => {
-        const params = new URLSearchParams({ limit: String(limit) });
-        if (beforeId) params.set('before_id', String(beforeId));
-        if (afterId) params.set('after_id', String(afterId));
-        if (aroundId) params.set('around_id', String(aroundId));
-        return `/messages/history/${chatId}?${params.toString()}`;
-      },
+      queryFn: ({ chatId, limit = 50, beforeId, afterId, aroundId }, { signal }) => contractQuery(async () => {
+        const result = await apiClient.GET('/chats/{chat_id}/messages', {
+          params: { path: { chat_id: String(chatId) }, query: {
+            limit, ...(beforeId ? { before: String(beforeId) } : {}),
+            ...(afterId ? { after: String(afterId) } : {}), ...(aroundId ? { around: String(aroundId) } : {}),
+          } }, signal,
+        });
+        const page = result.data;
+        return { ...result, data: page ? {
+          history: page.items.map(messageModel), has_more: Boolean(page.next_cursor),
+          has_more_before: Boolean(afterId ? page.prev_cursor : page.next_cursor),
+          has_more_after: Boolean(afterId ? page.next_cursor : page.prev_cursor),
+          next_before_id: (afterId ? page.prev_cursor : page.next_cursor) ?? null,
+          next_after_id: (afterId ? page.next_cursor : page.prev_cursor) ?? null,
+        } : undefined };
+      }),
       keepUnusedDataFor: 300,
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: chatId }],
     }),
@@ -166,6 +178,7 @@ export const {
   useForwardMessagesMutation,
   useDeleteMessagesMutation,
   useGetMessageHistoryQuery,
+  useLazyGetMessageHistoryQuery,
   useGetChatPhotosQuery,
   useGetChatAudiosQuery,
   useSearchChatMessagesQuery,

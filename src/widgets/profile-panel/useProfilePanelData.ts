@@ -4,7 +4,7 @@ import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useNavigate } from 'react-router-dom';
-import type { PrivacyDetail, SettingsPage, UrlOverlay } from '@/shared/lib/urlOverlay';
+import type { PrivacyDetail, SecurityDetail, SettingsPage, UrlOverlay } from '@/shared/lib/urlOverlay';
 import { currentEntryMarks, useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useApproveApprovalRequestMutation, useGetApprovalRequestInboxQuery, useRejectApprovalRequestMutation } from '@/entities/chat';
 import type { ProfileModalState } from './useProfileAccountActions';
@@ -29,7 +29,7 @@ type SettingsOverlay = Extract<UrlOverlay, { kind: 'settings' }>;
 
 const settingsDepth = (target: SettingsOverlay) => {
   if (target.page === 'profile') return 0;
-  if (!target.detail) return 1;
+  if (!target.detail && !target.securityDetail) return 1;
   return target.exceptions ? 3 : 2;
 };
 
@@ -53,6 +53,9 @@ export const useProfilePanelData = ({ setModal }: ProfilePanelDataOptions) => {
   const setActiveProfilePage = useCallback((page: SettingsPage) => goToSettings({ kind: 'settings', page }), [goToSettings]);
   const openPrivacyDetail = useCallback((detail: PrivacyDetail | null, exceptions?: 'allow' | 'deny') => (
     goToSettings(detail ? { kind: 'settings', page: 'privacy', detail, exceptions } : { kind: 'settings', page: 'privacy' })
+  ), [goToSettings]);
+  const openSecurityDetail = useCallback((detail: SecurityDetail | null) => (
+    goToSettings(detail ? { kind: 'settings', page: 'security', securityDetail: detail } : { kind: 'settings', page: 'security' })
   ), [goToSettings]);
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
   const { data: requestInbox, refetch: refetchRequestInbox } = useGetApprovalRequestInboxQuery(undefined, {
@@ -91,6 +94,7 @@ export const useProfilePanelData = ({ setModal }: ProfilePanelDataOptions) => {
 
   return {
     activeProfilePage, setActiveProfilePage, privacyDetail: settings.detail, privacyExceptions: settings.exceptions, openPrivacyDetail, blockedUsers,
+    securityDetail: settings.securityDetail, openSecurityDetail,
     requestInbox, pendingRequestCount, isApprovingRequest, isRejectingRequest,
     isUnblockingUser, handleUnblockUser,
     handleApproveRequest, handleRejectRequest, getProfileAvatarUrl, getProfileMediaUrl,

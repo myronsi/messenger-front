@@ -1,9 +1,9 @@
-import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { expect, type Browser, type BrowserContext, type Page, type Locator } from '@playwright/test';
 
 const MESSENGER_HEADING = 'Chats';
 const PROFILE_BUTTON_NAME = 'Open profile';
 const PROFILE_HEADING = 'Profile';
-const LOGIN_BUTTON_NAME = 'Sign In';
+const LOGIN_BUTTON_NAME = 'Sign in';
 
 export interface SmokeUser {
   username: string;
@@ -42,8 +42,21 @@ export const waitForMessenger = async (page: Page) => {
 
 export const waitForLoginPage = async (page: Page) => {
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   await expect(page.getByLabel('Username')).toBeVisible();
+};
+
+export const confirmRecoveryReceipt = async (scope: Page | Locator) => {
+  const key = await scope.getByTestId('recovery-key').innerText();
+  await scope.getByLabel('To confirm, type the last group').fill(key.trim().split('-').at(-1)!);
+};
+
+export const skipRegistrationExtras = async (page: Page) => {
+  const profileSkip = page.getByRole('button', { name: 'Skip for now', exact: true });
+  const passkeyNotNow = page.getByRole('button', { name: 'Not now', exact: true });
+  await expect(profileSkip.or(passkeyNotNow).first()).toBeVisible();
+  if (await passkeyNotNow.isVisible()) await passkeyNotNow.click();
+  await profileSkip.click();
 };
 
 export const registerUser = async (page: Page, user: SmokeUser) => {
@@ -51,18 +64,18 @@ export const registerUser = async (page: Page, user: SmokeUser) => {
 
   await page.getByLabel('Username').fill(user.username);
   await page.getByLabel('Display Name').fill(user.displayName);
-  await page.getByLabel('Password').fill(user.password);
+  await page.getByLabel('Password', { exact: true }).fill(user.password);
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/auth/register') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Register' }).click();
   const response = await responsePromise;
   expect(response.ok(), `Registration returned HTTP ${response.status()}`).toBe(true);
-  const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
+  const continueButton = page.getByRole('button', { name: 'I saved it, continue', exact: true });
   const skipButton = page.getByRole('button', { name: 'Skip for now', exact: true });
-  await expect(continueButton.or(skipButton)).toBeVisible();
-  const savedKey = page.getByLabel('I saved my recovery key');
-  if (await savedKey.isVisible()) await savedKey.check();
+  await expect(continueButton.or(skipButton).first()).toBeVisible();
+  const savedKey = page.getByLabel('To confirm, type the last group');
+  if (await savedKey.isVisible()) await confirmRecoveryReceipt(page);
   if (await continueButton.isVisible()) await continueButton.click();
-  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await skipRegistrationExtras(page);
 
   await waitForMessenger(page);
 };
@@ -72,8 +85,8 @@ export const loginUser = async (page: Page, user: SmokeUser) => {
   await waitForLoginPage(page);
 
   await page.getByLabel('Username').fill(user.username);
-  await page.getByLabel('Password').fill(user.password);
-  await page.getByRole('button', { name: LOGIN_BUTTON_NAME }).click();
+  await page.getByLabel('Password', { exact: true }).fill(user.password);
+  await page.getByRole('button', { name: LOGIN_BUTTON_NAME, exact: true }).click();
 
   await waitForMessenger(page);
 };
@@ -86,6 +99,20 @@ export const openProfile = async (page: Page) => {
 export const closeProfile = async (page: Page) => {
   await page.getByRole('button', { name: 'Close' }).first().click();
   await expect(page.getByRole('dialog', { name: PROFILE_HEADING })).not.toBeVisible();
+};
+
+export const confirmTwoFactor = async (page: Page, code: string) => {
+  const dialog = page.getByRole('dialog', { name: 'Confirm with two-factor authentication' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Authenticator or backup code').fill(code);
+  await dialog.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+};
+
+export const openSecuritySetting = async (page: Page, group: 'Sign-in' | 'Recovery' | 'Devices', setting: string) => {
+  await page.getByRole('button', { name: /Security & devices/ }).click();
+  await page.getByRole('region', { name: group, exact: true }).getByRole('button', { name: new RegExp(`^${setting}`) }).click();
+  await expect(page.getByRole('navigation', { name: 'breadcrumb' }).getByText(setting, { exact: true })).toBeVisible();
 };
 
 export const logoutUser = async (page: Page) => {

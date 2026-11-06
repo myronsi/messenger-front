@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect } from 'react';
@@ -9,7 +10,7 @@ import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupRole } fr
 import type { RawGroupDetails } from './groupChatTypes';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 interface Args {
   chatId: EntityId; username: string; groupName: string; token: string;
   dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null;

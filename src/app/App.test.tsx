@@ -9,7 +9,7 @@ import { en } from '@/shared/lang/en';
 import { AppRoutes } from './App';
 
 vi.mock('@/pages/messenger', () => ({ MessengerApp: () => <PreviousPage /> }));
-vi.mock('@/pages/auth', () => ({ AuthFlowPage: () => null }));
+vi.mock('@/pages/auth', () => ({ AuthFlowPage: () => null, RecoveryEmailLinkPage: () => null }));
 
 function PreviousPage() {
   const [count, setCount] = useState(0);

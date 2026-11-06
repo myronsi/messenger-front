@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useState } from 'react';
-import { Message, ModalState } from '@/entities/message';
+import { Message, ModalState, useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useDraftState } from '@/shared/hooks/useDraftState';
 import { chatDraftKey } from '@/shared/lib/drafts';
@@ -23,7 +23,7 @@ export const useChat = (
   firstUnreadMessageId?: EntityId | null,
   onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void
 ) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, setMessages } = useConversationMessages(chatId);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: EntityId; isMine: boolean } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -65,6 +65,7 @@ export const useChat = (
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,
+    resendUnconfirmed,
   } = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport,
     setMessages, setModal, messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
@@ -90,7 +91,7 @@ export const useChat = (
   useChatSocket({
     chatId, token, transport, onEvent: handleSocketEvent,
     onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
-    onReconnected: catchUpAfterReconnect,
+    onReconnected: () => { resendUnconfirmed(); void catchUpAfterReconnect(); },
   });
 
   const scrollToMessage = (messageId: EntityId) => {

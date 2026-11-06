@@ -1,11 +1,12 @@
+import { getApiBaseUrl } from '@/shared/api/config';
+import { CLIENT_API_VERSION } from './clientVersion';
 import type { EntityId } from '@/shared/api/entityId';
 import { authFetch } from '@/shared/auth/session';
 import { isGoApi } from './goSocket';
+import { trimTrailingSlashes } from '@/shared/lib/trimTrailingSlashes';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 const WS_URL = import.meta.env.VITE_WS_URL;
-
-const trimTrailingSlashes = (value: string) => value.replace(/\/+$/, '');
 
 const getWebSocketBaseUrl = () => {
   const configuredWebSocketUrl = WS_URL?.trim();
@@ -36,5 +37,6 @@ export const getChatWebSocketUrl = async (chatId: EntityId) => {
   const url = new URL(`${getWebSocketBaseUrl()}/`);
   url.pathname = isGoApi() ? `${new URL(BASE_URL, window.location.origin).pathname.replace(/\/$/, '')}/ws` : `${url.pathname.replace(/\/$/, '')}/ws/chat/${chatId}`;
   url.searchParams.set('ticket', await requestWebSocketTicket());
+  url.searchParams.set('api_version', CLIENT_API_VERSION);
   return url.toString();
 };

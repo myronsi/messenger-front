@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { MutableRefObject } from 'react';
 import { Message, type MessageSelection } from '@/entities/message';
@@ -19,7 +20,7 @@ interface ChatOverlaysProps {
   chatId: EntityId;
   userId: EntityId | null;
   isClosing: boolean;
-  wsRef: MutableRefObject<WebSocket | null>;
+  wsRef: MutableRefObject<SocketSender | null>;
   setContextMenu: (menu: ContextMenuState | null) => void;
   setReactionMenu: (menu: ReactionMenuState | null) => void;
   setEditingMessage: (message: Message | null) => void;

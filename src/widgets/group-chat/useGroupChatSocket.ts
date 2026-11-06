@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useCallback } from 'react';
@@ -31,7 +32,7 @@ export const useGroupChatSocket = ({
   applyGroupDetails, refreshGroupDetails, setMessages, setModal, markMessageFailed, markLatestPendingMessageFailed,
   onReconnected,
 }: UseGroupChatSocketArgs) => {
-  const handleGroupEvent = useCallback((event: ServerEvent, socket: WebSocket) => {
+  const handleGroupEvent = useCallback((event: ServerEvent, socket: SocketSender) => {
     if (event.type === 'group_updated' && event.group?.chat_id === chatId) {
       if (event.group.participants) applyGroupDetails(event.group as RawGroupDetails);
       else void refreshGroupDetails();

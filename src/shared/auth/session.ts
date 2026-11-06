@@ -1,9 +1,10 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useState } from 'react';
 import { clearDrafts } from '@/shared/lib/drafts';
 import { getTokenExpiresAt, getTokenSubject } from '@/shared/auth/tokenClaims';
 import { getUpdateStatus } from '@/shared/api/updateGate';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const DEVICE_PART_KEYS = ['device_part', 'device_parts'];
@@ -135,15 +136,27 @@ export const ensureAccessToken = async () => {
   return refreshAccessToken();
 };
 
-export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
+const asksForSecondFactor = async (response: Response) => {
+  if (!response.headers.get('content-type')?.includes('json')) return false;
+  try {
+    const body = await response.clone().json();
+    return body?.code === 'two_factor_required';
+  } catch {
+    return false;
+  }
+};
+
+export const sessionFetch = async (fetcher: typeof fetch, input: RequestInfo | URL, init: RequestInit = {}) => {
   const token = await ensureAccessToken();
-  const headers = new Headers(init.headers);
+  const headers = new Headers(input instanceof Request ? input.headers : undefined);
+  new Headers(init.headers).forEach((value, name) => headers.set(name, value));
+  const retryInput = input instanceof Request ? input.clone() : input;
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(input, { ...init, headers });
-  if (response.status !== 401) return response;
+  const response = await fetcher(input, { ...init, headers });
+  if (response.status !== 401 || await asksForSecondFactor(response)) return response;
 
   const refreshedToken = await refreshAccessToken();
   if (!refreshedToken) {
@@ -151,10 +164,14 @@ export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}
     return response;
   }
 
-  const retryHeaders = new Headers(init.headers);
+  const retryHeaders = new Headers(headers);
   retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
-  return fetch(input, { ...init, headers: retryHeaders });
+  const retry = await fetcher(retryInput, { ...init, headers: retryHeaders });
+  if (retry.status === 401 && !(await asksForSecondFactor(retry))) dropInvalidSession();
+  return retry;
 };
+
+export const authFetch: typeof fetch = (input, init) => sessionFetch(fetch, input, init);
 
 export const useAccessToken = () => {
   const [token, setToken] = useState<string | null>(() => getAccessToken());

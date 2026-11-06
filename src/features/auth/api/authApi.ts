@@ -1,76 +1,30 @@
 import { messengerApi } from '@/shared/api/baseApi';
-import type { AuthResponse, LoginRequest, RegisterRequest, TwoFactorLoginRequest } from '../model/types';
+import { apiClient, publicApiClient } from '@/shared/api/client';
+import { apiTask, contractData } from '@/shared/api/tasks';
+import type { AuthResponse, LoginRequest, TwoFactorLoginRequest } from '../model/types';
 
 export const authApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<AuthResponse, LoginRequest>({
-      query: (credentials) => ({
-        url: '/auth/login',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: credentials,
-      }),
+      queryFn: (body, { signal }) => apiTask(async () => contractData(await publicApiClient.POST('/auth/login', { body, signal }))),
       invalidatesTags: ['Auth'],
     }),
 
     loginTwoFactor: builder.mutation<AuthResponse, TwoFactorLoginRequest>({
-      query: (payload) => ({
-        url: '/auth/login/2fa',
-        method: 'POST',
-        body: payload,
-      }),
-      invalidatesTags: ['Auth'],
-    }),
-
-    refreshSession: builder.mutation<AuthResponse, void>({
-      query: () => ({
-        url: '/auth/refresh',
-        method: 'POST',
-      }),
-      invalidatesTags: ['Auth'],
-    }),
-
-    register: builder.mutation<AuthResponse, RegisterRequest>({
-      query: (userData) => ({
-        url: '/auth/register',
-        method: 'POST',
-        body: userData,
-      }),
+      queryFn: (body, { signal }) => apiTask(async () => contractData(await publicApiClient.POST('/auth/login/2fa', { body, signal }))),
       invalidatesTags: ['Auth'],
     }),
 
     logout: builder.mutation<void, void>({
-      query: () => ({
-        url: '/auth/logout',
-        method: 'POST',
-      }),
+      queryFn: (_, { signal }) => apiTask(async () => { contractData(await apiClient.POST('/auth/logout', { signal })); }),
       invalidatesTags: ['Auth', 'User', 'Chat', 'Message'],
     }),
 
-    forgotUsername: builder.mutation<{ message: string }, { email: string }>({
-      query: (data) => ({
-        url: '/auth/recover',
-        method: 'POST',
-        body: data,
-      }),
-    }),
-
-    resetPassword: builder.mutation<{ message: string }, { token: string; newPassword: string }>({
-      query: (data) => ({
-        url: '/auth/reset-password',
-        method: 'POST',
-        body: data,
-      }),
-    }),
   }),
 });
 
 export const {
   useLoginMutation,
   useLoginTwoFactorMutation,
-  useRefreshSessionMutation,
-  useRegisterMutation,
   useLogoutMutation,
-  useForgotUsernameMutation,
-  useResetPasswordMutation,
 } = authApi;

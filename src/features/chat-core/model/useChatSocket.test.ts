@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatTransport } from './types';
 import { RECONNECT_ATTEMPTS_BEFORE_ERROR, useChatSocket } from './useChatSocket';
+import { realtime } from '@/shared/api/realtime';
 
 vi.mock('@/shared/api/webSocketUrl', () => ({
   getChatWebSocketUrl: vi.fn(async (chatId: EntityId) => `ws://test/ws/chat/${chatId}?ticket=t`),
@@ -50,6 +51,7 @@ describe('useChatSocket', () => {
     vi.stubGlobal('WebSocket', FakeWebSocket);
   });
   afterEach(() => {
+    realtime.stop();
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
@@ -74,17 +76,17 @@ describe('useChatSocket', () => {
     expect(latestSocket().readyState).toBe(FakeWebSocket.OPEN);
   });
 
-  it('catches up after a reconnect but not on the first open', async () => {
+  it('catches up on the first open and after a reconnect', async () => {
     const { onReconnected } = setup();
     await flush();
     act(() => latestSocket().open());
-    expect(onReconnected).not.toHaveBeenCalled();
+    expect(onReconnected).toHaveBeenCalledTimes(1);
 
     act(() => latestSocket().drop());
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     act(() => latestSocket().open());
     expect(FakeWebSocket.instances).toHaveLength(2);
-    expect(onReconnected).toHaveBeenCalledTimes(1);
+    expect(onReconnected).toHaveBeenCalledTimes(2);
   });
 
   it('closes the initial history/subscription gap on the Go API', async () => {

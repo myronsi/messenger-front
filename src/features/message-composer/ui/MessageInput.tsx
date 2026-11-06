@@ -32,7 +32,7 @@ interface MessageInputProps {
   onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => number | null;
   onVoiceUploadProgress?: (messageId: EntityId, percent: number) => void;
   onVoiceUploadError?: (messageId: EntityId, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: EntityId) => void;
+  onVoiceUploadComplete?: (messageId: EntityId, created?: unknown) => void;
 }
 
 const editableCaption = (message: Message | null) => (typeof message?.content === 'string' ? message.content : message?.content?.caption || '');

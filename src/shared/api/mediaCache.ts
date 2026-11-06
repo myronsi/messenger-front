@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { authFetch, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { getTokenSubject } from '@/shared/auth/tokenClaims';
 
@@ -82,7 +83,7 @@ const takeSlot = (entry: Entry) => new Promise<() => void>((resolve, reject) => 
 
 export const isProtectedMedia = (url: string) => {
   try {
-    const base = new URL(import.meta.env.VITE_BASE_URL || '/', window.location.href);
+    const base = new URL(getApiBaseUrl() || '/', window.location.href);
     const target = new URL(url, window.location.href);
     return target.origin === base.origin && target.pathname.startsWith('/api/v2/');
   } catch {

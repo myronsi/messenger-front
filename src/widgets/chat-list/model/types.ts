@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import { Chat, ChatLastMessage } from '@/entities/message';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
@@ -8,7 +9,7 @@ import type { useLanguage } from '@/shared/contexts/LanguageContext';
 // active language bundle's shape without depending on its internal type name.
 export type Translations = ReturnType<typeof useLanguage>['translations'];
 
-export const BASE_URL = import.meta.env.VITE_BASE_URL;
+export const BASE_URL = getApiBaseUrl();
 
 export const getMediaSrc = (path?: string | null, fallback: string = DEFAULT_AVATAR) => resolveMediaUrl(path, fallback);
 

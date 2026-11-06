@@ -226,6 +226,8 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
           >
             <SecuritySettingsPanel
               isActive={activeProfilePage === 'security'}
+              detail={panelData.securityDetail}
+              onOpenDetail={(detail) => { if (!dismissBlockedRef.current) panelData.openSecurityDetail(detail); }}
               onBack={() => { if (!dismissBlockedRef.current) setActiveProfilePage('profile'); }}
               onLoggedOut={onLogout}
               onDismissSafetyChange={onDismissSafetyChange}

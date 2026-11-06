@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30_000;
 
@@ -7,17 +8,17 @@ export const reconnectDelay = (attempt: number, random = Math.random) => {
   return Math.round(ceiling / 2 + random() * (ceiling / 2));
 };
 
-const finishedSockets = new WeakSet<WebSocket>();
+const finishedSockets = new WeakSet<SocketSender>();
 
 // Closes a socket after a terminal event (chat deleted, removed from a group) so it is not reopened.
-export const closeForGood = (socket: WebSocket, reason: string) => {
+export const closeForGood = (socket: SocketSender, reason: string) => {
   finishedSockets.add(socket);
   try { socket.close(1000, reason); } catch { /* socket already closed */ }
 };
 
 // 1008 means the server rejected the socket (no access to the chat, session ended); retrying cannot help.
 // Any other close, including a server-side 1000 after an error, is retried.
-export const shouldReconnect = (socket: WebSocket, closeCode: number) => !finishedSockets.has(socket) && closeCode !== 1008;
+export const shouldReconnect = (socket: SocketSender, closeCode: number) => !finishedSockets.has(socket) && closeCode !== 1008;
 
 // Calls `retry` when the browser comes back online or the tab becomes visible again,
 // so a socket that dropped while the device slept reconnects without waiting for the backoff.

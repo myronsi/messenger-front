@@ -1,8 +1,7 @@
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
-import type { FileMessageContent, Message, ReactionInfo } from '@/entities/message';
+import { sortMessages, type FileMessageContent, type Message, type ReactionInfo } from '@/entities/message';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
-import { unescapeCurlyBraces } from './messageText';
 import type { NewMessageEvent } from './socketEvents';
 
 export interface ReaderInfo {
@@ -55,49 +54,42 @@ export const mergeIncomingMessage = (
     return copy;
   }
 
-  const pendingUploadIndex = previous.findIndex((message) => {
-    if (message.upload_status !== 'uploading' || message.type !== 'file' || incoming.type !== 'file') return false;
-    if (typeof message.content === 'string' || typeof incoming.content === 'string') return false;
-    if (!isSameSender(message, incoming)) return false;
-    if (incoming.client_temp_id != null) return String(message.client_temp_id ?? message.id) === String(incoming.client_temp_id);
-    return message.content.file_name === incoming.content.file_name &&
-      message.content.file_size === incoming.content.file_size;
-  });
-  if (pendingUploadIndex !== -1) {
+  // A server echo may arrive out of order, or have the same content/name as a
+  // different send. Only its client-generated identifier identifies the draft.
+  const pendingIndex = incoming.client_temp_id == null ? -1 : previous.findIndex(message =>
+    !isPersistedId(message.id) && isSameSender(message, incoming) &&
+    String(message.client_temp_id ?? message.id) === String(incoming.client_temp_id)
+  );
+  if (pendingIndex !== -1) {
     const copy = [...previous];
-    const pending = copy[pendingUploadIndex];
+    const pending = copy[pendingIndex];
+    onTempIdResolved?.(pending.id);
     if (pending.local_object_url) {
       window.setTimeout(() => URL.revokeObjectURL(pending.local_object_url as string), 1000);
     }
-    copy[pendingUploadIndex] = {
-      ...incoming,
-      client_temp_id: pending.client_temp_id ?? pending.id,
-      is_own: pending.is_own || incoming.is_own,
-    };
-    return copy;
+    copy[pendingIndex] = { ...incoming, client_temp_id: pending.client_temp_id ?? pending.id, is_own: pending.is_own || incoming.is_own };
+    return sortMessages(copy);
   }
+  return sortMessages([...previous, incoming]);
+};
 
-  const pendingTextIndex = previous.findIndex((message) =>
-    !isPersistedId(message.id) &&
-    isSameSender(message, incoming) &&
-    (incoming.client_temp_id == null || String(message.client_temp_id ?? message.id) === String(incoming.client_temp_id)) &&
-    typeof message.content === 'string' &&
-    typeof incoming.content === 'string' &&
-    (message.content === incoming.content || message.content === unescapeCurlyBraces(incoming.content))
-  );
-  if (pendingTextIndex !== -1) {
-    const copy = [...previous];
-    const pending = copy[pendingTextIndex];
-    onTempIdResolved?.(pending.id);
-    copy[pendingTextIndex] = {
-      ...incoming,
-      client_temp_id: pending.client_temp_id ?? pending.id,
-      is_own: pending.is_own || incoming.is_own,
-    };
-    return copy;
-  }
-
-  return [...previous, incoming];
+export const abandonUnsentMessages = (
+  previous: Message[],
+  releasedUploads: Set<string>,
+  errors: { notConfirmed: string; uploadNotSent: string }
+): Message[] => {
+  let changed = false;
+  const next = previous.map((message) => {
+    if (isPersistedId(message.id) || !message.is_own) return message;
+    if (releasedUploads.has(String(message.id))) {
+      changed = true;
+      return { ...message, upload_status: 'lost' as const, delivery_error: errors.uploadNotSent };
+    }
+    if (message.type === 'file' || message.upload_status || message.delivery_error) return message;
+    changed = true;
+    return { ...message, delivery_error: errors.notConfirmed };
+  });
+  return changed ? next : previous;
 };
 
 export const editableText = (message: Message) => (

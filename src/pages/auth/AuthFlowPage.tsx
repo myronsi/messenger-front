@@ -1,14 +1,14 @@
-import { RecoveryKeyComponent } from '@/features/auth';
-import { isGoApi } from '@/shared/api/goSocket';
+import { useState } from 'react';
+import {
+  RecoveryKeyComponent, DeviceRecoveryComponent, EmailRecoveryComponent, RecoveryChooser, usernameFromIdentifier, type RecoveryMethod,
+} from '@/features/auth';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { DocsLink } from '@/shared/ui/DocsLink';
 import { notificationReturnPath } from '@/shared/lib/notifications/navigation';
+import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import {
   LoginComponent,
-  PartsRecoveryComponent,
-  PasswordResetComponent,
   RegisterComponent,
-  UsernameRecoveryComponent,
 } from '@/features/auth';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -23,7 +23,11 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
   const location = useLocation();
   const authState = { notificationReturnPath: notificationReturnPath(location.pathname, location.search, location.state) };
   const { language, setLanguage, translations } = useLanguage();
+  const [identifier, setIdentifier] = useState('');
   const handleBackToLogin = () => navigate('/login', { state: authState });
+  const handleChooser = () => navigate('/recover-username', { state: authState });
+  const recoveryPaths: Record<RecoveryMethod, string> = { device: '/recover-device', key: '/recover-key', email: '/recover-email' };
+  const initialUsername = usernameFromIdentifier(identifier);
 
   return (
     <>
@@ -44,9 +48,12 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
 
       <div className="container mx-auto min-h-screen flex flex-col items-center justify-center space-y-8 p-4">
         <div className="w-full max-w-md space-y-8 animate-fade-in">
-          <div className="text-center space-y-2">
+          {location.pathname === '/register' && <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold text-gray-900">Messenger</h1>
-          </div>
+          </div>}
+          {location.pathname === '/login' && qrLoginRequestId(authState.notificationReturnPath) && (
+            <p role="status" className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">{translations.qrLogin.signInToApprove}</p>
+          )}
           <Routes>
             <Route
               path="/login"
@@ -59,9 +66,15 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
               }
             />
             <Route path="/register" element={<RegisterComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin} />} />
-            <Route path="/recover-username" element={isGoApi() ? <RecoveryKeyComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin} /> : <UsernameRecoveryComponent onBackToLogin={handleBackToLogin} />} />
-            <Route path="/recover-parts" element={<PartsRecoveryComponent onBackToLogin={handleBackToLogin} />} />
-            <Route path="/reset-password" element={<PasswordResetComponent onBackToLogin={handleBackToLogin} />} />
+            <Route path="/recover-username" element={<RecoveryChooser identifier={identifier} onIdentifierChange={setIdentifier}
+              onBack={handleBackToLogin} onChoose={method => navigate(recoveryPaths[method], { state: authState })} />} />
+            <Route path="/recover-key" element={<RecoveryKeyComponent onLoginSuccess={onLoginSuccess} onBackToLogin={handleBackToLogin}
+              onTryAnotherWay={handleChooser} initialUsername={initialUsername} />} />
+            <Route path="/recover-email" element={<EmailRecoveryComponent mode="request" onLoginSuccess={onLoginSuccess} onBack={handleBackToLogin}
+              onTryAnotherWay={handleChooser} initialIdentifier={identifier.trim()} />} />
+            <Route path="/recover-device" element={<DeviceRecoveryComponent onLoginSuccess={onLoginSuccess}
+              onBack={handleChooser} initialUsername={initialUsername} />} />
+            <Route path="/recover-parts" element={<Navigate to="/recover-username" state={authState} replace />} />
             <Route path="/" element={<Navigate to="/login" state={authState} replace />} />
             <Route path="*" element={<Navigate to="/login" state={authState} replace />} />
           </Routes>

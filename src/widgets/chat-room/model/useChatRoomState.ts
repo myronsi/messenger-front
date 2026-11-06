@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import { useRef } from 'react';
 import { Message, ModalState } from '@/entities/message';
@@ -30,7 +31,7 @@ export const useChatRoomState = ({
   setPreviewModal,
 }: ChatRoomStateOptions) => {
   const chatState = useChat(chatId, username, token, onBack, userId, firstUnreadMessageId, onPresenceUpdate);
-  const previewWebSocketRef = useRef<WebSocket | null>(null);
+  const previewWebSocketRef = useRef<SocketSender | null>(null);
   if (!isPreview) return chatState;
 
   return {

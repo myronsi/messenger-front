@@ -2,6 +2,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useRef, useState } from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
+import { useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
 import { useAppDispatch } from '@/shared/hooks/redux';
@@ -25,7 +26,7 @@ export const useGroupChatScreen = ({
   const { translations: rawTranslations, language } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, setMessages } = useConversationMessages(chatId);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [messageInput, setMessageInput] = useDraftState(chatDraftKey(chatId), editingMessage === null);
@@ -68,7 +69,7 @@ export const useGroupChatScreen = ({
     token, chatId, username, translations, transport, currentUserIdRef, translationsRef, onBackRef,
     applyGroupDetails, refreshGroupDetails, setMessages, setModal,
     markMessageFailed: sender.markMessageFailed, markLatestPendingMessageFailed: sender.markLatestPendingMessageFailed,
-    onReconnected: history.catchUpAfterReconnect,
+    onReconnected: () => { sender.resendUnconfirmed(); void history.catchUpAfterReconnect(); },
   });
 
   const {

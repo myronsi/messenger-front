@@ -1,3 +1,4 @@
+import { realtime } from '@/shared/api/realtime';
 import { endSession } from '@/shared/auth/session';
 import { startNotifications, setNotificationLive } from '@/shared/lib/notifications/runtime';
 import { notifyMessageFrame } from '@/shared/lib/notifications/frames';
@@ -5,14 +6,8 @@ import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
-import { trackWebSocket } from '@/shared/api/socketRegistry';
-import { isGoApi } from '@/shared/api/goSocket';
-import { getChatWebSocketUrl } from '@/shared/api/webSocketUrl';
-import { onConnectivityRestored, reconnectDelay, shouldReconnect } from '@/shared/api/reconnect';
-import { handleHelloEvent } from '@/shared/api/serverHello';
 import { coalesceTask } from '@/shared/lib/coalesceTask';
-import { handleChatListWebSocketMessage } from './chatListWebSocketHandlers';
-import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap, WebSocketMessage } from './types';
+import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 
 const CHAT_LIST_REFETCH_DELAY_MS = 750;
 const GO_CHAT_LIST_EVENTS = ['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence'];
@@ -37,17 +32,8 @@ interface UseChatListWebSocketParams {
 // teardown on unmount) and forwards parsed messages to the pure message-handling function.
 // The socket authenticates with a one-time ticket, so a token refresh does not need a new connection.
 export function useChatListWebSocket(params: UseChatListWebSocketParams) {
-  const {
-    token, username, activeChatId, activeChatName, onChatOpen, onChatDeleted, currentUserId,
-    refetch, refetchRequestInbox, chatsByIdRef, setChatOverrides, setPresenceByUsername, setModal,
-  } = params;
-
-  const wsRef = useRef<WebSocket | null>(null);
+  const { token, activeChatId, onChatDeleted, currentUserId, refetch, refetchRequestInbox } = params;
   const activeChatIdRef = useRef(activeChatId);
-  const activeChatNameRef = useRef(activeChatName);
-  const usernameRef = useRef(username);
-  const onChatOpenRef = useRef(onChatOpen);
-  const currentUserIdRef = useRef<EntityId | undefined>(currentUserId);
   const onChatDeletedRef = useRef(onChatDeleted);
   const refetchRef = useRef(refetch);
   const refetchRequestInboxRef = useRef(refetchRequestInbox);
@@ -57,146 +43,27 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   }, [isSignedIn, currentUserId]);
 
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
-  useEffect(() => { activeChatNameRef.current = activeChatName; }, [activeChatName]);
-  useEffect(() => { usernameRef.current = username; }, [username]);
-  useEffect(() => { onChatOpenRef.current = onChatOpen; }, [onChatOpen]);
-  useEffect(() => { currentUserIdRef.current = currentUserId; }, [currentUserId]);
   useEffect(() => { onChatDeletedRef.current = onChatDeleted; }, [onChatDeleted]);
   useEffect(() => { refetchRef.current = refetch; }, [refetch]);
   useEffect(() => { refetchRequestInboxRef.current = refetchRequestInbox; }, [refetchRequestInbox]);
 
   useEffect(() => {
-    if (!isSignedIn) return undefined;
-    let isMounted = true;
-    let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let reconnectAttempts = 0;
-    let hasOpened = false;
-    let isRequestingTicket = false;
-    let isRejected = false;
+    if (!isSignedIn) return;
     const listRefetch = coalesceTask(() => refetchRef.current(), CHAT_LIST_REFETCH_DELAY_MS);
-
-    const scheduleReconnect = () => {
-      reconnectAttempts += 1;
-      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
-      reconnectTimeoutId = setTimeout(() => { if (isMounted) void connectWebSocket(); }, reconnectDelay(reconnectAttempts));
-    };
-
-    const reconnectNow = () => {
-      const current = wsRef.current;
-      if (!isMounted || isRejected || isRequestingTicket || (current && current.readyState !== WebSocket.CLOSED)) return;
-      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
-      reconnectTimeoutId = null;
-      void connectWebSocket();
-    };
-
-    const connectWebSocket = async () => {
-      if (!isMounted || isRequestingTicket) return;
-
-      // Check if WebSocket is already connected or connecting
-      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
-        return;
-      }
-
-      isRequestingTicket = true;
-      try {
-        const url = await getChatWebSocketUrl(0);
-        if (!isMounted) return;
-        wsRef.current = trackWebSocket(new WebSocket(url));
-      } catch (e) {
-        console.error('Failed to create WebSocket for chat list', e);
-        if (isMounted) scheduleReconnect();
-        return;
-      } finally {
-        isRequestingTicket = false;
-      }
-      const socket = wsRef.current;
-
-      socket.onopen = () => {
-        if (!isMounted) return;
-        setNotificationLive(true);
-        // Last messages and unread counts may have changed while the socket was down,
-        // including during failed attempts before the first open.
-        if (hasOpened || reconnectAttempts > 0) refetchRef.current();
-        reconnectAttempts = 0;
-        refetchRequestInboxRef.current();
-        hasOpened = true;
-      };
-
-      socket.onmessage = (event) => {
-        if (!isMounted) return;
-        let parsedData: WebSocketMessage;
-        try {
-          parsedData = JSON.parse(event.data);
-        } catch (error) {
-          console.error('Received non-JSON chat list message');
-          return;
-        }
-
-        if (isGoApi() && parsedData.type === 'security_notice') {
+    const release = realtime.subscribe({
+      onOpen: () => { setNotificationLive(true); refetchRef.current(); refetchRequestInboxRef.current(); },
+      onStatus: status => { if (status !== 'connected') setNotificationLive(false); },
+      onEvent: frame => {
+        if (frame.type === 'security_notice' && frame.data.type === 'password_reset') {
           sessionStorage.setItem('security_notice', 'Your password was reset using account recovery. Please sign in again.');
           endSession(); window.location.assign('/login'); return;
         }
-        if (handleHelloEvent(parsedData)) return;
-        notifyMessageFrame(parsedData, activeChatIdRef.current);
-        if (isGoApi()) {
-          // Go broadcasts a global stream. Refresh authoritative list entries after updates.
-          if (GO_CHAT_LIST_EVENTS.includes(parsedData.type)) listRefetch.schedule();
-          if (parsedData.type === 'approval_request_created') refetchRequestInboxRef.current();
-          if (parsedData.type === 'chat_deleted' && parsedData.chat_id) onChatDeletedRef.current?.(parsedData.chat_id);
-          return;
-        }
-
-        handleChatListWebSocketMessage(parsedData, {
-          usernameRef,
-          activeChatIdRef,
-          activeChatNameRef,
-          onChatOpenRef,
-          onChatDeletedRef,
-          currentUserIdRef,
-          chatsByIdRef,
-          refetchRef,
-          refetchRequestInboxRef,
-          setChatOverrides,
-          setPresenceByUsername,
-          setModal,
-        });
-      };
-
-      socket.onclose = (event) => {
-        setNotificationLive(false);
-        if (wsRef.current === socket) wsRef.current = null;
-        if (!isMounted) return;
-        if (shouldReconnect(socket, event.code)) scheduleReconnect();
-        else isRejected = true;
-      };
-
-      socket.onerror = (error) => {
-        if (!isMounted) return;
-        console.error('WebSocket error for chat list:', error);
-        // Don't show modal for transient errors - let reconnection logic handle it
-      };
-    };
-
-    void connectWebSocket();
-    const stopWatchingConnectivity = onConnectivityRestored(reconnectNow);
-
-    return () => {
-      setNotificationLive(false);
-      isMounted = false;
-      listRefetch.cancel();
-      stopWatchingConnectivity();
-      if (reconnectTimeoutId) {
-        clearTimeout(reconnectTimeoutId);
-      }
-      if (wsRef.current) {
-        try {
-          wsRef.current.close(1000, 'Component unmounted');
-        } catch (e) {
-          console.warn('Error while closing chat list WebSocket', e);
-        }
-        wsRef.current = null;
-      }
-    };
-    // Signing in or out is the only reconnect trigger; setters/refs stay stable across renders.
+        notifyMessageFrame(frame, activeChatIdRef.current);
+        if (GO_CHAT_LIST_EVENTS.includes(frame.type)) listRefetch.schedule();
+        if (frame.type === 'approval_request_created') refetchRequestInboxRef.current();
+        if (frame.type === 'chat_deleted' && frame.chat_id) onChatDeletedRef.current?.(frame.chat_id);
+      },
+    });
+    return () => { release(); listRefetch.cancel(); setNotificationLive(false); };
   }, [isSignedIn]);
 }

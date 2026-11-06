@@ -2,14 +2,21 @@ import { expect, test, type Page } from '@playwright/test';
 import { createEnglishContext, loginUser } from './helpers';
 
 const request = async <T>(page: Page, path: string, method = 'GET', body?: unknown, expected = 200): Promise<T> => {
-  const result = await page.evaluate(async ({ path, method, body }) => {
-    const response = await fetch(`${location.origin}/api/v2${path}`, {
+  const perform = () => page.evaluate(async ({ path, method, body, api }) => {
+    const response = await fetch(`${api || `${location.origin}/api/v2`}${path}`, {
       method, headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return { status: response.status, data: await response.json() };
-  }, { path, method, body });
+    return { status: response.status, data: await response.json(), retryAfter: Number(response.headers.get('Retry-After') || 1) };
+  }, { path, method, body, api: process.env.E2E_API_URL });
+  let result = await perform();
+  // Fixture generation observes the server's flood limit and preserves each
+  // client_temp_id when retrying; it does not require weakened runtime limits.
+  for (let attempt = 0; result.status === 429 && expected !== 429 && attempt < 4; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, Math.min(5000, Math.max(1, result.retryAfter) * 1000)));
+    result = await perform();
+  }
   expect(result.status, `${method} ${path}`).toBe(expected);
   return result.data as T;
 };
@@ -41,13 +48,13 @@ test('Go group permissions and older/newer history work through the frontend tra
       }, 201);
       sent.push(message.id);
     }
-    type History = {history: Array<{id: string}>; next_before_id: string | null; next_after_id: string | null; has_more_after: boolean};
+    type History = {history: Array<{id: string; is_system?: boolean}>; next_before_id: string | null; next_after_id: string | null; has_more_after: boolean};
     let before: string | null = null;
     let older: string[] = [];
     do {
       const query: string = `/messages/history/${group.chat_id}?limit=5${before ? `&before_id=${before}` : ''}`;
       const page: History = await request(a, query);
-      older = [...page.history.map(message => message.id), ...older]; before = page.next_before_id;
+      older = [...page.history.filter(message => !message.is_system).map(message => message.id), ...older]; before = page.next_before_id;
     } while (before);
     expect(older).toEqual(sent);
     let after: string | null = sent[0];

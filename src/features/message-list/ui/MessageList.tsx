@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, useCallback, useState, useEffect, useMemo, useRef } from 'react';
@@ -11,7 +12,6 @@ import { Message, ReactionInfo, type MessageSelection } from '@/entities/message
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useStableCallback } from '@/shared/lib/useStableCallback';
-
 interface MessageListProps {
   messages: Message[];
   username: string;
@@ -29,7 +29,7 @@ interface MessageListProps {
   renderMessageContent: (message: Message) => React.ReactNode;
   messageRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   onReplyClick: (messageId: EntityId) => void;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  wsRef: React.MutableRefObject<SocketSender | null>;
   onOpenReactionMenu: (message: Message, e: React.MouseEvent) => void;
   tempHighlightedMessageId: EntityId | null;
   setTempHighlightedMessageId: (id: EntityId | null) => void;

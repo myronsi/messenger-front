@@ -1,9 +1,10 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { authFetch } from '@/shared/auth/session';
 
 export { notificationReturnPath } from '@/shared/lib/notifications/navigation';
 
 export async function resolveNotificationChat(id: string) {
-  const response = await authFetch(`${import.meta.env.VITE_BASE_URL}/chats/${encodeURIComponent(id)}`);
+  const response = await authFetch(`${getApiBaseUrl()}/chats/${encodeURIComponent(id)}`);
   if (!response.ok) throw new Error('Conversation unavailable');
   const chat = await response.json();
   return {

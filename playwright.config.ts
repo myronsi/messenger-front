@@ -4,7 +4,7 @@ import { defineConfig } from '@playwright/test';
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8000/api/v2';
 process.env.GO_API_TESTS ??= '1';
-const APP_URL = 'http://127.0.0.1:5173';
+const APP_URL = 'http://localhost:5173';
 
 const trimTrailingSlashes = (value: string) => {
   let end = value.length;
@@ -19,7 +19,7 @@ const toWebSocketUrl = (value: string) => {
 };
 
 const apiUrl = trimTrailingSlashes(
-  process.env.E2E_API_URL ?? process.env.VITE_BASE_URL ?? DEFAULT_API_URL
+  process.env.E2E_API_URL ?? process.env.VITE_API_URL ?? process.env.VITE_BASE_URL ?? DEFAULT_API_URL
 );
 
 const webSocketUrl = trimTrailingSlashes(
@@ -63,7 +63,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
-      VITE_BASE_URL: apiUrl,
+      VITE_API_URL: apiUrl,
       VITE_WS_URL: webSocketUrl,
       VITE_CLIENT_API_VERSION: clientApiVersion,
     },

@@ -1,3 +1,4 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
@@ -19,7 +20,6 @@ import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import { AlertCircle, Check } from 'lucide-react';
-
 const PARTICLE_COUNT = 36;
 
 const DissolveParticles: React.FC = () => {
@@ -84,7 +84,7 @@ interface MessageItemProps {
   onAvatarClick: (username: string) => void;
   onReplyClick: (messageId: EntityId) => void;
   setTempHighlightedMessageId: (id: EntityId | null) => void;
-  wsRef: MutableRefObject<WebSocket | null>;
+  wsRef: MutableRefObject<SocketSender | null>;
   onOpenReadStatus?: (message: Message) => void;
   onOpenReactionDetails?: (message: Message, reaction: string, reactions: ReactionInfo[]) => void;
   onResendMessage?: (message: Message) => void;
@@ -93,8 +93,6 @@ interface MessageItemProps {
   onLongPress?: (message: Message) => void;
   onSwipeReply?: (message: Message) => void;
 }
-
-
 const MessageItem: React.FC<MessageItemProps> = ({
   message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage, isMobile, showNewMessagesMarker,
   nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
@@ -270,7 +268,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
               </div>
               {message.reactions?.length ? (
                 <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} wsRef={wsRef}
-                  onOpenReactionDetails={(reaction, reactions) => onOpenReactionDetails?.(message, reaction, reactions)} />
+                  onOpenReactionDetails={isGroup && onOpenReactionDetails
+                    ? (reaction, reactions) => onOpenReactionDetails(message, reaction, reactions)
+                    : undefined} />
               ) : null}
               {!isText && (!isImage || hasImageCaption) && hasTime && (
                 <div className={`text-[10px] opacity-80 select-none flex items-center ${hasImageCaption ? '-mt-1 px-3 pb-2' : 'mt-1'} ${isMine ? 'justify-end text-white' : 'text-muted-foreground'}`}>
@@ -284,7 +284,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   {isMine && onResendMessage && <button type="button" className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline" onClick={(event) => {
                     event.stopPropagation();
                     onResendMessage(message);
-                  }}>{translations.resend || 'Resend'}</button>}
+                  }}>{message.upload_status === 'lost' ? translations.remove || 'Remove' : translations.resend || 'Resend'}</button>}
                 </div>
               )}
             </div>

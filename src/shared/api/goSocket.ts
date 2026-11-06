@@ -1,8 +1,10 @@
+import type { SocketSender } from '@/shared/api/realtime';
+import { getApiBaseUrl } from '@/shared/api/config';
 import type { ClientEvent, ServerEvent } from '@myronsi/messenger-api';
 import type { EntityId } from './entityId';
 import { groupModel, messageModel } from './goModels';
 
-export const isGoApi = () => /\/api\/v2\/?$/.test(String(import.meta.env.VITE_BASE_URL));
+export const isGoApi = () => /\/api\/v2\/?$/.test(String(getApiBaseUrl()));
 
 interface OutgoingEvent {
   type: string;
@@ -26,7 +28,7 @@ export const goClientEvent = (raw: OutgoingEvent, chatId: EntityId): ClientEvent
   return { ...envelope, data } as ClientEvent;
 };
 
-export const adaptSocketSender = (socket: WebSocket, chatId: EntityId) => {
+export const adaptSocketSender = (socket: SocketSender, chatId: EntityId) => {
   if (!isGoApi()) return socket;
   const send = socket.send.bind(socket);
   socket.send = (payload) => {
@@ -39,6 +41,9 @@ export const adaptSocketSender = (socket: WebSocket, chatId: EntityId) => {
 export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => {
   if (event.chat_id !== null && event.chat_id !== String(chatId)) return null;
   switch (event.type) {
+    case 'ack': return typeof event.data.message_id === 'string'
+      ? { type: 'ack', message_id: event.data.message_id, client_temp_id: event.client_temp_id, timestamp: event.data.created_at }
+      : null;
     case 'message': {
       const message = messageModel(event.data.message);
       return { ...message, type: message.type, username: message.sender, sender_username: message.sender_username,

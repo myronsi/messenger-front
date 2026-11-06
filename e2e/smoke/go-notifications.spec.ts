@@ -42,7 +42,7 @@ test('notification preferences persist and conversations can be muted', async ({
     await expect(page).toHaveURL(/\/login$/);
     await page.getByLabel('Username').fill(user.username);
     await page.getByLabel('Password', { exact: true }).fill(user.password);
-    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/chat/${chatId}$`));
     await page.reload();
     await expect(chatItem.getByTestId('chat-muted-icon')).toBeVisible();

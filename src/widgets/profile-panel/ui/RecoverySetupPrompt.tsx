@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { useCallback, useEffect, useState } from 'react';
 import { authFetch } from '@/shared/auth/session';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
@@ -9,8 +10,9 @@ export const RecoverySetupPrompt = () => {
   const onDismissSafetyChange = useCallback((blocked: boolean) => setDismissBlocked(blocked), []);
   useEffect(() => {
     let active = true;
-    void authFetch(`${import.meta.env.VITE_BASE_URL}/me`).then(async r => {
-      if (r.ok) { const me = await r.json(); if (active) setOpen(me.recovery_setup_required === true); }
+    void authFetch(`${getApiBaseUrl()}/me`).then(async r => {
+      if (r.ok) { const me = await r.json(); if (active) setOpen(me.recovery_setup_required === true ||
+        localStorage.getItem(`recovery_receipt_skipped:${me.username}`) === 'true'); }
     }).catch(() => {});
     return () => { active = false; };
   }, []);

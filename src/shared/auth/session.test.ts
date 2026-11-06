@@ -127,4 +127,18 @@ describe('refreshAccessToken', () => {
     await expect(authFetch('https://api.test/auth/me')).rejects.toThrow();
     expect(getAccessToken()).toBe('expired');
   });
+
+  it('keeps the session and skips the refresh when the server asks for a second factor', async () => {
+    setAccessToken(jwt(600));
+    const problem = new Response(JSON.stringify({ code: 'two_factor_required', status: 401 }), {
+      status: 401, headers: { 'Content-Type': 'application/problem+json' },
+    });
+    const fetcher = vi.fn().mockResolvedValueOnce(problem);
+    vi.stubGlobal('fetch', fetcher);
+    const response = await authFetch('https://api.test/me/recovery-key', { method: 'POST' });
+    expect(response.status).toBe(401);
+    expect((await response.json()).code).toBe('two_factor_required');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(getAccessToken()).not.toBeNull();
+  });
 });

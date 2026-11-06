@@ -1,8 +1,9 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef, useState } from 'react';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 const OPUS_AUDIO_BITS_PER_SECOND = 48_000;
 const MIN_RECORDING_MS = 1000;
 const RECORDING_TOO_SHORT_MESSAGE = 'Recording was too short and was not sent. Hold the mic to record, or slide up to lock it.';
@@ -33,7 +34,7 @@ interface VoiceRecorderOptions {
   getReplyToId?: () => EntityId | null;
   onVoiceUploadProgress?: (messageId: EntityId, percent: number) => void;
   onVoiceUploadError?: (messageId: EntityId, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: EntityId) => void;
+  onVoiceUploadComplete?: (messageId: EntityId, created?: unknown) => void;
 }
 
 const getSupportedOpusMimeType = () => {
@@ -133,14 +134,14 @@ export const useVoiceRecorder = ({
         if (replyToId != null) formData.append('reply_to', String(replyToId));
         if (optimisticMessageId !== null) formData.append('client_temp_id', String(optimisticMessageId));
         try {
-          await uploadWithProgress({
+          const created = await uploadWithProgress({
             url: `${BASE_URL}/messages/vm`,
             formData,
             onProgress: (percent) => {
               if (optimisticMessageId !== null) onVoiceUploadProgress?.(optimisticMessageId, percent);
             },
           });
-          if (optimisticMessageId !== null) onVoiceUploadComplete?.(optimisticMessageId);
+          if (optimisticMessageId !== null) onVoiceUploadComplete?.(optimisticMessageId, created);
         } catch (error) {
           console.error('Error sending voice message:', error);
           if (optimisticMessageId !== null) {

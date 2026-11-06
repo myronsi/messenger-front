@@ -1,9 +1,10 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 
 interface DeleteChatActionOptions {
   chatId: EntityId;

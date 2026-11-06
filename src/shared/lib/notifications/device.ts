@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { getAccessToken } from '@/shared/auth/session';
@@ -35,7 +36,7 @@ export function resumeNotificationNavigation() {
   if (data) openNotificationChat(data);
 }
 const accountMessage = (user: string) => ({
-  type: 'notification-account', user, api: import.meta.env.VITE_BASE_URL || '', language: localStorage.getItem('language') === 'ru' ? 'ru' : 'en',
+  type: 'notification-account', user, api: getApiBaseUrl() || '', language: localStorage.getItem('language') === 'ru' ? 'ru' : 'en',
 });
 export async function startNativeNotifications() {
   if (!nativeNotifications()) return;
@@ -105,7 +106,7 @@ export function cleanupNotificationDevice() {
     try {
       const device = JSON.parse(raw) as { id: string };
       const token = getAccessToken();
-      if (token) void fetch(`${import.meta.env.VITE_BASE_URL}/me/notification-devices/${device.id}`, {
+      if (token) void fetch(`${getApiBaseUrl()}/me/notification-devices/${device.id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` }, keepalive: true,
       }).catch(() => undefined);
     } catch { /* A malformed local registration must not prevent logout. */ }

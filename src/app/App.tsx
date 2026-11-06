@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
+import { ConnectionIndicator } from '@/shared/ui/ConnectionIndicator';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate, type Location } from 'react-router-dom';
-import { AuthFlowPage } from '@/pages/auth';
+import { AuthFlowPage, RecoveryEmailLinkPage } from '@/pages/auth';
 import { MessengerApp } from '@/pages/messenger';
 import { LanguageProvider, useLanguage } from '@/shared/contexts/LanguageContext';
 import UpdateGate from '@/app/UpdateGate';
@@ -20,6 +21,8 @@ export function AppRoutes() {
   const closeDocs = () => navigate(-1);
   return <>
     <Routes location={background || location}>
+      <Route path="/verify-email" element={<RecoveryEmailLinkPage mode="verify" />} />
+      <Route path="/reset-password" element={<RecoveryEmailLinkPage mode="reset" />} />
       <Route path="/docs" element={<Suspense fallback={null}><DocsPage /></Suspense>} />
       <Route path="*" element={<MessengerApp renderAuthPage={(props) => <AuthFlowPage {...props} />} />} />
     </Routes>
@@ -35,6 +38,7 @@ export function AppRoutes() {
 
 const App = () => (
   <LanguageProvider>
+    <ConnectionIndicator />
     <UpdateGate />
     <NotificationToaster />
     <BrowserRouter>

@@ -1,6 +1,7 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import React from 'react';
-import { AtSign, CalendarDays, Image, Loader2, LogOut, Pencil, Trash, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { QrScannerDialog } from '@/features/auth';
+import { AtSign, CalendarDays, Image, Loader2, LogOut, Pencil, QrCode, Trash, Users } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDate } from '@/shared/utils/dateFormatters';
 import type { User } from '@/entities/user';
@@ -25,6 +26,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
     userData, avatarUrl, hasCustomAvatar, displayName, bio, language, setIsAvatarViewerOpen,
     setIsGroupModalOpen, onEditProfile, settingsRows, futureSettingsRows, handleLogout, isLoggingOut, handleDeleteAccount, isDeletingAccount,
   } = props;
+  const [scanning, setScanning] = useState(false);
   return (
     <>
           <div className="px-6 pb-5 pt-7 text-center">
@@ -65,7 +67,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 border-y border-gray-200 px-4 py-3">
+          <div className="grid grid-cols-3 gap-2 border-y border-gray-200 px-4 py-3">
             <button
               type="button"
               onClick={() => setIsGroupModalOpen(true)}
@@ -82,6 +84,14 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
             >
               <Image className="h-5 w-5" />
               <span className="text-xs font-medium">{translations.avatarHistory || 'Avatar history'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setScanning(true)}
+              className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm text-primary transition-colors hover:bg-gray-100"
+            >
+              <QrCode className="h-5 w-5" />
+              <span className="text-xs font-medium">{translations.qrLogin.scanEntry}</span>
             </button>
           </div>
 
@@ -140,6 +150,7 @@ const ProfileHomePage: React.FC<ProfileHomePageProps> = (props) => {
               </button>
             </section>
           </div>
+          <QrScannerDialog open={scanning} onClose={() => setScanning(false)} />
     </>
   );
 };

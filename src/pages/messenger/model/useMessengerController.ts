@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,7 +14,7 @@ import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
 import { notificationReturnPath } from './resolveNotificationChat';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 
 export const useMessengerController = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

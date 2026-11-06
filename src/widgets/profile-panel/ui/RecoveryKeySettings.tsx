@@ -1,44 +1,78 @@
+import { recoveryApi, useGetCurrentUserQuery, useGetRecoveryKeyStatusQuery } from '@/features/profile';
+import { apiClient } from '@/shared/api/client';
+import { useAppDispatch } from '@/shared/hooks/redux';
 import { useEffect, useState } from 'react';
-import { authFetch } from '@/shared/auth/session';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
+import { ApiProblem } from '@/shared/api/problem';
+import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
+import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
+import { SecurityRow, securityInput, securityLabel } from './SecuritySection';
 
-interface KeyStatus { exists: boolean; created_at: string | null; locked_until: string | null }
-export const RecoveryKeySettings = ({ onDismissSafetyChange }: { onDismissSafetyChange?: (blocked: boolean) => void }) => {
-  const [status, setStatus] = useState<KeyStatus | null>(null);
+export interface CreatedRecoveryKey {
+  recoveryKey: string;
+  username: string;
+}
+
+export const RecoveryKeySettings = ({ onDismissSafetyChange, onCreated }: {
+  onDismissSafetyChange?: (blocked: boolean) => void; onCreated?: (created: CreatedRecoveryKey) => void;
+}) => {
+  const { translations, language } = useLanguage();
+  const t = translations.securityPage;
+  const { data: user } = useGetCurrentUserQuery();
+  const { data: status, error: loadError } = useGetRecoveryKeyStatusQuery();
+  const dispatch = useAppDispatch();
   const [key, setKey] = useState('');
   const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
+  const twoFactor = useAccountTwoFactor();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => { onDismissSafetyChange?.(busy || Boolean(key)); }, [busy, key, onDismissSafetyChange]);
-  const load = async () => {
-    try { const r = await authFetch(`${import.meta.env.VITE_BASE_URL}/me/recovery-key`); if (!r.ok) throw new Error(); setStatus(await r.json()); }
-    catch { setError('Unable to load recovery key settings.'); }
-  };
-  useEffect(() => { void load(); }, []);
+  useEffect(() => () => onDismissSafetyChange?.(false), [onDismissSafetyChange]);
   const locked = Boolean(status?.locked_until && new Date(status.locked_until).getTime() > Date.now());
+  const locale = language === 'ru' ? 'ru-RU' : undefined;
   const create = async () => {
     onDismissSafetyChange?.(true);
     setBusy(true); setError('');
     try {
-      const r = await authFetch(`${import.meta.env.VITE_BASE_URL}/me/recovery-key`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, code: code.trim() }) });
-      if (!r.ok) throw new Error(r.status === 409 ? 'Security changes are temporarily locked for 24 hours after account recovery.' : r.status === 429 ? 'Too many attempts. Please try again later.' : 'Check your password and authentication code.');
-      const data = await r.json(); if (!data.recovery_key) throw new Error('The server did not return a recovery key.');
-      setKey(data.recovery_key); setPassword(''); setCode(''); await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to create a recovery key.'); }
+      const recoveryKey = await twoFactor.confirm(async code => {
+        const result = await apiClient.POST('/me/recovery-key', { body: { password, ...(code ? { code } : {}) } });
+        if (result.error || !result.data?.recovery_key) {
+          throw new ApiProblem(result.response.status, result.error, result.response.status === 409 ? t.keyLockedFailure : t.keyCheckCredentials);
+        }
+        return result.data.recovery_key;
+      });
+      setPassword('');
+      if (onCreated) onCreated({ recoveryKey, username: user?.username || '' });
+      else setKey(recoveryKey);
+      dispatch(recoveryApi.util.invalidateTags(['Auth']));
+    } catch (e) { if (!isTwoFactorCancelled(e)) setError(e instanceof Error ? e.message : t.keyCreateFailed); }
     finally { setBusy(false); }
   };
-  return <section className="rounded-xl border border-border p-4 space-y-3"><h3 className="font-medium">Account recovery</h3>
-    {key ? <RecoveryKeyReceipt recoveryKey={key} onContinue={() => setKey('')} /> : <>
-      <p className="text-sm text-muted-foreground">{status ? status.exists ? 'A recovery key is set up. Creating a replacement immediately invalidates your old key.' : 'Create a recovery key so you can reset a forgotten password. Save it somewhere safe.' : 'Loading recovery settings…'}</p>
-      {locked ? <p className="text-sm">Security changes are locked until {new Date(status!.locked_until!).toLocaleString()} after account recovery.</p> : status && <form className="space-y-3" onSubmit={e => { e.preventDefault(); void create(); }}>
-        <Label htmlFor="recovery-password">Current password</Label><Input id="recovery-password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
-        <Label htmlFor="recovery-code">Authenticator or backup code (if enabled)</Label><Input id="recovery-code" autoComplete="off" maxLength={128} value={code} onChange={e => setCode(e.target.value)} />
-        <Button disabled={busy}>{busy ? 'Creating…' : status.exists ? 'Replace recovery key' : 'Create recovery key'}</Button>
-      </form>}
-    </>}{error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-  </section>;
+  const description = !status ? t.keyLoading : status.exists
+    ? [t.keyExists, status.created_at && fillTemplate(t.keyCreatedOn, { date: new Date(status.created_at).toLocaleDateString(locale) }), t.keyReplaceHint]
+      .filter(Boolean).join(' ')
+    : t.keyMissing;
+  return <SecurityRow id="recovery-key-settings" title={t.keyTitle} description={key ? undefined : description}>
+    {key ? <RecoveryKeyReceipt recoveryKey={key} username={user?.username || ''} onContinue={() => setKey('')} /> : <>
+      {locked ? <p className="text-sm text-muted-foreground">{fillTemplate(t.lockedUntil, { date: new Date(status!.locked_until!).toLocaleString(locale) })}</p>
+        : status && <form id="recovery-key-form" className="flex flex-col gap-3" onSubmit={e => { e.preventDefault(); void create(); }}>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="recovery-password" className={securityLabel}>{t.currentPassword}</Label>
+            <Input id="recovery-password" type="password" autoComplete="current-password" className={securityInput} value={password}
+              onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button className="h-11 font-semibold" disabled={busy}>{busy ? t.keyCreating : status.exists ? t.keyReplace : t.keyCreate}</Button>
+          </div>
+        </form>}
+    </>}
+    {loadError && <p role="alert" className="text-sm text-red-700">{t.keyLoadFailed}</p>}
+    {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+    {twoFactor.dialog}
+  </SecurityRow>;
 };

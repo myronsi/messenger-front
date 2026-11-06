@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { asApiError } from '@/shared/lib/apiError';
 import { authFetch, ensureAccessToken, refreshAccessToken } from '@/shared/auth/session';
 import { isGoApi } from './goSocket';
@@ -56,7 +57,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithPro
 export const uploadWithProgress = async <T = unknown>(options: UploadWithProgressOptions): Promise<T> => {
   if (isGoApi() && /\/messages\/(upload|vm)$/.test(options.url)) {
     const voice = options.url.endsWith('/vm');
-    const base = String(import.meta.env.VITE_BASE_URL).replace(/\/$/, '');
+    const base = String(getApiBaseUrl()).replace(/\/$/, '');
     const form = new FormData();
     form.set('file', options.formData.get('file')!);
     form.set('purpose', 'message');

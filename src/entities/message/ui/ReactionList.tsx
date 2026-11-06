@@ -1,8 +1,10 @@
+import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ReactionInfo } from '../model/types';
 import { ReactionGroup, groupAndSortReactions, splitVisibleReactions } from '../model/reactions';
+import { ReactionCount } from './ReactionCount';
 
 interface ReactionListProps {
   reactions: ReactionInfo[];
@@ -11,7 +13,7 @@ interface ReactionListProps {
   isMine: boolean;
   /** Image bubbles keep their time badge inside the image, so the strip overlaps the bubble less. */
   isImage?: boolean;
-  wsRef: React.MutableRefObject<WebSocket | null>;
+  wsRef: React.MutableRefObject<SocketSender | null>;
   onOpenReactionDetails?: (reaction: string, reactions: ReactionInfo[]) => void;
 }
 
@@ -49,6 +51,11 @@ const ReactionList: React.FC<ReactionListProps> = ({
 
   const isMineReaction = (group: ReactionGroup) => group.users.some((item) => item.user_id === userId);
   const hiddenHasMine = hidden.some(isMineReaction);
+  const reactionColors = (mine: boolean) => !mine
+    ? 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600'
+    : isMine
+      ? 'bg-white text-gray-900 ring-1 ring-gray-300 hover:bg-gray-100'
+      : 'bg-blue-600 text-white ring-1 ring-blue-700 hover:bg-blue-700';
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -180,14 +187,14 @@ const ReactionList: React.FC<ReactionListProps> = ({
           const mine = isMineReaction(group);
           return (
             <button
-              key={`${group.reaction}-${group.count}`}
+              key={group.reaction}
               type="button"
               data-reaction={group.reaction}
               aria-pressed={mine}
-              className={`motion-reaction-pop inline-flex h-4 cursor-pointer select-none items-center gap-0.5 rounded-full px-1 text-[13px] leading-none transition-colors hover:bg-accent ${
-                mine ? 'bg-primary/15 ring-1 ring-primary/60' : ''
+              className={`motion-reaction-pop inline-flex h-4 cursor-pointer select-none items-center gap-0.5 rounded-full px-1 text-[13px] leading-none transition-colors ${
+                reactionColors(mine)
               }`}
-              title="Click to toggle. Right-click to view people."
+              title={onOpenReactionDetails ? 'Click to toggle. Right-click to view people.' : 'Click to toggle.'}
               onClick={(event) => {
                 event.stopPropagation();
                 toggleReaction(group.reaction);
@@ -195,9 +202,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
               {...detailHandlers(group)}
             >
               <span>{group.reaction}</span>
-              {group.count > 1 && (
-                <span className="text-[11px] font-medium tabular-nums text-foreground/80">{group.count}</span>
-              )}
+              {group.count > 1 && <ReactionCount count={group.count} />}
             </button>
           );
         })}
@@ -256,8 +261,8 @@ const ReactionList: React.FC<ReactionListProps> = ({
                   data-reaction={group.reaction}
                   aria-pressed={mine}
                   title={mine ? 'You reacted. Click to remove.' : 'Click to react.'}
-                  className={`inline-flex h-7 cursor-pointer select-none items-center gap-1 rounded-full px-2 text-base leading-none transition-colors hover:bg-accent ${
-                    mine ? 'bg-primary/15 ring-1 ring-primary/60' : ''
+                  className={`inline-flex h-7 cursor-pointer select-none items-center gap-1 rounded-full px-2 text-base leading-none transition-colors ${
+                    reactionColors(mine)
                   }`}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -267,7 +272,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
                   {...detailHandlers(group)}
                 >
                   <span>{group.reaction}</span>
-                  <span className="text-xs font-medium tabular-nums text-muted-foreground">{group.count}</span>
+                  <span className="text-xs font-medium tabular-nums">{group.count}</span>
                 </button>
               );
             })}

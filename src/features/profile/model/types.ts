@@ -1,7 +1,8 @@
 import type { User } from '@/entities/user';
+import type { ApproximateLocation } from '@/shared/lib/locationLabel';
 
 export type BasicPrivacyVisibility = 'everyone' | 'shared_chats';
-export type ExceptionPrivacyVisibility = BasicPrivacyVisibility | 'everyone_except' | 'nobody_except';
+export type ExceptionPrivacyVisibility = BasicPrivacyVisibility | 'everyone_except' | 'nobody_except' | 'nobody';
 export type PresencePrivacyVisibility = ExceptionPrivacyVisibility | 'nobody';
 export type DirectMessagePrivacyVisibility = BasicPrivacyVisibility | 'wait_approval';
 export type GroupInvitePrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
@@ -25,16 +26,15 @@ export interface PrivacySettings {
 export interface SecuritySettings {
   session_duration_days: number;
   two_factor_enabled: boolean;
-  recovery_codes_remaining: number;
 }
 
 export interface UserSession {
   id: string;
   user_agent: string;
-  ip_address?: string | null;
+  location?: ApproximateLocation | null;
   created_at: string;
   last_active_at: string;
-  expires_at: string;
+  expires_at?: string;
   is_current: boolean;
 }
 

@@ -1,24 +1,21 @@
+import { createTempMessageId } from '@/shared/api/tempMessageId';
+import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useRef, type MutableRefObject } from 'react';
 import type { FileMessageContent, Message } from '@/entities/message';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
-import { applyMessageEdit, editableText } from './messageUpdates';
+import { applyMessageEdit, editableText, mergeIncomingMessage } from './messageUpdates';
+import { createdMessage, unconfirmedSends, useUnsentMessageRelease } from './unsentMessages';
 import { getLocalUploadFileType } from './uploadFileType';
 import { createOptimisticMessage } from './optimisticMessage';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = getApiBaseUrl();
 const SOCKET_CONNECT_WAIT_ATTEMPTS = 30;
 const SOCKET_CONNECT_WAIT_MS = 100;
-
-interface UploadSource {
-  file: Blob;
-  fileName: string;
-  objectUrl: string;
-}
 
 interface MessageSenderOptions {
   chatId: EntityId;
@@ -78,15 +75,8 @@ export const useMessageSender = ({
 
   const replyToRef = useRef(replyTo);
   replyToRef.current = replyTo;
-  const uploadSourcesRef = useRef(new Map<string, UploadSource>());
-
-  useEffect(() => {
-    const sources = uploadSourcesRef.current;
-    return () => {
-      sources.forEach((source) => URL.revokeObjectURL(source.objectUrl));
-      sources.clear();
-    };
-  }, []);
+  const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
+  const sentRef = useRef(new Map<string, OutgoingPayload>());
 
   const createOptimisticUploadMessage = (
     file: Blob,
@@ -94,7 +84,7 @@ export const useMessageSender = ({
     fileType = getLocalUploadFileType(fileName, file.type),
     caption = ''
   ) => {
-    const tempId = -Date.now();
+    const tempId = createTempMessageId();
     const reply = replyToRef.current;
     if (reply) setReplyTo(null);
     const objectUrl = URL.createObjectURL(file);
@@ -110,6 +100,7 @@ export const useMessageSender = ({
     });
     setMessages((previous) => [...previous, optimisticMessage]);
     uploadSourcesRef.current.set(String(tempId), { file, fileName, objectUrl });
+    uploadingRef.current.add(String(tempId));
     return tempId;
   };
 
@@ -120,14 +111,24 @@ export const useMessageSender = ({
   };
 
   const markOptimisticUploadFailed = (messageId: EntityId, errorMessage?: string) => {
+    const id = String(messageId);
+    uploadingRef.current.delete(id);
+    const lost = releasedRef.current;
+    if (lost) releaseSource(id);
+    const deliveryError = lost
+      ? translationsRef.current.uploadNotSent
+      : errorMessage || translationsRef.current.errorLoading || 'Upload failed';
     setMessages((previous) => previous.map((message) => message.id === messageId
-      ? { ...message, upload_status: 'failed', delivery_error: errorMessage || translationsRef.current.errorLoading || 'Upload failed' }
+      ? { ...message, upload_status: lost ? 'lost' : 'failed', delivery_error: deliveryError }
       : message));
   };
 
-  const settleOptimisticUpload = (messageId: EntityId) => {
+  const settleOptimisticUpload = (messageId: EntityId, created?: unknown) => {
+    uploadingRef.current.delete(String(messageId));
     uploadSourcesRef.current.delete(String(messageId));
     updateOptimisticUploadProgress(messageId, 99);
+    const saved = createdMessage(created);
+    if (saved) setMessages((previous) => mergeIncomingMessage(previous, saved));
   };
 
   const uploadOptimisticMessage = async (messageId: EntityId, file: Blob, fileName: string, voice: boolean, replyToId?: EntityId | null, caption = '') => {
@@ -138,12 +139,12 @@ export const useMessageSender = ({
     if (replyToId != null) formData.append('reply_to', String(replyToId));
     if (caption.trim()) formData.append('caption', caption.trim());
     try {
-      await uploadWithProgress({
+      const created = await uploadWithProgress({
         url: `${BASE_URL}/messages/${voice ? 'vm' : 'upload'}`,
         formData,
         onProgress: (percent) => updateOptimisticUploadProgress(messageId, percent),
       });
-      settleOptimisticUpload(messageId);
+      settleOptimisticUpload(messageId, created);
     } catch {
       markOptimisticUploadFailed(messageId, translations.errorLoading || 'Upload failed');
       setModal({ type: 'error', message: translations.errorLoading });
@@ -156,6 +157,7 @@ export const useMessageSender = ({
     const sendNow = () => {
       try {
         wsRef.current?.send(JSON.stringify(payload));
+        if (payload.type === 'message' && payload.client_temp_id != null) sentRef.current.set(String(payload.client_temp_id), payload);
       } catch (error) {
         console.error('Error sending message via WebSocket:', error);
         enqueue();
@@ -198,7 +200,7 @@ export const useMessageSender = ({
       if (!isGoApi()) setMessages((previous) => applyMessageEdit(previous, editingMessage.id, contentToSend));
       payload = { type: 'edit', message_id: editingMessage.id, content: escapedMessage };
     } else {
-      const tempId = -Date.now();
+      const tempId = createTempMessageId();
       const optimisticMessage = createOptimisticMessage(tempId, username, currentUserId || undefined, {
         type: 'message', content: contentToSend, reply_to: replyTo?.id || null,
       });
@@ -213,34 +215,36 @@ export const useMessageSender = ({
     setEditingMessage(null);
   };
 
-  const replaceUnsavedMessage = (message: Message, changes: Partial<Message>) => {
-    const tempId = -Date.now();
+  const retryUnsavedMessage = (message: Message, changes: Partial<Message>) => {
     setMessages((previous) => {
       const failed = previous.find((item) => String(item.id) === String(message.id));
       if (!failed) return previous;
       return [
         ...previous.filter((item) => item !== failed),
-        { ...failed, ...changes, id: tempId, client_temp_id: tempId, delivery_error: undefined, timestamp: new Date().toISOString() },
+        { ...failed, ...changes, delivery_error: undefined, timestamp: new Date().toISOString() },
       ];
     });
-    return tempId;
+    return message.client_temp_id ?? message.id;
   };
 
   const resendUnsavedMessage = (message: Message) => {
     if (message.type === 'file') {
       const source = uploadSourcesRef.current.get(String(message.id));
-      if (!source || typeof message.content === 'string') return;
+      if (!source) {
+        setMessages((previous) => previous.filter((item) => String(item.id) !== String(message.id)));
+        return;
+      }
+      if (typeof message.content === 'string') return;
       const content = message.content;
-      const tempId = replaceUnsavedMessage(message, { upload_status: 'uploading', upload_progress: 1 });
-      uploadSourcesRef.current.delete(String(message.id));
-      uploadSourcesRef.current.set(String(tempId), source);
+      const tempId = retryUnsavedMessage(message, { upload_status: 'uploading', upload_progress: 1 });
+      uploadingRef.current.add(String(message.id));
       void uploadOptimisticMessage(tempId, source.file, source.fileName, content.file_type === 'voice', message.reply_to, content.caption ?? '');
       return;
     }
     if (typeof message.content !== 'string') return;
-    const tempId = replaceUnsavedMessage(message, {});
+    const tempId = retryUnsavedMessage(message, {});
     pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => String(id) !== String(message.id));
-    pendingMessageIdsRef.current.push(tempId);
+    pendingMessageIdsRef.current.push(message.id);
     const content = isGoApi() ? message.content : escapeCurlyBraces(message.content);
     sendOrQueue({ type: 'message', content, reply_to: message.reply_to ?? null, client_temp_id: tempId });
   };
@@ -267,7 +271,12 @@ export const useMessageSender = ({
     await uploadOptimisticMessage(optimisticMessageId, file, file.name, false, replyToId, caption);
   };
 
+  const resendUnconfirmed = () => {
+    unconfirmedSends(sentRef.current, pendingMessageIdsRef.current, messageQueueRef.current).forEach(sendOrQueue);
+  };
+
   return {
+    resendUnconfirmed,
     markMessageFailed,
     markLatestPendingMessageFailed,
     createOptimisticUploadMessage,

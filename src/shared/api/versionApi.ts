@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '@/shared/api/config';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { components } from '@/shared/api/generated/schema';
 import { getMetaPath } from '@/shared/api/metaPath';
@@ -26,7 +27,7 @@ export const versionApi = messengerApi.injectEndpoints({
           return { data: { serverVersion: version, commit } };
         }
 
-        const meta = await fetchWithBQ(getMetaPath(import.meta.env.VITE_BASE_URL));
+        const meta = await fetchWithBQ(getMetaPath(getApiBaseUrl()));
         if (meta.data) {
           const { backend_version, commit, api_version, min_client_api_version } = meta.data as MetaResponse;
           return { data: { serverVersion: backend_version ?? '', commit, apiVersion: api_version, minClientApiVersion: min_client_api_version } };
