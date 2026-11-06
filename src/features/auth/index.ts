@@ -1,4 +1,5 @@
 export * from './model/types';
+export { DEVICE_RECOVERY_TTL_MS } from './model/requestLifetimes';
 export { RecoveryKeyComponent } from './RecoveryKeyComponent';
 export { DeviceRecoveryComponent } from './DeviceRecoveryComponent';
 export { EmailRecoveryComponent } from './EmailRecoveryComponent';

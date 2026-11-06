@@ -32,6 +32,8 @@ export const chat = {
   messageNotDeliveredBlocked: "This message could not be delivered due to the recipient's privacy settings.",
   messageNotDeliveredPrivacy: "This message cannot be received due to the user's privacy settings.",
   messageNotDeliveredSelf: "This message cannot be sent to yourself.",
+  messageDeliveryNotConfirmed: "Message delivery could not be confirmed. Retry when connected.",
+  uploadNotSent: "The file was not sent. Attach it again.",
   waitingForApproval: "Waiting for user approval",
   alreadyWaitingForApproval: "You already sent a request. Wait for approval before sending more messages.",
   requestInbox: "Request inbox",

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
+import { localDeadline, secondsUntil } from '@/shared/lib/countdown';
+import { QR_LOGIN_TTL_MS } from './requestLifetimes';
 import { createQrLogin, isRateLimited, pollQrLogin } from '../api/qrLoginApi';
 import type { QrLoginApproved, QrLoginStart } from './qrLoginTypes';
 
@@ -8,11 +10,11 @@ export type QrSignInStatus = 'creating' | 'pending' | 'scanned' | 'approved' | '
 export const QR_POLL_INTERVAL_MS = 2000;
 export const QR_POLL_MAX_BACKOFF_MS = 30_000;
 
-const secondsUntil = (time: string) => Math.max(0, Math.ceil((Date.parse(time) - Date.now()) / 1000));
 const isVisible = () => document.visibilityState === 'visible';
 
 export const useQrLoginPoll = (onApproved: (result: QrLoginApproved) => void) => {
   const [request, setRequest] = useState<QrLoginStart | null>(null);
+  const [deadline, setDeadline] = useState(0);
   const [status, setStatus] = useState<QrSignInStatus>('creating');
   const [seconds, setSeconds] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(1);
@@ -27,8 +29,9 @@ export const useQrLoginPoll = (onApproved: (result: QrLoginApproved) => void) =>
     try {
       const next = await createQrLogin();
       if (run !== generation.current) return;
-      const left = secondsUntil(next.expires_at);
-      setRequest(next); setSeconds(left); setTotalSeconds(Math.max(1, left)); setStatus('pending');
+      const nextDeadline = localDeadline(next.expires_at, QR_LOGIN_TTL_MS);
+      const left = secondsUntil(nextDeadline);
+      setRequest(next); setDeadline(nextDeadline); setSeconds(left); setTotalSeconds(Math.max(1, left)); setStatus('pending');
     } catch (error) {
       if (run === generation.current) setStatus(isRateLimited(error) ? 'rateLimited' : 'failed');
     }
@@ -94,14 +97,14 @@ export const useQrLoginPoll = (onApproved: (result: QrLoginApproved) => void) =>
   useEffect(() => {
     if (!request || !live) return;
     const tick = () => {
-      const left = secondsUntil(request.expires_at);
+      const left = secondsUntil(deadline);
       setSeconds(left);
       if (!left) setStatus('expired');
     };
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [request, live]);
+  }, [request, deadline, live]);
 
   useEffect(() => {
     if (status !== 'expired' || autoRefreshed.current || !isVisible()) return;

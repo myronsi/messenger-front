@@ -154,4 +154,29 @@ describe('useQrLoginPoll', () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(poll).not.toHaveBeenCalled();
   });
+
+  it('counts down from receipt when the device clock is minutes fast', async () => {
+    create.mockImplementationOnce(async () => request('a', 120 - 5 * 60));
+    poll.mockResolvedValue({ status: 'pending' });
+    const { result } = renderHook(() => useQrLoginPoll(vi.fn()));
+    await advance(0);
+    expect(result.current.status).toBe('pending');
+    expect(result.current.seconds).toBe(120);
+    await advance(2000);
+    expect(poll).toHaveBeenCalledTimes(1);
+    await advance(60_000);
+    expect(result.current.status).toBe('pending');
+    expect(result.current.seconds).toBe(58);
+    await advance(58_000);
+    expect(result.current.status).not.toBe('pending');
+  });
+
+  it('never shows more than the code lifetime when the device clock is slow', async () => {
+    create.mockImplementationOnce(async () => request('a', 120 + 10 * 60));
+    poll.mockResolvedValue({ status: 'pending' });
+    const { result } = renderHook(() => useQrLoginPoll(vi.fn()));
+    await advance(0);
+    expect(result.current.seconds).toBe(120);
+    expect(result.current.totalSeconds).toBe(120);
+  });
 });

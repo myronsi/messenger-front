@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, Smartphone } from 'lucide-react';
 import { useGetRecoveryOverviewQuery } from '@/features/profile';
 import type { SecurityDetail } from '@/shared/lib/urlOverlay';
@@ -14,6 +14,8 @@ import { useSecuritySettings } from './useSecuritySettings';
 import { securityDetailTitle } from '../model/securitySummaries';
 import { SecurityDetailPage } from './SecurityDetailPage';
 import { SecurityListPage } from './SecurityListPage';
+import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
+import type { CreatedRecoveryKey } from './RecoveryKeySettings';
 
 interface SecuritySettingsPanelProps {
   isActive: boolean;
@@ -28,6 +30,10 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
   const settings = useSecuritySettings(isActive, onLoggedOut);
   const { translations, status } = settings;
   const { data: overview } = useGetRecoveryOverviewQuery(undefined, { skip: !isActive });
+  const [createdKey, setCreatedKey] = useState<CreatedRecoveryKey | null>(null);
+  const hasCreatedKey = Boolean(createdKey);
+  useEffect(() => { if (hasCreatedKey) onDismissSafetyChange(true); }, [hasCreatedKey, onDismissSafetyChange]);
+  const finishCreatedKey = () => { setCreatedKey(null); onDismissSafetyChange(false); };
   const crumb = (label: React.ReactNode, onClick?: () => void) => (
     <BreadcrumbItem>
       {onClick
@@ -73,9 +79,12 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
 
       <div key={detail ?? 'list'} className="motion-sheet-in min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <div className="mx-auto flex max-w-3xl flex-col gap-5">
-          {isActive && (detail
-            ? <SecurityDetailPage detail={detail} settings={settings} overview={overview} onDismissSafetyChange={onDismissSafetyChange} />
-            : <SecurityListPage settings={settings} overview={overview} onOpen={onOpenDetail} />)}
+          {isActive && (createdKey
+            ? <RecoveryKeyReceipt recoveryKey={createdKey.recoveryKey} username={createdKey.username} onContinue={finishCreatedKey} />
+            : detail
+              ? <SecurityDetailPage detail={detail} settings={settings} overview={overview} onDismissSafetyChange={onDismissSafetyChange}
+                onRecoveryKeyCreated={setCreatedKey} />
+              : <SecurityListPage settings={settings} overview={overview} onOpen={onOpenDetail} />)}
         </div>
       </div>
       {settings.twoFactorDialog}

@@ -34,7 +34,7 @@ interface VoiceRecorderOptions {
   getReplyToId?: () => EntityId | null;
   onVoiceUploadProgress?: (messageId: EntityId, percent: number) => void;
   onVoiceUploadError?: (messageId: EntityId, errorMessage?: string) => void;
-  onVoiceUploadComplete?: (messageId: EntityId) => void;
+  onVoiceUploadComplete?: (messageId: EntityId, created?: unknown) => void;
 }
 
 const getSupportedOpusMimeType = () => {
@@ -134,14 +134,14 @@ export const useVoiceRecorder = ({
         if (replyToId != null) formData.append('reply_to', String(replyToId));
         if (optimisticMessageId !== null) formData.append('client_temp_id', String(optimisticMessageId));
         try {
-          await uploadWithProgress({
+          const created = await uploadWithProgress({
             url: `${BASE_URL}/messages/vm`,
             formData,
             onProgress: (percent) => {
               if (optimisticMessageId !== null) onVoiceUploadProgress?.(optimisticMessageId, percent);
             },
           });
-          if (optimisticMessageId !== null) onVoiceUploadComplete?.(optimisticMessageId);
+          if (optimisticMessageId !== null) onVoiceUploadComplete?.(optimisticMessageId, created);
         } catch (error) {
           console.error('Error sending voice message:', error);
           if (optimisticMessageId !== null) {

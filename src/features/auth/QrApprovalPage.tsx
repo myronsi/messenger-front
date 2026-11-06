@@ -8,6 +8,7 @@ import { Card } from '@/shared/ui/card';
 import { isTwoFactorCancelled, useTwoFactorConfirm } from '@/shared/ui/useTwoFactorConfirm';
 import { approveQrLogin, denyQrLogin, getQrLogin, isQrLoginForbidden, isQrLoginGone, isQrLoginUsed } from './api/qrLoginApi';
 import type { QrLoginDetails } from './model/qrLoginTypes';
+import { QR_LOGIN_TTL_MS } from './model/requestLifetimes';
 
 type View = 'loading' | 'ready' | 'approved' | 'denied' | 'expired' | 'used' | 'failed';
 
@@ -49,7 +50,9 @@ export const QrApprovalPage = ({ requestId, twoFactorEnabled, onClose }: { reque
 
   useEffect(() => {
     if (view !== 'ready' || !details) return;
-    const timer = window.setTimeout(() => setView('expired'), Math.max(0, Date.parse(details.expires_at) - Date.now()));
+    const remaining = Date.parse(details.expires_at) - Date.now();
+    if (!(remaining > 0)) return;
+    const timer = window.setTimeout(() => setView('expired'), Math.min(remaining, QR_LOGIN_TTL_MS));
     return () => clearTimeout(timer);
   }, [view, details]);
 

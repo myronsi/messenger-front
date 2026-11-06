@@ -1684,14 +1684,14 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
+                /** @description Approval handle from the recovery_request event. It is different from the requester's capability and cannot poll or complete the request. */
                 requestId: string;
             };
             cookie?: never;
         };
         get?: never;
         put?: never;
-        /** Approve a recovery request using number matching and the second factor */
+        /** Approve a recovery request using number matching, the password and the second factor */
         post: operations["approveDeviceRecovery"];
         delete?: never;
         options?: never;
@@ -1709,7 +1709,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
+                /** @description Approval handle from the recovery_request event. It is different from the requester's capability and cannot poll or complete the request. */
                 requestId: string;
             };
             cookie?: never;
@@ -2720,6 +2720,7 @@ export interface components {
         };
         DeviceRecoveryApproval: {
             match_number: number;
+            password: string;
             code?: string;
         };
         DeviceRecoveryComplete: {
@@ -5846,7 +5847,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
+                /** @description Approval handle from the recovery_request event. It is different from the requester's capability and cannot poll or complete the request. */
                 requestId: string;
             };
             cookie?: never;
@@ -5869,6 +5870,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["TwoFactorRequired"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
@@ -5885,7 +5887,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
+                /** @description Approval handle from the recovery_request event. It is different from the requester's capability and cannot poll or complete the request. */
                 requestId: string;
             };
             cookie?: never;
@@ -5904,6 +5906,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];

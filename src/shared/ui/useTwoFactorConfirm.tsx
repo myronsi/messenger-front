@@ -53,12 +53,12 @@ export const useTwoFactorConfirm = (enabled?: boolean) => {
     } finally { setBusy(false); }
   };
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     const current = pending.current;
-    pending.current = null; setOpen(false); setError('');
+    pending.current = null; setOpen(false); setBusy(false); setError('');
     current?.reject(new TwoFactorCancelled());
-  };
+  }, []);
 
   const dialog = <TwoFactorDialog open={open} busy={busy} error={error} onConfirm={code => { void submit(code); }} onCancel={cancel} />;
-  return { confirm, ask, dialog };
+  return { confirm, ask, cancel, dialog };
 };

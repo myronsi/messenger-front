@@ -73,6 +73,25 @@ export const mergeIncomingMessage = (
   return sortMessages([...previous, incoming]);
 };
 
+export const abandonUnsentMessages = (
+  previous: Message[],
+  releasedUploads: Set<string>,
+  errors: { notConfirmed: string; uploadNotSent: string }
+): Message[] => {
+  let changed = false;
+  const next = previous.map((message) => {
+    if (isPersistedId(message.id) || !message.is_own) return message;
+    if (releasedUploads.has(String(message.id))) {
+      changed = true;
+      return { ...message, upload_status: 'lost' as const, delivery_error: errors.uploadNotSent };
+    }
+    if (message.type === 'file' || message.upload_status || message.delivery_error) return message;
+    changed = true;
+    return { ...message, delivery_error: errors.notConfirmed };
+  });
+  return changed ? next : previous;
+};
+
 export const editableText = (message: Message) => (
   typeof message.content === 'string' ? message.content : message.content?.caption || ''
 );

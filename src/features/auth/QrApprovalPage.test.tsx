@@ -124,4 +124,18 @@ describe('QrApprovalPage', () => {
     expect(await screen.findByText('Check the code.')).toBeInTheDocument();
     expect(screen.getByLabelText('Authenticator or backup code')).toBeInTheDocument();
   });
+
+  it('does not expire a request on a fast device clock and lets the server decide', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      get.mockResolvedValueOnce({ ...details(), expires_at: new Date(Date.now() - 3 * 60_000).toISOString() });
+      approve.mockRejectedValueOnce(new ApiProblem(404, { code: 'not_found', status: 404 }));
+      renderPage();
+      expect(await screen.findByRole('button', { name: 'Approve' })).toBeInTheDocument();
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+      expect(await screen.findByText('This code has expired')).toBeInTheDocument();
+    } finally { vi.useRealTimers(); }
+  });
 });

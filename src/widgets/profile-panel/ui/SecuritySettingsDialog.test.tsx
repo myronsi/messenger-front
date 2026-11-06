@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en/bundle';
 import SecuritySettingsPanel from './SecuritySettingsDialog';
@@ -25,7 +25,14 @@ vi.mock('./useSecuritySettings', () => ({ useSecuritySettings: () => settings })
 vi.mock('@/features/profile', () => ({
   useGetRecoveryOverviewQuery: () => ({ data: overview, isLoading: false, error: undefined, refetch: vi.fn() }),
   useGetSecurityActivityQuery: () => ({ data: [], isLoading: false, error: undefined, refetch: vi.fn() }),
+  useGetCurrentUserQuery: () => ({ data: { username: 'alice' } }),
+  useGetRecoveryKeyStatusQuery: () => ({ data: { exists: true, created_at: null, locked_until: null }, error: undefined }),
+  useGetSecuritySettingsQuery: () => ({ data: { two_factor_enabled: false } }),
+  recoveryApi: { util: { invalidateTags: (tags: string[]) => ({ type: 'invalidate', tags }) } },
 }));
+const { post } = vi.hoisted(() => ({ post: vi.fn() }));
+vi.mock('@/shared/api/client', () => ({ apiClient: { POST: post } }));
+vi.mock('@/shared/hooks/redux', () => ({ useAppDispatch: () => vi.fn() }));
 
 const onOpenDetail = vi.fn();
 const onBack = vi.fn();
@@ -76,4 +83,25 @@ it('shows the two-factor form without a Manage toggle', () => {
   const region = screen.getByRole('region', { name: 'Two-factor authentication' });
   expect(within(region).getByRole('button', { name: en.disable })).toBeInTheDocument();
   expect(within(region).queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument();
+});
+
+it('keeps a new recovery key on screen when the security page changes until it is confirmed', async () => {
+  const key = 'ABCD-EFGH-JKLM-NPQR';
+  post.mockResolvedValueOnce({ data: { recovery_key: key }, error: undefined, response: { status: 200 } });
+  const onDismissSafetyChange = vi.fn();
+  const props = { isActive: true, onOpenDetail, onBack, onLoggedOut: vi.fn(), onDismissSafetyChange };
+  const { rerender } = render(<SecuritySettingsPanel {...props} detail="recovery-key" />);
+  fireEvent.change(screen.getByLabelText(en.securityPage.currentPassword), { target: { value: 'secret' } });
+  fireEvent.click(screen.getByRole('button', { name: en.securityPage.keyReplace }));
+  expect(await screen.findByTestId('recovery-key')).toHaveTextContent(key);
+  rerender(<SecuritySettingsPanel {...props} detail="sessions" />);
+  expect(screen.getByTestId('recovery-key')).toHaveTextContent(key);
+  rerender(<SecuritySettingsPanel {...props} detail={undefined} />);
+  expect(screen.getByTestId('recovery-key')).toHaveTextContent(key);
+  expect(onDismissSafetyChange).toHaveBeenLastCalledWith(true);
+  fireEvent.change(screen.getByLabelText(en.recoveryReceipt.confirmLabel), { target: { value: 'NPQR' } });
+  fireEvent.click(screen.getByRole('button', { name: en.recoveryReceipt.continue }));
+  await waitFor(() => expect(screen.queryByTestId('recovery-key')).not.toBeInTheDocument());
+  expect(onDismissSafetyChange).toHaveBeenLastCalledWith(false);
+  expect(row('Sign-in', /^Password/)).toBeInTheDocument();
 });

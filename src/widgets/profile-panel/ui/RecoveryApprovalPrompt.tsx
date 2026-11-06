@@ -8,11 +8,15 @@ import { locationLabel } from '@/shared/lib/locationLabel';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { cn } from '@/shared/lib/utils';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { ApiProblem } from '@/shared/api/problem';
+import { ApiProblem, problemCode, problemStatus } from '@/shared/api/problem';
+import { localDeadline } from '@/shared/lib/countdown';
+import { DEVICE_RECOVERY_TTL_MS } from '@/features/auth';
 import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
 import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
 import { toast } from '@/shared/ui/sonner';
 
 type Notice = ServerRecoveryRequestEvent['data'];
@@ -33,58 +37,67 @@ export const RecoveryApprovalPrompt = () => {
   const t = translations.recoveryApproval;
   const [notice, setNotice] = useState<Notice | null>(null);
   const [receivedAt, setReceivedAt] = useState<number | null>(null);
+  const [deadline, setDeadline] = useState(0);
   const current = useRef<Notice | null>(null);
   const [choice, setChoice] = useState<number | null>(null);
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { open } = useUrlOverlay();
   const twoFactor = useAccountTwoFactor();
+  const cancelTwoFactor = twoFactor.cancel;
   const device = notice?.user_agent ? deviceLabel(notice.user_agent) : t.unknownDevice;
   const place = locationLabel(notice?.location, language);
   const elapsed = useSecondsSince(notice ? receivedAt : null);
   const requested = elapsed < 5 ? t.requestedJustNow : elapsed < 60
     ? fillTemplate(t.requestedSecondsAgo, { count: String(elapsed) }) : fillTemplate(t.requestedMinutesAgo, { count: String(Math.floor(elapsed / 60)) });
 
+  const close = () => { current.current = null; setNotice(null); setPassword(''); };
+
   useEffect(() => realtime.subscribe({ onEvent: frame => {
-    if (frame.type !== 'recovery_request' || Date.parse(frame.data.expires_at) <= Date.now()) return;
-    const previous = current.current;
-    if (previous?.request_id === frame.data.request_id) return;
-    if (previous) void apiClient.POST('/auth/recovery-requests/{requestId}/deny', {
-      params: { path: { requestId: previous.request_id } },
-    }).catch(() => {});
+    if (frame.type !== 'recovery_request' || current.current?.request_id === frame.data.request_id) return;
+    const now = Date.now();
     current.current = frame.data;
-    setNotice(frame.data); setReceivedAt(Date.now()); setChoice(null); setError('');
+    setNotice(frame.data); setReceivedAt(now); setDeadline(localDeadline(frame.data.expires_at, DEVICE_RECOVERY_TTL_MS, now));
+    setChoice(null); setPassword(''); setError('');
   } }), []);
 
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => { current.current = null; setNotice(null); },
-      Math.max(0, Date.parse(notice.expires_at) - Date.now()));
+      Math.max(0, deadline - Date.now()));
     return () => clearTimeout(timer);
-  }, [notice]);
+  }, [notice, deadline]);
+
+  useEffect(() => () => { cancelTwoFactor(); setBusy(false); }, [notice, cancelTwoFactor]);
 
   const decide = async (deny: boolean) => {
     if (!notice) return;
     setBusy(true); setError('');
     const requestId = notice.request_id;
+    const params = { path: { requestId } };
     try {
-      const response = deny ? await apiClient.POST('/auth/recovery-requests/{requestId}/deny', { params: { path: { requestId } } })
+      const response = deny ? await apiClient.POST('/auth/recovery-requests/{requestId}/deny', { params })
         : await twoFactor.confirm(async code => {
           const result = await apiClient.POST('/auth/recovery-requests/{requestId}/approve', {
-            params: { path: { requestId } }, body: { match_number: choice!, ...(code ? { code } : {}) },
+            params, body: { match_number: choice!, password, ...(code ? { code } : {}) },
           });
           if (result.error) throw new ApiProblem(result.response.status, result.error);
           return result;
         });
-      if (response.error) throw new Error();
+      if (response.error) throw new ApiProblem(response.response.status, response.error);
       if (current.current?.request_id !== requestId) return;
       const denied = response.data?.status === 'denied';
       toast(denied ? t.deniedToast : t.approvedToast, {
         action: denied ? { label: t.reviewSessions, onClick: () => open({ kind: 'settings', page: 'security', securityDetail: 'sessions' }) } : undefined,
       });
-      current.current = null; setNotice(null);
-    } catch (caught) { if (!isTwoFactorCancelled(caught) && current.current?.request_id === requestId) setError(t.failed); }
-    finally { setBusy(false); }
+      close();
+    } catch (caught) {
+      if (isTwoFactorCancelled(caught) || current.current?.request_id !== requestId) return;
+      if (problemStatus(caught) === 404) { close(); toast(t.noLongerActive); return; }
+      const status = problemStatus(caught), code = problemCode(caught);
+      setError(status === 403 && code === 'forbidden' ? t.sessionTooOld : status === 403 && code === 'invalid_credentials' ? t.wrongPassword : t.failed);
+    } finally { if (current.current?.request_id === requestId) setBusy(false); }
   };
 
   return <Dialog open={Boolean(notice)}><DialogContent hideClose onEscapeKeyDown={event => event.preventDefault()}
@@ -116,11 +129,17 @@ export const RecoveryApprovalPrompt = () => {
           )}>{number}</button>)}
       </div>
     </fieldset>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="recovery-approval-password" className="text-sm font-semibold">{t.password}</Label>
+      <Input id="recovery-approval-password" type="password" autoComplete="current-password" className="h-11" value={password}
+        aria-describedby="recovery-approval-password-hint" onChange={event => setPassword(event.target.value)} />
+      <p id="recovery-approval-password-hint" className="text-xs text-slate-500">{t.passwordHint}</p>
+    </div>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     <div className="flex flex-wrap gap-2.5">
       <Button variant="outline" className="h-11 flex-1 border-red-200 font-semibold text-red-700 hover:bg-red-50 hover:text-red-800" disabled={busy}
         onClick={() => { void decide(true); }}>{t.deny}</Button>
-      <Button className="h-11 flex-1 font-semibold" disabled={busy || choice === null}
+      <Button className="h-11 flex-1 font-semibold" disabled={busy || choice === null || !password}
         onClick={() => { void decide(false); }}>{t.approve}</Button>
     </div>
     <p className="text-xs text-slate-500">{t.footnote}</p>

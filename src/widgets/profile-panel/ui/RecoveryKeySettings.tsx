@@ -13,7 +13,14 @@ import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
 import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
 import { SecurityRow, securityInput, securityLabel } from './SecuritySection';
 
-export const RecoveryKeySettings = ({ onDismissSafetyChange }: { onDismissSafetyChange?: (blocked: boolean) => void }) => {
+export interface CreatedRecoveryKey {
+  recoveryKey: string;
+  username: string;
+}
+
+export const RecoveryKeySettings = ({ onDismissSafetyChange, onCreated }: {
+  onDismissSafetyChange?: (blocked: boolean) => void; onCreated?: (created: CreatedRecoveryKey) => void;
+}) => {
   const { translations, language } = useLanguage();
   const t = translations.securityPage;
   const { data: user } = useGetCurrentUserQuery();
@@ -39,7 +46,9 @@ export const RecoveryKeySettings = ({ onDismissSafetyChange }: { onDismissSafety
         }
         return result.data.recovery_key;
       });
-      setKey(recoveryKey); setPassword('');
+      setPassword('');
+      if (onCreated) onCreated({ recoveryKey, username: user?.username || '' });
+      else setKey(recoveryKey);
       dispatch(recoveryApi.util.invalidateTags(['Auth']));
     } catch (e) { if (!isTwoFactorCancelled(e)) setError(e instanceof Error ? e.message : t.keyCreateFailed); }
     finally { setBusy(false); }

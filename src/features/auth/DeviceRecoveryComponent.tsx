@@ -4,17 +4,17 @@ import type { components } from '@/shared/api/generated/schema';
 import { setAccessToken } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
+import { localDeadline, secondsUntil } from '@/shared/lib/countdown';
 import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card } from '@/shared/ui/card';
 import { DeviceRecoveryWaiting } from './components/DeviceRecoveryWaiting';
+import { DEVICE_RECOVERY_TTL_MS } from './model/requestLifetimes';
 
 type Request = components['schemas']['DeviceRecoveryResult'];
 type Result = components['schemas']['RegisterResponse'];
-
-const secondsUntil = (time: string) => Math.max(0, Math.ceil((Date.parse(time) - Date.now()) / 1000));
 
 export const DeviceRecoveryComponent = ({ onLoginSuccess, onBack, initialUsername = '' }: {
   onLoginSuccess: (username: string) => void; onBack: () => void; initialUsername?: string;
@@ -22,6 +22,7 @@ export const DeviceRecoveryComponent = ({ onLoginSuccess, onBack, initialUsernam
   const t = useLanguage().translations.recoveryFlow;
   const [username, setUsername] = useState(initialUsername);
   const [request, setRequest] = useState<Request | null>(null);
+  const [deadline, setDeadline] = useState(0);
   const [status, setStatus] = useState('pending');
   const [seconds, setSeconds] = useState(600);
   const [totalSeconds, setTotalSeconds] = useState(600);
@@ -61,20 +62,21 @@ export const DeviceRecoveryComponent = ({ onLoginSuccess, onBack, initialUsernam
   useEffect(() => {
     if (!request || !['pending', 'approved'].includes(status)) return;
     const tick = () => {
-      const left = secondsUntil(request.expires_at);
+      const left = secondsUntil(deadline);
       setSeconds(left); if (!left) setStatus('expired');
     };
     tick(); const timer = window.setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [request, status]);
+  }, [request, deadline, status]);
 
   const start = async () => {
     setBusy(true); setError('');
     try {
       const { data, error } = await apiClient.POST('/auth/recovery-requests', { body: { username: username.trim().toLowerCase() } });
       if (error || !data) throw new Error();
-      setUsername(username.trim().toLowerCase()); setRequest(data); setStatus('pending');
-      setTotalSeconds(Math.max(1, secondsUntil(data.expires_at)));
+      const nextDeadline = localDeadline(data.expires_at, DEVICE_RECOVERY_TTL_MS);
+      setUsername(username.trim().toLowerCase()); setRequest(data); setDeadline(nextDeadline); setStatus('pending');
+      setTotalSeconds(Math.max(1, secondsUntil(nextDeadline)));
     } catch { setError(t.startFailed); }
     finally { setBusy(false); }
   };

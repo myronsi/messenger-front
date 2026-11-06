@@ -138,5 +138,10 @@ export const recoveryUi = {
     approvedToast: "Recovery approved on your other device.",
     reviewSessions: "Review sessions",
     failed: "Unable to respond. Check your authentication code or try again.",
+    noLongerActive: "This recovery request is no longer active.",
+    sessionTooOld: "This session signed in too long ago to approve recovery. Sign in again on this device, then try once more.",
+    password: "Your password",
+    passwordHint: "Enter your password to approve the request.",
+    wrongPassword: "The password is not correct.",
   },
 };

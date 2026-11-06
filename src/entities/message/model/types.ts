@@ -67,7 +67,7 @@ export interface Message {
   id: EntityId;
   client_temp_id?: EntityId | null;
   local_object_url?: string | null;
-  upload_status?: 'uploading' | 'failed';
+  upload_status?: 'uploading' | 'failed' | 'lost';
   upload_progress?: number;
   sender_id?: EntityId;
   is_own?: boolean;

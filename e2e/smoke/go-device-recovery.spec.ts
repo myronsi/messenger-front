@@ -23,6 +23,7 @@ test('a signed-in device approves the matching number and is revoked after recov
     const approval = trusted.getByRole('dialog', { name: 'Is someone trying to get into your account?' });
     await expect(approval).toBeVisible();
     await approval.getByRole('button', { name: `Choose ${number}`, exact: true }).click();
+    await approval.getByLabel('Your password', { exact: true }).fill(user.password);
     await approval.getByRole('button', { name: 'Approve', exact: true }).click();
     await expect(approval).not.toBeVisible();
     await recovery.bringToFront();

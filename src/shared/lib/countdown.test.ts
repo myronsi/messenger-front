@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countdownProgress, formatCountdown } from './countdown';
+import { countdownProgress, formatCountdown, localDeadline, receivedRemainingMs, secondsUntil } from './countdown';
 
 describe('formatCountdown', () => {
   it('formats seconds as m:ss', () => {
@@ -21,5 +21,26 @@ describe('countdownProgress', () => {
     expect(countdownProgress(700, 600)).toBe(1);
     expect(countdownProgress(-1, 600)).toBe(0);
     expect(countdownProgress(10, 0)).toBe(0);
+  });
+});
+
+describe('local deadlines for objects received from the server', () => {
+  const ttl = 120_000;
+  const receivedAt = Date.parse('2026-11-06T10:00:00Z');
+
+  it('keeps the server time left when the clocks agree', () => {
+    expect(receivedRemainingMs('2026-11-06T10:01:30Z', ttl, receivedAt)).toBe(90_000);
+    expect(localDeadline('2026-11-06T10:01:30Z', ttl, receivedAt)).toBe(receivedAt + 90_000);
+  });
+
+  it('falls back to the known lifetime when the device clock is fast or slow', () => {
+    expect(receivedRemainingMs('2026-11-06T10:02:00Z', ttl, receivedAt + 5 * 60_000)).toBe(ttl);
+    expect(receivedRemainingMs('2026-11-06T10:02:00Z', ttl, receivedAt - 10 * 60_000)).toBe(ttl);
+    expect(receivedRemainingMs('not a date', ttl, receivedAt)).toBe(ttl);
+  });
+
+  it('counts whole seconds down to zero', () => {
+    expect(secondsUntil(receivedAt + 1_500, receivedAt)).toBe(2);
+    expect(secondsUntil(receivedAt, receivedAt + 1)).toBe(0);
   });
 });

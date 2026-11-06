@@ -25,7 +25,8 @@ export const useConversationMessages = (chatId: EntityId) => {
       const next = typeof update === 'function' ? update(previous) : update;
       if (next === previous) return;
       const value = messageEntities.setAll(messageEntities.getInitialState(), next);
-      dispatch(conversationApi.util.upsertQueryEntries([{ endpointName: 'getConversation', arg, value }]));
+      if (current) dispatch(conversationApi.util.updateQueryData('getConversation', arg, () => value));
+      else dispatch(conversationApi.util.upsertQueryEntries([{ endpointName: 'getConversation', arg, value }]));
     });
   }, [account, arg, chatId, dispatch]);
   return { messages, setMessages };

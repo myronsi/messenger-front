@@ -30,6 +30,16 @@ describe('one normalized conversation cache', () => {
     expect(second.result.current.messages).toEqual(first.result.current.messages);
   });
 
+  it('removes and re-keys rows instead of merging them into the cache', async () => {
+    const { wrapper } = setup();
+    const hook = renderHook(() => useConversationMessages('42'), { wrapper });
+    act(() => hook.result.current.setMessages([message('8'), message(-1), message(-2)]));
+    await waitFor(() => expect(hook.result.current.messages).toHaveLength(3));
+    act(() => hook.result.current.setMessages(previous => previous.flatMap(item =>
+      item.id === -1 ? [{ ...item, id: '9' }] : item.id === -2 ? [] : [item])));
+    await waitFor(() => expect(hook.result.current.messages.map(item => item.id)).toEqual(['8', '9']));
+  });
+
   it('keeps messages when revisiting a conversation', async () => {
     const { wrapper } = setup();
     const first = renderHook(() => useConversationMessages('42'), { wrapper });

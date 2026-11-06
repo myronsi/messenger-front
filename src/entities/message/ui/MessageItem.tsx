@@ -284,7 +284,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   {isMine && onResendMessage && <button type="button" className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline" onClick={(event) => {
                     event.stopPropagation();
                     onResendMessage(message);
-                  }}>{translations.resend || 'Resend'}</button>}
+                  }}>{message.upload_status === 'lost' ? translations.remove || 'Remove' : translations.resend || 'Resend'}</button>}
                 </div>
               )}
             </div>
