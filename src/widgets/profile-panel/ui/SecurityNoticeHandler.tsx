@@ -13,7 +13,7 @@ export const SecurityNoticeHandler = () => {
   const dispatch = useAppDispatch();
   const t = useLanguage().translations.securityPage;
   useEffect(() => realtime.subscribe({ onEvent: event => {
-    if (event.type !== 'security_notice' || event.data.type === 'password_reset') return;
+    if (event.type !== 'security_alert') return;
     dispatch(recoveryApi.util.invalidateTags(['Auth']));
     const label = (t.notices as Record<string, string>)[event.data.type] || t.eventFallback;
     toast(fillTemplate(t.noticeToast, { event: label, device: deviceLabel(event.data.user_agent) }), {

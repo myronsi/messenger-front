@@ -100,4 +100,9 @@ describe('one user realtime connection', () => {
     expect(parseRealtimeEvent({ type: 'message', chat_id: '1', data: { message: { id: '9', sender: null, reactions: [] } } })).not.toBeNull();
     expect(parseRealtimeEvent({ type: 'message', chat_id: '1', data: { message: { id: '9' } } })).toBeNull();
   });
+
+  it('accepts informational security alerts next to the password-reset notice', () => {
+    expect(parseRealtimeEvent({ type: 'security_alert', event_id: '2', chat_id: null, data: { type: 'login', user_agent: 'Firefox' } })).not.toBeNull();
+    expect(parseRealtimeEvent({ type: 'security_notice', event_id: '3', chat_id: null, data: { type: 'password_reset' } })).not.toBeNull();
+  });
 });
