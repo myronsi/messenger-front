@@ -4,13 +4,17 @@ export type SettingsPage = typeof SETTINGS_PAGES[number];
 export const PRIVACY_DETAILS = ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'direct_messages', 'group_invites', 'search_visibility'] as const;
 export type PrivacyDetail = typeof PRIVACY_DETAILS[number];
 
+export const SECURITY_DETAILS = ['password', 'two-factor', 'passkeys', 'recovery-key', 'recovery-email', 'sessions'] as const;
+export type SecurityDetail = typeof SECURITY_DETAILS[number];
+
 export type UrlOverlay =
-  | { kind: 'settings'; page: SettingsPage; detail?: PrivacyDetail; exceptions?: 'allow' | 'deny' }
+  | { kind: 'settings'; page: SettingsPage; detail?: PrivacyDetail; exceptions?: 'allow' | 'deny'; securityDetail?: SecurityDetail }
   | { kind: 'profile' }
   | { kind: 'user'; username: string; overProfile?: boolean };
 
 const isSettingsPage = (value: string): value is SettingsPage => (SETTINGS_PAGES as readonly string[]).includes(value);
 const isPrivacyDetail = (value: string): value is PrivacyDetail => (PRIVACY_DETAILS as readonly string[]).includes(value);
+const isSecurityDetail = (value: string): value is SecurityDetail => (SECURITY_DETAILS as readonly string[]).includes(value);
 const isChatBase = (base: string) => /^\/(?:dm|direct)\/[^/]+$/.test(base) || /^\/chat\/\d+$/.test(base);
 const decode = (value: string) => {
   try {
@@ -27,6 +31,11 @@ export const splitOverlayPath = (pathname: string): { base: string; overlay: Url
   if (privacy && (!privacy[1] || isChatBase(privacy[1])) && isPrivacyDetail(privacy[2])) {
     const exceptions = privacy[3] as 'allow' | 'deny' | undefined;
     return { base: privacy[1] || '/', overlay: { kind: 'settings', page: 'privacy', detail: privacy[2], ...(exceptions ? { exceptions } : {}) } };
+  }
+
+  const security = path.match(/^(.*?)\/settings\/security\/([^/]+)$/);
+  if (security && (!security[1] || isChatBase(security[1])) && isSecurityDetail(security[2])) {
+    return { base: security[1] || '/', overlay: { kind: 'settings', page: 'security', securityDetail: security[2] } };
   }
 
   const settings = path.match(/^(.*?)\/settings(?:\/([^/]+))?$/);
@@ -54,7 +63,8 @@ export const joinOverlayPath = (base: string, overlay: UrlOverlay | null) => {
   const prefix = base === '/' ? '' : base.replace(/\/+$/, '');
   if (!overlay) return prefix || '/';
   if (overlay.kind === 'settings') {
-    const detail = overlay.page === 'privacy' && overlay.detail ? `/${overlay.detail}${overlay.exceptions ? `/${overlay.exceptions}` : ''}` : '';
+    const privacy = overlay.page === 'privacy' && overlay.detail ? `/${overlay.detail}${overlay.exceptions ? `/${overlay.exceptions}` : ''}` : '';
+    const detail = overlay.page === 'security' && overlay.securityDetail ? `/${overlay.securityDetail}` : privacy;
     return `${prefix}/settings${overlay.page === 'profile' ? '' : `/${overlay.page}`}${detail}`;
   }
   if (overlay.kind === 'profile') return `${prefix}/profile`;

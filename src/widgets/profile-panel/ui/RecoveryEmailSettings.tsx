@@ -2,15 +2,22 @@ import { useEffect, useState } from 'react';
 import { recoveryApi, useGetRecoveryEmailQuery } from '@/features/profile';
 import { apiClient } from '@/shared/api/client';
 import { useAppDispatch } from '@/shared/hooks/redux';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { ApiProblem } from '@/shared/api/problem';
+import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
+import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
+import { SecurityRow, securityInput, securityLabel } from './SecuritySection';
 
 export const RecoveryEmailSettings = ({ locked, enabled }: { locked: boolean; enabled: boolean }) => {
+  const t = useLanguage().translations.securityPage;
   const { data, error } = useGetRecoveryEmailQuery(undefined, { skip: !enabled });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
+  const twoFactor = useAccountTwoFactor();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [removing, setRemoving] = useState(false);
@@ -19,48 +26,58 @@ export const RecoveryEmailSettings = ({ locked, enabled }: { locked: boolean; en
   const save = async (resend = false) => {
     setBusy(true); setMessage('');
     try {
-      const result = await apiClient.PUT('/me/email', { body: { email: resend ? data!.address : email.trim(), password, code } });
-      if (result.error) throw new Error();
-      setMessage('Verification email sent. Check your inbox.'); setPassword(''); setCode('');
+      await twoFactor.confirm(async code => {
+        const result = await apiClient.PUT('/me/email', { body: { email: resend ? data!.address : email.trim(), password, ...(code ? { code } : {}) } });
+        if (result.error) throw new ApiProblem(result.response.status, result.error);
+      });
+      setMessage(t.emailSent); setPassword('');
       dispatch(recoveryApi.util.invalidateTags(['Auth']));
-    } catch { setMessage('Unable to send verification. Check your password and authentication code, or try again later.'); }
+    } catch (caught) { if (!isTwoFactorCancelled(caught)) setMessage(t.emailSendFailed); }
     finally { setBusy(false); }
   };
   const remove = async () => {
     setBusy(true); setMessage('');
     try {
-      const result = await apiClient.DELETE('/me/email', { body: { password, code } });
-      if (result.error) throw new Error();
-      setEmail(''); setPassword(''); setCode(''); setRemoving(false); setMessage('Recovery email removed.');
+      await twoFactor.confirm(async code => {
+        const result = await apiClient.DELETE('/me/email', { body: { password, ...(code ? { code } : {}) } });
+        if (result.error) throw new ApiProblem(result.response.status, result.error);
+      });
+      setEmail(''); setPassword(''); setRemoving(false); setMessage(t.emailRemoved);
       dispatch(recoveryApi.util.invalidateTags(['Auth']));
-    } catch { setMessage('Unable to remove this email. Check your password and authentication code.'); }
+    } catch (caught) { if (!isTwoFactorCancelled(caught)) setMessage(t.emailRemoveFailed); }
     finally { setBusy(false); }
   };
-  return <section id="recovery-email-settings" aria-label="Recovery email" className="rounded-xl border border-border p-4 space-y-3">
-    <h3 className="font-medium">Recovery email</h3>
-    <p className="text-sm text-muted-foreground">Optional. Used only for recovery and security notices. Other users cannot see or search for this address.</p>
-    {!enabled ? <p className="text-sm">Email recovery is not available on this server.</p> : <>
-      {error && <p role="alert">Unable to load email settings.</p>}
-      <p role="status" className="text-sm">{!data ? 'Loading email settings…' : data.state === 'verified' ? `Verified: ${data.address}`
-        : data.state === 'pending' ? `Waiting for verification: ${data.address}` : 'No recovery email added.'}</p>
-      <form className="space-y-2" onSubmit={event => { event.preventDefault(); void save(); }}>
-        <Label htmlFor="recovery-email-address">Email address</Label>
-        <Input id="recovery-email-address" type="email" autoComplete="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)} required />
-        <Label htmlFor="recovery-email-password">Current password</Label>
-        <Input id="recovery-email-password" type="password" autoComplete="current-password" value={password}
-          onChange={event => setPassword(event.target.value)} required />
-        <Label htmlFor="recovery-email-code">Authenticator or backup code (if enabled)</Label>
-        <Input id="recovery-email-code" maxLength={128} autoComplete="one-time-code" value={code} onChange={e => setCode(e.target.value)} />
-        <div className="flex flex-wrap gap-2"><Button disabled={busy || locked || !data}>Save recovery email</Button>
-          {data?.state === 'pending' && <Button type="button" variant="outline" disabled={busy || locked || !password}
-            onClick={() => { void save(true); }}>Resend verification</Button>}
-          {data?.address && <Button type="button" variant="ghost" disabled={busy || locked} onClick={() => setRemoving(true)}>Remove email</Button>}
+  const state = !data ? t.emailLoading : data.state === 'verified' ? fillTemplate(t.emailVerifiedStatus, { address: data.address })
+    : data.state === 'pending' ? fillTemplate(t.emailPendingStatus, { address: data.address }) : t.emailNone;
+  return <SecurityRow id="recovery-email-settings" region title={t.emailTitle}
+    description={<><span className="block">{t.emailDescription}</span>{enabled && <span role="status" className="mt-1 block text-muted-foreground">{state}</span>}</>}>
+    {!enabled ? <p className="text-sm text-muted-foreground">{t.emailUnavailable}</p> : <>
+      {error && <p role="alert" className="text-sm text-red-700">{t.emailLoadFailed}</p>}
+      <form id="recovery-email-form" className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); void save(); }}>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="recovery-email-address" className={securityLabel}>{t.emailAddress}</Label>
+          <Input id="recovery-email-address" type="email" autoComplete="email" maxLength={254} className={securityInput} value={email}
+            onChange={e => setEmail(e.target.value)} required />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="recovery-email-password" className={securityLabel}>{t.currentPassword}</Label>
+          <Input id="recovery-email-password" type="password" autoComplete="current-password" className={securityInput} value={password}
+            onChange={event => setPassword(event.target.value)} required />
+        </div>
+        <div className="flex flex-wrap gap-2"><Button className="h-11 font-semibold" disabled={busy || locked || !data}>{t.emailSave}</Button>
+          {data?.state === 'pending' && <Button type="button" variant="outline" className="h-11" disabled={busy || locked || !password}
+            onClick={() => { void save(true); }}>{t.emailResend}</Button>}
+          {data?.address && <Button type="button" variant="ghost" className="h-11 text-red-700 hover:text-red-800" disabled={busy || locked}
+            onClick={() => setRemoving(true)}>{t.emailRemove}</Button>}
         </div>
       </form>
-      {removing && <div role="alert" className="space-y-2"><p className="text-sm">Remove your recovery email? Keep another recovery method set up.</p>
-        <Button variant="destructive" disabled={busy || locked || !password} onClick={() => { void remove(); }}>Confirm email removal</Button>
-        <Button variant="ghost" onClick={() => setRemoving(false)}>Cancel</Button></div>}
+      {removing && <div role="alert" className="flex flex-col gap-2"><p className="text-sm text-muted-foreground">{t.emailRemoveConfirm}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="destructive" className="h-11 bg-red-700 hover:bg-red-800" disabled={busy || locked || !password} onClick={() => { void remove(); }}>{t.emailConfirmRemove}</Button>
+          <Button variant="ghost" className="h-11" onClick={() => setRemoving(false)}>{t.cancel}</Button>
+        </div></div>}
     </>}
-    {message && <p role="status" className="text-sm">{message}</p>}
-  </section>;
+    {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
+    {twoFactor.dialog}
+  </SecurityRow>;
 };

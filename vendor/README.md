@@ -1,7 +1,7 @@
 # Local API contract snapshot
 
-The content-addressed archive contains `@myronsi/messenger-api@2.1.0-alpha.13` built from the
-paired backend recovery changes. `package.json` retains an exact version pin; `package-lock.json`
+The content-addressed archive contains `@myronsi/messenger-api@2.1.0-alpha.14` built from the
+paired backend recovery and QR sign-in changes. `package.json` retains an exact version pin; `package-lock.json`
 resolves that version to this archive so clean installations and CI work before npm publication.
 The archive contains the generated OpenAPI and WebSocket contract, with no environment files.
 

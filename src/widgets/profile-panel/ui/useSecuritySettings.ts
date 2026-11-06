@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 import { useChangePasswordMutation, useConfirmTwoFactorMutation, useDisableTwoFactorMutation, useGetSecuritySettingsQuery, useGetSessionsQuery, useRevokeOtherSessionsMutation, useRevokeSessionMutation, useSetupTwoFactorMutation, useUpdateSessionDurationMutation } from '@/features/profile';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { clearAuthTokens } from '@/shared/auth/session';
+import { isTwoFactorCancelled, useTwoFactorConfirm } from '@/shared/ui/useTwoFactorConfirm';
 
 type StatusMessage = { type: 'success' | 'error'; text: string };
 
 export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) => {
   const { translations } = useLanguage();
+  const securityPage = translations.securityPage;
   const { data: securitySettings, isLoading: isLoadingSecurity } = useGetSecuritySettingsQuery(undefined, { skip: !isActive });
   const { data: sessionsData, isLoading: isLoadingSessions } = useGetSessionsQuery(undefined, { skip: !isActive });
   const [updateSessionDuration] = useUpdateSessionDurationMutation();
@@ -20,11 +22,11 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string; otpauth_uri: string } | null>(null);
-  const [twoFactorCode, setTwoFactorCode] = useState('');
   const [setupPassword, setSetupPassword] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  const [disableForm, setDisableForm] = useState({ password: '', code: '' });
+  const [disableForm, setDisableForm] = useState({ password: '' });
   const [isSessionDurationOpen, setIsSessionDurationOpen] = useState(false);
+  const twoFactor = useTwoFactorConfirm(securitySettings?.two_factor_enabled);
 
   useEffect(() => {
     if (!isActive) setIsSessionDurationOpen(false);
@@ -53,7 +55,7 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       showStatus('success', translations.saved || 'Saved');
     } catch (caught) {
       const error = asApiError(caught);
-      showStatus('error', error?.data?.detail || 'Failed to change password');
+      showStatus('error', error?.data?.detail || securityPage.changePasswordFailed);
     }
   };
 
@@ -65,32 +67,33 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       setStatus(null);
     } catch (caught) {
       const error = asApiError(caught);
-      showStatus('error', error?.data?.detail || 'Failed to start two-factor setup');
+      showStatus('error', error?.data?.detail || securityPage.startTwoFactorFailed);
     }
   };
 
   const handleConfirmTwoFactor = async () => {
     try {
-      const result = await confirmTwoFactor(twoFactorCode).unwrap();
+      const result = await twoFactor.ask(code => confirmTwoFactor(code).unwrap());
       setRecoveryCodes(result.recovery_codes || []);
-      setTwoFactorCode('');
       setTwoFactorSetup(null);
       showStatus('success', translations.saved || 'Saved');
     } catch (caught) {
+      if (isTwoFactorCancelled(caught)) return;
       const error = asApiError(caught);
-      showStatus('error', error?.data?.detail || 'Failed to enable two-factor authentication');
+      showStatus('error', error?.data?.detail || securityPage.enableTwoFactorFailed);
     }
   };
 
   const handleDisableTwoFactor = async () => {
     try {
-      await disableTwoFactor(disableForm).unwrap();
-      setDisableForm({ password: '', code: '' });
+      await twoFactor.ask(code => disableTwoFactor({ password: disableForm.password, code }).unwrap());
+      setDisableForm({ password: '' });
       setRecoveryCodes([]);
       showStatus('success', translations.saved || 'Saved');
     } catch (caught) {
+      if (isTwoFactorCancelled(caught)) return;
       const error = asApiError(caught);
-      showStatus('error', error?.data?.detail || 'Failed to disable two-factor authentication');
+      showStatus('error', error?.data?.detail || securityPage.disableTwoFactorFailed);
     }
   };
 
@@ -103,7 +106,7 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       }
     } catch (caught) {
       const error = asApiError(caught);
-      showStatus('error', error?.data?.detail || 'Failed to revoke session');
+      showStatus('error', error?.data?.detail || securityPage.revokeSessionFailed);
     }
   };
 
@@ -113,7 +116,7 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       showStatus('success', translations.saved || 'Saved');
     } catch (caught) {
       const error = asApiError(caught);
-      showStatus('error', error?.data?.detail || 'Failed to save session duration');
+      showStatus('error', error?.data?.detail || securityPage.sessionDurationFailed);
     }
   };
 
@@ -123,14 +126,14 @@ export const useSecuritySettings = (isActive: boolean, onLoggedOut: () => void) 
       showStatus('success', translations.saved || 'Saved');
     } catch (caught) {
       const error = asApiError(caught);
-      showStatus('error', error?.data?.detail || 'Failed to sign out other devices');
+      showStatus('error', error?.data?.detail || securityPage.signOutOthersFailed);
     }
   };
 
   return {
-    translations, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions,
+    translations, securityPage, securitySettings, sessionsData, isLoadingSecurity, isLoadingSessions,
     isRevokingOthers, isChangingPassword, isSettingUp2fa, isConfirming2fa, isDisabling2fa,
-    status, passwordForm, setPasswordForm, twoFactorSetup, twoFactorCode, setTwoFactorCode,
+    status, passwordForm, setPasswordForm, twoFactorSetup, twoFactorDialog: twoFactor.dialog,
     recoveryCodes, disableForm, setDisableForm, setupPassword, setSetupPassword, isSessionDurationOpen, setIsSessionDurationOpen,
     handleChangePassword, handleStartTwoFactor, handleConfirmTwoFactor, handleDisableTwoFactor,
     handleRevokeSession, handleUpdateSessionDuration, handleRevokeOtherSessions,

@@ -10,8 +10,11 @@ import { fileTypes } from './fileTypes';
 import { supplemental } from './supplemental';
 import { update } from './update';
 import { docs } from './docs';
+import { recoveryUi } from './recoveryUi';
+import { securityUi } from './securityUi';
+import { qrLogin } from './qrLogin';
 
 export const ru = {
   ...auth, ...profile, ...chat, ...group, ...messages,
-  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs,
+  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin,
 };

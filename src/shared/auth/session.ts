@@ -136,6 +136,16 @@ export const ensureAccessToken = async () => {
   return refreshAccessToken();
 };
 
+const asksForSecondFactor = async (response: Response) => {
+  if (!response.headers.get('content-type')?.includes('json')) return false;
+  try {
+    const body = await response.clone().json();
+    return body?.code === 'two_factor_required';
+  } catch {
+    return false;
+  }
+};
+
 export const sessionFetch = async (fetcher: typeof fetch, input: RequestInfo | URL, init: RequestInit = {}) => {
   const token = await ensureAccessToken();
   const headers = new Headers(input instanceof Request ? input.headers : undefined);
@@ -146,7 +156,7 @@ export const sessionFetch = async (fetcher: typeof fetch, input: RequestInfo | U
   }
 
   const response = await fetcher(input, { ...init, headers });
-  if (response.status !== 401) return response;
+  if (response.status !== 401 || await asksForSecondFactor(response)) return response;
 
   const refreshedToken = await refreshAccessToken();
   if (!refreshedToken) {
@@ -157,7 +167,7 @@ export const sessionFetch = async (fetcher: typeof fetch, input: RequestInfo | U
   const retryHeaders = new Headers(headers);
   retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
   const retry = await fetcher(retryInput, { ...init, headers: retryHeaders });
-  if (retry.status === 401) dropInvalidSession();
+  if (retry.status === 401 && !(await asksForSecondFactor(retry))) dropInvalidSession();
   return retry;
 };
 

@@ -1,6 +1,7 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { createApi, fetchBaseQuery, type BaseQueryFn, type FetchArgs, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import { getAccessToken, refreshAccessToken } from '@/shared/auth/session';
+import { isTwoFactorRequired } from './problem';
 
 const BASE_URL = getApiBaseUrl();
 
@@ -19,7 +20,7 @@ const rawBaseQuery = fetchBaseQuery({
 const baseQueryWithRefresh: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (args, api, extraOptions) => {
   let result = await rawBaseQuery(args, api, extraOptions);
 
-  if (result.error?.status === 401) {
+  if (result.error?.status === 401 && !isTwoFactorRequired(result.error)) {
     const refreshedToken = await refreshAccessToken();
     if (refreshedToken) {
       result = await rawBaseQuery(args, api, extraOptions);

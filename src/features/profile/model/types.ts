@@ -1,4 +1,5 @@
 import type { User } from '@/entities/user';
+import type { ApproximateLocation } from '@/shared/lib/locationLabel';
 
 export type BasicPrivacyVisibility = 'everyone' | 'shared_chats';
 export type ExceptionPrivacyVisibility = BasicPrivacyVisibility | 'everyone_except' | 'nobody_except' | 'nobody';
@@ -30,7 +31,7 @@ export interface SecuritySettings {
 export interface UserSession {
   id: string;
   user_agent: string;
-  ip_address?: string | null;
+  location?: ApproximateLocation | null;
   created_at: string;
   last_active_at: string;
   expires_at?: string;

@@ -18,9 +18,9 @@ test('a signed-in device approves the matching number and is revoked after recov
     const started = recovery.waitForResponse(response => response.url().endsWith('/auth/recovery-requests') && response.request().method() === 'POST');
     await recovery.getByRole('button', { name: 'Request approval', exact: true }).click();
     expect((await started).status()).toBe(200);
-    const number = await recovery.getByLabel(/^Match number \d+$/).innerText();
+    const number = (await recovery.getByRole('img', { name: /^Your number is \d+/ }).getAttribute('aria-label'))!.match(/\d+/)![0];
     await trusted.bringToFront();
-    const approval = trusted.getByRole('dialog', { name: 'Approve account recovery?' });
+    const approval = trusted.getByRole('dialog', { name: 'Is someone trying to get into your account?' });
     await expect(approval).toBeVisible();
     await approval.getByRole('button', { name: `Choose ${number}`, exact: true }).click();
     await approval.getByRole('button', { name: 'Approve', exact: true }).click();
@@ -32,7 +32,7 @@ test('a signed-in device approves the matching number and is revoked after recov
     await recovery.getByRole('button', { name: 'Reset password', exact: true }).click();
     await expect(trusted).toHaveURL(/\/login$/);
     await confirmRecoveryReceipt(recovery);
-    await recovery.getByRole('button', { name: 'Continue', exact: true }).click();
+    await recovery.getByRole('button', { name: 'I saved it, continue', exact: true }).click();
     await waitForMessenger(recovery);
     expect(sockets).toHaveLength(1);
   } finally { await trustedContext.close(); await recoveryContext.close(); }

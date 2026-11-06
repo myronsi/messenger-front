@@ -476,7 +476,7 @@ export interface paths {
         put?: never;
         /**
          * Turn two-factor off
-         * @description A wrong password or code answers `403` (`invalid_credentials` or `invalid_two_factor_code`); `409` when two-factor is off.
+         * @description A wrong password or code answers `403` (`invalid_credentials` or `invalid_two_factor_code`); a correct password without `code` answers `401` with `code: two_factor_required`; `409` when two-factor is off.
          */
         post: operations["disableTwoFactor"];
         delete?: never;
@@ -1749,6 +1749,156 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/qr-login": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a sign-in with a QR code
+         * @description Called by a device that is not signed in. Show `url` as a QR code and poll
+         *     `POST /auth/qr-login/{requestId}/poll` with `poll_token` until the status is final. The request expires
+         *     after 2 minutes. Keep `poll_token` in memory only; it is the secret that receives the session.
+         */
+        post: operations["createQrLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/qr-login/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Show who asks to sign in with a QR code
+         * @description Called by a signed-in device after it opened the link of the QR code. The first call moves the request from
+         *     `pending` to `scanned` and binds it to the caller: other accounts get `404` from then on. Show `device` and
+         *     `location` and let the user confirm that the sign-in is their own before approving. Unknown, expired and
+         *     used requests answer `404`.
+         */
+        get: operations["getQrLogin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/qr-login/{requestId}/poll": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Poll a QR sign-in and receive the session once approved
+         * @description Called by the device that created the request, about once per second (at most 120 polls per 2 minutes per
+         *     client address). While the request is open the answer is `pending` or `scanned`. The first poll after
+         *     approval signs the device in exactly like a successful `POST /auth/login`: it sets the refresh cookie and
+         *     returns `status: approved` with the token fields. Later polls, unknown requests, a wrong `poll_token` and
+         *     expired requests all answer `expired`.
+         */
+        post: operations["pollQrLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/qr-login/{requestId}/approve": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign the device of a QR code into this account
+         * @description Single use. The request must be `pending` or `scanned`, not expired and not bound to another account
+         *     (`404` otherwise; `409` when it was already approved or denied). The calling session must be active and
+         *     used within `RECOVERY_APPROVAL_MAX_AGE` (`403 forbidden` otherwise). With two-factor on, send `code` (an
+         *     authenticator code or an unused recovery code); without it the answer is `401 two_factor_required` and the
+         *     request stays approvable. A wrong code answers `400 invalid_credentials`. The body may be omitted.
+         */
+        post: operations["approveQrLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/qr-login/{requestId}/deny": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refuse a QR sign-in
+         * @description The new device then polls `denied`. Same `404` and `409` rules as approving.
+         */
+        post: operations["denyQrLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/passkeys/register/options": {
         parameters: {
             query?: never;
@@ -2145,6 +2295,8 @@ export interface components {
                 /** Format: date-time */
                 created_at: string;
                 user_agent?: string | null;
+                /** @description Approximate location of the client when the event happened; `null` when unknown. */
+                location: components["schemas"]["Location"] | null;
             }[];
         };
         RegisterResponse: components["schemas"]["TokenResponse"] & {
@@ -2193,6 +2345,21 @@ export interface components {
             last_used_at: components["schemas"]["Timestamp"];
             expires_at?: components["schemas"]["Timestamp"];
             is_current: boolean;
+            /** @description Approximate location of the device when it signed in or last refreshed its token; `null` when unknown. */
+            location: components["schemas"]["Location"] | null;
+        };
+        /**
+         * @description Approximate location of a client address, looked up in an offline GeoIP database (IP geolocation by
+         *     DB-IP, https://db-ip.com, CC BY 4.0). The address itself is never exposed. Each field is `null` when the
+         *     database does not know it; clients localise the country name from `country_code`.
+         */
+        Location: {
+            /** @description City name in English */
+            city: string | null;
+            /** @description ISO 3166-1 alpha-2 country code */
+            country_code: string | null;
+            /** @description Country name in English */
+            country: string | null;
         };
         TwoFactorSetup: {
             secret: string;
@@ -2208,7 +2375,7 @@ export interface components {
         DisableTwoFactorRequest: {
             password: string;
             /** @description A code of the authenticator app, or an unused recovery code. */
-            code: string;
+            code?: string;
         };
         /**
          * @description Who may see the item. The exception lists apply to every value; `*_except` behave like `everyone` and `nobody`.
@@ -2558,6 +2725,44 @@ export interface components {
         DeviceRecoveryComplete: {
             new_password: string;
         };
+        /**
+         * @description `pending` until a signed-in device opens the request, `scanned` once it did, then `approved` or `denied`.
+         *     `expired` when the request timed out or was used (only in poll answers).
+         * @enum {string}
+         */
+        QrLoginStatus: "pending" | "scanned" | "approved" | "denied" | "expired";
+        QrLoginStart: {
+            request_id: string;
+            /** @description Secret of the requesting device; only a keyed hash is stored. */
+            poll_token: string;
+            /** @description `<RECOVERY_WEB_URL>/qr/<request_id>`, the content of the QR code. */
+            url: string;
+            expires_at: components["schemas"]["Timestamp"];
+        };
+        QrLoginRequest: {
+            request_id: string;
+            status: components["schemas"]["QrLoginStatus"];
+            /** @description User agent of the device that asks to sign in; `null` when it sent none. */
+            device: string | null;
+            /** @description Approximate location of the device that asks to sign in; `null` when unknown. */
+            location: components["schemas"]["Location"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            expires_at: components["schemas"]["Timestamp"];
+        };
+        QrLoginPollRequest: {
+            poll_token: string;
+        };
+        QrLoginPollResult: {
+            /** @enum {string} */
+            status: "pending" | "scanned" | "denied" | "expired";
+        } | (components["schemas"]["TokenResponse"] & {
+            /** @constant */
+            status: "approved";
+        });
+        QrLoginApproval: {
+            /** @description An authenticator code or an unused recovery code; required when two-factor is on. */
+            code?: string;
+        };
         PasskeyOptions: {
             challenge_id: string;
             public_key: {
@@ -2661,6 +2866,22 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /**
+         * @description Missing, invalid or expired credentials, or `code: two_factor_required`. `two_factor_required` means every
+         *     other credential in the request was valid, the account has two-factor on, and no `code` was sent. Nothing
+         *     single-use (recovery key, email token, recovery request) was consumed: send the same request again with
+         *     `code`. Invalid other credentials get the usual error of the operation instead, whatever the two-factor
+         *     state, and a wrong `code` keeps its usual error. On operations that need an access token this 401 does not
+         *     mean the session is lost; tell the two apart by `code`.
+         */
+        TwoFactorRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Authenticated but not allowed */
         Forbidden: {
             headers: {
@@ -2728,6 +2949,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+        QrLoginRequestId: string;
         /** @description Page size */
         Limit: number;
         /** @description Opaque `next_cursor` of the previous page */
@@ -2963,7 +3186,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
+            401: components["responses"]["TwoFactorRequired"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
@@ -3031,7 +3254,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
+            401: components["responses"]["TwoFactorRequired"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
@@ -3531,7 +3754,7 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
+            401: components["responses"]["TwoFactorRequired"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             426: components["responses"]["ClientOutdated"];
@@ -5644,7 +5867,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
+            401: components["responses"]["TwoFactorRequired"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
@@ -5726,6 +5949,199 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    createQrLogin: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "request_id": "3q2-7wEAAAD9W8b0kZ3lYfHk6gF1n9cQmR2pVx4sTtU",
+                     *       "poll_token": "Z8mJ1vQe9cT0yR4uB7nK2wX5aH3sD6fG1jL8pM0oN4q",
+                     *       "url": "https://messenger.example.com/qr/3q2-7wEAAAD9W8b0kZ3lYfHk6gF1n9cQmR2pVx4sTtU",
+                     *       "expires_at": "2026-11-06T12:02:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["QrLoginStart"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getQrLogin: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "request_id": "3q2-7wEAAAD9W8b0kZ3lYfHk6gF1n9cQmR2pVx4sTtU",
+                     *       "status": "scanned",
+                     *       "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/140.0",
+                     *       "location": {
+                     *         "city": "Berlin",
+                     *         "country_code": "DE",
+                     *         "country": "Germany"
+                     *       },
+                     *       "created_at": "2026-11-06T12:00:00Z",
+                     *       "expires_at": "2026-11-06T12:02:00Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["QrLoginRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    pollQrLogin: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QrLoginPollRequest"];
+            };
+        };
+        responses: {
+            /** @description The current status, plus the session when it was just approved */
+            200: {
+                headers: {
+                    "Set-Cookie": components["headers"]["RefreshCookie"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QrLoginPollResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    approveQrLogin: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                /**
+                 * @example {
+                 *       "code": "123456"
+                 *     }
+                 */
+                "application/json": components["schemas"]["QrLoginApproval"];
+            };
+        };
+        responses: {
+            /** @description Approved; the new device receives its session on its next poll */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["TwoFactorRequired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    denyQrLogin: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
+                requestId: components["parameters"]["QrLoginRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Denied */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
     passkeyRegistrationOptions: {
         parameters: {
             query?: never;
@@ -5762,15 +6178,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
+            401: components["responses"]["TwoFactorRequired"];
             /** @description Forbidden */
             403: {
                 headers: {
@@ -6718,15 +7126,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
+            401: components["responses"]["TwoFactorRequired"];
             /** @description Forbidden */
             403: {
                 headers: {
@@ -6817,15 +7217,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
+            401: components["responses"]["TwoFactorRequired"];
             /** @description Forbidden */
             403: {
                 headers: {
@@ -7118,15 +7510,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
+            401: components["responses"]["TwoFactorRequired"];
             /** @description Forbidden */
             403: {
                 headers: {

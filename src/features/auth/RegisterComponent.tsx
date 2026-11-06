@@ -45,7 +45,7 @@ const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackT
             onSubmit={flow.handleSubmit}
           />
         ) : flow.showQr ? (
-          <RecoveryKeyReceipt recoveryKey={flow.recoveryKey} username={flow.username} onContinue={flow.handleContinue} />
+          <RecoveryKeyReceipt recoveryKey={flow.recoveryKey} username={flow.username} onContinue={flow.handleContinue} progress={{ current: 2, total: 3 }} />
         ) : flow.showPasskeyOffer ? (
           <PasskeyOffer username={flow.username} onDone={flow.finishPasskeyOffer} />
         ) : (

@@ -2,33 +2,24 @@ import { useEffect } from 'react';
 import { realtime } from '@/shared/api/realtime';
 import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { deviceLabel } from '@/shared/lib/deviceLabel';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { toast } from '@/shared/ui/sonner';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { recoveryApi } from '@/features/profile';
 
-const labels: Record<string, string> = {
-  password_changed: 'Your password was changed', recovery_key_changed: 'Your recovery key was changed',
-  '2fa_enabled': 'Two-factor authentication was enabled', '2fa_disabled': 'Two-factor authentication was disabled',
-  passkey_added: 'A passkey was added', passkey_removed: 'A passkey was removed',
-  recovery_email_changed: 'Your recovery email was changed', recovery_email_removed: 'Your recovery email was removed',
-  passkey_counter_warning: 'A passkey failed a security check', login: 'New sign-in', passkey_login: 'New passkey sign-in',
-};
-const scrollToSessions = (attempts = 20) => {
-  const target = document.getElementById('security-sessions');
-  if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-  if (attempts > 0) window.setTimeout(() => scrollToSessions(attempts - 1), 100);
-};
-
 export const SecurityNoticeHandler = () => {
   const { open } = useUrlOverlay();
   const dispatch = useAppDispatch();
+  const t = useLanguage().translations.securityPage;
   useEffect(() => realtime.subscribe({ onEvent: event => {
     if (event.type !== 'security_notice' || event.data.type === 'password_reset') return;
     dispatch(recoveryApi.util.invalidateTags(['Auth']));
-    toast(`${labels[event.data.type] || 'Account security updated'} on ${deviceLabel(event.data.user_agent)}. Wasn’t you?`, {
+    const label = (t.notices as Record<string, string>)[event.data.type] || t.eventFallback;
+    toast(fillTemplate(t.noticeToast, { event: label, device: deviceLabel(event.data.user_agent) }), {
       id: `security:${event.event_id}`, duration: 12_000,
-      action: { label: 'Review sessions', onClick: () => { open({ kind: 'settings', page: 'security' }); scrollToSessions(); } },
+      action: { label: t.reviewSessions, onClick: () => open({ kind: 'settings', page: 'security', securityDetail: 'sessions' }) },
     });
-  } }), [dispatch, open]);
+  } }), [dispatch, open, t]);
   return null;
 };

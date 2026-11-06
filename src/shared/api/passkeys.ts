@@ -2,10 +2,11 @@ import { startAuthentication, startRegistration } from '@simplewebauthn/browser'
 import { apiClient, publicApiClient } from './client';
 import { setAccessToken } from '@/shared/auth/session';
 import type { components } from './generated/schema';
+import { ApiProblem } from './problem';
 
 export const registerPasskey = async (body: components['schemas']['PasskeyRegistration']) => {
   const options = await apiClient.POST('/auth/passkeys/register/options', { body });
-  if (options.error || !options.data) throw new Error('Unable to add a passkey. Check your password and authentication code.');
+  if (options.error || !options.data) throw new ApiProblem(options.response.status, options.error, 'Unable to add a passkey. Check your password and authentication code.');
   const credential = await startRegistration({
     optionsJSON: options.data.public_key as unknown as Parameters<typeof startRegistration>[0]['optionsJSON'],
   });

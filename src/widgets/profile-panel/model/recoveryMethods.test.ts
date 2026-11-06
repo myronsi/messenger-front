@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasRecoveryBesidesPasskeys, recoveryMethodSummary, type RecoveryOverview } from './recoveryMethods';
+import { hasRecoveryBesidesPasskeys, nextRecoveryMethod, recoveryHealthLevel, recoveryMethodSummary, type RecoveryOverview } from './recoveryMethods';
 
 const overview = (changes: Partial<RecoveryOverview> = {}): RecoveryOverview => ({
   recovery_key: { exists: false, created_at: null, locked_until: null },
@@ -29,5 +29,24 @@ describe('hasRecoveryBesidesPasskeys', () => {
   it('is true with a recovery key, another device or a verified email', () => {
     expect(hasRecoveryBesidesPasskeys(overview({ other_devices: 1 }))).toBe(true);
     expect(hasRecoveryBesidesPasskeys(overview({ email: { address: 'a@b.c', state: 'verified', enabled: true } }))).toBe(true);
+  });
+});
+
+describe('nextRecoveryMethod', () => {
+  it('prefers the recovery key, then email, then passkeys', () => {
+    expect(nextRecoveryMethod(overview())).toBe('key');
+    expect(nextRecoveryMethod(overview({ recovery_key: { exists: true, created_at: null, locked_until: null } }))).toBe('email');
+    expect(nextRecoveryMethod(overview({
+      recovery_key: { exists: true, created_at: null, locked_until: null }, email: { address: 'a@b.c', state: 'verified', enabled: true },
+    }))).toBe('passkeys');
+  });
+});
+
+describe('recoveryHealthLevel', () => {
+  it('maps the ready count to a level', () => {
+    expect(recoveryHealthLevel(4, 4)).toBe('full');
+    expect(recoveryHealthLevel(2, 4)).toBe('good');
+    expect(recoveryHealthLevel(1, 4)).toBe('weak');
+    expect(recoveryHealthLevel(0, 4)).toBe('none');
   });
 });

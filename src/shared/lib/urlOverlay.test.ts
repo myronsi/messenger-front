@@ -13,6 +13,9 @@ describe('splitOverlayPath', () => {
     ['/settings/privacy/avatar_visibility', '/', { kind: 'settings', page: 'privacy', detail: 'avatar_visibility' }],
     ['/dm/@bob/settings/privacy/group_invites/allow', '/dm/@bob', { kind: 'settings', page: 'privacy', detail: 'group_invites', exceptions: 'allow' }],
     ['/settings/privacy/avatar_visibility/deny', '/', { kind: 'settings', page: 'privacy', detail: 'avatar_visibility', exceptions: 'deny' }],
+    ['/settings/security', '/', { kind: 'settings', page: 'security' }],
+    ['/settings/security/two-factor', '/', { kind: 'settings', page: 'security', securityDetail: 'two-factor' }],
+    ['/chat/123/settings/security/sessions/', '/chat/123', { kind: 'settings', page: 'security', securityDetail: 'sessions' }],
     ['/dm/@bob/settings/notifications', '/dm/@bob', { kind: 'settings', page: 'notifications' }],
     ['/dm/@bob/profile', '/dm/@bob', { kind: 'profile' }],
     ['/chat/123/profile', '/chat/123', { kind: 'profile' }],
@@ -29,6 +32,10 @@ describe('splitOverlayPath', () => {
     expect(splitOverlayPath('/settings/unknown')).toEqual({ base: '/settings/unknown', overlay: null });
     expect(splitOverlayPath('/settings/profile').overlay).toBeNull();
     expect(splitOverlayPath('/docs/settings').overlay).toBeNull();
+    expect(splitOverlayPath('/settings/security/unknown').overlay).toBeNull();
+    expect(splitOverlayPath('/settings/security/avatar_visibility').overlay).toBeNull();
+    expect(splitOverlayPath('/settings/privacy/sessions').overlay).toBeNull();
+    expect(splitOverlayPath('/docs/settings/security/password').overlay).toBeNull();
     expect(splitOverlayPath('/docs/profile').overlay).toBeNull();
     expect(splitOverlayPath('/docs/profile/@alice').overlay).toBeNull();
   });
@@ -38,6 +45,9 @@ describe('joinOverlayPath', () => {
   const cases: [string, UrlOverlay | null, string][] = [
     ['/', { kind: 'settings', page: 'profile' }, '/settings'],
     ['/dm/@bob', { kind: 'settings', page: 'security' }, '/dm/@bob/settings/security'],
+    ['/', { kind: 'settings', page: 'security', securityDetail: 'recovery-key' }, '/settings/security/recovery-key'],
+    ['/dm/@bob', { kind: 'settings', page: 'security', securityDetail: 'passkeys' }, '/dm/@bob/settings/security/passkeys'],
+    ['/', { kind: 'settings', page: 'privacy', detail: 'group_invites', exceptions: 'deny' }, '/settings/privacy/group_invites/deny'],
     ['/chat/123', { kind: 'profile' }, '/chat/123/profile'],
     ['/', { kind: 'user', username: '@ann marie' }, '/@ann%20marie'],
     ['/dm/@bob', null, '/dm/@bob'],

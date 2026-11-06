@@ -13,6 +13,9 @@ import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
 import { DesktopChatLayout } from './ui/DesktopChatLayout';
 import { useJumpRequest } from './model/useJumpRequest';
+import { QrApprovalRoute } from './ui/QrApprovalRoute';
+import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -66,6 +69,9 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   const { requestJump, requestFor } = useJumpRequest(currentChat?.id);
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
   useVisualViewport(isMobile && isLoggedIn);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const qrRequestId = qrLoginRequestId(location.pathname);
 
   useEffect(() => {
     if (isUserProfileOpen && (currentChat || profileUsername)) {
@@ -151,6 +157,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
       {isLoggedIn && isGoApi() && <RecoverySetupPrompt key={username} />}
       {isLoggedIn && <RecoveryApprovalPrompt key={`approval:${username}`} />}
       {isLoggedIn && <SecurityNoticeHandler key={`security:${username}`} />}
+      {isLoggedIn && qrRequestId && <QrApprovalRoute key={qrRequestId} requestId={qrRequestId} onClose={() => navigate('/', { replace: true })} />}
 
       {!isLoggedIn ? (
         renderAuthPage({ onLoginSuccess: handleLoginSuccess })

@@ -1,27 +1,41 @@
 import { useGetSecurityActivityQuery } from '@/features/profile';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { deviceLabel } from '@/shared/lib/deviceLabel';
+import { locationLabel } from '@/shared/lib/locationLabel';
+import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { isWarningEvent } from '../model/securityEvents';
+import { SecuritySection } from './SecuritySection';
 
-const labels: Record<string, string> = {
-  login: 'Signed in', passkey_login: 'Signed in with a passkey', logout: 'Signed out',
-  password_changed: 'Password changed', password_reset: 'Password reset', password_reset_completed: 'Account recovery completed',
-  '2fa_enabled': 'Two-factor authentication enabled', '2fa_disabled': 'Two-factor authentication disabled',
-  recovery_key_changed: 'Recovery key changed', recovery_email_changed: 'Recovery email changed', recovery_email_removed: 'Recovery email removed',
-  passkey_added: 'Passkey added', passkey_removed: 'Passkey removed', passkey_renamed: 'Passkey renamed',
-  passkey_counter_warning: 'Passkey security check failed', refresh_reuse_detected: 'Session ended after a reused sign-in token',
-  recovery_request_approved: 'Recovery request approved', recovery_request_denied: 'Recovery request denied',
-};
-
-export const SecurityActivity = () => {
+export const SecurityActivity = ({ onSignOutOthers, signingOutOthers, signOutLabel }: {
+  onSignOutOthers?: () => void; signingOutOthers?: boolean; signOutLabel: string;
+}) => {
+  const { translations, language } = useLanguage();
+  const t = translations.securityPage;
+  const labels = t.events as Record<string, string>;
   const { data, isLoading, error, refetch } = useGetSecurityActivityQuery(undefined, { refetchOnMountOrArgChange: true });
-  return <section className="rounded-xl border border-border p-4 space-y-3" aria-label="Security activity">
-    <h3 className="font-medium">Security activity</h3>
-    {isLoading ? <p role="status">Loading security activity…</p> : error ? <div role="alert">Unable to load security activity.
-      <Button variant="ghost" onClick={() => { void refetch(); }}>Retry</Button></div> : !data?.length ? <p>No security activity yet.</p> :
-      <ol className="max-h-80 space-y-3 overflow-y-auto">{data.map(event => <li key={event.id} className="border-b border-border pb-2 last:border-0">
-        <p className="text-sm font-medium">{labels[event.type] || 'Account security updated'}</p>
-        <p className="text-xs text-muted-foreground">{deviceLabel(event.user_agent)} · <time dateTime={event.created_at}>
-          {new Date(event.created_at).toLocaleString()}</time></p>
-      </li>)}</ol>}
-  </section>;
+  const action = onSignOutOthers && <Button variant="outline" className="h-11 border-red-200 px-3.5 text-[13px] font-semibold text-red-700 hover:bg-red-50 hover:text-red-800"
+    disabled={signingOutOthers} onClick={onSignOutOthers}>{signOutLabel}</Button>;
+  return <SecuritySection id="security-activity" title={t.activityTitle} description={t.activityDescription} action={action}>
+    <div className="px-4 py-1">
+      {isLoading ? <p role="status" className="py-3 text-sm text-muted-foreground">{t.activityLoading}</p> : error ? <div role="alert"
+        className="flex flex-wrap items-center gap-2 py-3 text-sm">{t.activityLoadFailed}
+        <Button variant="outline" className="h-11" onClick={() => { void refetch(); }}>{t.retry}</Button></div>
+        : !data?.length ? <p className="py-3 text-sm text-muted-foreground">{t.activityEmpty}</p> :
+          <ol className="flex max-h-96 flex-col overflow-y-auto">{data.map(event => {
+            const warning = isWarningEvent(event.type);
+            return <li key={event.id} className="flex gap-3 border-b border-border py-3 last:border-0">
+              <span aria-hidden="true" className={cn('mt-1.5 h-2 w-2 flex-none rounded-full', warning ? 'bg-amber-600' : 'bg-primary')} />
+              <div className="min-w-0 flex-1">
+                <p className={cn('text-sm text-foreground', warning && 'font-medium text-amber-800')}>
+                  {labels[event.type] || t.eventFallback}{warning && <span className="sr-only"> ({t.needsAttention})</span>}
+                </p>
+                <p className="text-xs text-muted-foreground">{deviceLabel(event.user_agent)} · {locationLabel(event.location, language) ?? t.locationUnknown} · <time dateTime={event.created_at}>
+                  {new Date(event.created_at).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </time></p>
+              </div>
+            </li>;
+          })}</ol>}
+    </div>
+  </SecuritySection>;
 };

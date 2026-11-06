@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createEnglishContext, createSmokeUser, logoutUser, openProfile, registerUser, waitForMessenger } from './helpers';
+import { createEnglishContext, createSmokeUser, logoutUser, openProfile, openSecuritySetting, registerUser, waitForMessenger } from './helpers';
 
 test('a verified resident passkey registers, signs in and can be removed with the password', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the Go backend with localhost passkeys configured');
@@ -20,7 +20,7 @@ test('a verified resident passkey registers, signs in and can be removed with th
   try {
     await registerUser(page, user);
     await openProfile(page);
-    await page.getByRole('button', { name: /Security & devices/ }).click();
+    await openSecuritySetting(page, 'Sign-in', 'Passkeys');
     const settings = page.getByRole('region', { name: 'Passkeys', exact: true });
     await settings.getByLabel('Passkey name').fill('Browser test key');
     await settings.getByLabel('Current password').fill(user.password);
@@ -35,8 +35,8 @@ test('a verified resident passkey registers, signs in and can be removed with th
     expect((await login).status()).toBe(200);
     await waitForMessenger(page);
     await openProfile(page);
-    await page.getByRole('button', { name: /Security & devices/ }).click();
-    await settings.getByRole('button', { name: 'Remove', exact: true }).click();
+    await openSecuritySetting(page, 'Sign-in', 'Passkeys');
+    await settings.getByRole('button', { name: 'Remove Browser test key', exact: true }).click();
     await expect(settings.getByRole('button', { name: 'Confirm removal' })).toBeDisabled();
     await settings.locator('#remove-passkey-password').fill(user.password);
     await settings.getByRole('button', { name: 'Confirm removal' }).click();
