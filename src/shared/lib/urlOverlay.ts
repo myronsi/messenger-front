@@ -1,3 +1,5 @@
+import { trimTrailingSlashes } from './trimTrailingSlashes';
+
 export const SETTINGS_PAGES = ['profile', 'personal', 'privacy', 'security', 'notifications', 'requests', 'language'] as const;
 export type SettingsPage = typeof SETTINGS_PAGES[number];
 
@@ -25,7 +27,7 @@ const decode = (value: string) => {
 };
 
 export const splitOverlayPath = (pathname: string): { base: string; overlay: UrlOverlay | null } => {
-  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  const path = pathname.length > 1 ? trimTrailingSlashes(pathname) : pathname;
 
   const privacy = path.match(/^(.*?)\/settings\/privacy\/([^/]+)(?:\/(allow|deny))?$/);
   if (privacy && (!privacy[1] || isChatBase(privacy[1])) && isPrivacyDetail(privacy[2])) {
@@ -60,7 +62,7 @@ export const splitOverlayPath = (pathname: string): { base: string; overlay: Url
 };
 
 export const joinOverlayPath = (base: string, overlay: UrlOverlay | null) => {
-  const prefix = base === '/' ? '' : base.replace(/\/+$/, '');
+  const prefix = base === '/' ? '' : trimTrailingSlashes(base);
   if (!overlay) return prefix || '/';
   if (overlay.kind === 'settings') {
     const privacy = overlay.page === 'privacy' && overlay.detail ? `/${overlay.detail}${overlay.exceptions ? `/${overlay.exceptions}` : ''}` : '';

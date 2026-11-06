@@ -3,11 +3,10 @@ import { CLIENT_API_VERSION } from './clientVersion';
 import type { EntityId } from '@/shared/api/entityId';
 import { authFetch } from '@/shared/auth/session';
 import { isGoApi } from './goSocket';
+import { trimTrailingSlashes } from '@/shared/lib/trimTrailingSlashes';
 
 const BASE_URL = getApiBaseUrl();
 const WS_URL = import.meta.env.VITE_WS_URL;
-
-const trimTrailingSlashes = (value: string) => value.replace(/\/+$/, '');
 
 const getWebSocketBaseUrl = () => {
   const configuredWebSocketUrl = WS_URL?.trim();

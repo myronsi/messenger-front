@@ -1,7 +1,8 @@
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
+import { trimTrailingSlashes } from '@/shared/lib/trimTrailingSlashes';
 
 const destination = (pathname: string, search: string) => {
-  if (qrLoginRequestId(pathname)) return pathname.replace(/\/+$/, '');
+  if (qrLoginRequestId(pathname)) return trimTrailingSlashes(pathname);
   const params = new URLSearchParams(search);
   if (!/^\/chat\/[1-9]\d*$/.test(pathname) || params.get('notification') !== '1') return '/';
   return `${pathname}?notification=1${params.get('reply') === '1' ? '&reply=1' : ''}`;

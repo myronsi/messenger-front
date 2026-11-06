@@ -78,7 +78,7 @@ const QrCameraView = ({ onClose }: { onClose: () => void }) => {
     </div>;
   }
   return <div className="relative flex h-full w-full items-center justify-center">
-    <video ref={video} muted playsInline aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+    <video ref={video} muted playsInline tabIndex={-1} aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
     <div aria-hidden="true" className="relative h-64 w-64 rounded-3xl border-4 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
     <p role="status" className="absolute bottom-24 left-4 right-4 text-center text-sm font-medium text-white">
       {invalid ? <span className="rounded-full bg-red-600 px-3 py-1.5">{t.notMessengerCode}</span> : ready ? t.scanHint : t.startingCamera}

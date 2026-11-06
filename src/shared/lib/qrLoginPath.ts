@@ -1,3 +1,5 @@
+import { trimTrailingSlashes } from './trimTrailingSlashes';
+
 const REQUEST_ID = /^[A-Za-z0-9_-]{32,128}$/;
 
 export const isQrLoginRequestId = (value: string) => REQUEST_ID.test(value);
@@ -5,7 +7,7 @@ export const isQrLoginRequestId = (value: string) => REQUEST_ID.test(value);
 export const qrLoginPath = (requestId: string) => `/qr/${requestId}`;
 
 export const qrLoginRequestId = (pathname: string) => {
-  const match = pathname.replace(/\/+$/, '').match(/^\/qr\/([^/]+)$/);
+  const match = trimTrailingSlashes(pathname).match(/^\/qr\/([^/]+)$/);
   return match && isQrLoginRequestId(match[1]) ? match[1] : null;
 };
 

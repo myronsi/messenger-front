@@ -1,7 +1,8 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
+import { trimTrailingSlashes } from '@/shared/lib/trimTrailingSlashes';
 
-const BASE_URL = String(getApiBaseUrl() ?? '').replace(/\/+$/, '');
+const BASE_URL = trimTrailingSlashes(String(getApiBaseUrl() ?? ''));
 const ABSOLUTE_URL = /^(?:https?:|blob:|data:)/i;
 
 // Resolves a media path returned by the API (relative, e.g. "/static/avatars/a.jpg")
