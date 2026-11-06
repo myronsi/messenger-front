@@ -5972,7 +5972,7 @@ export interface operations {
                     /**
                      * @example {
                      *       "request_id": "3q2-7wEAAAD9W8b0kZ3lYfHk6gF1n9cQmR2pVx4sTtU",
-                     *       "poll_token": "Z8mJ1vQe9cT0yR4uB7nK2wX5aH3sD6fG1jL8pM0oN4q",
+                     *       "poll_token": "example-poll-token",
                      *       "url": "https://messenger.example.com/qr/3q2-7wEAAAD9W8b0kZ3lYfHk6gF1n9cQmR2pVx4sTtU",
                      *       "expires_at": "2026-11-06T12:02:00Z"
                      *     }
