@@ -54,6 +54,7 @@ export const RecoveryKeyComponent = ({ onLoginSuccess, onBackToLogin, onTryAnoth
   return <Card className="mx-auto flex w-full max-w-md flex-col gap-[18px] rounded-2xl p-6 shadow-sm sm:p-7">
     {replacement ? <>
       <p className="text-sm text-slate-700">{t.keyResetDone}</p>
+      <p className="text-sm text-slate-700">{t.methodsRemoved}</p>
       <RecoveryKeyReceipt recoveryKey={replacement} username={username}
         onContinue={() => { setAccessToken(token); setReplacement(''); setToken(''); onLoginSuccess(username); }} />
     </> : <>

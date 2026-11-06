@@ -98,9 +98,12 @@ export const DeviceRecoveryComponent = ({ onLoginSuccess, onBack, initialUsernam
   const label = 'text-[13px] font-medium text-slate-700';
   const waiting = Boolean(request) && status === 'pending';
   return <Card className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl p-6 shadow-sm sm:p-7">
-    {result?.recovery_key ? <RecoveryKeyReceipt recoveryKey={result.recovery_key} username={username} onContinue={() => {
-      setAccessToken(result.access_token); setResult(null); onLoginSuccess(username);
-    }} /> : <>
+    {result?.recovery_key ? <>
+      <p className="text-sm text-slate-700">{t.methodsRemoved}</p>
+      <RecoveryKeyReceipt recoveryKey={result.recovery_key} username={username} onContinue={() => {
+        setAccessToken(result.access_token); setResult(null); onLoginSuccess(username);
+      }} />
+    </> : <>
       {!request ? <form className="flex flex-col gap-3.5" onSubmit={event => { event.preventDefault(); void start(); }}>
         <h1 className="text-[22px] font-bold leading-tight text-foreground">{t.deviceTitle}</h1>
         <p className="text-sm text-slate-600">{t.deviceIntro}</p>

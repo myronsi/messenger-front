@@ -50,6 +50,8 @@ export const recoveryUi = {
     keyHint: "Use the recovery key you saved in account security settings. Older recovery shares cannot be used here.",
     keyRecovering: "Recovering…",
     keyResetDone: "Your password has been reset and other sessions signed out. Your old recovery key no longer works.",
+    methodsRemoved: "For your safety, passkeys and the recovery email were removed. You can add them again after 24 hours.",
+    passkeysRemoved: "For your safety, passkeys were removed. You can add them again after 24 hours.",
     keyTooManyAttempts: "Too many attempts. Please try again later.",
     keyWeakPassword: "Check your new password. It must contain at least 8 characters.",
     keyFailed: "Recovery failed. Check your username, recovery key and authentication code.",

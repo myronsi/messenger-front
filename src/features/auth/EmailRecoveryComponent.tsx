@@ -72,9 +72,12 @@ export const EmailRecoveryComponent = ({ mode, onBack, onLoginSuccess, onTryAnot
   const label = 'text-[13px] font-medium text-slate-700';
   const field = 'h-11 border-slate-300';
   return <Card className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl p-6 shadow-sm sm:p-8">
-    {result?.recovery_key ? <RecoveryKeyReceipt recoveryKey={result.recovery_key} username={result.username!} onContinue={() => {
-      setAccessToken(result.access_token); const username = result.username!; setResult(null); onLoginSuccess(username);
-    }} /> : sent ? <EmailSentNotice identifier={identifier.trim()} resendIn={resendIn} busy={busy} message={message}
+    {result?.recovery_key ? <>
+      <p className="text-sm text-slate-700">{t.passkeysRemoved}</p>
+      <RecoveryKeyReceipt recoveryKey={result.recovery_key} username={result.username!} onContinue={() => {
+        setAccessToken(result.access_token); const username = result.username!; setResult(null); onLoginSuccess(username);
+      }} />
+    </> : sent ? <EmailSentNotice identifier={identifier.trim()} resendIn={resendIn} busy={busy} message={message}
       onResend={() => { void submit(); }} onTryAnotherWay={onTryAnotherWay ?? onBack} /> : <>
       <button type="button" onClick={onBack} className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-[13px] text-slate-600 hover:underline">
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />{t.backToSignIn}
