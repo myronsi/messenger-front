@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { confirmRecoveryReceipt, createEnglishContext, createSmokeUser, loginUser, logoutUser, openSecuritySetting, waitForMessenger } from './helpers';
+import {
+  confirmRecoveryReceipt, createEnglishContext, createSmokeUser, loginUser, logoutUser, openSecuritySetting, skipRegistrationExtras, waitForMessenger,
+} from './helpers';
 
 test('an existing Go user can enroll a recovery key after signing in', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1' || !process.env.GO_LEGACY_USERNAME || !process.env.GO_LEGACY_PASSWORD, 'Requires a synthetic account without a recovery key');
@@ -56,7 +58,7 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await expect(page.getByRole('button', { name: 'I saved it, continue', exact: true })).toBeDisabled();
     await confirmRecoveryReceipt(page);
     await page.getByRole('button', { name: 'I saved it, continue', exact: true }).click();
-    await page.getByRole('button', { name: 'Skip for now', exact: true }).click();
+    await skipRegistrationExtras(page);
     await waitForMessenger(page);
     await loginUser(otherPage, user);
     const oldToken = await otherPage.evaluate(() => localStorage.getItem('access_token'));

@@ -51,12 +51,20 @@ export const confirmRecoveryReceipt = async (scope: Page | Locator) => {
   await scope.getByLabel('To confirm, type the last group').fill(key.trim().split('-').at(-1)!);
 };
 
+export const skipRegistrationExtras = async (page: Page) => {
+  const profileSkip = page.getByRole('button', { name: 'Skip for now', exact: true });
+  const passkeyNotNow = page.getByRole('button', { name: 'Not now', exact: true });
+  await expect(profileSkip.or(passkeyNotNow).first()).toBeVisible();
+  if (await passkeyNotNow.isVisible()) await passkeyNotNow.click();
+  await profileSkip.click();
+};
+
 export const registerUser = async (page: Page, user: SmokeUser) => {
   await page.goto('/register');
 
   await page.getByLabel('Username').fill(user.username);
   await page.getByLabel('Display Name').fill(user.displayName);
-  await page.getByLabel('Password').fill(user.password);
+  await page.getByLabel('Password', { exact: true }).fill(user.password);
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/auth/register') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Register' }).click();
   const response = await responsePromise;
@@ -67,7 +75,7 @@ export const registerUser = async (page: Page, user: SmokeUser) => {
   const savedKey = page.getByLabel('To confirm, type the last group');
   if (await savedKey.isVisible()) await confirmRecoveryReceipt(page);
   if (await continueButton.isVisible()) await continueButton.click();
-  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await skipRegistrationExtras(page);
 
   await waitForMessenger(page);
 };
@@ -77,7 +85,7 @@ export const loginUser = async (page: Page, user: SmokeUser) => {
   await waitForLoginPage(page);
 
   await page.getByLabel('Username').fill(user.username);
-  await page.getByLabel('Password').fill(user.password);
+  await page.getByLabel('Password', { exact: true }).fill(user.password);
   await page.getByRole('button', { name: LOGIN_BUTTON_NAME, exact: true }).click();
 
   await waitForMessenger(page);
