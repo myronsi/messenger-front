@@ -2,7 +2,9 @@ import { isPersistedId, compareIds } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
-import { Message, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages } from '@/entities/message';
+import {
+  Message, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages,
+} from '@/entities/message';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
 import { fetchMissedMessages } from './fetchMissedMessages';
@@ -10,6 +12,7 @@ import { useGetMessageHistoryQuery, useLazyGetMessageHistoryQuery } from '@/enti
 import { useMarkChatReadMutation } from '@/entities/chat';
 
 const MESSAGE_PAGE_SIZE = 50;
+export const MAX_LOADED_MESSAGES = 500;
 
 interface MessageHistoryOptions {
   chatId: EntityId;
@@ -45,6 +48,7 @@ export const useMessageHistory = ({
   const [newestMessageId, setNewestMessageId] = useState<EntityId | null>(null);
   const isLoadingOlderMessagesRef = useRef(false);
   const isLoadingNewerMessagesRef = useRef(false);
+  const trimNewestPendingRef = useRef(false);
   const [markChatRead] = useMarkChatReadMutation();
   const [fetchHistory] = useLazyGetMessageHistoryQuery();
   const {
@@ -66,26 +70,21 @@ export const useMessageHistory = ({
     setHasMoreNewerMessages(false);
     setOldestMessageId(null);
     setNewestMessageId(null);
+    trimNewestPendingRef.current = false;
   }, [chatId]);
 
   useEffect(() => {
-    setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
-  }, [isLoadingLatestHistory, messages.length]);
+    if (!trimNewestPendingRef.current) return;
+    trimNewestPendingRef.current = false;
+    const trimmed = trimNewestMessages(messages, MAX_LOADED_MESSAGES);
+    if (!trimmed || !trimmed.newestId) return;
+    setMessages(previous => trimNewestMessages(previous, MAX_LOADED_MESSAGES)?.messages ?? previous);
+    setNewestMessageId(trimmed.newestId);
+    setHasMoreNewerMessages(true);
+  }, [messages, setMessages]);
 
-  useEffect(() => {
-    if (!latestHistory) return;
-    const nextMessages = normalizeHistoryMessages(latestHistory.history);
-    setMessages((previous) => mergeFreshHistoryMessages(previous, nextMessages));
-    setOldestMessageId(latestHistory.next_before_id ?? nextMessages[0]?.id ?? null);
-    setNewestMessageId(latestHistory.next_after_id ?? nextMessages[nextMessages.length - 1]?.id ?? null);
-    setHasMoreMessages(latestHistory.has_more_before ?? latestHistory.has_more);
-    setHasMoreNewerMessages(!!latestHistory.has_more_after);
-    setIsLoadingInitialMessages(false);
-  }, [latestHistory, setMessages]);
-
-  useEffect(() => {
-    if (!latestHistoryError) return;
-    const status = asApiError(latestHistoryError).status;
+  const handleHistoryError = useCallback((error: unknown) => {
+    const status = asApiError(error).status;
     if (status === 401) {
       setModal({ type: 'error', message: translationsRef.current.loginRequired });
       setTimeout(() => onBackRef.current(), 2000);
@@ -96,8 +95,29 @@ export const useMessageHistory = ({
       return;
     }
     setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+  }, [onBackRef, setModal, translationsRef]);
+
+  useEffect(() => {
+    setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
+  }, [isLoadingLatestHistory, messages.length]);
+
+  useEffect(() => {
+    if (!latestHistory) return;
+    const nextMessages = normalizeHistoryMessages(latestHistory.history);
+    const pageWindow = { hasMoreBefore: latestHistory.has_more_before ?? latestHistory.has_more, hasMoreAfter: !!latestHistory.has_more_after };
+    setMessages((previous) => mergeFreshHistoryMessages(previous, nextMessages, pageWindow));
+    setOldestMessageId(latestHistory.next_before_id ?? nextMessages[0]?.id ?? null);
+    setNewestMessageId(latestHistory.next_after_id ?? nextMessages[nextMessages.length - 1]?.id ?? null);
+    setHasMoreMessages(latestHistory.has_more_before ?? latestHistory.has_more);
+    setHasMoreNewerMessages(!!latestHistory.has_more_after);
     setIsLoadingInitialMessages(false);
-  }, [latestHistoryError, onBackRef, setModal, translationsRef]);
+  }, [latestHistory, setMessages]);
+
+  useEffect(() => {
+    if (!latestHistoryError) return;
+    handleHistoryError(latestHistoryError);
+    setIsLoadingInitialMessages(false);
+  }, [latestHistoryError, handleHistoryError]);
 
   const loadOlderMessages = useCallback(async () => {
     if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;
@@ -107,16 +127,17 @@ export const useMessageHistory = ({
       const data = await fetchHistory({ chatId, limit: MESSAGE_PAGE_SIZE, beforeId: oldestMessageId }).unwrap();
       const olderMessages = normalizeHistoryMessages(data.history);
       setMessages(previous => prependUniqueMessages(previous, olderMessages));
+      trimNewestPendingRef.current = true;
       setHasMoreMessages(data.has_more_before ?? data.has_more);
       const nextOldestId = data.next_before_id ?? olderMessages[0]?.id;
       if (nextOldestId != null) setOldestMessageId(nextOldestId);
-    } catch {
-      setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+    } catch (error) {
+      handleHistoryError(error);
     } finally {
       isLoadingOlderMessagesRef.current = false;
       setIsLoadingOlderMessages(false);
     }
-  }, [fetchHistory, chatId, hasMoreMessages, oldestMessageId, setMessages, setModal, token, translationsRef]);
+  }, [fetchHistory, chatId, handleHistoryError, hasMoreMessages, oldestMessageId, setMessages, token]);
 
   const loadNewerMessages = useCallback(async () => {
     if (!token || !newestMessageId || !hasMoreNewerMessages || isLoadingNewerMessagesRef.current) return;
@@ -130,13 +151,13 @@ export const useMessageHistory = ({
       setHasMoreNewerMessages(!!data.has_more_after);
       const nextNewestId = data.next_after_id ?? newerMessages[newerMessages.length - 1]?.id;
       if (nextNewestId != null) setNewestMessageId(nextNewestId);
-    } catch {
-      setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+    } catch (error) {
+      handleHistoryError(error);
     } finally {
       isLoadingNewerMessagesRef.current = false;
       setIsLoadingNewerMessages(false);
     }
-  }, [fetchHistory, chatId, hasMoreNewerMessages, newestMessageId, setMessages, setModal, token, translationsRef]);
+  }, [fetchHistory, chatId, handleHistoryError, hasMoreNewerMessages, newestMessageId, setMessages, token]);
 
   // Merge the newest page without discarding confirmed messages already in the shared cache.
   const loadLatestMessages = useCallback(async () => {
@@ -146,18 +167,19 @@ export const useMessageHistory = ({
     try {
       const data = await fetchHistory({ chatId, limit: MESSAGE_PAGE_SIZE }).unwrap();
       const latestMessages = normalizeHistoryMessages(data.history);
-      setMessages(previous => mergeFreshHistoryMessages(previous, latestMessages));
+      const pageWindow = { hasMoreBefore: data.has_more_before ?? data.has_more, hasMoreAfter: Boolean(data.has_more_after) };
+      setMessages(previous => mergeFreshHistoryMessages(previous, latestMessages, pageWindow));
       setOldestMessageId(data.next_before_id ?? latestMessages[0]?.id ?? null);
       setNewestMessageId(data.next_after_id ?? latestMessages[latestMessages.length - 1]?.id ?? null);
       setHasMoreMessages(data.has_more_before ?? data.has_more);
       setHasMoreNewerMessages(Boolean(data.has_more_after));
-    } catch {
-      setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
+    } catch (error) {
+      handleHistoryError(error);
     } finally {
       isLoadingNewerMessagesRef.current = false;
       setIsLoadingNewerMessages(false);
     }
-  }, [fetchHistory, chatId, setMessages, setModal, token, translationsRef]);
+  }, [fetchHistory, chatId, handleHistoryError, setMessages, token]);
 
   const messagesRef = useRef(messages);
   messagesRef.current = messages;

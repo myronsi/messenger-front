@@ -49,6 +49,27 @@
     }
   }
 
+  @keyframes reactionCountInUp {
+    from { transform: translateY(100%); opacity: 0; }
+  }
+
+  @keyframes reactionCountOutUp {
+    to { transform: translateY(-100%); opacity: 0; }
+  }
+
+  @keyframes reactionCountInDown {
+    from { transform: translateY(-100%); opacity: 0; }
+  }
+
+  @keyframes reactionCountOutDown {
+    to { transform: translateY(100%); opacity: 0; }
+  }
+
+  .reaction-count-in-up { display: inline-block; animation: reactionCountInUp 200ms ease-out both; }
+  .reaction-count-out-up { animation: reactionCountOutUp 200ms ease-out both; }
+  .reaction-count-in-down { display: inline-block; animation: reactionCountInDown 200ms ease-out both; }
+  .reaction-count-out-down { animation: reactionCountOutDown 200ms ease-out both; }
+
   @keyframes reactionPop {
     from {
       transform: translate3d(0, 6px, 0) scale(0.72);

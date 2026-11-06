@@ -6,6 +6,7 @@ import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { endSession, setAccessToken } from '@/shared/auth/session';
 import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
+import { normalizeRecoveryKey } from './model/recoveryKey';
 
 export const RecoveryKeyComponent = ({ onLoginSuccess, onBackToLogin, onDeviceRecovery, onEmailRecovery }: {
   onLoginSuccess: (username: string) => void; onBackToLogin: () => void; onDeviceRecovery?: () => void; onEmailRecovery?: () => void;
@@ -19,7 +20,7 @@ export const RecoveryKeyComponent = ({ onLoginSuccess, onBackToLogin, onDeviceRe
     if (form.new_password !== form.confirm) { setError('Passwords do not match.'); return; }
     setBusy(true); setError('');
     try {
-      const response = await fetch(`${getApiBaseUrl()}/auth/recover/key`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: form.username.trim().toLowerCase(), recovery_key: form.recovery_key, new_password: form.new_password, code: form.code.trim() }) });
+      const response = await fetch(`${getApiBaseUrl()}/auth/recover/key`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: form.username.trim().toLowerCase(), recovery_key: normalizeRecoveryKey(form.recovery_key), new_password: form.new_password, code: form.code.trim() }) });
       const data = await response.json();
       if (!response.ok) throw new Error(response.status === 429 ? 'Too many attempts. Please try again later.' : response.status === 422 ? 'Check your new password. It must contain at least 8 characters.' : 'Recovery failed. Check your username, recovery key and authentication code.');
       if (!data.access_token || !data.recovery_key) throw new Error('The server returned an incomplete response. Try signing in with your new password.');

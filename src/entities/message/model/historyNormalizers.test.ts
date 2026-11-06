@@ -85,8 +85,8 @@ describe('mergeFreshHistoryMessages', () => {
     expect(ids(mergeFreshHistoryMessages([live], [msg('9007199254740992')]))).toEqual(['9007199254740992', '9007199254740993']);
     expect(ids(mergeFreshHistoryMessages([live], []))).toEqual(['9007199254740993']);
   });
-  it('keeps confirmed and unsent messages when the fresh page is empty', () => {
-    expect(ids(mergeFreshHistoryMessages([msg(1), msg(-1)], []))).toEqual([1, -1]);
+  it('keeps only unsent messages when the fresh page is empty', () => {
+    expect(ids(mergeFreshHistoryMessages([msg(1), msg(-1)], []))).toEqual([-1]);
   });
 
   it('keeps older loaded messages, replaces the window and keeps pending ones', () => {
@@ -101,7 +101,14 @@ describe('mergeFreshHistoryMessages', () => {
     expect(result[0].client_temp_id).toBe(-9);
   });
 
-  it('retains confirmed messages outside and inside a partial refresh window', () => {
-    expect(ids(mergeFreshHistoryMessages([msg('2'), msg('4'), msg('8')], [msg('3'), msg('5')]))).toEqual(['2', '3', '4', '5', '8']);
+  it('drops messages missing inside the fetched range and keeps the ones outside it', () => {
+    const current = [msg('2'), msg('4'), msg('8'), msg(-3, { client_temp_id: -3 })];
+    expect(ids(mergeFreshHistoryMessages(current, [msg('3'), msg('5')]))).toEqual(['2', '3', '5', '8', -3]);
+  });
+
+  it('extends the range to the open ends of the newest page but keeps live messages after it', () => {
+    const current = [msg('1'), msg('4'), msg('8'), msg('9', { is_live: true })];
+    const result = mergeFreshHistoryMessages(current, [msg('3'), msg('5')], { hasMoreBefore: false, hasMoreAfter: false });
+    expect(ids(result)).toEqual(['3', '5', '9']);
   });
 });

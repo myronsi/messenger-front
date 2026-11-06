@@ -107,11 +107,28 @@ export const trimNewestMessages = (messages: Message[], limit: number) => {
   return { messages: kept, newestId: newest?.id ?? null };
 };
 
-// Refreshing a window updates known rows without discarding server messages
-// received by another page or over realtime while the request was in flight.
-export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[]) => {
-  const byId = new Map(currentMessages.map(message => [String(message.id), message]));
-  for (const message of freshMessages) {
+export interface FreshHistoryWindow {
+  hasMoreBefore?: boolean;
+  hasMoreAfter?: boolean;
+}
+
+const isInsideFreshWindow = (message: Message, freshMessages: Message[], range: FreshHistoryWindow) => {
+  if (!isPersistedId(message.id)) return false;
+  if (freshMessages.length === 0) return !message.is_live;
+  const oldest = freshMessages[0].id;
+  const newest = freshMessages[freshMessages.length - 1].id;
+  const afterStart = range.hasMoreBefore === false || compareIds(message.id, oldest) >= 0;
+  const beforeEnd = compareIds(message.id, newest) <= 0 || (range.hasMoreAfter === false && !message.is_live);
+  return afterStart && beforeEnd;
+};
+
+export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[], range: FreshHistoryWindow = {}) => {
+  const fresh = sortMessages(freshMessages.filter(message => isPersistedId(message.id)));
+  const freshIds = new Set(fresh.map(message => String(message.id)));
+  const byId = new Map(currentMessages
+    .filter(message => freshIds.has(String(message.id)) || !isInsideFreshWindow(message, fresh, range))
+    .map(message => [String(message.id), message]));
+  for (const message of fresh) {
     const current = byId.get(String(message.id));
     byId.set(String(message.id), current ? {
       ...message,

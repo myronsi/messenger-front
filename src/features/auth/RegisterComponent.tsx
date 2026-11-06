@@ -11,6 +11,7 @@ import {
 } from '@/shared/ui/card';
 import { RegisterCredentialsForm } from './components/RegisterCredentialsForm';
 import { RegisterProfileSetup } from './components/RegisterProfileSetup';
+import { PasskeyOffer } from './components/PasskeyOffer';
 import { useRegistrationFlow } from './model/useRegistrationFlow';
 
 interface RegisterComponentProps {
@@ -20,6 +21,7 @@ interface RegisterComponentProps {
 
 const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackToLogin }) => {
   const flow = useRegistrationFlow({ onLoginSuccess });
+  const isCredentialsStep = !flow.showQr && !flow.showPasskeyOffer && !flow.showProfileSetup;
 
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg">
@@ -28,7 +30,7 @@ const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackT
         <CardDescription className="pt-2">{flow.translations.createNewAccount}</CardDescription>
       </CardHeader>
       <CardContent>
-        {!flow.showQr && !flow.showProfileSetup ? (
+        {isCredentialsStep ? (
           <RegisterCredentialsForm
             username={flow.username}
             displayName={flow.displayName}
@@ -44,6 +46,8 @@ const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackT
           />
         ) : flow.showQr ? (
           <RecoveryKeyReceipt recoveryKey={flow.recoveryKey} username={flow.username} onContinue={flow.handleContinue} />
+        ) : flow.showPasskeyOffer ? (
+          <PasskeyOffer username={flow.username} onDone={flow.finishPasskeyOffer} />
         ) : (
           <RegisterProfileSetup
             profileAvatarFile={flow.profileAvatarFile}
@@ -64,11 +68,11 @@ const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackT
         )}
       </CardContent>
       <CardFooter className="flex-col gap-2">
-        {!flow.showQr && !flow.showProfileSetup && flow.inputsFilled ? (
+        {isCredentialsStep && flow.inputsFilled ? (
           <Button type="submit" onClick={flow.handleRegister} className="w-full">
             {flow.translations.register}
           </Button>
-        ) : !flow.showQr && !flow.showProfileSetup ? (
+        ) : isCredentialsStep ? (
           <div className="w-full">
             <p className="text-sm text-muted-foreground text-center mb-2">{flow.translations.alreadyHaveAccount}</p>
             <Button variant="outline" onClick={onBackToLogin} className="w-full">

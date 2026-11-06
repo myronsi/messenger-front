@@ -121,18 +121,17 @@ describe('useMessageSender resending messages that were never saved', () => {
     return { send, hook, pendingMessageIdsRef, getMessages: () => messages };
   };
 
-  it('sends an unsaved text again as a new message instead of a resend of its temporary id', () => {
+  it('sends an unsaved text again under its original client_temp_id so the server can dedupe it', () => {
     const failed: Message = { ...original, id: -5, client_temp_id: -5, sender_id: '1', delivery_error: 'Not delivered', reply_to: '2' };
     const { send, hook, pendingMessageIdsRef, getMessages } = setupWithState([failed]);
     pendingMessageIdsRef.current.push(-5);
     act(() => hook.result.current.handleResendMessage(failed));
     const payload = JSON.parse(send.mock.calls[0][0]);
     expect(payload).toMatchObject({ type: 'message', content: 'Hello there', reply_to: '2' });
-    expect(payload.client_temp_id).toBeLessThan(0);
-    expect(payload.client_temp_id).not.toBe(-5);
+    expect(payload.client_temp_id).toBe(-5);
     expect(getMessages()).toHaveLength(1);
-    expect(getMessages()[0]).toMatchObject({ id: payload.client_temp_id, client_temp_id: payload.client_temp_id, delivery_error: undefined });
-    expect(pendingMessageIdsRef.current).toEqual([payload.client_temp_id]);
+    expect(getMessages()[0]).toMatchObject({ id: -5, client_temp_id: -5, delivery_error: undefined });
+    expect(pendingMessageIdsRef.current).toEqual([-5]);
   });
 
   it('moves a resent unsaved message after the messages sent since it failed', () => {
@@ -141,7 +140,8 @@ describe('useMessageSender resending messages that were never saved', () => {
     const { send, hook, getMessages } = setupWithState([failed, later]);
     act(() => hook.result.current.handleResendMessage(failed));
     const payload = JSON.parse(send.mock.calls[0][0]);
-    expect(getMessages().map((message) => message.id)).toEqual(['9', payload.client_temp_id]);
+    expect(getMessages().map((message) => message.id)).toEqual(['9', -5]);
+    expect(payload.client_temp_id).toBe(-5);
   });
 
   it('still asks the server to resend a saved message', () => {
@@ -151,7 +151,7 @@ describe('useMessageSender resending messages that were never saved', () => {
     expect(JSON.parse(send.mock.calls[0][0])).toEqual({ type: 'resend', message_id: '7' });
   });
 
-  it('uploads a failed file again under a new temporary id and keeps one bubble', async () => {
+  it('uploads a failed file again under its original temporary id and keeps one bubble', async () => {
     vi.mocked(uploadWithProgress).mockReset().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({});
     const { hook, getMessages } = setupWithState();
     await act(async () => { await hook.result.current.handleFileUpload(new File(['x'], 'a.png', { type: 'image/png' }), 'look'); });
@@ -162,7 +162,7 @@ describe('useMessageSender resending messages that were never saved', () => {
     expect(form.url).toMatch(/\/messages\/upload$/);
     expect((form.formData.get('file') as File).name).toBe('a.png');
     expect(form.formData.get('caption')).toBe('look');
-    expect(form.formData.get('client_temp_id')).not.toBe(String(failed.id));
+    expect(form.formData.get('client_temp_id')).toBe(String(failed.id));
     expect(getMessages()).toHaveLength(1);
     expect(String(getMessages()[0].id)).toBe(form.formData.get('client_temp_id'));
     expect(getMessages()[0].delivery_error).toBeUndefined();

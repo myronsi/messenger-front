@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from 'react-dom';
 import { ReactionInfo } from '../model/types';
 import { ReactionGroup, groupAndSortReactions, splitVisibleReactions } from '../model/reactions';
+import { ReactionCount } from './ReactionCount';
 
 interface ReactionListProps {
   reactions: ReactionInfo[];
@@ -186,7 +187,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
           const mine = isMineReaction(group);
           return (
             <button
-              key={`${group.reaction}-${group.count}`}
+              key={group.reaction}
               type="button"
               data-reaction={group.reaction}
               aria-pressed={mine}
@@ -201,9 +202,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
               {...detailHandlers(group)}
             >
               <span>{group.reaction}</span>
-              {group.count > 1 && (
-                <span className="text-[11px] font-medium tabular-nums">{group.count}</span>
-              )}
+              {group.count > 1 && <ReactionCount count={group.count} />}
             </button>
           );
         })}

@@ -2,7 +2,7 @@ import type { ServerEvent } from '@myronsi/messenger-api';
 import { getChatWebSocketUrl } from './webSocketUrl';
 import { onConnectivityRestored, reconnectDelay } from './reconnect';
 import { handleHelloEvent } from './serverHello';
-import { trackWebSocket } from './socketRegistry';
+import { onCloseAllWebSockets, trackWebSocket } from './socketRegistry';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'rejected';
 export interface RealtimeListener {
@@ -36,6 +36,7 @@ export class RealtimeClient {
   private statusListeners = new Set<() => void>();
   private status: ConnectionStatus = 'disconnected';
   private attempts = 0;
+  private opened = false;
   private generation = 0;
   private connecting = false;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -48,6 +49,7 @@ export class RealtimeClient {
   ) {}
 
   getStatus = () => this.status;
+  hasOpened = () => this.opened;
   subscribeStatus = (listener: () => void) => {
     this.statusListeners.add(listener);
     return () => { this.statusListeners.delete(listener); };
@@ -122,6 +124,7 @@ export class RealtimeClient {
       socket.onopen = () => {
         if (socket !== this.socket) return;
         this.attempts = 0;
+        this.opened = true;
         this.setStatus('connected');
         this.listeners.forEach(listener => listener.onOpen?.());
       };
@@ -164,8 +167,10 @@ export class RealtimeClient {
     this.socket = null;
     socket?.close(1000, 'Session ended');
     this.attempts = 0;
+    this.opened = false;
     this.setStatus('disconnected');
   }
 }
 
 export const realtime = new RealtimeClient();
+onCloseAllWebSockets(() => realtime.stop());

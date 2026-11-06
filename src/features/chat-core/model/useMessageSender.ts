@@ -215,17 +215,16 @@ export const useMessageSender = ({
     setEditingMessage(null);
   };
 
-  const replaceUnsavedMessage = (message: Message, changes: Partial<Message>) => {
-    const tempId = createTempMessageId();
+  const retryUnsavedMessage = (message: Message, changes: Partial<Message>) => {
     setMessages((previous) => {
       const failed = previous.find((item) => String(item.id) === String(message.id));
       if (!failed) return previous;
       return [
         ...previous.filter((item) => item !== failed),
-        { ...failed, ...changes, id: tempId, client_temp_id: tempId, delivery_error: undefined, timestamp: new Date().toISOString() },
+        { ...failed, ...changes, delivery_error: undefined, timestamp: new Date().toISOString() },
       ];
     });
-    return tempId;
+    return message.client_temp_id ?? message.id;
   };
 
   const resendUnsavedMessage = (message: Message) => {
@@ -233,16 +232,14 @@ export const useMessageSender = ({
       const source = uploadSourcesRef.current.get(String(message.id));
       if (!source || typeof message.content === 'string') return;
       const content = message.content;
-      const tempId = replaceUnsavedMessage(message, { upload_status: 'uploading', upload_progress: 1 });
-      uploadSourcesRef.current.delete(String(message.id));
-      uploadSourcesRef.current.set(String(tempId), source);
+      const tempId = retryUnsavedMessage(message, { upload_status: 'uploading', upload_progress: 1 });
       void uploadOptimisticMessage(tempId, source.file, source.fileName, content.file_type === 'voice', message.reply_to, content.caption ?? '');
       return;
     }
     if (typeof message.content !== 'string') return;
-    const tempId = replaceUnsavedMessage(message, {});
+    const tempId = retryUnsavedMessage(message, {});
     pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => String(id) !== String(message.id));
-    pendingMessageIdsRef.current.push(tempId);
+    pendingMessageIdsRef.current.push(message.id);
     const content = isGoApi() ? message.content : escapeCurlyBraces(message.content);
     sendOrQueue({ type: 'message', content, reply_to: message.reply_to ?? null, client_temp_id: tempId });
   };

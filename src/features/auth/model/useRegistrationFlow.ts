@@ -23,6 +23,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const [recoveryKey, setRecoveryKey] = useState('');
   const [showQr, setShowQr] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showPasskeyOffer, setShowPasskeyOffer] = useState(false);
   const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
   const [profileAvatarPreview, setProfileAvatarPreview] = useState('');
   const [avatarCropFile, setAvatarCropFile] = useState<File | null>(null);
@@ -91,8 +92,13 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const handleContinue = useCallback(() => {
     setShowQr(false);
     setRecoveryKey('');
-    setShowProfileSetup(true);
+    setShowPasskeyOffer(true);
     setMessage('');
+  }, []);
+
+  const finishPasskeyOffer = useCallback(() => {
+    setShowPasskeyOffer(false);
+    setShowProfileSetup(true);
   }, []);
 
   const finishRegistration = useCallback(() => {
@@ -191,12 +197,12 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
 
   return {
     avatarCropFile, avatarCropPreview, cancelAvatarCrop, displayName,
-    finishRegistration, handleContinue, handleCroppedAvatar,
+    finishPasskeyOffer, finishRegistration, handleContinue, handleCroppedAvatar,
     handleProfileAvatarChange, handleRegister, handleSaveProfileSetup, handleSubmit,
     inputsFilled, isDisplayNameValid: isValidDisplayName(displayName),
     isSavingProfile, message, password, profileAvatarFile,
     profileAvatarPreview, profileBio, recoveryKey, removeProfileAvatar, setDisplayName,
     setPassword, setProfileBio, setShowPassword, setUsername, showPassword,
-    showProfileSetup, showQr, translations, username,
+    showPasskeyOffer, showProfileSetup, showQr, translations, username,
   };
 };

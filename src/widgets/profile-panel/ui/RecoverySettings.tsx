@@ -14,7 +14,7 @@ export const RecoverySettings = ({ isActive, onDismissSafetyChange }: {
   return <>
     <RecoveryOverviewCard />
     <RecoveryKeySettings onDismissSafetyChange={onDismissSafetyChange} />
-    <PasskeySettings locked={locked} enabled={Boolean(data?.passkeys_enabled)} />
+    <PasskeySettings locked={locked} enabled={Boolean(data?.passkeys_enabled)} overview={data} />
     <RecoveryEmailSettings locked={locked} enabled={Boolean(data?.email.enabled)} />
     <SecurityActivity />
   </>;

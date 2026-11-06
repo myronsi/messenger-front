@@ -8,8 +8,9 @@ import { deviceLabel } from '@/shared/lib/deviceLabel';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { hasRecoveryBesidesPasskeys, type RecoveryOverview } from '../model/recoveryMethods';
 
-export const PasskeySettings = ({ locked, enabled }: { locked: boolean; enabled: boolean }) => {
+export const PasskeySettings = ({ locked, enabled, overview }: { locked: boolean; enabled: boolean; overview?: RecoveryOverview }) => {
   const { data: keys = [], isLoading, error: loadError } = useGetPasskeysQuery(undefined, { skip: !enabled });
   const dispatch = useAppDispatch();
   const [name, setName] = useState(() => deviceLabel(navigator.userAgent));
@@ -20,6 +21,8 @@ export const PasskeySettings = ({ locked, enabled }: { locked: boolean; enabled:
   const [editing, setEditing] = useState<string | null>(null);
   const [renamed, setRenamed] = useState('');
   const [removing, setRemoving] = useState<string | null>(null);
+  const removingLast = keys.length === 1 && Boolean(removing);
+  const lastMethod = removingLast && overview !== undefined && !hasRecoveryBesidesPasskeys(overview);
   const refresh = () => dispatch(recoveryApi.util.invalidateTags(['Auth']));
   const add = async () => {
     setBusy(true); setMessage('');
@@ -66,6 +69,8 @@ export const PasskeySettings = ({ locked, enabled }: { locked: boolean; enabled:
       </form>}
       {removing && <div role="alert" className="space-y-2">
         <p className="text-sm">Remove this passkey? Removing your last passkey requires your password. Make sure you can still sign in.</p>
+        {lastMethod && <p className="text-sm font-medium text-destructive">This is your only recovery method. Without a recovery key, another
+          signed-in device or a verified recovery email you cannot recover your account if you forget your password.</p>}
         <Label htmlFor="remove-passkey-password">Current password</Label>
         <Input id="remove-passkey-password" type="password" autoComplete="current-password" value={password}
           onChange={event => setPassword(event.target.value)} />

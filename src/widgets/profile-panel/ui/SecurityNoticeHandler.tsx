@@ -13,6 +13,12 @@ const labels: Record<string, string> = {
   recovery_email_changed: 'Your recovery email was changed', recovery_email_removed: 'Your recovery email was removed',
   passkey_counter_warning: 'A passkey failed a security check', login: 'New sign-in', passkey_login: 'New passkey sign-in',
 };
+const scrollToSessions = (attempts = 20) => {
+  const target = document.getElementById('security-sessions');
+  if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (attempts > 0) window.setTimeout(() => scrollToSessions(attempts - 1), 100);
+};
+
 export const SecurityNoticeHandler = () => {
   const { open } = useUrlOverlay();
   const dispatch = useAppDispatch();
@@ -21,7 +27,7 @@ export const SecurityNoticeHandler = () => {
     dispatch(recoveryApi.util.invalidateTags(['Auth']));
     toast(`${labels[event.data.type] || 'Account security updated'} on ${deviceLabel(event.data.user_agent)}. Wasn’t you?`, {
       id: `security:${event.event_id}`, duration: 12_000,
-      action: { label: 'Review sessions', onClick: () => open({ kind: 'settings', page: 'security' }) },
+      action: { label: 'Review sessions', onClick: () => { open({ kind: 'settings', page: 'security' }); scrollToSessions(); } },
     });
   } }), [dispatch, open]);
   return null;

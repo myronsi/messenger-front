@@ -50,6 +50,17 @@ describe('one user realtime connection', () => {
     expect(client.getStatus()).toBe('connected');
   });
 
+  it('remembers that a connection was open until the session stops', async () => {
+    client.subscribe({}); await flush();
+    expect(client.hasOpened()).toBe(false);
+    sockets[0].drop(1006);
+    expect(client.getStatus()).toBe('reconnecting'); expect(client.hasOpened()).toBe(false);
+    await vi.advanceTimersByTimeAsync(1000); sockets[1].open();
+    expect(client.hasOpened()).toBe(true);
+    client.stop();
+    expect(client.hasOpened()).toBe(false);
+  });
+
   it('ignores malformed and unknown events without interrupting future events', async () => {
     const event = vi.fn(); client.subscribe({ onEvent: event });
     await flush(); sockets[0].open();

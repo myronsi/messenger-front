@@ -23,6 +23,7 @@ export const useConversationMessages = (chatId: EntityId) => {
       const current = conversationApi.endpoints.getConversation.select(arg)(getState()).data;
       const previous = current ? messageSelectors.selectAll(current) : [];
       const next = typeof update === 'function' ? update(previous) : update;
+      if (next === previous) return;
       const value = messageEntities.setAll(messageEntities.getInitialState(), next);
       dispatch(conversationApi.util.upsertQueryEntries([{ endpointName: 'getConversation', arg, value }]));
     });

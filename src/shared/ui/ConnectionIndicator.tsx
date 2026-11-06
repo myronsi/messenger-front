@@ -1,11 +1,12 @@
 import { useSyncExternalStore } from 'react';
 import { realtime } from '@/shared/api/realtime';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { shouldShowConnectionNotice } from '@/shared/lib/connectionNotice';
 
 export const ConnectionIndicator = () => {
   const status = useSyncExternalStore(realtime.subscribeStatus, realtime.getStatus, realtime.getStatus);
   const { language } = useLanguage();
-  if (!['connecting', 'reconnecting', 'rejected'].includes(status)) return null;
+  if (!shouldShowConnectionNotice(status, realtime.hasOpened())) return null;
   const message = status === 'rejected'
     ? language === 'ru' ? 'Соединение прервано. Обновите страницу.' : 'Connection ended. Reload to reconnect.'
     : language === 'ru' ? 'Повторное подключение…' : 'Reconnecting…';

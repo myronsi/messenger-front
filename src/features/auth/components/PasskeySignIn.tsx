@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/button';
 export const PasskeySignIn = ({ username, onSignedIn }: { username: string; onSignedIn: (username: string) => void }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [autofillRun, setAutofillRun] = useState(0);
   const supported = browserSupportsWebAuthn();
   const onSignedInRef = useRef(onSignedIn);
   onSignedInRef.current = onSignedIn;
@@ -18,13 +19,15 @@ export const PasskeySignIn = ({ username, onSignedIn }: { username: string; onSi
       if (!controller.signal.aborted) onSignedInRef.current(user);
     }).catch(() => {});
     return () => { controller.abort(); WebAuthnAbortService.cancelCeremony(); };
-  }, [supported]);
+  }, [supported, autofillRun]);
   if (!supported) return null;
   return <div className="w-full space-y-2">
     <Button type="button" variant="outline" disabled={busy} className="w-full" onClick={() => {
       setBusy(true); setError('');
-      void signInWithPasskey(username).then(onSignedIn).catch(() => setError('Passkey sign-in failed or was cancelled. You can use your password.'))
-        .finally(() => setBusy(false));
+      void signInWithPasskey(username).then(onSignedIn).catch(() => {
+        setError('Passkey sign-in failed or was cancelled. You can use your password.');
+        setAutofillRun(run => run + 1);
+      }).finally(() => setBusy(false));
     }}>{busy ? 'Waiting for passkey…' : 'Sign in with a passkey'}</Button>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
   </div>;

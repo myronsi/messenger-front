@@ -51,7 +51,7 @@ export const mergeIncomingMessage = (
   if (existingIndex !== -1) {
     const copy = [...previous];
     copy[existingIndex] = incoming;
-    return sortMessages(copy);
+    return copy;
   }
 
   // A server echo may arrive out of order, or have the same content/name as a

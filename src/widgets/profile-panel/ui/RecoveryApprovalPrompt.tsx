@@ -3,6 +3,7 @@ import type { ServerRecoveryRequestEvent } from '@myronsi/messenger-api';
 import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { realtime } from '@/shared/api/realtime';
 import { apiClient } from '@/shared/api/client';
+import { deviceLabel } from '@/shared/lib/deviceLabel';
 import { useGetSecuritySettingsQuery } from '@/features/profile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
@@ -20,7 +21,10 @@ export const RecoveryApprovalPrompt = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { open } = useUrlOverlay();
-  const { data: security } = useGetSecuritySettingsQuery(undefined, { skip: !notice });
+  const { data: security, isError: securityFailed } = useGetSecuritySettingsQuery(undefined, { skip: !notice });
+  const showCode = securityFailed || Boolean(security?.two_factor_enabled);
+  const codeRequired = Boolean(security?.two_factor_enabled) && !code;
+  const device = notice?.user_agent ? deviceLabel(notice.user_agent) : 'an unknown device';
 
   useEffect(() => realtime.subscribe({ onEvent: frame => {
     if (frame.type !== 'recovery_request' || Date.parse(frame.data.expires_at) <= Date.now()) return;
@@ -63,16 +67,16 @@ export const RecoveryApprovalPrompt = () => {
   return <Dialog open={Boolean(notice)}><DialogContent hideClose onEscapeKeyDown={event => event.preventDefault()}
     onPointerDownOutside={event => event.preventDefault()}>
     <DialogHeader><DialogTitle>Approve account recovery?</DialogTitle>
-      <DialogDescription>Someone wants to reset your password on {notice?.user_agent || 'an unknown device'} ({notice?.ip_hint}).
+      <DialogDescription>Someone wants to reset your password on {device}{notice?.ip_hint ? ` (${notice.ip_hint})` : ''}.
         Only approve if you started this request. Choose the number shown on your other device.</DialogDescription></DialogHeader>
     <div className="flex justify-center gap-4" role="group" aria-label="Recovery match number">
       {notice?.choices.map(number => <Button key={number} variant={choice === number ? 'default' : 'outline'}
         aria-label={`Choose ${number}`} aria-pressed={choice === number} onClick={() => setChoice(number)}>{number}</Button>)}
     </div>
-    {security?.two_factor_enabled && <><Label htmlFor="approval-code">Authenticator or backup code</Label>
+    {showCode && <><Label htmlFor="approval-code">Authenticator or backup code</Label>
       <Input id="approval-code" autoComplete="one-time-code" maxLength={128} value={code} onChange={event => setCode(event.target.value)} /></>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    <Button disabled={busy || choice === null || !security || (security.two_factor_enabled && !code)} onClick={() => { void decide(false); }}>Approve</Button>
+    <Button disabled={busy || choice === null || (!security && !securityFailed) || codeRequired} onClick={() => { void decide(false); }}>Approve</Button>
     <Button variant="destructive" disabled={busy} onClick={() => { void decide(true); }}>This wasn’t me</Button>
   </DialogContent></Dialog>;
 };

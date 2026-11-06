@@ -4,7 +4,7 @@ import { compareIds, isPersistedId } from '@/shared/api/entityId';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { useLocalMessageDeletion, removeMessageAnimated, sortMessages } from '@/entities/message';
+import { useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
 import {
   addReaction, addReadReceipts, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
 } from './messageUpdates';
@@ -50,11 +50,11 @@ export const useMessageEvents = ({
         pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter(id => String(id) !== String(event.client_temp_id));
         setMessages(previous => {
           const exists = previous.some(message => String(message.id) === String(event.message_id));
-          return sortMessages(previous.flatMap(message => {
+          return previous.flatMap(message => {
             if (isPersistedId(message.id) || String(message.client_temp_id ?? message.id) !== String(event.client_temp_id)) return [message];
             return exists ? [] : [{ ...message, id: event.message_id, timestamp: event.timestamp || message.timestamp,
               delivery_error: undefined, is_live: true }];
-          }));
+          });
         });
         return;
       case 'message':
