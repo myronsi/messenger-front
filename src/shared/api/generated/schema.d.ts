@@ -1749,6 +1749,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/recovery-requests/{requestId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a pending recovery request from the requesting browser
+         * @description Ends a pending request so it no longer counts towards the limit of three active requests. It answers 204 for every capability, including unknown, decided and expired ones.
+         */
+        post: operations["cancelDeviceRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/qr-login": {
         parameters: {
             query?: never;
@@ -5952,6 +5980,35 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    cancelDeviceRecovery: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelled or nothing to cancel */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
     createQrLogin: {
         parameters: {
             query?: never;
@@ -7523,6 +7580,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            404: components["responses"]["NotFound"];
             /** @description Security delay or conflicting state */
             409: {
                 headers: {

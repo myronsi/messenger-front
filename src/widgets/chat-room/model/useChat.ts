@@ -65,6 +65,7 @@ export const useChat = (
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,
+    resendUnconfirmed,
   } = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport,
     setMessages, setModal, messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
@@ -90,7 +91,7 @@ export const useChat = (
   useChatSocket({
     chatId, token, transport, onEvent: handleSocketEvent,
     onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
-    onReconnected: catchUpAfterReconnect,
+    onReconnected: () => { resendUnconfirmed(); void catchUpAfterReconnect(); },
   });
 
   const scrollToMessage = (messageId: EntityId) => {

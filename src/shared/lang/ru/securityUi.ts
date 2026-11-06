@@ -134,6 +134,7 @@ export const securityUi: typeof en = {
     eventFallback: "Безопасность аккаунта обновлена",
     events: {
       login: "Вход в аккаунт",
+      login_2fa: "Вход с двухфакторной аутентификацией",
       passkey_login: "Вход с ключом доступа",
       qr_login: "Вход по QR-коду",
       logout: "Выход из аккаунта",
@@ -166,6 +167,7 @@ export const securityUi: typeof en = {
       recovery_email_removed: "Почта для восстановления удалена",
       passkey_counter_warning: "Ключ доступа не прошёл проверку безопасности",
       login: "Новый вход",
+      login_2fa: "Новый вход с двухфакторной аутентификацией",
       passkey_login: "Новый вход с ключом доступа",
       qr_login_approved: "Подтверждён вход по QR-коду",
     },

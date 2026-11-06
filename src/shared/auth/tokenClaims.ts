@@ -16,6 +16,12 @@ export const getTokenExpiresAt = (token: string) => {
 };
 
 // The account an access token belongs to (the `sub` claim), or null for a missing or unreadable token.
+export const getTokenSession = (token: string | null | undefined) => {
+  if (!token) return null;
+  const sid = readClaims(token)?.sid;
+  return typeof sid === 'string' ? sid : null;
+};
+
 export const getTokenSubject = (token: string | null | undefined) => {
   if (!token) return null;
   const sub = readClaims(token)?.sub;

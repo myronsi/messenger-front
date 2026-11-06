@@ -6,7 +6,7 @@ import { messageModel } from '@/shared/api/goModels';
 import type { components } from '@/shared/api/generated/schema';
 import { normalizeHistoryMessage, type Message } from '@/entities/message';
 import { abandonUnsentMessages } from './messageUpdates';
-import type { SetMessages } from './types';
+import type { OutgoingPayload, SetMessages } from './types';
 
 export interface UploadSource {
   file: Blob;
@@ -52,4 +52,15 @@ export const useUnsentMessageRelease = (chatId: EntityId, setMessages: SetMessag
   }, [chatId, setMessages, translationsRef]);
 
   return { uploadSourcesRef, uploadingRef, releasedRef, releaseSource };
+};
+
+export const unconfirmedSends = (sent: Map<string, OutgoingPayload>, pending: EntityId[], queue: OutgoingPayload[]) => {
+  const stillPending = new Set(pending.map(String));
+  const queued = new Set(queue.map(payload => String(payload.client_temp_id)));
+  const resend: OutgoingPayload[] = [];
+  for (const [id, payload] of sent) {
+    if (!stillPending.has(id)) sent.delete(id);
+    else if (!queued.has(id)) resend.push(payload);
+  }
+  return resend;
 };

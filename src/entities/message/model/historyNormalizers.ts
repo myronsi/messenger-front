@@ -122,10 +122,25 @@ const isInsideFreshWindow = (message: Message, freshMessages: Message[], range: 
   return afterStart && beforeEnd;
 };
 
+const isDetachedOlderMessage = (message: Message, freshMessages: Message[], detached: boolean) => (
+  detached && isPersistedId(message.id) && compareIds(message.id, freshMessages[0].id) < 0
+);
+
+const isCacheDetached = (currentMessages: Message[], freshMessages: Message[], range: FreshHistoryWindow) => {
+  if (range.hasMoreBefore !== true || freshMessages.length === 0) return false;
+  const oldest = freshMessages[0].id;
+  const newest = freshMessages[freshMessages.length - 1].id;
+  return !currentMessages.some(message => (
+    isPersistedId(message.id) && compareIds(message.id, oldest) >= 0 && compareIds(message.id, newest) <= 0
+  ));
+};
+
 export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessages: Message[], range: FreshHistoryWindow = {}) => {
   const fresh = sortMessages(freshMessages.filter(message => isPersistedId(message.id)));
   const freshIds = new Set(fresh.map(message => String(message.id)));
+  const detached = isCacheDetached(currentMessages, fresh, range);
   const byId = new Map(currentMessages
+    .filter(message => !isDetachedOlderMessage(message, fresh, detached))
     .filter(message => freshIds.has(String(message.id)) || !isInsideFreshWindow(message, fresh, range))
     .map(message => [String(message.id), message]));
   for (const message of fresh) {

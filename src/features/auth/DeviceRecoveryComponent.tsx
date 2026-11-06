@@ -93,7 +93,11 @@ export const DeviceRecoveryComponent = ({ onLoginSuccess, onBack, initialUsernam
     finally { setBusy(false); }
   };
 
-  const reset = () => { setRequest(null); setError(''); };
+  const withdraw = () => {
+    if (!request || status !== 'pending') return;
+    void apiClient.POST('/auth/recovery-requests/{requestId}/cancel', { params: { path: { requestId: request.request_id } } }).catch(() => undefined);
+  };
+  const reset = () => { withdraw(); setRequest(null); setError(''); };
   const statusLabel = status === 'denied' ? t.statusDenied : status === 'used' ? t.statusUsed : t.statusExpired;
   const label = 'text-[13px] font-medium text-slate-700';
   const waiting = Boolean(request) && status === 'pending';
@@ -127,7 +131,7 @@ export const DeviceRecoveryComponent = ({ onLoginSuccess, onBack, initialUsernam
         </div>
         <Button className="h-11 w-full font-semibold" disabled={busy}>{t.resetPassword}</Button>
       </form> : waiting ? <DeviceRecoveryWaiting username={username} matchNumber={request.match_number} seconds={seconds}
-        totalSeconds={totalSeconds} onCancel={reset} onTryAnotherWay={onBack} /> : <>
+        totalSeconds={totalSeconds} onCancel={reset} onTryAnotherWay={() => { withdraw(); onBack(); }} /> : <>
         <p role="status" className="text-sm text-slate-700">{fillTemplate(t.requestEnded, { status: statusLabel })}</p>
         <Button className="h-11" onClick={reset}>{t.tryAgain}</Button>
       </>}

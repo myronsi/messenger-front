@@ -111,4 +111,23 @@ describe('mergeFreshHistoryMessages', () => {
     const result = mergeFreshHistoryMessages(current, [msg('3'), msg('5')], { hasMoreBefore: false, hasMoreAfter: false });
     expect(ids(result)).toEqual(['3', '5', '9']);
   });
+
+  it('drops an older cached block that does not reach the fresh page when more history exists before it', () => {
+    const current = [msg('851'), msg('900'), msg(-1)];
+    const result = mergeFreshHistoryMessages(current, [msg('951'), msg('1000')], { hasMoreBefore: true, hasMoreAfter: false });
+    expect(ids(result)).toEqual(['951', '1000', -1]);
+  });
+
+  it('keeps older cached messages when the cache overlaps the fresh page', () => {
+    const current = [msg('851'), msg('900'), msg('960')];
+    const result = mergeFreshHistoryMessages(current, [msg('951'), msg('960'), msg('1000')], { hasMoreBefore: true, hasMoreAfter: false });
+    expect(ids(result)).toEqual(['851', '900', '951', '960', '1000']);
+  });
+
+  it('merges as before when the server reports no older history or no range', () => {
+    const current = [msg('851'), msg('900'), msg(-1)];
+    const result = mergeFreshHistoryMessages(current, [msg('951'), msg('1000')], { hasMoreBefore: false, hasMoreAfter: true });
+    expect(ids(result)).toEqual(['951', '1000', -1]);
+    expect(ids(mergeFreshHistoryMessages(current, [msg('951'), msg('1000')]))).toEqual(['851', '900', '951', '1000', -1]);
+  });
 });

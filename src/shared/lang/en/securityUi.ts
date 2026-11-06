@@ -132,6 +132,7 @@ export const securityUi = {
     eventFallback: "Account security updated",
     events: {
       login: "Signed in",
+      login_2fa: "Signed in with two-factor authentication",
       passkey_login: "Signed in with a passkey",
       qr_login: "Signed in with a QR code",
       logout: "Signed out",
@@ -164,6 +165,7 @@ export const securityUi = {
       recovery_email_removed: "Your recovery email was removed",
       passkey_counter_warning: "A passkey failed a security check",
       login: "New sign-in",
+      login_2fa: "New sign-in with two-factor authentication",
       passkey_login: "New passkey sign-in",
       qr_login_approved: "A QR code sign-in was approved",
     },

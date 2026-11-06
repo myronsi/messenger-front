@@ -6,6 +6,8 @@ const { subscribe, toast, dispatch, open } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/shared/api/realtime', () => ({ realtime: { subscribe } }));
+vi.mock('@/shared/auth/session', () => ({ getAccessToken: () => 'own-token' }));
+vi.mock('@/shared/auth/tokenClaims', () => ({ getTokenSession: (token: string) => token === 'own-token' ? 'own-session' : null }));
 vi.mock('@/shared/ui/sonner', () => ({ toast }));
 vi.mock('@/shared/hooks/redux', () => ({ useAppDispatch: () => dispatch }));
 vi.mock('@/shared/lib/useUrlOverlay', () => ({ useUrlOverlay: () => ({ open }) }));
@@ -41,5 +43,14 @@ describe('SecurityNoticeHandler', () => {
     emit({ type: 'security_notice', event_id: '8', chat_id: null, data: { type: 'password_reset' } });
     expect(toast).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('skips alerts about changes made by this session', () => {
+    render(<SecurityNoticeHandler />);
+    emit({ type: 'security_alert', event_id: '9', chat_id: null, data: { type: 'passkey_added', session_id: 'own-session' } });
+    expect(toast).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: 'invalidate', tags: ['Auth'] });
+    emit({ type: 'security_alert', event_id: '10', chat_id: null, data: { type: 'login', session_id: 'other-session' } });
+    expect(toast).toHaveBeenCalledOnce();
   });
 });

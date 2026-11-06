@@ -8,7 +8,7 @@ import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { applyMessageEdit, editableText, mergeIncomingMessage } from './messageUpdates';
-import { createdMessage, useUnsentMessageRelease } from './unsentMessages';
+import { createdMessage, unconfirmedSends, useUnsentMessageRelease } from './unsentMessages';
 import { getLocalUploadFileType } from './uploadFileType';
 import { createOptimisticMessage } from './optimisticMessage';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
@@ -76,6 +76,7 @@ export const useMessageSender = ({
   const replyToRef = useRef(replyTo);
   replyToRef.current = replyTo;
   const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
+  const sentRef = useRef(new Map<string, OutgoingPayload>());
 
   const createOptimisticUploadMessage = (
     file: Blob,
@@ -156,6 +157,7 @@ export const useMessageSender = ({
     const sendNow = () => {
       try {
         wsRef.current?.send(JSON.stringify(payload));
+        if (payload.type === 'message' && payload.client_temp_id != null) sentRef.current.set(String(payload.client_temp_id), payload);
       } catch (error) {
         console.error('Error sending message via WebSocket:', error);
         enqueue();
@@ -269,7 +271,12 @@ export const useMessageSender = ({
     await uploadOptimisticMessage(optimisticMessageId, file, file.name, false, replyToId, caption);
   };
 
+  const resendUnconfirmed = () => {
+    unconfirmedSends(sentRef.current, pendingMessageIdsRef.current, messageQueueRef.current).forEach(sendOrQueue);
+  };
+
   return {
+    resendUnconfirmed,
     markMessageFailed,
     markLatestPendingMessageFailed,
     createOptimisticUploadMessage,

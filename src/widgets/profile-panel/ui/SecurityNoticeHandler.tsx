@@ -7,6 +7,8 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { toast } from '@/shared/ui/sonner';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { recoveryApi } from '@/features/profile';
+import { getAccessToken } from '@/shared/auth/session';
+import { getTokenSession } from '@/shared/auth/tokenClaims';
 
 export const SecurityNoticeHandler = () => {
   const { open } = useUrlOverlay();
@@ -15,6 +17,7 @@ export const SecurityNoticeHandler = () => {
   useEffect(() => realtime.subscribe({ onEvent: event => {
     if (event.type !== 'security_alert') return;
     dispatch(recoveryApi.util.invalidateTags(['Auth']));
+    if (event.data.session_id && event.data.session_id === getTokenSession(getAccessToken())) return;
     const label = (t.notices as Record<string, string>)[event.data.type] || t.eventFallback;
     toast(fillTemplate(t.noticeToast, { event: label, device: deviceLabel(event.data.user_agent) }), {
       id: `security:${event.event_id}`, duration: 12_000,

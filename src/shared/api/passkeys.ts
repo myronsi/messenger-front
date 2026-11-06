@@ -16,6 +16,13 @@ export const registerPasskey = async (body: components['schemas']['PasskeyRegist
   if (result.error) throw new Error('The passkey could not be registered. Please try again.');
 };
 
+export class PasskeyVerifyError extends Error {
+  constructor() {
+    super('Passkey sign-in failed. Please try again.');
+    this.name = 'PasskeyVerifyError';
+  }
+}
+
 export const signInWithPasskey = async (username = '', autofill = false, signal?: AbortSignal) => {
   const options = await publicApiClient.POST('/auth/passkeys/login/options', {
     body: username.trim() ? { username: username.trim().toLowerCase() } : {}, signal,
@@ -29,8 +36,11 @@ export const signInWithPasskey = async (username = '', autofill = false, signal?
   if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
   const result = await publicApiClient.POST('/auth/passkeys/login/verify', {
     body: { challenge_id: options.data.challenge_id, credential: { ...credential } }, signal,
+  }).catch((failure: unknown) => {
+    if (signal?.aborted) throw failure;
+    throw new PasskeyVerifyError();
   });
-  if (result.error || !result.data?.access_token) throw new Error('Passkey sign-in failed. Please try again.');
+  if (result.error || !result.data?.access_token) throw new PasskeyVerifyError();
   if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
   setAccessToken(result.data.access_token);
   const me = await apiClient.GET('/me');
