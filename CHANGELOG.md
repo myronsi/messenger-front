@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.10](https://github.com/myronsi/messenger-front/compare/v0.6.9...v0.6.10) (2026-11-06)
+
+
+### Features
+
+* **security:** recovery, passkeys, QR sign-in and redesigned security pages ([#150](https://github.com/myronsi/messenger-front/issues/150)) ([6fb3e12](https://github.com/myronsi/messenger-front/commit/6fb3e122fb3d9765b29971a2ba3724cc437d34f1))
+
 ## [0.6.9](https://github.com/myronsi/messenger-front/compare/v0.6.8...v0.6.9) (2026-11-05)
 
 
