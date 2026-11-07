@@ -14,7 +14,7 @@ export const applyCall = (state: CallsState, call: Call): CallsState => {
   return { byId: { ...state.byId, [call.id]: call } };
 };
 
-export const applyCalls = (state: CallsState, calls: readonly Call[]) => calls.reduce(applyCall, state);
+export const applyCalls = (state: CallsState, calls: readonly Call[]) => calls.reduce((current, call) => applyCall(current, call), state);
 
 export const pruneEndedCalls = (state: CallsState, now: number, keepMs = ENDED_CALL_RETENTION_MS): CallsState => {
   const stale = Object.values(state.byId).filter((call) => call.state === 'ended' && now - Date.parse(call.ended_at ?? call.created_at) > keepMs);

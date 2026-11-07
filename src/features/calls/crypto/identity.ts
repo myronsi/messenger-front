@@ -20,7 +20,10 @@ export const exportIdentityKey = async (publicKey: CryptoKey) => toBase64Url(new
 
 const request = <T,>(run: IDBRequest<T>) => new Promise<T>((resolve, reject) => {
   run.onsuccess = () => resolve(run.result);
-  run.onerror = () => reject(run.error);
+  run.onerror = () => {
+    const error = run.error;
+    reject(error instanceof Error ? error : new Error('IndexedDB request failed'));
+  };
 });
 
 const openDb = () => {
