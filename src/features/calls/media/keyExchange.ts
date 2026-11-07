@@ -20,11 +20,11 @@ export interface KeyExchangeOptions {
   onOwnKey: (epoch: number) => void;
   onFailure: (epoch: number) => void;
   retryDelayMs?: number;
+  maxRetryDelayMs?: number;
 }
 
 const MAX_PENDING = 128;
 const MAX_ENVELOPES_PER_REQUEST = 64;
-const MAX_ATTEMPTS = 3;
 
 export const participantIdentity = (userId: string, sessionId: string) => `${userId}:${sessionId}`;
 
@@ -36,6 +36,9 @@ export class KeyExchange {
   private disposed = false;
   private identityRefreshed = false;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private publishing: number | null = null;
+  private attempt = 0;
+  private draft: { epoch: number; key: Uint8Array } | null = null;
 
   constructor(private readonly options: KeyExchangeOptions) {}
 
@@ -44,27 +47,64 @@ export class KeyExchange {
   hasOwnKey = () => this.epoch >= 0 && this.ownEpoch === this.epoch;
 
   async handleCall(call: Call) {
-    const { callId, userId, sessionId, identity } = this.options;
+    const { callId } = this.options;
     if (this.disposed || call.id !== callId || call.epoch <= this.epoch) return;
     const previous = this.epoch;
     const roster = callRoster(call);
     this.epoch = call.epoch;
     this.rosters.set(call.epoch, roster);
     [...this.rosters.keys()].forEach((epoch) => { if (epoch !== call.epoch && epoch !== previous) this.rosters.delete(epoch); });
-    clearTimeout(this.retryTimer);
+    this.stopRetry();
+    this.attempt = 0;
     this.options.onEpoch(call.epoch, roster);
-    const me = roster.find((entry) => entry.user_id === userId && entry.session_id === sessionId);
-    if (!me) return;
-    if (me.identity_key !== identity.publicKey) {
-      await this.refreshIdentity(call.epoch);
-      return;
-    }
-    await Promise.all([this.publishOwnKey(call.epoch, roster, 1), this.catchUp()]);
+    await Promise.all([this.ensureOwnKey(), this.fetchEnvelopes()]);
   }
 
   async catchUp() {
-    const list = await this.options.api.keys(this.options.callId).catch(() => null);
-    await this.handleEnvelopes(list?.items ?? []);
+    await Promise.all([this.ensureOwnKey(), this.fetchEnvelopes()]);
+  }
+
+  private async fetchEnvelopes() {
+    let items: readonly CallKeyEnvelope[];
+    try {
+      items = (await this.options.api.keys(this.options.callId)).items;
+    } catch {
+      items = [];
+    }
+    await this.handleEnvelopes(items);
+  }
+
+  private senderKey(epoch: number) {
+    if (this.draft?.epoch !== epoch) {
+      this.dropDraft();
+      this.draft = { epoch, key: newSenderKey() };
+    }
+    return this.draft.key;
+  }
+
+  private dropDraft() {
+    this.draft?.key.fill(0);
+    this.draft = null;
+  }
+
+  private async ensureOwnKey() {
+    const { userId, sessionId, identity } = this.options;
+    const epoch = this.epoch;
+    const roster = this.rosters.get(epoch);
+    if (this.disposed || !roster || this.hasOwnKey() || this.publishing === epoch) return;
+    const me = roster.find((entry) => entry.user_id === userId && entry.session_id === sessionId);
+    if (!me) return;
+    if (me.identity_key !== identity.publicKey) {
+      await this.refreshIdentity(epoch);
+      return;
+    }
+    this.stopRetry();
+    await this.publishOwnKey(epoch, roster);
+  }
+
+  private stopRetry() {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = undefined;
   }
 
   private async refreshIdentity(epoch: number) {
@@ -78,9 +118,36 @@ export class KeyExchange {
     }
   }
 
-  private async publishOwnKey(epoch: number, roster: RosterEntry[], attempt: number) {
+  private retryDelay() {
+    const base = this.options.retryDelayMs ?? 1500;
+    return Math.min(base * 2 ** Math.min(this.attempt - 1, 10), this.options.maxRetryDelayMs ?? 30_000);
+  }
+
+  private scheduleRetry(epoch: number) {
+    if (this.disposed || epoch !== this.epoch) return;
+    this.attempt += 1;
+    this.options.onFailure(epoch);
+    this.stopRetry();
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      void this.ensureOwnKey();
+    }, this.retryDelay());
+  }
+
+  private async moveToFreshEpoch(epoch: number) {
+    const fresh = await this.options.api.get(this.options.callId).catch(() => null);
+    if (this.disposed || epoch !== this.epoch) return true;
+    if (!fresh || fresh.epoch <= this.epoch) return false;
+    this.options.onCall(fresh);
+    await this.handleCall(fresh);
+    return true;
+  }
+
+  private async publishOwnKey(epoch: number, roster: RosterEntry[]) {
     const { callId, userId, sessionId, identity, api, sink } = this.options;
-    const key = newSenderKey();
+    const key = this.senderKey(epoch);
+    this.publishing = epoch;
+    let failed = false;
     try {
       const envelopes = await Promise.all(roster.filter((entry) => entry.session_id !== sessionId).map(async (recipient) => ({
         recipient_session_id: recipient.session_id,
@@ -95,23 +162,21 @@ export class KeyExchange {
       await sink.setParticipantKey(participantIdentity(userId, sessionId), key, epoch);
       if (this.disposed || epoch !== this.epoch) return;
       this.ownEpoch = epoch;
+      this.attempt = 0;
+      this.dropDraft();
       this.options.onOwnKey(epoch);
     } catch (error) {
       if (this.disposed || epoch !== this.epoch) return;
-      if (callErrorCode(error) === 'stale_epoch') {
-        const fresh = await api.get(callId).catch(() => null);
-        if (!fresh || this.disposed) return;
-        this.options.onCall(fresh);
-        await this.handleCall(fresh);
-        return;
-      }
-      this.options.onFailure(epoch);
-      if (attempt < MAX_ATTEMPTS) {
-        this.retryTimer = setTimeout(() => { void this.publishOwnKey(epoch, roster, attempt + 1); }, (this.options.retryDelayMs ?? 1500) * attempt);
+      failed = callErrorCode(error) !== 'stale_epoch';
+      if (!failed) {
+        if (this.publishing === epoch) this.publishing = null;
+        failed = !await this.moveToFreshEpoch(epoch);
       }
     } finally {
-      key.fill(0);
+      if (this.publishing === epoch) this.publishing = null;
+      if (this.draft?.key === key && (this.disposed || epoch !== this.epoch)) this.dropDraft();
     }
+    if (failed) this.scheduleRetry(epoch);
   }
 
   async handleEnvelopes(items: readonly CallKeyEnvelope[]) {
@@ -153,7 +218,8 @@ export class KeyExchange {
 
   dispose() {
     this.disposed = true;
-    clearTimeout(this.retryTimer);
+    this.stopRetry();
+    this.dropDraft();
     this.pending = [];
     this.rosters.clear();
   }

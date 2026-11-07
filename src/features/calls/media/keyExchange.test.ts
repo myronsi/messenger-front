@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiProblem } from '@/shared/api/problem';
 import type { Call, CallKeyEnvelope, SendCallKeys } from '../api/callsApi';
 import { exportIdentityKey, generateIdentityKeys, type CallIdentity } from '../crypto/identity';
-import { sealSenderKey } from '../crypto/sealing';
+import { openSenderKey, sealSenderKey } from '../crypto/sealing';
 import { KeyExchange } from './keyExchange';
 
 const identity = async (): Promise<CallIdentity> => {
@@ -133,5 +133,63 @@ describe('epoch key exchange', () => {
     await exchange.handleCall(callWith(3, [outdated, bob]));
     await exchange.handleCall(callWith(4, [outdated, bob]));
     expect(setIdentity).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps publishing the own key for the current epoch until it is accepted, and reports the failure meanwhile', async () => {
+    const { alice, bob } = await setup();
+    const sendKeys = vi.fn(async () => undefined);
+    for (let i = 0; i < 5; i += 1) sendKeys.mockRejectedValueOnce(new Error('offline'));
+    const onFailure = vi.fn();
+    const onOwnKey = vi.fn();
+    const exchange = new KeyExchange({
+      callId: '10', userId: alice.user, sessionId: alice.session, identity: alice.identity, sink: { setParticipantKey: vi.fn(async () => undefined) },
+      api: { sendKeys, get: vi.fn(), setIdentity: vi.fn(), keys: vi.fn(async () => ({ call_id: '10', epoch: 3, items: [] })) },
+      onCall: vi.fn(), onEpoch: vi.fn(), onOwnKey, onFailure, retryDelayMs: 1, maxRetryDelayMs: 2,
+    });
+    await exchange.handleCall(callWith(3, [alice, bob]));
+    await vi.waitFor(() => expect(onOwnKey).toHaveBeenCalledWith(3));
+    expect(onFailure).toHaveBeenCalledTimes(5);
+    expect(sendKeys).toHaveBeenCalledTimes(6);
+    const bodies = sendKeys.mock.calls.map((args) => (args as unknown[])[1] as SendCallKeys);
+    const context = { callId: '10', epoch: 3, senderSessionId: 's-alice', recipientSessionId: 's-bob' };
+    const opened = await Promise.all([bodies[0], bodies[5]].map(async (body) => Array.from(
+      await openSenderKey(body.envelopes[0], bob.identity.keys, alice.identity.publicKey, context),
+    )));
+    expect(opened[0]).toEqual(opened[1]);
+    expect(exchange.hasOwnKey()).toBe(true);
+  });
+
+  it('retries when the fresh call cannot be loaded after a stale epoch', async () => {
+    const { alice, bob } = await setup();
+    const fresh = callWith(7, [alice, bob]);
+    const sendKeys = vi.fn(async () => undefined).mockRejectedValueOnce(new ApiProblem(409, { code: 'stale_epoch' }));
+    const get = vi.fn(async () => fresh).mockRejectedValueOnce(new Error('offline'));
+    const onFailure = vi.fn();
+    const exchange = new KeyExchange({
+      callId: '10', userId: alice.user, sessionId: alice.session, identity: alice.identity, sink: { setParticipantKey: vi.fn(async () => undefined) },
+      api: { sendKeys, get, setIdentity: vi.fn(), keys: vi.fn(async () => ({ call_id: '10', epoch: 6, items: [] })) },
+      onCall: vi.fn(), onEpoch: vi.fn(), onOwnKey: vi.fn(), onFailure, retryDelayMs: 1,
+    });
+    await exchange.handleCall(callWith(6, [alice, bob]));
+    expect(onFailure).toHaveBeenCalledWith(6);
+    await vi.waitFor(() => expect(exchange.hasOwnKey()).toBe(true));
+    expect(exchange.currentEpoch()).toBe(6);
+  });
+
+  it('publishes the missing own key again on catch-up, for example after a reconnect', async () => {
+    const { alice, bob } = await setup();
+    const sendKeys = vi.fn(async () => undefined).mockRejectedValueOnce(new Error('offline'));
+    const exchange = new KeyExchange({
+      callId: '10', userId: alice.user, sessionId: alice.session, identity: alice.identity, sink: { setParticipantKey: vi.fn(async () => undefined) },
+      api: { sendKeys, get: vi.fn(), setIdentity: vi.fn(), keys: vi.fn(async () => ({ call_id: '10', epoch: 2, items: [] })) },
+      onCall: vi.fn(), onEpoch: vi.fn(), onOwnKey: vi.fn(), onFailure: vi.fn(), retryDelayMs: 60_000,
+    });
+    await exchange.handleCall(callWith(2, [alice, bob]));
+    expect(exchange.hasOwnKey()).toBe(false);
+    await exchange.catchUp();
+    expect(exchange.hasOwnKey()).toBe(true);
+    await exchange.catchUp();
+    expect(sendKeys).toHaveBeenCalledTimes(2);
+    exchange.dispose();
   });
 });

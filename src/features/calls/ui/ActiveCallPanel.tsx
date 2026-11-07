@@ -8,6 +8,7 @@ import { endCallForEveryone, leaveCall, rejoinCall } from '../model/callControll
 import { enableCallAudio, selectInputDevice, selectOutputDevice, toggleMute } from '../model/callControls';
 import { canEndForEveryone } from '../model/permissions';
 import type { CallSession } from '../model/stores';
+import CallWarnings from './CallWarnings';
 import DeviceSelect from './DeviceSelect';
 import SecurityCodePanel from './SecurityCodePanel';
 import { useCallTitle, useGroupInfo, useNow, useUserName } from './callHooks';
@@ -70,13 +71,15 @@ const ActiveCallPanel: React.FC<ActiveCallPanelProps> = ({ call, session, userId
           {expanded ? <ChevronDown /> : <ChevronUp />}
         </Button>
       </header>
+      <CallWarnings session={session} />
       {expanded && (
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
-          <p className="flex items-center gap-2 text-sm">
-            <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {session.encryption === 'ready' ? translations.callEncrypted
-              : session.encryption === 'failed' ? translations.callEncryptionFailed : translations.callEncryptionPending}
-          </p>
+          {session.encryption !== 'failed' && (
+            <p className="flex items-center gap-2 text-sm">
+              <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {session.encryption === 'ready' ? translations.callEncrypted : translations.callEncryptionPending}
+            </p>
+          )}
           <ul aria-label={translations.callParticipantsCount.replace('{count}', String(visible.length))} className="divide-y divide-border">
             {visible.map((participant) => (
               <ParticipantRow key={participant.user_id} participant={participant} isMe={participant.user_id === userId} />
@@ -99,7 +102,7 @@ const ActiveCallPanel: React.FC<ActiveCallPanelProps> = ({ call, session, userId
           <Button variant="outline" size="sm" aria-expanded={showCode} onClick={() => setShowCode((value) => !value)}>
             {showCode ? translations.callHideSecurityCode : translations.callShowSecurityCode}
           </Button>
-          {(showCode || session.keyChanges.length > 0) && <SecurityCodePanel session={session} compact={!showCode} />}
+          {showCode && <SecurityCodePanel session={session} />}
         </div>
       )}
       <footer className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">

@@ -11,6 +11,11 @@ export interface TrustResult {
   changed: RosterEntry[];
 }
 
+export interface TrustCheck {
+  changed: RosterEntry[];
+  commit: () => void;
+}
+
 export const compareIdentities = (known: KnownIdentities, entries: readonly (RosterEntry & { fingerprint: string })[]): TrustResult => {
   const next = { ...known };
   const changed: RosterEntry[] = [];
@@ -34,13 +39,15 @@ const read = (account: string): KnownIdentities => {
   }
 };
 
-export const checkKnownIdentities = async (account: string, entries: readonly RosterEntry[]) => {
+export const checkKnownIdentities = async (account: string, entries: readonly RosterEntry[]): Promise<TrustCheck> => {
   const withFingerprints = await Promise.all(entries.map(async (entry) => ({ ...entry, fingerprint: await identityFingerprint(entry.identity_key) })));
-  const result = compareIdentities(read(account), withFingerprints);
-  try {
-    localStorage.setItem(storageKey(account), JSON.stringify(result.known));
-  } catch {
-    return result.changed;
-  }
-  return result.changed;
+  const { changed } = compareIdentities(read(account), withFingerprints);
+  const commit = () => {
+    try {
+      localStorage.setItem(storageKey(account), JSON.stringify(compareIdentities(read(account), withFingerprints).known));
+    } catch {
+      return;
+    }
+  };
+  return { changed, commit };
 };

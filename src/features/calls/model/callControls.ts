@@ -1,4 +1,5 @@
 import { currentEngine } from './callController';
+import { leaveUnjoinedStart } from './callRuntime';
 import { patchSession, sessionStore } from './stores';
 
 export const toggleMute = async () => {
@@ -8,13 +9,19 @@ export const toggleMute = async () => {
 };
 
 export const selectInputDevice = async (deviceId: string) => {
+  const engine = currentEngine();
   patchSession({ input: deviceId });
-  await currentEngine()?.selectInput(deviceId || 'default').catch(() => undefined);
+  if (!engine) return;
+  try {
+    await engine.selectInput(deviceId);
+  } catch {
+    if (currentEngine() === engine) patchSession({ notice: 'mic-failed', input: '' });
+  }
 };
 
 export const selectOutputDevice = async (deviceId: string) => {
   patchSession({ output: deviceId });
-  await currentEngine()?.selectOutput(deviceId || 'default').catch(() => undefined);
+  await currentEngine()?.selectOutput(deviceId).catch(() => undefined);
 };
 
 export const enableCallAudio = async () => {
@@ -23,6 +30,10 @@ export const enableCallAudio = async () => {
 
 export const setCodeVerified = (verified: boolean) => patchSession({ verified });
 
-export const dismissCallNotice = () => patchSession({ notice: null, otherTab: false });
+export const dismissCallNotice = () => patchSession({ notice: null });
 
-export const cancelTakeover = () => patchSession({ takeoverCallId: null });
+export const cancelTakeover = () => {
+  const { takeoverCallId } = sessionStore.get();
+  patchSession({ takeoverCallId: null });
+  leaveUnjoinedStart(takeoverCallId);
+};

@@ -9,6 +9,7 @@ import { authFetch } from '@/shared/auth/session';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { resolveNotificationChat } from './resolveNotificationChat';
 import { focusComposerWhenReady } from '@/shared/lib/notifications/replyFocus';
+import { routeNotificationChats } from '@/shared/lib/notifications/openChat';
 
 const BASE_URL = getApiBaseUrl();
 
@@ -69,6 +70,7 @@ export const useMessengerRouteSync = ({
 }: MessengerRouteSyncOptions) => {
   const routeBase = splitOverlayPath(location.pathname).base;
   const pathnameRef = useLatestRef(location.pathname);
+  useEffect(() => routeNotificationChats((path) => navigate(path)), [navigate]);
   useEffect(() => {
     const withOverlay = (path: string) => joinOverlayPath(path, splitOverlayPath(pathnameRef.current).overlay);
     const match = routeBase.match(/^\/chat\/(\d+)$/);

@@ -5,11 +5,18 @@ const settingsKey = new URL('/__notification_settings', self.location.origin).hr
 const MAX_LINES = 5;
 const MAX_IDS = 200;
 const ACTION_TITLES = {
-  en: { reply: 'Reply', read: 'Mark as read', many: (n) => `${n} new messages`, call: 'Incoming call', groupCall: 'Incoming group call' },
-  ru: { reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}`, call: 'Входящий звонок', groupCall: 'Входящий групповой звонок' },
+  en: {
+    reply: 'Reply', read: 'Mark as read', many: (n) => `${n} new messages`, call: 'Incoming call', groupCall: 'Incoming group call',
+    missed: 'Missed call', ended: 'Call ended', answered: 'Answered on another device',
+  },
+  ru: {
+    reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}`, call: 'Входящий звонок', groupCall: 'Входящий групповой звонок',
+    missed: 'Пропущенный звонок', ended: 'Звонок завершён', answered: 'Принят на другом устройстве',
+  },
 };
 const CALL_MAX_RING_MS = 120000;
-const cancelledCalls = new Set();
+const cancelledCalls = new Map();
+const CALL_REASONS = new Set(['missed', 'declined', 'answered', 'ended']);
 const chatQueues = new Map();
 const readUpTo = new Map();
 async function notificationAccount() {
@@ -132,55 +139,99 @@ function callExpiry(value) {
   if (!Number.isFinite(value)) return 0;
   return value > 1e12 ? value : value * 1000;
 }
-async function closeCallNotifications(callId) {
-  for (const notification of await self.registration.getNotifications({ tag: `call-${callId}` })) {
-    if (notification.data?.call_id === callId) notification.close();
-  }
+function rememberCancel(callId, reason) {
+  cancelledCalls.delete(callId);
+  cancelledCalls.set(callId, reason);
+  if (cancelledCalls.size > 200) cancelledCalls.delete(cancelledCalls.keys().next().value);
 }
-async function closeExpiredCallNotifications() {
-  const now = Date.now();
-  for (const notification of await self.registration.getNotifications()) {
-    const data = notification.data;
-    if (data?.type === 'call' && Number(data.expires_at) <= now) notification.close();
-  }
-}
-async function handleCallPush(data) {
-  const callId = String(data.call_id);
-  if (!/^\d+$/.test(callId)) return;
-  if (data.action === 'cancel') {
-    cancelledCalls.add(callId);
-    if (cancelledCalls.size > 200) cancelledCalls.delete(cancelledCalls.values().next().value);
-    await closeCallNotifications(callId);
-    return;
-  }
-  const expiresAt = callExpiry(data.expires_at);
-  const remaining = expiresAt - Date.now();
-  if (data.action !== 'ring' || remaining <= 0 || cancelledCalls.has(callId)) return;
-  const settings = await notificationSettings();
-  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+function ringLook(data, settings) {
   const preview = data.preview === true;
   const avatar = preview && typeof data.avatar_token === 'string' && settings.api
     ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
-  const user = String(data.user_id);
-  if (user !== await notificationAccount() || cancelledCalls.has(callId)) return;
-  await self.registration.showNotification(preview ? String(data.title || 'Messenger') : 'Messenger', {
-    body: data.kind === 'group' ? titles.groupCall : titles.call,
-    icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png', tag: `call-${callId}`,
-    renotify: true, requireInteraction: true, silent: false,
-    data: { type: 'call', call_id: callId, chat_id: String(data.chat_id), user_id: user, expires_at: expiresAt },
+  return { title: preview ? String(data.title || 'Messenger') : 'Messenger', icon: avatar || '/pwa-192x192.png' };
+}
+function endedText(titles, reason) {
+  if (reason === 'answered') return titles.answered;
+  if (reason === 'missed' || reason === 'declined') return titles.missed;
+  return titles.ended;
+}
+async function ringNotification(callId) {
+  return (await self.registration.getNotifications({ tag: `call-${callId}` })).find((n) => n.data?.type === 'call' && n.data.call_id === callId);
+}
+async function showCallEnded(call, reason) {
+  const settings = await notificationSettings();
+  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+  const ring = await ringNotification(call.callId);
+  if (call.user !== await notificationAccount()) return;
+  await self.registration.showNotification(ring?.title || call.title || 'Messenger', {
+    body: endedText(titles, reason), icon: ring?.icon || call.icon || '/pwa-192x192.png', badge: '/pwa-64x64.png',
+    tag: `call-${call.callId}`, renotify: false, requireInteraction: false, silent: true,
+    data: { type: 'call-ended', call_id: call.callId, chat_id: call.chatId, user_id: call.user, reason },
   });
+}
+function inCallOrder(callId, task) {
+  return inChatOrder(`call-${callId}`, task);
+}
+async function replaceExpiredRings() {
+  const now = Date.now();
+  const account = await notificationAccount();
+  const expired = (await self.registration.getNotifications()).filter((n) => n.data?.type === 'call' && Number(n.data.expires_at) <= now);
+  await Promise.all(expired.map((notification) => {
+    const data = notification.data;
+    if (data.user_id !== account) { notification.close(); return undefined; }
+    const call = { callId: String(data.call_id), chatId: String(data.chat_id), user: String(data.user_id) };
+    return inCallOrder(call.callId, async () => {
+      if (await ringNotification(call.callId)) await showCallEnded(call, cancelledCalls.get(call.callId) || 'missed');
+    });
+  }));
+}
+async function handleCallPush(data) {
+  const callId = String(data.call_id);
+  const chatId = String(data.call_chat_id);
+  if (!/^\d+$/.test(callId) || !/^\d+$/.test(chatId)) return;
+  const call = { callId, chatId, user: String(data.user_id) };
+  if (data.action === 'cancel') {
+    const reason = CALL_REASONS.has(data.reason) ? data.reason : 'cancelled';
+    rememberCancel(callId, reason);
+    await inCallOrder(callId, () => showCallEnded(call, reason));
+    return;
+  }
+  if (data.action !== 'ring') return;
+  const settings = await notificationSettings();
+  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+  const look = ringLook(data, settings);
+  const expiresAt = callExpiry(data.expires_at);
+  const remaining = expiresAt - Date.now();
+  const ringing = await inCallOrder(callId, async () => {
+    if (remaining <= 0 || cancelledCalls.has(callId)) {
+      await showCallEnded({ ...call, ...look }, cancelledCalls.get(callId) || 'missed');
+      return false;
+    }
+    if (call.user !== await notificationAccount()) return false;
+    await self.registration.showNotification(look.title, {
+      body: data.kind === 'group' ? titles.groupCall : titles.call,
+      icon: look.icon, badge: '/pwa-64x64.png', tag: `call-${callId}`,
+      renotify: true, requireInteraction: true, silent: false,
+      data: { type: 'call', call_id: callId, chat_id: chatId, user_id: call.user, expires_at: expiresAt },
+    });
+    return true;
+  });
+  if (!ringing) return;
   await new Promise((resolve) => { setTimeout(resolve, Math.min(remaining, CALL_MAX_RING_MS)); });
-  await closeCallNotifications(callId);
+  await inCallOrder(callId, async () => {
+    if (!cancelledCalls.has(callId)) await showCallEnded({ ...call, ...look }, 'missed');
+  });
 }
 self.addEventListener('push', (event) => {
-  event.waitUntil(Promise.all([closeExpiredCallNotifications().catch(() => undefined), (async () => {
+  event.waitUntil(Promise.all([replaceExpiredRings().catch(() => undefined), (async () => {
     let data;
     try { data = event.data.json(); } catch { return; }
-    if (!data || String(data.user_id) !== await notificationAccount() || !/^\d+$/.test(String(data.chat_id))) return;
+    if (!data || String(data.user_id) !== await notificationAccount()) return;
     if (data.type === 'call') {
       await handleCallPush(data);
       return;
     }
+    if (!/^\d+$/.test(String(data.chat_id))) return;
     if (!Number.isFinite(data.expires_at) || data.expires_at * 1000 < Date.now()) return;
     await inChatOrder(String(data.chat_id), () => showChatNotification(data));
   })()]));
@@ -208,18 +259,21 @@ async function markRead(notification) {
 }
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(Promise.all([closeExpiredCallNotifications().catch(() => undefined), (async () => {
+  event.waitUntil(Promise.all([replaceExpiredRings().catch(() => undefined), (async () => {
     const data = event.notification.data;
     if (!data || data.user_id !== await notificationAccount() || !/^\d+$/.test(data.chat_id)) return;
     if (event.action === 'read') {
       await inChatOrder(data.chat_id, () => markRead(event.notification));
       return;
     }
-    const reply = event.action === 'reply' ? '&reply=1' : '';
-    const url = new URL(`/chat/${data.chat_id}?notification=1${reply}`, self.location.origin).href;
+    const reply = event.action === 'reply';
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
-    if (existing) { await existing.navigate(url); await existing.focus(); }
-    else await self.clients.openWindow(url);
+    if (existing) {
+      existing.postMessage({ type: 'open-chat', chatId: String(data.chat_id), notification: true, reply });
+      await existing.focus();
+      return;
+    }
+    await self.clients.openWindow(new URL(`/chat/${data.chat_id}?notification=1${reply ? '&reply=1' : ''}`, self.location.origin).href);
   })()]));
 });

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 
-function worker() {
+function worker(withWindow = true) {
   const events: Record<string, (event: unknown) => void> = {};
   const storage = new Map<string, Response>();
   const close = vi.fn();
@@ -26,7 +26,7 @@ function worker() {
     self: {
       location: { origin: 'https://chat.test' }, registration,
       addEventListener: (type: string, callback: (event: unknown) => void) => { events[type] = callback; },
-      clients: { openWindow, matchAll: async () => [{ url: 'https://chat.test/', navigate, focus, postMessage }] },
+      clients: { openWindow, matchAll: async () => (withWindow ? [{ url: 'https://chat.test/', navigate, focus, postMessage }] : []) },
     },
   });
   const dispatch = async (type: string, data: Record<string, unknown>) => {
@@ -64,8 +64,15 @@ describe('background notification worker', () => {
     const w = worker(); await w.account('1');
     const notification = { data: { user_id: '1', chat_id: '7' }, close: vi.fn() };
     await w.dispatch('notificationclick', { notification });
-    expect(w.navigate).toHaveBeenCalledWith('https://chat.test/chat/7?notification=1'); expect(w.focus).toHaveBeenCalled();
-    await w.account('2'); await w.dispatch('notificationclick', { notification }); expect(w.navigate).toHaveBeenCalledTimes(1);
+    expect(w.postMessage).toHaveBeenCalledWith({ type: 'open-chat', chatId: '7', notification: true, reply: false }); expect(w.focus).toHaveBeenCalled();
+    expect(w.navigate).not.toHaveBeenCalled();
+    await w.account('2'); await w.dispatch('notificationclick', { notification }); expect(w.postMessage).toHaveBeenCalledTimes(1);
+  });
+  it('opens a new window on the chat only when no app window exists', async () => {
+    const w = worker(false); await w.account('1');
+    await w.dispatch('notificationclick', { notification: { data: { user_id: '1', chat_id: '7' }, close: vi.fn() }, action: 'reply' });
+    expect(w.openWindow).toHaveBeenCalledWith('https://chat.test/chat/7?notification=1&reply=1');
+    expect(w.postMessage).not.toHaveBeenCalled();
   });
   it('stacks messages of one chat and shows the sender photo', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2/', language: 'ru' });
@@ -112,7 +119,8 @@ describe('background notification worker', () => {
   it('opens the chat ready for a reply', async () => {
     const w = worker(); await w.account('1');
     await w.dispatch('notificationclick', { notification: { data: { user_id: '1', chat_id: '7' }, close: vi.fn() }, action: 'reply' });
-    expect(w.navigate).toHaveBeenCalledWith('https://chat.test/chat/7?notification=1&reply=1');
+    expect(w.postMessage).toHaveBeenCalledWith({ type: 'open-chat', chatId: '7', notification: true, reply: true });
+    expect(w.navigate).not.toHaveBeenCalled();
   });
   it('updates the action language without changing the account', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2', language: 'en' });

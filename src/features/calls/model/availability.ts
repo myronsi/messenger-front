@@ -12,14 +12,49 @@ export const browserSupportsCallEncryption = () => {
   return typeof scope.RTCRtpSender !== 'undefined' && 'createEncodedStreams' in scope.RTCRtpSender.prototype;
 };
 
+const RETRY_BASE_MS = 2_000;
+const RETRY_MAX_MS = 60_000;
 let loading: Promise<void> | null = null;
+let retry: ReturnType<typeof setTimeout> | null = null;
+let failures = 0;
+let epoch = 0;
 
-export const loadCallConfig = () => {
-  loading ??= callsApi.config()
-    .then((config) => configStore.set(config))
-    .catch(() => configStore.set({ enabled: false, max_participants: 2, ring_timeout_seconds: 30 }))
-    .finally(() => { loading = null; });
-  return loading;
+const clearRetry = () => {
+  if (retry !== null) clearTimeout(retry);
+  retry = null;
+};
+
+export const stopCallConfigLoading = () => {
+  clearRetry();
+  failures = 0;
+  epoch += 1;
+  loading = null;
+};
+
+const scheduleRetry = () => {
+  if (retry !== null) return;
+  const delay = Math.min(RETRY_BASE_MS * 2 ** failures, RETRY_MAX_MS);
+  failures += 1;
+  retry = setTimeout(() => {
+    retry = null;
+    void loadCallConfig();
+  }, delay);
+};
+
+export const loadCallConfig = (): Promise<void> => {
+  if (loading) return loading;
+  const started = epoch;
+  const request = callsApi.config()
+    .then((config) => {
+      if (started !== epoch) return;
+      clearRetry();
+      failures = 0;
+      configStore.set(config);
+    })
+    .catch(() => { if (started === epoch) scheduleRetry(); })
+    .finally(() => { if (loading === request) loading = null; });
+  loading = request;
+  return request;
 };
 
 export const callsEnabledOnServer = () => !!configStore.get()?.enabled;

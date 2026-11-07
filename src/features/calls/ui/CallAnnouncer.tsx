@@ -4,6 +4,8 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import type { Call } from '../api/callsApi';
 import { useCallTitle } from './callHooks';
 
+const ANNOUNCE_DELAY_MS = 150;
+
 interface CallAnnouncerProps {
   incoming: Call | null;
   inCall: boolean;
@@ -18,11 +20,23 @@ const CallAnnouncer: React.FC<CallAnnouncerProps> = ({ incoming, inCall, userId 
   const announced = useRef<string | null>(null);
   const wasInCall = useRef(inCall);
 
+  const incomingId = incoming?.id ?? null;
+  const name = title || caller;
+
   useEffect(() => {
-    if (!incoming || announced.current === incoming.id || !(title || caller)) return;
-    announced.current = incoming.id;
-    setUrgent(fillTemplate(translations.callAnnounceIncoming, { name: title || caller }));
-  }, [caller, incoming, title, translations.callAnnounceIncoming]);
+    if (!incomingId) {
+      announced.current = null;
+      setUrgent('');
+      return undefined;
+    }
+    if (announced.current === incomingId || !name) return undefined;
+    setUrgent('');
+    const timer = window.setTimeout(() => {
+      announced.current = incomingId;
+      setUrgent(fillTemplate(translations.callAnnounceIncoming, { name }));
+    }, ANNOUNCE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [incomingId, name, translations.callAnnounceIncoming]);
 
   useEffect(() => {
     if (wasInCall.current && !inCall) setPolite(translations.callAnnounceEnded);

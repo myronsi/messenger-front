@@ -49,3 +49,12 @@ export const onMediaOwnershipChange = (listener: () => void) => {
   target.onmessage = () => listener();
   return () => target.close();
 };
+
+export const waitForMediaRelease = (onReleased: () => void) => {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  if (!locks || typeof AbortController === 'undefined') return () => undefined;
+  const controller = new AbortController();
+  void locks.request(LOCK_NAME, { signal: controller.signal }, () => undefined)
+    .then(() => { if (!controller.signal.aborted) onReleased(); }, () => undefined);
+  return () => controller.abort();
+};

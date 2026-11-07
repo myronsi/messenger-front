@@ -1,6 +1,6 @@
 import {
   AudioPresets, ConnectionQuality, DisconnectReason, MediaDeviceFailure, Room, RoomEvent, Track, createLocalAudioTrack, isE2EESupported,
-  supportsAudioOutputSelection, type LocalAudioTrack, type Participant, type RemoteTrack,
+  supportsAudioOutputSelection, type LocalAudioTrack, type Participant, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication,
 } from 'livekit-client';
 import E2EEWorker from 'livekit-client/e2ee-worker?worker';
 import type { Call, CallGrant, CallKeyEnvelope, CallsApi } from '../api/callsApi';
@@ -9,7 +9,9 @@ import { CallFailure } from '../model/errors';
 import type { CallSession, DeviceOption } from '../model/stores';
 import type { RosterEntry } from '../model/callState';
 import { CallKeyProvider } from './keyProvider';
-import { KeyExchange } from './keyExchange';
+import { KeyExchange, participantIdentity } from './keyExchange';
+import { MicrophoneGate } from './microphoneGate';
+import { RemoteAudio } from './remoteAudio';
 
 export const encryptionSupported = () => isE2EESupported();
 
@@ -59,14 +61,16 @@ export class CallEngine {
   private readonly provider = new CallKeyProvider();
   private readonly room: Room;
   private readonly keys: KeyExchange;
-  private readonly audio = document.createElement('div');
-  private readonly elements = new Map<RemoteTrack, HTMLMediaElement>();
-  private muted: boolean;
+  private readonly audio: RemoteAudio;
+  private readonly gate: MicrophoneGate;
   private published = false;
+  private connected = false;
+  private fallingBack = false;
   private closed = false;
 
   constructor(private readonly options: EngineOptions) {
-    this.muted = options.muted;
+    this.audio = new RemoteAudio(participantIdentity(options.userId, options.sessionId));
+    this.gate = new MicrophoneGate(options.microphone, options.muted, () => { void this.recoverMicrophone(); });
     this.room = new Room({
       encryption: { keyProvider: this.provider, worker: this.worker },
       adaptiveStream: false,
@@ -80,33 +84,24 @@ export class CallEngine {
       sink: this.provider, api: options.api,
       onCall: options.events.call,
       onEpoch: (epoch, roster) => {
-        void this.applyMicrophone();
+        void this.gate.setKeyReady(false);
+        this.audio.setRoster(roster);
         options.events.patch({ encryption: 'pending' });
         options.events.epoch(epoch, roster);
       },
       onOwnKey: () => { void this.onOwnKey(); },
       onFailure: () => options.events.patch({ encryption: 'failed' }),
     });
-    this.audio.hidden = true;
-    this.audio.dataset.callAudio = 'true';
-    document.body.appendChild(this.audio);
     this.bind();
   }
 
   private bind() {
     const { events } = this.options;
     this.room
-      .on(RoomEvent.TrackSubscribed, (track: RemoteTrack) => {
-        if (track.kind !== Track.Kind.Audio) return;
-        const element = track.attach();
-        this.elements.set(track, element);
-        this.audio.appendChild(element);
+      .on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+        this.audio.add(track, publication, participant.identity);
       })
-      .on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
-        track.detach();
-        this.elements.get(track)?.remove();
-        this.elements.delete(track);
-      })
+      .on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => this.audio.remove(track))
       .on(RoomEvent.AudioPlaybackStatusChanged, () => events.patch({ audioBlocked: !this.room.canPlaybackAudio }))
       .on(RoomEvent.Reconnecting, () => events.patch({ phase: 'reconnecting' }))
       .on(RoomEvent.Reconnected, () => {
@@ -119,7 +114,8 @@ export class CallEngine {
       })
       .on(RoomEvent.MediaDevicesChanged, () => { void this.refreshDevices(); })
       .on(RoomEvent.Disconnected, (reason?: DisconnectReason) => {
-        if (this.closed || reason === DisconnectReason.CLIENT_INITIATED) return;
+        if (this.closed || !this.connected || reason === DisconnectReason.CLIENT_INITIATED) return;
+        this.connected = false;
         events.lost(reason !== undefined && REMOVED.has(reason));
       });
   }
@@ -131,6 +127,7 @@ export class CallEngine {
     void this.keys.handleCall(call);
     await this.room.connect(grant.url, grant.token, { autoSubscribe: true });
     if (this.closed) return;
+    this.connected = true;
     events.patch({ phase: 'connected', audioBlocked: !this.room.canPlaybackAudio });
     await this.catchUpKeys();
     await this.refreshDevices();
@@ -153,16 +150,7 @@ export class CallEngine {
         return;
       }
     }
-    await this.applyMicrophone();
-  }
-
-  private async applyMicrophone() {
-    const { microphone } = this.options;
-    if (this.published) {
-      if (this.muted) await microphone.mute().catch(() => undefined);
-      else await microphone.unmute().catch(() => undefined);
-    }
-    microphone.mediaStreamTrack.enabled = !this.muted && this.keys.hasOwnKey();
+    if (this.keys.hasOwnKey()) await this.gate.setKeyReady(true);
   }
 
   handleCall(call: Call) {
@@ -174,17 +162,42 @@ export class CallEngine {
   }
 
   async setMuted(muted: boolean) {
-    this.muted = muted;
-    await this.applyMicrophone();
+    await this.gate.setMuted(muted);
+  }
+
+  private async switchInput(deviceId: string) {
+    const exact = !!deviceId;
+    if (this.published) await this.room.switchActiveDevice('audioinput', deviceId || 'default', exact);
+    else await this.options.microphone.setDeviceId(exact ? { exact: deviceId } : 'default');
   }
 
   async selectInput(deviceId: string) {
-    await this.room.switchActiveDevice('audioinput', deviceId);
-    await this.applyMicrophone();
+    try {
+      await this.switchInput(deviceId);
+    } catch (error) {
+      if (deviceId) await this.switchInput('').catch(() => undefined);
+      throw error;
+    } finally {
+      await this.gate.apply();
+      void this.refreshDevices();
+    }
+  }
+
+  private async recoverMicrophone() {
+    if (this.closed) return;
+    this.options.events.patch({ notice: 'mic-failed', input: '' });
+    if (this.fallingBack) return;
+    this.fallingBack = true;
+    try {
+      await this.options.microphone.setDeviceId('default').catch(() => undefined);
+      await this.gate.apply();
+    } finally {
+      this.fallingBack = false;
+    }
   }
 
   async selectOutput(deviceId: string) {
-    await this.room.switchActiveDevice('audiooutput', deviceId);
+    await this.room.switchActiveDevice('audiooutput', deviceId, false);
   }
 
   async startAudio() {
@@ -208,14 +221,13 @@ export class CallEngine {
     if (this.closed) return;
     this.closed = true;
     this.keys.dispose();
+    this.gate.dispose();
     try {
       await this.room.disconnect(true);
     } finally {
       this.options.microphone.stop();
       this.room.removeAllListeners();
-      this.audio.querySelectorAll('audio').forEach((element) => { element.srcObject = null; });
-      this.elements.clear();
-      this.audio.remove();
+      this.audio.dispose();
       this.worker.terminate();
     }
   }

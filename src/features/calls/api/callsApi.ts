@@ -32,9 +32,12 @@ export const callsApi = {
     if (result.response.status === 404) return null;
     return unwrap(result, 'Unable to load the call of this chat.');
   },
-  start: async (chatId: string) => unwrap(await apiClient.POST('/chats/{chat_id}/call', {
-    params: { path: { chat_id: chatId } }, body: { client_request_id: crypto.randomUUID() },
-  }), 'Unable to start the call.'),
+  start: async (chatId: string) => {
+    const result = await apiClient.POST('/chats/{chat_id}/call', {
+      params: { path: { chat_id: chatId } }, body: { client_request_id: crypto.randomUUID() },
+    });
+    return { call: unwrap(result, 'Unable to start the call.'), created: result.response.status === 201 };
+  },
   get: async (callId: string) => unwrap(await apiClient.GET('/calls/{call_id}', call(callId)), 'Unable to load the call.'),
   join: async (callId: string, takeover = false) => unwrap(
     await apiClient.POST('/calls/{call_id}/join', { ...call(callId), body: { takeover } }), 'Unable to join the call.',
