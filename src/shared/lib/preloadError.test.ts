@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setCallActive } from './callActivity';
 import { handlePreloadError, PRELOAD_RELOAD_KEY, PRELOAD_RELOAD_WINDOW_MS } from './preloadError';
 
 describe('handlePreloadError', () => {
@@ -43,5 +44,17 @@ describe('handlePreloadError', () => {
     handlePreloadError(new Event('vite:preloadError', { cancelable: true }), 1_000, reload);
     expect(handlePreloadError(new Event('vite:preloadError', { cancelable: true }), 1_000 + PRELOAD_RELOAD_WINDOW_MS, reload)).toBe(true);
     expect(reload).toHaveBeenCalledTimes(2);
+  });
+
+  it('offers the update instead of reloading while a call runs, and lets the error reach the error boundary', () => {
+    const reload = vi.fn();
+    const offer = vi.fn();
+    setCallActive(true);
+    const event = new Event('vite:preloadError', { cancelable: true });
+    expect(handlePreloadError(event, 2_000, reload, offer)).toBe(false);
+    setCallActive(false);
+    expect(reload).not.toHaveBeenCalled();
+    expect(offer).toHaveBeenCalledWith(2_000);
+    expect(event.defaultPrevented).toBe(false);
   });
 });

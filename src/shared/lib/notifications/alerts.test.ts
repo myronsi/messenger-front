@@ -4,6 +4,7 @@ import { authFetch } from '@/shared/auth/session';
 import { loadNotifications, resetNotifications } from './api';
 import { alertIncomingMessage, clearMessageAlerts } from './alerts';
 import { notifyMessageFrame } from './frames';
+import { routeNotificationChats } from './openChat';
 
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(() => 'notification-toast'), { dismiss: vi.fn() }) }));
 vi.mock('@/shared/auth/session', () => ({ authFetch: vi.fn() }));
@@ -93,6 +94,15 @@ describe('incoming message alerts', () => {
     const older = loadNotifications(); await configure();
     finish(new Response(JSON.stringify(settings({ preferences: { enabled: true, previews: true } })))); await older;
     alertIncomingMessage(incoming()); expect(toast).toHaveBeenCalledWith('Messenger', expect.anything());
+  });
+  it('opens the chat from the toast through the in-app router', () => {
+    const navigate = vi.fn();
+    const stop = routeNotificationChats(navigate);
+    alertIncomingMessage(incoming(), '8');
+    const options = (vi.mocked(toast).mock.lastCall as unknown[] | undefined)?.[1] as { action: { onClick: () => void } };
+    options.action.onClick();
+    stop();
+    expect(navigate).toHaveBeenCalledWith('/chat/7?notification=1');
   });
   it('dismisses displayed notification toasts on runtime cleanup', () => {
     alertIncomingMessage(incoming()); clearMessageAlerts(); expect(toast.dismiss).toHaveBeenCalledWith('notification-toast');

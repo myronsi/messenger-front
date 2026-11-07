@@ -8,6 +8,10 @@ Push requires the backend notification migration, API, worker and provider confi
 Web production builds keep the existing PWA worker and import `public/notification-worker.js`. Deploy both files
 over HTTPS. The notification worker stores the current enabled account independently of the asset cache, rejects
 pushes for other accounts, checks expiry, groups by conversation and focuses an existing app window on click.
+A click never reloads an open app: the worker posts `{ type: 'open-chat', chatId, notification: true, reply }` to the
+first app window and focuses it, and the app routes to `/chat/<id>?notification=1` in place
+(`src/shared/lib/notifications/openChat.ts`, registered by the messenger route sync). The worker opens a new window
+only when none exists. The in-app message toast uses the same in-app route.
 The destination route resolves the conversation through the authenticated API before showing it. Logout clears
 the worker account and removes the subscription and visible alerts. API session checks protect delivery if the
 client is offline during cleanup. Browser permission denial must be reversed through browser/OS settings.
@@ -17,6 +21,21 @@ alerts skip own messages, stale messages, muted chats and the focused conversati
 marker prevent duplicate live alerts across tabs. Separate devices receive independent alerts. Notification
 delivery is best effort at the OS/provider boundary; a worker crash just after provider acceptance can repeat an
 alert, although notification tags/collapse identifiers replace the previous conversation alert.
+
+## Call notifications
+
+Call invitations arrive as web pushes with `type: "call"` (see [audio calls](calls.md)). The chat of a call is in
+`call_chat_id`; the worker ignores `chat_id` on call pushes. `ring` shows one notification per call (tag
+`call-<call_id>`, localized "Incoming call", `requireInteraction`). Every accepted call push leaves a notification,
+because browsers penalise pushes that show nothing (WebKit drops the subscription, Chrome shows a generic one):
+
+- When the ring expires, the worker replaces it with a short "Missed call" notification under the same tag.
+- `cancel` replaces the ring with "Missed call" (`reason` `missed` or `declined`), "Answered on another device"
+  (`answered`) or "Call ended" (`ended` or no reason), without `requireInteraction`.
+- A ring that arrives expired or after its `cancel` shows the same result notification instead of ringing.
+- Pushes for another account show nothing, exactly like message pushes.
+
+A click opens the chat like a message notification. Chat mutes do not apply to calls.
 
 ## Native setup
 

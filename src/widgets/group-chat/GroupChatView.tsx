@@ -47,7 +47,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
       {isSearchOpen ? (
         <ChatHeaderSearch chatId={chatId} onClose={() => setIsSearchOpen(false)} onJumpToMessage={jumpToSearchResult} />
       ) : (
-      <GroupChatHeader name={currentGroupName} avatar={currentGroupAvatar} participantCount={groupDetails?.participants.length || 0}
+      <GroupChatHeader chatId={chatId} name={currentGroupName} avatar={currentGroupAvatar} participantCount={groupDetails?.participants.length || 0}
         description={groupDetails?.description} translations={translations} onBack={onBack} onOpenProfile={openGroupProfile}
         onOpenSearch={isPersistedId(chatId) ? () => setIsSearchOpen(true) : undefined} />
       )}

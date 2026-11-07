@@ -17,6 +17,7 @@ export interface PrivacySettings {
   profile_visibility: ExceptionPrivacyVisibility;
   presence_visibility: PresencePrivacyVisibility;
   read_receipts_enabled: boolean;
+  calls_enabled: boolean;
   direct_messages: DirectMessagePrivacyVisibility;
   group_invites: GroupInvitePrivacyVisibility;
   search_visibility: SearchVisibility;
