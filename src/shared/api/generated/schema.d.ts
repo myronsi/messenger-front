@@ -2275,7 +2275,6 @@ export interface paths {
          * @description Starts ringing the other members. A chat has at most one call that is not over: when one exists it is
          *     returned with `200` and the client joins it instead. `client_request_id` makes retries idempotent for
          *     24 hours. Starting does not join: the caller then calls `POST /calls/{call_id}/join`.
-         *     "503": { $ref: "#/components/responses/CallsUnavailable" }
          *
          *     Refused with `403` (`calls_not_allowed`) when the peer of a direct chat has calls turned off or one user
          *     blocked the other, `503` (`calls_unavailable`) when calls are off on the server.
@@ -8260,6 +8259,7 @@ export interface operations {
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["CallsUnavailable"];
         };
     };
     getCall: {
