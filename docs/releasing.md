@@ -54,6 +54,15 @@ One-time setup:
    because nginx drops server-level `add_header` lines in a location that sets its own. Run `nginx -t` before reloading.
    The full Content Security Policy is sent as `Content-Security-Policy-Report-Only` until the browser console shows no
    violations on staging and production; only `frame-ancestors 'none'` is enforced.
+   The policy uses the variable `$messenger_calls_host`, the host name of the LiveKit server that call grants point to
+   (for example `calls.example.com`; the browser connects to `wss://` and `https://` on it). Define it in the app's
+   `server` block before the includes, for example `set $messenger_calls_host calls.example.com;`, on staging with the
+   staging media host; a host without calls can set it to the app's own host name. Without it `nginx -t` fails with an
+   unknown variable, so define it before copying the new snippet, then `nginx -t && systemctl reload nginx`.
+   Releases cannot get this wrong on their own: `deploy.yml` and `deploy-staging.yml` only upload the built `dist`
+   archive and switch the `current` symlink; they never copy `deploy/nginx/*` or reload nginx. The snippet also sends
+   `Permissions-Policy: microphone=(self), camera=(self), geolocation=()`; the camera stays allowed for the QR sign-in
+   scanner.
 2. GitHub: create the environment `production` and add the secrets `SSH_HOST`, `SSH_USER`, `SSH_KEY` and `SSH_KNOWN_HOSTS` (output of `ssh-keyscan <host>`), as in the backend repository.
 3. GitHub repository variables (they are baked into the build): `VITE_BASE_URL` (for example `https://chat.example.com/api`) and `VITE_WS_URL` (for example `wss://chat.example.com/api`).
 4. Repository settings → Actions → General: allow workflows to create pull requests (needed by release-please).

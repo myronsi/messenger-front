@@ -167,6 +167,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const content = (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
       {isSearchOpen ? <ChatHeaderSearch chatId={chatId} onClose={() => setIsSearchOpen(false)} onJumpToMessage={jumpToSearchResult} /> : (<ChatHeader
+        chatId={chatId}
         chatName={chatName}
         chatDisplayName={chatDisplayName}
         isOnline={presence.is_online}

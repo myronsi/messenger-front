@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { notificationAccount, notificationSnapshot } from './api';
+import { openNotificationChatInApp } from './openChat';
 
 interface IncomingMessage { chatId: string; messageId: string; senderId: string; title: string; body: string; timestamp: string }
 const seen = new Set<string>();
@@ -39,7 +40,7 @@ export function alertIncomingMessage(message: IncomingMessage, activeChatId?: st
     const id = toast(latest.preferences.previews ? message.title : 'Messenger', {
       description: latest.preferences.previews ? message.body : ru ? 'Новое сообщение' : 'New message',
       action: { label: ru ? 'Открыть' : 'Open', onClick: () => {
-        if (user === notificationAccount() && scheduledGeneration === generation) window.location.assign(`/chat/${message.chatId}?notification=1`);
+        if (user === notificationAccount() && scheduledGeneration === generation) openNotificationChatInApp(message.chatId);
       } },
       onDismiss: (item) => { activeToasts.delete(item.id); }, onAutoClose: (item) => { activeToasts.delete(item.id); },
     });
