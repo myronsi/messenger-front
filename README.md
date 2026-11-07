@@ -48,7 +48,7 @@ Smoke tests need the local backend. They create synthetic users and data; use is
 - Every push to `main` automatically builds and deploys [staging](https://staging.messenger.viserix.com/) with staging API addresses.
 - Production frontend deployment follows a release. Deploy a compatible backend before a dependent frontend release.
 - The in-app [help page](https://messenger.viserix.com/docs) ships with the frontend; English and Russian content lives in `src/shared/lang/*/docs.ts`.
-- [Releasing and rollback](docs/releasing.md), [versioning](docs/versioning.md), [mobile setup](docs/mobile.md), [notifications](docs/notifications.md), and [passkey sign-in](docs/passkeys.md).
+- [Releasing and rollback](docs/releasing.md), [versioning](docs/versioning.md), [mobile setup](docs/mobile.md), [notifications](docs/notifications.md), [audio calls](docs/calls.md), and [passkey sign-in](docs/passkeys.md).
 - [Completed Go migration](docs/go-migration.md) explains current transport and account compatibility; the backend [retirement record](https://github.com/myronsi/messenger-back/blob/master/docs/python-retirement.md) documents archived data and removed infrastructure.
 
 ## Project structure

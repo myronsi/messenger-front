@@ -13,8 +13,9 @@ import { docs } from './docs';
 import { recoveryUi } from './recoveryUi';
 import { securityUi } from './securityUi';
 import { qrLogin } from './qrLogin';
+import { calls } from './calls';
 
 export const en = {
   ...auth, ...profile, ...chat, ...group, ...messages,
-  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin,
+  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls,
 };

@@ -18,6 +18,12 @@ marker prevent duplicate live alerts across tabs. Separate devices receive indep
 delivery is best effort at the OS/provider boundary; a worker crash just after provider acceptance can repeat an
 alert, although notification tags/collapse identifiers replace the previous conversation alert.
 
+## Call notifications
+
+Call invitations arrive as web pushes with `type: "call"` (see [audio calls](calls.md)). `ring` shows one notification
+per call (tag `call-<call_id>`, localized "Incoming call", `requireInteraction`) that closes itself when the ring
+expires; `cancel` closes it. A click opens the chat like a message notification. Chat mutes do not apply to calls.
+
 ## Native setup
 
 The client includes `@capacitor/push-notifications` for Capacitor 8. Native project creation/signing remains a

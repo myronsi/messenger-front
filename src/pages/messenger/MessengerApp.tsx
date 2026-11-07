@@ -16,6 +16,7 @@ import { useJumpRequest } from './model/useJumpRequest';
 import { QrApprovalRoute } from './ui/QrApprovalRoute';
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { CallProvider } from '@/features/calls';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -157,6 +158,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
       {isLoggedIn && isGoApi() && <RecoverySetupPrompt key={username} />}
       {isLoggedIn && <RecoveryApprovalPrompt key={`approval:${username}`} />}
       {isLoggedIn && <SecurityNoticeHandler key={`security:${username}`} />}
+      {isLoggedIn && <CallProvider key={`calls:${username}`} />}
       {isLoggedIn && qrRequestId && <QrApprovalRoute key={qrRequestId} requestId={qrRequestId} onClose={() => navigate('/', { replace: true })} />}
 
       {!isLoggedIn ? (

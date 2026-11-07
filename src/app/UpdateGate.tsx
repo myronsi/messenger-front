@@ -7,6 +7,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { dismissUpdate, useUpdateStatus } from '@/shared/api/updateGate';
 import { useServerVersionCheck } from '@/shared/api/useServerVersionCheck';
 import { reloadApp } from '@/shared/lib/reloadApp';
+import { useCallActive } from '@/shared/lib/callActivity';
 
 // Blocks the app when the backend rejects this client (or announces a higher minimum contract version).
 // Above the fixed panels of the app (the profile panel is z-[1000]), so the gate can never be hidden.
@@ -17,6 +18,7 @@ const UpdateGate = () => {
   const { translations } = useLanguage();
   // Bundled native builds cannot update by reloading; the update comes from the app store.
   const isNative = Capacitor.isNativePlatform();
+  const inCall = useCallActive();
   useServerVersionCheck();
 
   if (status === 'required') {
@@ -39,7 +41,7 @@ const UpdateGate = () => {
     );
   }
 
-  if (status === 'available') {
+  if (status === 'available' && !inCall) {
     return (
       <div
         role="status"

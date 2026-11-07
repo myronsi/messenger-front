@@ -24,7 +24,14 @@ export interface ForwardedFrom {
   sender_username?: string | null;
 }
 
-export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left';
+export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call';
+
+export interface CallSummaryInfo {
+  call_id: EntityId;
+  kind: 'direct' | 'group';
+  outcome: 'completed' | 'missed' | 'declined' | 'cancelled' | 'failed';
+  duration_seconds: number | null;
+}
 
 export interface SystemEventInfo {
   kind: SystemEventKind;
@@ -32,6 +39,7 @@ export interface SystemEventInfo {
   actor_name: string;
   target_id?: EntityId;
   target_name?: string;
+  call?: CallSummaryInfo;
 }
 
 export interface ChatLastMessage {

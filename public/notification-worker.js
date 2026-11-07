@@ -5,9 +5,11 @@ const settingsKey = new URL('/__notification_settings', self.location.origin).hr
 const MAX_LINES = 5;
 const MAX_IDS = 200;
 const ACTION_TITLES = {
-  en: { reply: 'Reply', read: 'Mark as read', many: (n) => `${n} new messages` },
-  ru: { reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}` },
+  en: { reply: 'Reply', read: 'Mark as read', many: (n) => `${n} new messages`, call: 'Incoming call', groupCall: 'Incoming group call' },
+  ru: { reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}`, call: 'Входящий звонок', groupCall: 'Входящий групповой звонок' },
 };
+const CALL_MAX_RING_MS = 120000;
+const cancelledCalls = new Set();
 const chatQueues = new Map();
 const readUpTo = new Map();
 async function notificationAccount() {
@@ -126,14 +128,62 @@ async function showChatNotification(data) {
     },
   });
 }
+function callExpiry(value) {
+  if (!Number.isFinite(value)) return 0;
+  return value > 1e12 ? value : value * 1000;
+}
+async function closeCallNotifications(callId) {
+  for (const notification of await self.registration.getNotifications({ tag: `call-${callId}` })) {
+    if (notification.data?.call_id === callId) notification.close();
+  }
+}
+async function closeExpiredCallNotifications() {
+  const now = Date.now();
+  for (const notification of await self.registration.getNotifications()) {
+    const data = notification.data;
+    if (data?.type === 'call' && Number(data.expires_at) <= now) notification.close();
+  }
+}
+async function handleCallPush(data) {
+  const callId = String(data.call_id);
+  if (!/^\d+$/.test(callId)) return;
+  if (data.action === 'cancel') {
+    cancelledCalls.add(callId);
+    if (cancelledCalls.size > 200) cancelledCalls.delete(cancelledCalls.values().next().value);
+    await closeCallNotifications(callId);
+    return;
+  }
+  const expiresAt = callExpiry(data.expires_at);
+  const remaining = expiresAt - Date.now();
+  if (data.action !== 'ring' || remaining <= 0 || cancelledCalls.has(callId)) return;
+  const settings = await notificationSettings();
+  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+  const preview = data.preview === true;
+  const avatar = preview && typeof data.avatar_token === 'string' && settings.api
+    ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
+  const user = String(data.user_id);
+  if (user !== await notificationAccount() || cancelledCalls.has(callId)) return;
+  await self.registration.showNotification(preview ? String(data.title || 'Messenger') : 'Messenger', {
+    body: data.kind === 'group' ? titles.groupCall : titles.call,
+    icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png', tag: `call-${callId}`,
+    renotify: true, requireInteraction: true, silent: false,
+    data: { type: 'call', call_id: callId, chat_id: String(data.chat_id), user_id: user, expires_at: expiresAt },
+  });
+  await new Promise((resolve) => { setTimeout(resolve, Math.min(remaining, CALL_MAX_RING_MS)); });
+  await closeCallNotifications(callId);
+}
 self.addEventListener('push', (event) => {
-  event.waitUntil((async () => {
+  event.waitUntil(Promise.all([closeExpiredCallNotifications().catch(() => undefined), (async () => {
     let data;
     try { data = event.data.json(); } catch { return; }
     if (!data || String(data.user_id) !== await notificationAccount() || !/^\d+$/.test(String(data.chat_id))) return;
+    if (data.type === 'call') {
+      await handleCallPush(data);
+      return;
+    }
     if (!Number.isFinite(data.expires_at) || data.expires_at * 1000 < Date.now()) return;
     await inChatOrder(String(data.chat_id), () => showChatNotification(data));
-  })());
+  })()]));
 });
 async function markRead(notification) {
   const data = notification.data;
@@ -158,7 +208,7 @@ async function markRead(notification) {
 }
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil((async () => {
+  event.waitUntil(Promise.all([closeExpiredCallNotifications().catch(() => undefined), (async () => {
     const data = event.notification.data;
     if (!data || data.user_id !== await notificationAccount() || !/^\d+$/.test(data.chat_id)) return;
     if (event.action === 'read') {
@@ -171,5 +221,5 @@ self.addEventListener('notificationclick', (event) => {
     const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
     if (existing) { await existing.navigate(url); await existing.focus(); }
     else await self.clients.openWindow(url);
-  })());
+  })()]));
 });

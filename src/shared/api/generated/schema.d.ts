@@ -2174,6 +2174,322 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calls/config": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether audio calls are available and their limits
+         * @description `enabled` is `false` when the server has no media service configured or calls are switched off; clients then
+         *     hide every call control. Clients must also check that the browser supports call encryption before offering
+         *     calls.
+         */
+        get: operations["getCallConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/call-identity": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Register this session's call identity public key
+         * @description One key per session (see `docs/calls-e2ee.md`). Registering a different key replaces the old one; if the
+         *     session is in a call, the call's epoch increases. The private key never leaves the client.
+         */
+        put: operations["setCallIdentity"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calls that are not over and involve the current user
+         * @description Calls ringing the user and calls the user has joined, newest first. Clients load this after every
+         *     (re)connect, because realtime events are best effort.
+         */
+        get: operations["listMyCalls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/call": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /** The chat's call that is not over */
+        get: operations["getChatCall"];
+        put?: never;
+        /**
+         * Start a call in the chat, or get the one already running
+         * @description Starts ringing the other members. A chat has at most one call that is not over: when one exists it is
+         *     returned with `200` and the client joins it instead. `client_request_id` makes retries idempotent for
+         *     24 hours. Starting does not join: the caller then calls `POST /calls/{call_id}/join`.
+         *     "503": { $ref: "#/components/responses/CallsUnavailable" }
+         *
+         *     Refused with `403` (`calls_not_allowed`) when the peer of a direct chat has calls turned off or one user
+         *     blocked the other, `503` (`calls_unavailable`) when calls are off on the server.
+         */
+        post: operations["startChatCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/{call_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * A call of one of the user's chats
+         * @description Ended calls stay readable for 90 days.
+         */
+        get: operations["getCall"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/{call_id}/join": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer or join a call with this session
+         * @description Answers a ringing call or joins a running group call, and returns a short-lived media grant for this
+         *     session. The session must have a call identity (`422`, `call_identity_required`). A user is in at most one
+         *     call with one session: `409` (`already_in_call`) unless `takeover` is `true`, which moves the user's
+         *     participation to this session (the other session is removed from the media room). Other `409` codes:
+         *     `call_ended`, `call_full`. The epoch of the call increases. The body is optional: no body, an empty body
+         *     and `{}` all join without takeover.
+         */
+        post: operations["joinCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/{call_id}/grant": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A fresh media grant for the session that joined
+         * @description For reconnecting to the media server. Only the session that joined gets one (`409` otherwise).
+         */
+        post: operations["renewCallGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/{call_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline a ringing call
+         * @description Stops the ringing on all of the user's devices. In a direct call this ends the call (`declined`); in a group
+         *     call only this user's invitation ends. Declining a call that no longer rings changes nothing.
+         */
+        post: operations["declineCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/{call_id}/leave": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Leave the call
+         * @description A direct call ends when either side leaves. A group call ends when the last participant has left and the
+         *     short reconnect grace has passed. The caller leaving a call nobody answered cancels it (`cancelled`).
+         */
+        post: operations["leaveCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/{call_id}/end": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End the call for everyone
+         * @description Allowed for the initiator, for both members of a direct call, and for the owner, admins and moderators of a
+         *     group (`403` otherwise). Everyone is removed from the media room.
+         */
+        post: operations["endCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/{call_id}/keys": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Key envelopes addressed to this session in the current epoch
+         * @description For catching up after a reconnect; the same envelopes also arrive as `call_keys` events.
+         */
+        get: operations["getCallKeys"];
+        put?: never;
+        /**
+         * Send this session's sealed sender key to the other participants
+         * @description Relays opaque HPKE envelopes (see `docs/calls-e2ee.md`). Only the session that joined may send, only for the
+         *     current epoch (`409`, `stale_epoch`), and only to sessions on the roster of that epoch (`422`). The server
+         *     never sees a plaintext key.
+         */
+        post: operations["sendCallKeys"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2238,7 +2554,7 @@ export interface components {
          *     codes must be treated like `internal_error`.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "internal_error";
+        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "internal_error";
         /** @description RFC 9457 problem details. `426 Upgrade Required` (`client_outdated`) uses the same format. */
         Problem: {
             /**
@@ -2432,6 +2748,8 @@ export interface components {
             direct_messages: components["schemas"]["DirectMessagePolicy"];
             group_invites: components["schemas"]["GroupInvitePolicy"];
             search_visibility: components["schemas"]["SearchVisibility"];
+            /** @description Whether others may ring this user. Calls are only possible from an existing direct chat or a shared group. */
+            calls_enabled: boolean;
             exceptions: components["schemas"]["PrivacyExceptions"];
         };
         UpdatePrivacySettingsRequest: {
@@ -2442,6 +2760,7 @@ export interface components {
             direct_messages?: components["schemas"]["DirectMessagePolicy"];
             group_invites?: components["schemas"]["GroupInvitePolicy"];
             search_visibility?: components["schemas"]["SearchVisibility"];
+            calls_enabled?: boolean;
         };
         PrivacyExceptionsRequest: {
             user_ids: components["schemas"]["Id"][];
@@ -2574,11 +2893,12 @@ export interface components {
             height: number | null;
         };
         /** @enum {string} */
-        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left";
+        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call";
         /**
          * @description What a `system` message records; set on system messages only, whose `content` is then `null`. The names
          *     are the display names at the time of the event. `target` fields are set for `member_added` and
-         *     `member_removed`.
+         *     `member_removed`. `call` is set for `call` messages: one per call, posted when the call ends, `actor` is the
+         *     initiator.
          */
         SystemEvent: {
             kind: components["schemas"]["SystemEventKind"];
@@ -2586,6 +2906,7 @@ export interface components {
             actor_name: string;
             target_id?: components["schemas"]["Id"];
             target_name?: string;
+            call?: components["schemas"]["CallSummary"];
         };
         MessagePage: {
             /** @description Oldest to newest */
@@ -2866,6 +3187,134 @@ export interface components {
         EmailResetAccepted: {
             message: string;
         };
+        CallConfig: {
+            enabled: boolean;
+            /** @description Most sessions joined to one call at the same time. */
+            max_participants: number;
+            /** @description How long an invitation rings before it counts as missed. */
+            ring_timeout_seconds: number;
+        };
+        CallIdentityRequest: {
+            public_key: components["schemas"]["CallIdentityKey"];
+        };
+        /** @description P-256 public key as an uncompressed point (65 bytes, first byte `0x04`), base64url without padding. */
+        CallIdentityKey: string;
+        /**
+         * @description `ringing` until someone answers, `active` while people are in it, `ended` afterwards.
+         * @enum {string}
+         */
+        CallState: "ringing" | "active" | "ended";
+        /**
+         * @description Why the call ended: `completed` (people talked), `missed` (nobody answered in time), `declined` (the peer of a
+         *     direct call declined), `cancelled` (the caller hung up before an answer), `failed` (the media service lost
+         *     the call).
+         * @enum {string}
+         */
+        CallEndReason: "completed" | "missed" | "declined" | "cancelled" | "failed";
+        /**
+         * @description `left` and `declined` can become `joined` again in a group call.
+         * @enum {string}
+         */
+        CallParticipantState: "ringing" | "joined" | "declined" | "missed" | "left";
+        CallParticipant: {
+            user_id: components["schemas"]["Id"];
+            state: components["schemas"]["CallParticipantState"];
+            /** @description The session that joined; `null` unless `state` is `joined`. */
+            session_id: string | null;
+            /** @description Call identity of the joined session; `null` unless `state` is `joined`. */
+            identity_key: components["schemas"]["CallIdentityKey"] | null;
+            /** @description When the participant last joined; `null` if never. */
+            joined_at: components["schemas"]["Timestamp"] | null;
+        };
+        Call: {
+            id: components["schemas"]["Id"];
+            chat_id: components["schemas"]["Id"];
+            /** @enum {string} */
+            kind: "direct" | "group";
+            state: components["schemas"]["CallState"];
+            end_reason: components["schemas"]["CallEndReason"] | null;
+            initiator_id: components["schemas"]["Id"];
+            created_at: components["schemas"]["Timestamp"];
+            /** @description First answer; `null` while nobody answered. */
+            started_at: components["schemas"]["Timestamp"] | null;
+            ended_at: components["schemas"]["Timestamp"] | null;
+            /** @description When ringing invitations of this call turn into `missed`. */
+            ring_expires_at: components["schemas"]["Timestamp"];
+            /** @description Key epoch; increases whenever the set of joined sessions or their identity keys change. */
+            epoch: number;
+            /** @description Increases with every change of the call; ignore events with a lower version than one already seen. */
+            version: number;
+            max_participants: number;
+            /** @description Everyone invited or joined, the initiator first. */
+            participants: components["schemas"]["CallParticipant"][];
+        };
+        CallList: {
+            items: components["schemas"]["Call"][];
+        };
+        StartCallRequest: {
+            /**
+             * Format: uuid
+             * @description Idempotency key chosen by the client.
+             */
+            client_request_id: string;
+        };
+        JoinCallRequest: {
+            /**
+             * @description Move the user's participation from another session to this one.
+             * @default false
+             */
+            takeover: boolean;
+        };
+        CallGrant: {
+            /** @description WebSocket URL of the media server (`wss://`). */
+            url: string;
+            /** @description Media access token for this call and session only; microphone audio only. */
+            token: string;
+            /** @description The participant identity inside the media room (`<user_id>:<session_id>`). */
+            identity: string;
+            expires_at: components["schemas"]["Timestamp"];
+        };
+        CallJoin: {
+            call: components["schemas"]["Call"];
+            grant: components["schemas"]["CallGrant"];
+        };
+        /** @description An HPKE Auth-mode envelope carrying one sender key (see `docs/calls-e2ee.md`). */
+        CallKeyEnvelope: {
+            epoch: number;
+            sender_user_id: components["schemas"]["Id"];
+            /** Format: uuid */
+            sender_session_id: string;
+            /** Format: uuid */
+            recipient_session_id: string;
+            /** @description HPKE encapsulated key, base64url without padding. */
+            enc: string;
+            /** @description Sealed sender key, base64url without padding. */
+            ciphertext: string;
+        };
+        CallKeyEnvelopeList: {
+            call_id: components["schemas"]["Id"];
+            epoch: number;
+            items: components["schemas"]["CallKeyEnvelope"][];
+        };
+        SendCallKeysRequest: {
+            epoch: number;
+            envelopes: components["schemas"]["OutgoingCallKeyEnvelope"][];
+        };
+        OutgoingCallKeyEnvelope: {
+            /** Format: uuid */
+            recipient_session_id: string;
+            enc: string;
+            ciphertext: string;
+        };
+        /** @description The call a `call` system message records. */
+        CallSummary: {
+            call_id: components["schemas"]["Id"];
+            /** @enum {string} */
+            kind: "direct" | "group";
+            outcome: components["schemas"]["CallEndReason"];
+            /** @description From the first answer to the end; `null` if nobody answered. */
+            duration_seconds: number | null;
+        };
     };
     responses: {
         /** @description The `X-Client-Api-Version` header has another MAJOR version than the server or is below `min_client_api_version` (`client_outdated`). Not returned by `/meta`, which clients use to find out the current versions. */
@@ -2976,6 +3425,21 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /**
+         * @description Calls are switched off on the server, or the server is at its call capacity (both `calls_unavailable`), or
+         *     the media service or a store is away for a moment (`internal_error`). Retry after `Retry-After` when it is
+         *     present; without it calls stay off until `GET /calls/config` reports them enabled.
+         */
+        CallsUnavailable: {
+            headers: {
+                /** @description Seconds until a retry may succeed */
+                "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
@@ -2990,6 +3454,7 @@ export interface components {
         RequestId: components["schemas"]["Id"];
         AttachmentId: components["schemas"]["AttachmentRef"];
         SessionId: string;
+        CallId: components["schemas"]["Id"];
         /** @description Version of the client app, for logs and the per-client metric. */
         ClientVersion: string;
         /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
@@ -7626,6 +8091,442 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+        };
+    };
+    getCallConfig: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Call availability */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    setCallIdentity: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CallIdentityRequest"];
+            };
+        };
+        responses: {
+            /** @description Stored */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    listMyCalls: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current calls */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    getChatCall: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current call of the chat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Call"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    startChatCall: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartCallRequest"];
+            };
+        };
+        responses: {
+            /** @description A call was already running in the chat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Call"];
+                };
+            };
+            /** @description The new call, ringing */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Call"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getCall: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The call */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Call"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    joinCall: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["JoinCallRequest"];
+            };
+        };
+        responses: {
+            /** @description Joined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallJoin"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    renewCallGrant: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The grant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallGrant"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    declineCall: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Declined */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    leaveCall: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Left */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    endCall: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ended */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    getCallKeys: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The envelopes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallKeyEnvelopeList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            426: components["responses"]["ClientOutdated"];
+            503: components["responses"]["CallsUnavailable"];
+        };
+    };
+    sendCallKeys: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                call_id: components["parameters"]["CallId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendCallKeysRequest"];
+            };
+        };
+        responses: {
+            /** @description Relayed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["CallsUnavailable"];
         };
     };
 }

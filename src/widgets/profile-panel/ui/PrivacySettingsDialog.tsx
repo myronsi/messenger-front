@@ -12,6 +12,7 @@ import type { PrivacyExceptionEffect, PrivacyExceptionKey } from '@/features/pro
 import type { PrivacyDetail } from '@/shared/lib/urlOverlay';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { Switch } from '@/shared/ui/switch';
+import { useCallsEnabledOnServer } from '@/features/calls';
 import { choiceOf, exceptionEffectsOf, modeFor, type PrivacyChoice } from '../model/privacyChoices';
 import { useChatPartners } from '../model/useChatPartners';
 import PrivacySettingPage from './PrivacySettingPage';
@@ -63,6 +64,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
     visibilityLabel, handlePrivacyChange, handleExceptionListChange, handleAddException, hasUnsavedChanges, saveChanges, discardChanges,
   } = usePrivacySettings(isActive);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const callsOnServer = useCallsEnabledOnServer();
   const isSaving = isUpdatingPrivacy || isUpdatingExceptions;
   const requestBack = () => (hasUnsavedChanges ? setConfirmLeave(true) : onBack());
   const save = async () => {
@@ -190,6 +192,16 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
                     <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{translations.readReceipts || 'Read receipts'}</span>
                     <Switch checked={!!privacySettings?.read_receipts_enabled} disabled={!privacySettings || isSaving}
                       onCheckedChange={(checked) => handlePrivacyChange('read_receipts_enabled', checked)} />
+                  </label>
+                ))}
+                {callsOnServer && group(translations.privacyCalls, (
+                  <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground">{translations.callsEnabledSetting}</span>
+                      <span className="block text-xs text-muted-foreground">{translations.callsEnabledDescription}</span>
+                    </span>
+                    <Switch checked={!!privacySettings?.calls_enabled} disabled={!privacySettings || isSaving}
+                      onCheckedChange={(checked) => handlePrivacyChange('calls_enabled', checked)} />
                   </label>
                 ))}
               </>
