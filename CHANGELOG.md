@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.11](https://github.com/myronsi/messenger-front/compare/v0.6.10...v0.6.11) (2026-11-07)
+
+
+### Features
+
+* **calls:** end-to-end encrypted audio calls ([#153](https://github.com/myronsi/messenger-front/issues/153)) ([9183e4d](https://github.com/myronsi/messenger-front/commit/9183e4d80d9507d90162ff59bd2fdd0f792dfca3))
+
 ## [0.6.10](https://github.com/myronsi/messenger-front/compare/v0.6.9...v0.6.10) (2026-11-06)
 
 
