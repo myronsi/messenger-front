@@ -20,8 +20,8 @@ interface Props { isActive: boolean; onBack: () => void }
 
 export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
   const pane = useSettingsLayout() === 'pane';
-  const { language, translations } = useLanguage();
-  const ru = language === 'ru';
+  const { translations } = useLanguage();
+  const t = translations.notificationSettings;
   const settings = useSyncExternalStore(subscribeNotifications, notificationSnapshot);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
@@ -32,10 +32,10 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
     if (!isActive) return;
     let cancelled = false;
     void loadNotifications().catch(() => {
-      if (!cancelled) setStatus({ type: 'error', text: ru ? 'Не удалось загрузить настройки.' : 'Unable to load settings.' });
+      if (!cancelled) setStatus({ type: 'error', text: t.loadFailed });
     });
     return () => { cancelled = true; };
-  }, [isActive, ru]);
+  }, [isActive, t.loadFailed]);
 
   useEffect(() => {
     if (!status) return undefined;
@@ -49,9 +49,9 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
     try {
       await action();
       setEnabledHere(notificationDeviceEnabled());
-      if (announce) setStatus({ type: 'success', text: translations.saved || (ru ? 'Сохранено' : 'Saved') });
+      if (announce) setStatus({ type: 'success', text: translations.saved || t.saved });
     } catch (cause) {
-      setStatus({ type: 'error', text: cause instanceof Error ? cause.message : ru ? 'Не удалось сохранить настройки.' : 'Unable to save settings.' });
+      setStatus({ type: 'error', text: cause instanceof Error ? cause.message : t.saveFailed });
     } finally {
       setBusy(false);
     }
@@ -62,27 +62,26 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
   };
 
   const toggles = [
-    ['enabled', ru ? 'Уведомления о сообщениях' : 'Message notifications', ru ? 'Оповещать о новых сообщениях.' : 'Alert me about new messages.'],
-    ['sound', ru ? 'Звук' : 'Sound', ru ? 'Проигрывать звук при новом сообщении.' : 'Play a sound for new messages.'],
-    ['previews', ru ? 'Показывать имя и текст сообщения' : 'Show sender and message previews',
-      ru ? 'По умолчанию текст сообщения скрыт на экране блокировки.' : 'Message content is hidden on the lock screen by default.'],
+    ['enabled', t.messageNotifications, t.messageNotificationsHint],
+    ['sound', t.sound, t.soundHint],
+    ['previews', t.previews, t.previewsHint],
   ] as const;
 
   const deviceDescription = !supported
-    ? ru ? 'Этот браузер не поддерживает push-уведомления.' : 'This browser does not support push notifications.'
+    ? t.pushUnsupported
     : enabledHere
-      ? ru ? 'Push-уведомления включены в этом браузере.' : 'Push notifications are on in this browser.'
-      : ru ? 'Получайте уведомления, даже когда вкладка закрыта.' : 'Get alerts even when this tab is closed.';
+      ? t.pushOn
+      : t.pushHint;
 
   return (
-    <section className="relative flex h-full flex-col bg-background" aria-label={ru ? 'Уведомления' : 'Notifications'}>
+    <section className="relative flex h-full flex-col bg-background" aria-label={t.title}>
       <PageBackHeader onBack={onBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbPage className="inline-flex items-center gap-2 font-medium">
                 <Bell className="h-4 w-4 text-muted-foreground" />
-                {translations.notifications || (ru ? 'Уведомления' : 'Notifications')}
+                {translations.notifications || t.title}
               </BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
@@ -106,13 +105,13 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         <p className="text-sm text-muted-foreground">
-          {ru ? 'Настройте уведомления о новых сообщениях.' : 'Choose how you hear about new messages.'}
+          {t.description}
         </p>
 
         {!settings ? (
           status?.type === 'error' ? (
             <Button variant="outline" disabled={busy} onClick={() => void perform(loadNotifications, false)}>
-              {ru ? 'Загрузить настройки' : 'Load settings'}
+              {t.loadSettings}
             </Button>
           ) : (
             <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-4 text-sm text-muted-foreground">
@@ -134,7 +133,7 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
 
             <div className="flex flex-col gap-3 rounded-md border border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <div className="text-sm font-medium text-foreground">{ru ? 'Это устройство' : 'This device'}</div>
+                <div className="text-sm font-medium text-foreground">{t.thisDevice}</div>
                 <div className="text-xs text-muted-foreground">{deviceDescription}</div>
               </div>
               <Button
@@ -144,14 +143,12 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
                 disabled={busy || !supported}
                 onClick={() => void perform(() => enabledHere ? disableNotificationDevice() : enableNotificationDevice(settings))}
               >
-                {enabledHere ? ru ? 'Отключить на этом устройстве' : 'Disable on this device' : ru ? 'Включить на этом устройстве' : 'Enable on this device'}
+                {enabledHere ? t.disableHere : t.enableHere}
               </Button>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              {ru
-                ? 'Чтобы отключить звук отдельного чата, нажмите на него правой кнопкой в списке чатов или откройте его профиль.'
-                : 'To mute a single conversation, right-click it in the chat list or open its profile.'}
+              {t.muteHint}
             </p>
           </div>
         )}

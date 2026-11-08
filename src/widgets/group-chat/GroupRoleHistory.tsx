@@ -4,6 +4,7 @@ import { useGetGroupRoleLogQuery, type GroupRoleEvent } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
+import { localeOf } from '@/shared/lang/languages';
 
 interface Props {
   chatId: EntityId;
@@ -15,7 +16,7 @@ const GroupRoleHistory: React.FC<Props> = ({ chatId, rolesKey }) => {
   const { currentData: data, isError, refetch } = useGetGroupRoleLogQuery(chatId, { refetchOnMountOrArgChange: true });
   useEffect(() => { refetch(); }, [refetch, rolesKey]);
   const items = data?.items ?? [];
-  const formatter = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' });
+  const formatter = new Intl.DateTimeFormat(localeOf(language), { dateStyle: 'short', timeStyle: 'short' });
   const describe = (event: GroupRoleEvent) => {
     const templates = {
       owner: translations.roleMadeOwner, admin: translations.roleMadeAdmin, moderator: translations.roleMadeModerator, member: translations.roleMadeMember,

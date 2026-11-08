@@ -15,6 +15,7 @@ import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
 import { hasRecoveryBesidesPasskeys, type RecoveryOverview } from '../model/recoveryMethods';
 import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
 import { SecurityRow, securityInput, securityLabel } from './SecuritySection';
+import { localeOf } from '@/shared/lang/languages';
 
 const isPhone = (name: string) => /phone|android|ios|ipad|pixel|galaxy|mobile/i.test(name);
 
@@ -32,7 +33,7 @@ export const PasskeySettings = ({ locked, enabled, overview }: { locked: boolean
   const [renamed, setRenamed] = useState('');
   const [removing, setRemoving] = useState<string | null>(null);
   const supported = browserSupportsWebAuthn();
-  const locale = language === 'ru' ? 'ru-RU' : 'en-GB';
+  const locale = localeOf(language);
   const removingLast = keys.length === 1 && Boolean(removing);
   const lastMethod = removingLast && overview !== undefined && !hasRecoveryBesidesPasskeys(overview);
   const refresh = () => dispatch(recoveryApi.util.invalidateTags(['Auth']));

@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { ProgressRing } from '@/shared/ui/ProgressRing';
 import type { RecoveryMethodId } from '../model/recoveryMethods';
 import { recoveryHealth } from '../model/recoveryHealth';
+import { localeOf } from '@/shared/lang/languages';
 
 const ringColors = { full: 'stroke-success', good: 'stroke-success', weak: 'stroke-warning', none: 'stroke-destructive' };
 
@@ -27,6 +28,6 @@ export const RecoveryOverviewCard = ({ canAddPasskey, onAction }: { canAddPasske
     </div>
     {health.next && health.actionLabel && <Button className="h-11 font-semibold" onClick={() => onAction(health.next!)}>{health.actionLabel}</Button>}
     {locked && <p role="status" className="w-full text-sm text-warning">
-      {fillTemplate(t.lockedNotice, { date: new Date(data.recovery_key.locked_until!).toLocaleString(language === 'ru' ? 'ru-RU' : undefined) })}</p>}
+      {fillTemplate(t.lockedNotice, { date: new Date(data.recovery_key.locked_until!).toLocaleString(localeOf(language, undefined)) })}</p>}
   </section>;
 };

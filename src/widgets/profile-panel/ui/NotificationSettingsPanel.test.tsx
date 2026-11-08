@@ -4,7 +4,10 @@ import NotificationSettingsPanel from './NotificationSettingsPanel';
 import { enableNotificationDevice } from '@/shared/lib/notifications/device';
 import { loadNotifications, saveNotifications } from '@/shared/lib/notifications/api';
 
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: {} }) }));
+vi.mock('@/shared/contexts/LanguageContext', async () => {
+  const { en } = await import('@/shared/lang/en');
+  return { useLanguage: () => ({ language: 'en', translations: en }) };
+});
 vi.mock('@/shared/lib/notifications/api', () => ({
   subscribeNotifications: () => () => undefined,
   notificationSnapshot: () => state,

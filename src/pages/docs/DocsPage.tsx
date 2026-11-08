@@ -12,6 +12,7 @@ import WhatsNewSection from './ui/WhatsNewSection';
 const LANGUAGES = [
   { value: 'en', label: 'EN' },
   { value: 'ru', label: 'RU' },
+  { value: 'es', label: 'ES' },
 ] as const;
 
 const DocsPage = ({ onClose }: { onClose?: () => void }) => {

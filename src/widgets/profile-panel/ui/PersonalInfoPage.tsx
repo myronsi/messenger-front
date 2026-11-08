@@ -8,6 +8,7 @@ import { Check, Loader2, UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { ProfileHero } from './ProfileHero';
 import { LeaveUnsavedDialog, UnsavedChangesBar } from './UnsavedChanges';
+import { localeOf } from '@/shared/lang/languages';
 
 interface PersonalInfoPageProps {
   avatarUrl: string;
@@ -34,7 +35,7 @@ interface PersonalInfoPageProps {
   onOpenAvatar?: (index: number) => void;
 }
 
-const memberSince = (value: string, language: string) => new Date(value).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-GB', { month: 'long', year: 'numeric' });
+const memberSince = (value: string, language: string) => new Date(value).toLocaleDateString(localeOf(language), { month: 'long', year: 'numeric' });
 
 const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
   avatarUrl, displayName, isUploadingAvatar, onPickAvatar, newDisplayName, displayNameChanged, displayNameInvalid, isUpdatingDisplayName, onDisplayNameChange,

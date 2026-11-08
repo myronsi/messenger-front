@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { APP_LANGUAGES, LANGUAGE_NAMES, isAppLanguage } from '@/shared/lang/languages';
 
 const THEME_ICONS: Record<ThemeChoice, typeof Sun> = { light: Sun, dark: Moon, system: Monitor };
 
@@ -18,14 +19,13 @@ export const AuthToolbar: React.FC = () => {
   const themeLabel = `${t.theme}: ${translations.appearance.themes[theme]}`;
   return (
     <div className="flex items-center gap-2">
-      <Select value={language} onValueChange={(value) => setLanguage(value as 'en' | 'ru')}>
+      <Select value={language} onValueChange={(value) => { if (isAppLanguage(value)) setLanguage(value); }}>
         <SelectTrigger aria-label={t.language} className="h-9 w-auto gap-2 border-input px-3 text-sm">
           <Globe className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="en">English</SelectItem>
-          <SelectItem value="ru">Русский</SelectItem>
+          {APP_LANGUAGES.map((code) => <SelectItem key={code} value={code}>{LANGUAGE_NAMES[code]}</SelectItem>)}
         </SelectContent>
       </Select>
       <DropdownMenu>

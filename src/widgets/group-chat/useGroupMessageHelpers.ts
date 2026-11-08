@@ -3,10 +3,11 @@ import { useCallback } from 'react';
 import type { Message } from '@/entities/message';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import type { GroupDetails } from './GroupProfileTypes';
+import type { AppLanguage } from '@/shared/lang/languages';
 
 interface UseGroupMessageHelpersArgs {
   username: string;
-  language: 'en' | 'ru';
+  language: AppLanguage;
   currentUserId: EntityId;
   groupDetails: Pick<GroupDetails, 'permissions'> | null;
 }

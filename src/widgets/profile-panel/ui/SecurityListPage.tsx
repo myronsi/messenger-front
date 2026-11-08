@@ -11,6 +11,7 @@ import { RecoveryOverviewCard } from './RecoveryOverviewCard';
 import { SecurityNavRow, SecuritySection } from './SecuritySection';
 import { SessionDurationRow } from './SessionsSection';
 import type { useSecuritySettings } from './useSecuritySettings';
+import { localeOf } from '@/shared/lang/languages';
 
 type Settings = ReturnType<typeof useSecuritySettings>;
 
@@ -29,7 +30,7 @@ export const SecurityListPage = ({ settings, overview, onOpen }: {
     twoFactorEnabled: securitySettings ? Boolean(securitySettings.two_factor_enabled) : undefined,
     sessionCount: sessionsData?.sessions?.length,
     latestActivity: latest && (events[latest.type] || t.eventFallback),
-    formatDate: value => new Date(value).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    formatDate: value => new Date(value).toLocaleDateString(localeOf(language), { day: 'numeric', month: 'short', year: 'numeric' }),
   });
   const recovery = overview ? recoveryMethods(overview) : [];
   const statusOf = (detail: SecurityDetail) => {

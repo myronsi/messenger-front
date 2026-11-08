@@ -5,6 +5,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import type { useSecuritySettings } from './useSecuritySettings';
 import { SecurityRow } from './SecuritySection';
+import { localeOf } from '@/shared/lang/languages';
 
 type Settings = ReturnType<typeof useSecuritySettings>;
 
@@ -24,7 +25,8 @@ export const SessionsList = ({ settings }: { settings: Settings }) => {
               {session.is_current && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">{translations.current}</span>}
             </div>
             <div className="truncate text-xs text-muted-foreground">
-              {locationLabel(session.location, language) ?? t.locationUnknown} · {translations.lastActive} {new Date(session.last_active_at).toLocaleString(language === 'ru' ? 'ru-RU' : undefined)}
+              {locationLabel(session.location, language) ?? t.locationUnknown} · {translations.lastActive}{' '}
+              {new Date(session.last_active_at).toLocaleString(localeOf(language, undefined))}
             </div>
           </div>
           <button type="button" onClick={() => handleRevokeSession(session.id, session.is_current)} aria-label={t.signOutSession} title={t.signOutSession}

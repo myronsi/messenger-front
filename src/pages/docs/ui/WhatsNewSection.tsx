@@ -1,6 +1,8 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ChangeKind, ChangelogRelease } from '../model/parseChangelog';
 import DocsCard from './DocsCard';
+import { localeOf } from '@/shared/lang/languages';
+import type { AppLanguage } from '@/shared/lang/languages';
 
 const KIND_ORDER: ChangeKind[] = ['features', 'fixes', 'performance'];
 
@@ -10,14 +12,14 @@ const KIND_STYLES: Record<ChangeKind, string> = {
   performance: 'bg-primary/10 text-primary',
 };
 
-const formatReleaseDate = (date: string, language: 'en' | 'ru') => new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+const formatReleaseDate = (date: string, language: AppLanguage) => new Intl.DateTimeFormat(localeOf(language, 'en-US'), {
   year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
 }).format(new Date(`${date}T00:00:00Z`));
 
 interface WhatsNewSectionProps {
   docs: Translations['docs'];
   releases: ChangelogRelease[];
-  language: 'en' | 'ru';
+  language: AppLanguage;
 }
 
 const WhatsNewSection = ({ docs, releases, language }: WhatsNewSectionProps) => (

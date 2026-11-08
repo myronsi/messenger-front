@@ -12,6 +12,7 @@ import { ApiProblem } from '@/shared/api/problem';
 import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
 import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
 import { SecurityRow, securityInput, securityLabel } from './SecuritySection';
+import { localeOf } from '@/shared/lang/languages';
 
 export interface CreatedRecoveryKey {
   recoveryKey: string;
@@ -34,7 +35,7 @@ export const RecoveryKeySettings = ({ onDismissSafetyChange, onCreated }: {
   useEffect(() => { onDismissSafetyChange?.(busy || Boolean(key)); }, [busy, key, onDismissSafetyChange]);
   useEffect(() => () => onDismissSafetyChange?.(false), [onDismissSafetyChange]);
   const locked = Boolean(status?.locked_until && new Date(status.locked_until).getTime() > Date.now());
-  const locale = language === 'ru' ? 'ru-RU' : undefined;
+  const locale = localeOf(language, undefined);
   const create = async () => {
     onDismissSafetyChange?.(true);
     setBusy(true); setError('');

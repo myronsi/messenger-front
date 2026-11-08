@@ -6,6 +6,7 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { recoveryKeyGroups } from '@/shared/lib/recoveryKeyGroups';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { localeOf } from '@/shared/lang/languages';
 
 const download = (content: string, type: string, name: string) => {
   const url = URL.createObjectURL(new Blob([content], { type }));
@@ -43,7 +44,7 @@ export const RecoveryKeyReceipt = ({ recoveryKey, username, onContinue, context 
   const fileText = () => [
     t.fileTitle,
     `${t.fileAccount}: ${username}`,
-    `${t.fileCreated}: ${new Date().toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+    `${t.fileCreated}: ${new Date().toLocaleDateString(localeOf(language), { day: 'numeric', month: 'short', year: 'numeric' })}`,
     '',
     groups.slice(0, 4).join('-'),
     groups.slice(4).join('-'),

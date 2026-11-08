@@ -3,6 +3,9 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { getAccessToken } from '@/shared/auth/session';
 import { notificationAccount, notificationRequest, type NotificationSettings } from './api';
+import { isAppLanguage } from '@/shared/lang/languages';
+
+const workerLanguage = (value: string | null) => (isAppLanguage(value) ? value : 'en');
 
 const DEVICE_KEY = 'messenger:notification-device';
 const activityClientId = crypto.randomUUID();
@@ -36,7 +39,7 @@ export function resumeNotificationNavigation() {
   if (data) openNotificationChat(data);
 }
 const accountMessage = (user: string) => ({
-  type: 'notification-account', user, api: getApiBaseUrl() || '', language: localStorage.getItem('language') === 'ru' ? 'ru' : 'en',
+  type: 'notification-account', user, api: getApiBaseUrl() || '', language: workerLanguage(localStorage.getItem('language')),
 });
 export async function startNativeNotifications() {
   if (!nativeNotifications()) return;
