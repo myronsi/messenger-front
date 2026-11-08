@@ -20,7 +20,6 @@ test('an existing Go user can enroll a recovery key after signing in', async ({ 
     await dialog.getByRole('button', { name: 'Create recovery key', exact: true }).click();
     await expect(dialog.getByTestId('recovery-key')).toBeVisible();
     await confirmRecoveryReceipt(dialog);
-    await dialog.getByRole('button', { name: 'I saved it, continue', exact: true }).click();
     await expect(dialog.getByText('A recovery key is set up.', { exact: false })).toBeVisible();
     await dialog.getByRole('button', { name: 'Close', exact: true }).click();
     await waitForMessenger(page);
@@ -40,25 +39,26 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
   try {
     await page.goto('/register');
     await page.getByLabel('Username').fill(user.username);
-    await page.getByLabel('Display Name').fill(user.displayName);
     await page.getByLabel('Password', { exact: true }).fill(user.password);
-    await page.getByRole('button', { name: 'Register', exact: true }).click();
+    await page.getByRole('button', { name: 'Create account', exact: true }).click();
     const key = await page.getByTestId('recovery-key').innerText();
     expect(key).toMatch(/^(?:[A-Z2-7]{4}-){7}[A-Z2-7]{4}$/);
     const textDownload = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Download .txt', exact: true }).click();
+    await page.getByRole('button', { name: 'Download recovery key', exact: true }).click();
     const text = await textDownload;
     expect(text.suggestedFilename()).toMatch(/\.txt$/);
-    expect(await readFile((await text.path())!, 'utf8')).toContain(`Username: ${user.username}\nRecovery key: ${key}`);
-    await page.getByRole('button', { name: 'Show QR code', exact: true }).click();
+    const groups = key.split('-');
+    const file = await readFile((await text.path())!, 'utf8');
+    expect(file).toContain(`Account: ${user.username}`);
+    expect(file).toContain(`${groups.slice(0, 4).join('-')}\n${groups.slice(4).join('-')}`);
+    await page.getByRole('button', { name: 'More ways to save', exact: true }).click();
     const qrDownload = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download QR', exact: true }).click();
     const qr = await qrDownload;
     expect(qr.suggestedFilename()).toMatch(/\.svg$/);
     expect(await readFile((await qr.path())!, 'utf8')).toContain('<svg');
-    await expect(page.getByRole('button', { name: 'I saved it, continue', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
     await confirmRecoveryReceipt(page);
-    await page.getByRole('button', { name: 'I saved it, continue', exact: true }).click();
     await skipRegistrationExtras(page);
     await waitForMessenger(page);
     await loginUser(otherPage, user);
@@ -78,7 +78,6 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     const replacement = await page.getByTestId('recovery-key').innerText();
     expect(replacement).not.toBe(key);
     await confirmRecoveryReceipt(page);
-    await page.getByRole('button', { name: 'I saved it, continue', exact: true }).click();
     await waitForMessenger(page);
     const checks = await page.evaluate(async ({ oldToken, username, key, password, api }) => {
       const headers = { 'Content-Type': 'application/json', 'X-Client-Version': 'recovery-e2e', 'X-Client-Api-Version': '2.0.0-alpha.1' };

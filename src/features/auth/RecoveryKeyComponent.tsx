@@ -5,7 +5,6 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { Card } from '@/shared/ui/card';
 import { endSession, setAccessToken } from '@/shared/auth/session';
 import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
 import { ApiProblem } from '@/shared/api/problem';
@@ -51,31 +50,31 @@ export const RecoveryKeyComponent = ({ onLoginSuccess, onBackToLogin, onTryAnoth
     { name: 'new_password', label: t.newPassword, type: 'password' }, { name: 'confirm', label: t.confirmPassword, type: 'password' },
   ];
   const username = form.username.trim().toLowerCase();
-  return <Card className="mx-auto flex w-full max-w-md flex-col gap-[18px] rounded-2xl p-6 shadow-sm sm:p-7">
+  return <div className="flex w-full flex-col gap-[18px]">
     {replacement ? <>
-      <p className="text-sm text-slate-700">{t.keyResetDone}</p>
-      <p className="text-sm text-slate-700">{t.methodsRemoved}</p>
+      <p className="text-sm text-subtle-foreground">{t.keyResetDone}</p>
+      <p className="text-sm text-subtle-foreground">{t.methodsRemoved}</p>
       <RecoveryKeyReceipt recoveryKey={replacement} username={username}
         onContinue={() => { setAccessToken(token); setReplacement(''); setToken(''); onLoginSuccess(username); }} />
     </> : <>
-      <button type="button" onClick={onBackToLogin} className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-[13px] text-slate-600 hover:underline">
+      <button type="button" onClick={onBackToLogin} className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-[13px] text-subtle-foreground hover:underline">
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />{t.backToSignIn}
       </button>
       <h1 className="text-[22px] font-bold leading-tight text-foreground">{t.keyTitle}</h1>
       <form className="flex flex-col gap-3.5" onSubmit={e => { e.preventDefault(); void submit(); }}>
         {fields.map(field => <div key={field.name} className="flex flex-col gap-1.5">
-          <Label htmlFor={`recover-${field.name}`} className="text-[13px] font-medium text-slate-700">{field.label}</Label>
-          <Input id={`recover-${field.name}`} type={field.type} value={form[field.name]} required className="h-11 border-slate-300"
+          <Label htmlFor={`recover-${field.name}`} className="text-[13px] font-medium text-subtle-foreground">{field.label}</Label>
+          <Input id={`recover-${field.name}`} type={field.type} value={form[field.name]} required className="h-11 border-input"
             minLength={field.name === 'new_password' ? 8 : undefined} maxLength={field.name === 'recovery_key' ? 128 : 256}
             autoComplete={field.name === 'username' ? 'username' : field.name === 'new_password' || field.name === 'confirm' ? 'new-password' : 'off'}
             onChange={e => setForm(f => ({ ...f, [field.name]: e.target.value }))} />
         </div>)}
-        <p className="text-sm text-slate-600">{t.keyHint}</p>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        <p className="text-sm text-subtle-foreground">{t.keyHint}</p>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <Button className="h-11 w-full font-semibold" disabled={busy}>{busy ? t.keyRecovering : t.resetPassword}</Button>
       </form>
       {onTryAnotherWay && <Button type="button" variant="link" className="h-11" onClick={onTryAnotherWay}>{t.tryAnotherWay}</Button>}
     </>}
     {twoFactor.dialog}
-  </Card>;
+  </div>;
 };

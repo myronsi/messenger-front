@@ -9,7 +9,6 @@ import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { Card } from '@/shared/ui/card';
 import { DeviceRecoveryWaiting } from './components/DeviceRecoveryWaiting';
 import { DEVICE_RECOVERY_TTL_MS } from './model/requestLifetimes';
 
@@ -99,44 +98,44 @@ export const DeviceRecoveryComponent = ({ onLoginSuccess, onBack, initialUsernam
   };
   const reset = () => { withdraw(); setRequest(null); setError(''); };
   const statusLabel = status === 'denied' ? t.statusDenied : status === 'used' ? t.statusUsed : t.statusExpired;
-  const label = 'text-[13px] font-medium text-slate-700';
+  const label = 'text-[13px] font-medium text-subtle-foreground';
   const waiting = Boolean(request) && status === 'pending';
-  return <Card className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl p-6 shadow-sm sm:p-7">
+  return <div className="flex w-full flex-col gap-5">
     {result?.recovery_key ? <>
-      <p className="text-sm text-slate-700">{t.methodsRemoved}</p>
+      <p className="text-sm text-subtle-foreground">{t.methodsRemoved}</p>
       <RecoveryKeyReceipt recoveryKey={result.recovery_key} username={username} onContinue={() => {
         setAccessToken(result.access_token); setResult(null); onLoginSuccess(username);
       }} />
     </> : <>
       {!request ? <form className="flex flex-col gap-3.5" onSubmit={event => { event.preventDefault(); void start(); }}>
         <h1 className="text-[22px] font-bold leading-tight text-foreground">{t.deviceTitle}</h1>
-        <p className="text-sm text-slate-600">{t.deviceIntro}</p>
+        <p className="text-sm text-subtle-foreground">{t.deviceIntro}</p>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="device-recovery-username" className={label}>{t.username}</Label>
-          <Input id="device-recovery-username" autoComplete="username" value={username} required minLength={3} className="h-11 border-slate-300"
+          <Input id="device-recovery-username" autoComplete="username" value={username} required minLength={3} className="h-11 border-input"
             onChange={event => setUsername(event.target.value)} />
         </div>
         <Button className="h-11 w-full font-semibold" disabled={busy}>{t.requestApproval}</Button>
       </form> : status === 'approved' ? <form className="flex flex-col gap-3.5" onSubmit={event => { event.preventDefault(); void complete(); }}>
-        <p role="status" className="text-[15px] font-semibold text-green-700">{t.approved}</p>
+        <p role="status" className="text-[15px] font-semibold text-success">{t.approved}</p>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="device-new-password" className={label}>{t.newPassword}</Label>
           <Input id="device-new-password" type="password" autoComplete="new-password" required minLength={8} maxLength={128}
-            className="h-11 border-slate-300" value={password} onChange={event => setPassword(event.target.value)} />
+            className="h-11 border-input" value={password} onChange={event => setPassword(event.target.value)} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="device-confirm-password" className={label}>{t.confirmPassword}</Label>
-          <Input id="device-confirm-password" type="password" autoComplete="new-password" required className="h-11 border-slate-300"
+          <Input id="device-confirm-password" type="password" autoComplete="new-password" required className="h-11 border-input"
             value={confirm} onChange={event => setConfirm(event.target.value)} />
         </div>
         <Button className="h-11 w-full font-semibold" disabled={busy}>{t.resetPassword}</Button>
       </form> : waiting ? <DeviceRecoveryWaiting username={username} matchNumber={request.match_number} seconds={seconds}
         totalSeconds={totalSeconds} onCancel={reset} onTryAnotherWay={() => { withdraw(); onBack(); }} /> : <>
-        <p role="status" className="text-sm text-slate-700">{fillTemplate(t.requestEnded, { status: statusLabel })}</p>
+        <p role="status" className="text-sm text-subtle-foreground">{fillTemplate(t.requestEnded, { status: statusLabel })}</p>
         <Button className="h-11" onClick={reset}>{t.tryAgain}</Button>
       </>}
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {!waiting && <Button variant="link" className="h-11" onClick={onBack}>{t.tryAnotherWay}</Button>}
     </>}
-  </Card>;
+  </div>;
 };

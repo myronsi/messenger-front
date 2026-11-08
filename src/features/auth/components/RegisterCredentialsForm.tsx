@@ -1,96 +1,78 @@
-import type { FormEvent } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import type { en } from '@/shared/lang/en';
+import { useState, type FormEvent } from 'react';
+import { Loader2, WandSparkles } from 'lucide-react';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
-
-type Translations = typeof en;
+import { validateRegisterField, type AccountField, type RegisterFieldErrors } from '../model/registerForm';
+import { generatePassword } from '../model/generatePassword';
+import { AuthField, PasswordInput } from './AuthFormParts';
+import { authInputClass, fieldMessageId } from './authFieldStyles';
+import { PasswordRuleList } from './PasswordRuleList';
 
 interface RegisterCredentialsFormProps {
   username: string;
-  displayName: string;
   password: string;
-  showPassword: boolean;
-  translations: Translations;
-  isDisplayNameValid: boolean;
+  fieldErrors: RegisterFieldErrors;
+  isSubmitting: boolean;
   onUsernameChange: (value: string) => void;
-  onDisplayNameChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
-  onPasswordVisibilityChange: (visible: boolean) => void;
+  onBlur: (field: AccountField) => void;
   onSubmit: (event: FormEvent) => void;
 }
 
 export const RegisterCredentialsForm = ({
-  username,
-  displayName,
-  password,
-  showPassword,
-  translations,
-  isDisplayNameValid,
-  onUsernameChange,
-  onDisplayNameChange,
-  onPasswordChange,
-  onPasswordVisibilityChange,
-  onSubmit,
-}: RegisterCredentialsFormProps) => (
-  <>
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div className="grid gap-2">
-        <Label htmlFor="username">{translations.username}</Label>
-        <Input
-          id="username"
-          type="text"
-          placeholder={translations.username}
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          value={username}
-          onChange={(event) => onUsernameChange(event.target.value)}
-          required
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="displayName">Display Name</Label>
-        <Input
-          id="displayName"
-          type="text"
-          placeholder="Display Name (3-50 characters)"
-          value={displayName}
-          onChange={(event) => onDisplayNameChange(event.target.value)}
-          maxLength={50}
-          required
-        />
-        {displayName && !isDisplayNameValid && (
-          <p className="text-sm text-destructive">Display name must be between 3 and 50 characters</p>
-        )}
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="password">{translations.password}</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            placeholder={translations.password}
-            value={password}
-            onChange={(event) => onPasswordChange(event.target.value)}
-          />
-          <button
-            type="button"
-            onMouseDown={() => onPasswordVisibilityChange(true)}
-            onMouseUp={() => onPasswordVisibilityChange(false)}
-            onMouseLeave={() => onPasswordVisibilityChange(false)}
-            onTouchStart={() => onPasswordVisibilityChange(true)}
-            onTouchEnd={() => onPasswordVisibilityChange(false)}
-            onTouchCancel={() => onPasswordVisibilityChange(false)}
-            onPointerDown={() => onPasswordVisibilityChange(true)}
-            onPointerUp={() => onPasswordVisibilityChange(false)}
-            onPointerCancel={() => onPasswordVisibilityChange(false)}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-          >
-            {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+  username, password, fieldErrors, isSubmitting, onUsernameChange, onPasswordChange, onBlur, onSubmit,
+}: RegisterCredentialsFormProps) => {
+  const { translations } = useLanguage();
+  const t = translations.authLayout;
+  const [generated, setGenerated] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const generate = () => {
+    onPasswordChange(generatePassword());
+    setGenerated(true);
+    setCopied(false);
+  };
+  const copy = () => {
+    void navigator.clipboard?.writeText(password).then(() => setCopied(true)).catch(() => setCopied(false));
+  };
+  const passwordOk = !validateRegisterField('password', password);
+  const errorText = (field: AccountField) => {
+    const error = fieldErrors[field];
+    return error ? t.errors[error] : undefined;
+  };
+  const described = (id: string, field: AccountField) => ({
+    'aria-describedby': fieldMessageId(id),
+    'aria-invalid': fieldErrors[field] ? true : undefined,
+    onBlur: () => onBlur(field),
+  });
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <AuthField id="register-username" label={translations.username} hint={t.usernameHint} error={errorText('username')}>
+        <Input id="register-username" name="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+          maxLength={32} value={username} onChange={(event) => onUsernameChange(event.target.value)}
+          className={authInputClass(Boolean(fieldErrors.username))} {...described('register-username', 'username')} />
+      </AuthField>
+      <AuthField id="register-password" label={translations.password} error={errorText('password')}
+        hint={generated ? t.generatedHint : undefined} valid={generated}
+        labelAside={(
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={generate} aria-label={t.generateActionLabel} title={t.generateActionLabel}
+            className="inline-flex items-center gap-1 rounded-sm text-[13px] text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <WandSparkles className="h-3.5 w-3.5" aria-hidden="true" />{t.generateAction}
           </button>
-        </div>
-      </div>
+        )}
+        footer={(focused) => (!generated && (focused || (password.length > 0 && !passwordOk))
+          ? <PasswordRuleList id="register-password-rules" password={password} /> : null)}>
+        <PasswordInput id="register-password" name="new-password" autoComplete="new-password" maxLength={128} value={password} revealed={generated}
+          showLabel={translations.signInScreen.holdToShowPassword} invalid={Boolean(fieldErrors.password)}
+          copy={generated ? { label: copied ? t.copied : t.copyGenerated, done: copied, onCopy: copy } : undefined}
+          onChange={(event) => { setGenerated(false); onPasswordChange(event.target.value); }} {...described('register-password', 'password')}
+          aria-describedby={`${fieldMessageId('register-password')} register-password-rules`} />
+      </AuthField>
+      <Button type="submit" className="mt-1 h-11 w-full text-[15px] font-semibold"
+        disabled={isSubmitting || !username.trim() || !password || Boolean(fieldErrors.username || fieldErrors.password)}>
+        {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+        {isSubmitting ? t.creatingAccount : t.createAccount}
+      </Button>
     </form>
-  </>
-);
+  );
+};

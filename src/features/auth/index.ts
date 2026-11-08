@@ -10,3 +10,5 @@ export { default as LoginComponent } from './LoginComponent';
 export { default as RegisterComponent } from './RegisterComponent';
 export { QrApprovalPage } from './QrApprovalPage';
 export { QrScannerDialog } from './components/QrScannerDialog';
+export { RegisterStepList, RegisterProgress } from './components/RegisterSteps';
+export { REGISTER_STEPS, type RegisterStep } from './model/registerForm';

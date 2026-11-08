@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import AuthFlowPage from './AuthFlowPage';
+import { AppearanceProvider } from '@/shared/contexts/AppearanceContext';
 
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en: translations } = await import('@/shared/lang/en');
@@ -22,7 +23,9 @@ vi.mock('@/features/auth', async () => {
   };
 });
 
-const renderAt = (path: string) => render(<MemoryRouter initialEntries={[path]}><AuthFlowPage onLoginSuccess={() => {}} /></MemoryRouter>);
+const renderAt = (path: string) => render(<AppearanceProvider>
+  <MemoryRouter initialEntries={[path]}><AuthFlowPage onLoginSuccess={() => {}} /></MemoryRouter>
+</AppearanceProvider>);
 
 describe('AuthFlowPage recovery chooser', () => {
   it('opens the chooser from "Forgot password?" and shows all three ways back in', () => {
@@ -68,9 +71,26 @@ const ReturnPath = () => {
 describe('AuthFlowPage QR approval link', () => {
   it('shows the sign-in form for a signed-out visitor and keeps the approval page as the return path', () => {
     const id = 'q'.repeat(32);
-    render(<MemoryRouter initialEntries={[`/qr/${id}`]}><AuthFlowPage onLoginSuccess={() => {}} /><ReturnPath /></MemoryRouter>);
+    render(<AppearanceProvider><MemoryRouter initialEntries={[`/qr/${id}`]}><AuthFlowPage onLoginSuccess={() => {}} /><ReturnPath /></MemoryRouter></AppearanceProvider>);
     expect(screen.getByRole('button', { name: 'Forgot password?' })).toBeInTheDocument();
     expect(screen.getByText('Sign in on this device first to approve the sign-in on your other device.')).toBeInTheDocument();
     expect(screen.getByText(`return to /qr/${id}`)).toBeInTheDocument();
+  });
+});
+
+describe('AuthFlowPage layout', () => {
+  it('shows the sign-up steps next to the form on the sign-up page', () => {
+    renderAt('/register');
+    const steps = screen.getByRole('list', { name: 'Step 1 of 4' });
+    expect(steps).toHaveTextContent('Account');
+    expect(steps).toHaveTextContent('Recovery key');
+    expect(screen.getByText('Account').closest('li')).toHaveAttribute('aria-current', 'step');
+  });
+
+  it('shows the brand panel, language and theme controls on the sign-in page', () => {
+    renderAt('/login');
+    expect(screen.getByText('Chats that look the way you like')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Language' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Theme: System' })).toBeInTheDocument();
   });
 });

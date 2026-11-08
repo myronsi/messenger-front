@@ -15,24 +15,24 @@ export const DeviceRecoveryWaiting = ({ username, matchNumber, seconds, totalSec
   return <div className="flex flex-col items-center gap-5 text-center">
     <div className="flex flex-col gap-1.5">
       <h1 className="text-[22px] font-bold leading-tight text-foreground">{t.waitingTitle}</h1>
-      <p className="text-sm text-slate-600">{before}<strong className="font-semibold text-foreground">{username}</strong>{after}</p>
+      <p className="text-sm text-subtle-foreground">{before}<strong className="font-semibold text-foreground">{username}</strong>{after}</p>
     </div>
     <ProgressRing progress={countdownProgress(seconds, totalSeconds)} size={176} stroke={8} label={ringLabel} className="stroke-primary">
       <span className="text-7xl font-extrabold leading-none tracking-tight text-foreground">{matchNumber}</span>
-      <span className="mt-1.5 text-[13px] tabular-nums text-slate-600">{fillTemplate(t.timeLeft, { time: formatCountdown(seconds) })}</span>
+      <span className="mt-1.5 text-[13px] tabular-nums text-subtle-foreground">{fillTemplate(t.timeLeft, { time: formatCountdown(seconds) })}</span>
     </ProgressRing>
-    <p role="status" className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-[13px] text-slate-700">
-      <span className="h-2 w-2 rounded-full bg-amber-500 motion-safe:animate-pulse" aria-hidden="true" />{t.waitingPill}
+    <p role="status" className="flex items-center gap-2 rounded-full bg-muted px-3 py-2 text-[13px] text-subtle-foreground">
+      <span className="h-2 w-2 rounded-full bg-warning motion-safe:animate-pulse" aria-hidden="true" />{t.waitingPill}
     </p>
     <ol className="flex w-full flex-col gap-2.5 text-left">
-      {steps.map((step, index) => <li key={index} className="flex gap-2.5 text-[13px] text-slate-700">
-        <span aria-hidden="true" className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
+      {steps.map((step, index) => <li key={index} className="flex gap-2.5 text-[13px] text-subtle-foreground">
+        <span aria-hidden="true" className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
           {index + 1}
         </span>{step}
       </li>)}
     </ol>
     <div className="flex w-full flex-wrap gap-2.5">
-      <Button variant="outline" className="h-11 flex-1 border-slate-300" onClick={onCancel}>{t.cancelRequest}</Button>
+      <Button variant="outline" className="h-11 flex-1 border-input" onClick={onCancel}>{t.cancelRequest}</Button>
       <Button variant="link" className="h-11 flex-1" onClick={onTryAnotherWay}>{t.tryAnotherWay}</Button>
     </div>
   </div>;
