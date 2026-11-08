@@ -12,8 +12,7 @@ export const RecoverySetupPrompt = () => {
   useEffect(() => {
     let active = true;
     void authFetch(`${getApiBaseUrl()}/me`).then(async r => {
-      if (r.ok) { const me = await r.json(); if (active) setOpen(me.recovery_setup_required === true ||
-        localStorage.getItem(`recovery_receipt_skipped:${me.username}`) === 'true'); }
+      if (r.ok) { const me = await r.json(); if (active) setOpen(me.recovery_setup_required === true); }
     }).catch(() => {});
     return () => { active = false; };
   }, []);
@@ -33,7 +32,7 @@ export const RecoverySetupPrompt = () => {
             Once a key is issued, save and acknowledge it before closing.
           </DialogDescription>
         </DialogHeader>
-        {open && <RecoveryKeySettings onDismissSafetyChange={onDismissSafetyChange} />}
+        {open && <RecoveryKeySettings onDismissSafetyChange={onDismissSafetyChange} onReceiptComplete={() => setOpen(false)} />}
       </DialogContent>
     </Dialog>
   );

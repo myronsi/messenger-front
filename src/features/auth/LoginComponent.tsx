@@ -76,6 +76,7 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
   return (
     <div className="flex w-full flex-col gap-6">
       <AuthHeader title={t.title} subtitle={t.subtitle} />
+      <AuthSwitchLink prompt={t.newHere} action={t.createAccount} onClick={onRegisterClick} />
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <AuthField id="username" label={translations.username}>
@@ -117,7 +118,6 @@ const LoginComponent: React.FC<LoginComponentProps> = ({ onLoginSuccess, onRegis
           onClick={() => setQrMode(true)}><QrCode aria-hidden="true" />{translations.authLayout.qrShort}</Button>
       </div>
 
-      <AuthSwitchLink prompt={t.newHere} action={t.createAccount} onClick={onRegisterClick} />
       {twoFactor.dialog}
     </div>
   );

@@ -53,12 +53,14 @@ export const PasskeyOffer = ({ username, onDone }: { username: string; onDone: (
     </div>
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="offer-passkey-name" className="text-[13px] font-medium text-subtle-foreground">{t.name}</Label>
-      <Input id="offer-passkey-name" className="h-11 border-input text-[15px]" maxLength={64} value={name} required onChange={event => setName(event.target.value)} />
+      <Input id="offer-passkey-name" className="h-11 border-input text-[15px]" aria-describedby="offer-passkey-name-hint" maxLength={64} value={name} required onChange={event => setName(event.target.value)} />
+      <p id="offer-passkey-name-hint" className="text-xs text-muted-foreground">{t.nameHint}</p>
     </div>
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="offer-passkey-password" className="text-[13px] font-medium text-subtle-foreground">{t.password}</Label>
-      <Input id="offer-passkey-password" className="h-11 border-input text-[15px]" type="password" autoComplete="current-password" value={password}
+      <Input id="offer-passkey-password" className="h-11 border-input text-[15px]" aria-describedby="offer-passkey-password-hint" type="password" autoComplete="current-password" value={password}
         required onChange={event => setPassword(event.target.value)} />
+      <p id="offer-passkey-password-hint" className="text-xs text-muted-foreground">{t.passwordHint}</p>
     </div>
     {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
     <Button className="h-11 w-full text-[15px] font-semibold" disabled={busy || !password}>{busy ? t.waiting : t.submit}</Button>

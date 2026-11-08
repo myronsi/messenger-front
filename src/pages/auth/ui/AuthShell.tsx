@@ -53,12 +53,12 @@ export const AuthShell: React.FC<{ aside?: React.ReactNode; children: React.Reac
           <BrandMark />
           {aside ?? <SignInAside />}
         </aside>
-        <main className="flex flex-1 flex-col px-5 pb-6 pt-4 sm:px-10 sm:pb-8 sm:pt-6">
-          <div className="flex items-center justify-between gap-3">
+        <main className="flex min-w-0 flex-1 flex-col px-4 pb-6 pt-4 sm:px-10 sm:pb-8 sm:pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
             <BrandMark className="lg:invisible" />
             <AuthToolbar />
           </div>
-          <div className="mx-auto flex w-full max-w-sm flex-1 flex-col pb-8 pt-10 animate-fade-in lg:pt-[72px]">{children}</div>
+          <div className="mx-auto flex w-full max-w-sm flex-1 flex-col pb-8 pt-6 sm:pt-10 animate-fade-in lg:pt-[72px]">{children}</div>
           <p className="text-center text-sm">
             <DocsLink className="rounded-sm text-muted-foreground hover:text-primary hover:underline">{translations.docsLink}</DocsLink>
           </p>

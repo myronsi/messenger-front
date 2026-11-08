@@ -4,7 +4,8 @@ import type { User } from '@/entities/user';
 import { useProfileAccountActions } from './useProfileAccountActions';
 
 const mutation = vi.hoisted(() => [() => ({ unwrap: () => Promise.resolve() }), { isLoading: false }]);
-vi.mock('@/features/profile', () => ({ useDeleteAccountMutation: () => mutation }));
+const updateUser = vi.hoisted(() => vi.fn());
+vi.mock('@/features/profile', () => ({ useDeleteAccountMutation: () => mutation, useUpdateUserMutation: () => [updateUser, { isLoading: false }] }));
 vi.mock('@/features/auth', () => ({ useLogoutMutation: () => mutation }));
 const { dispatch, authFetch } = vi.hoisted(() => ({ dispatch: vi.fn(), authFetch: vi.fn() }));
 vi.mock('@/entities/user', () => ({
@@ -34,6 +35,21 @@ describe('useProfileAccountActions', () => {
     const { result, rerender } = renderHook((props) => useProfileAccountActions(props), { initialProps: args(user()) });
     rerender(args(user({ bio: 'saved elsewhere' })));
     expect(result.current.newBio).toBe('saved elsewhere');
+  });
+
+  it('saves both profile fields in one update and uses the returned values', async () => {
+    updateUser.mockReturnValueOnce({ unwrap: async () => user({ display_name: 'Annie', bio: 'new bio' }) });
+    const initialProps = args(user());
+    const { result } = renderHook(() => useProfileAccountActions(initialProps));
+    act(() => {
+      result.current.setNewDisplayName('  Annie ');
+      result.current.setNewBio('new bio ');
+    });
+    await act(async () => { expect(await result.current.handleSavePersonalInfo()).toBe(true); });
+    expect(updateUser).toHaveBeenCalledExactlyOnceWith({ id: '1', display_name: 'Annie', bio: 'new bio ' });
+    expect(result.current.displayName).toBe('Annie');
+    expect(result.current.newBio).toBe('new bio');
+    expect(result.current.bio).toBe('new bio');
   });
 
   it('refreshes the photo history after an upload', async () => {

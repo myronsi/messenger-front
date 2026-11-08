@@ -9,7 +9,7 @@ import GroupComponent from '@/widgets/group-chat';
 import ProfileComponentRTK from '@/widgets/profile-panel';
 import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-panel';
 import { useMessengerController } from './model/useMessengerController';
-import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
+import { Button } from '@/shared/ui/button';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
 import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
@@ -25,6 +25,20 @@ import { CallProvider, CallStage } from '@/features/calls';
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
 }
+
+const SessionLoading = ({ label, retryLabel }: { label: string; retryLabel: string }) => {
+  const [canRetry, setCanRetry] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCanRetry(true), 5000);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return (
+    <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-background p-4 text-center">
+      <p role="status" className="text-sm text-muted-foreground">{label}</p>
+      {canRetry && <Button variant="outline" onClick={() => window.location.reload()}>{retryLabel}</Button>}
+    </main>
+  );
+};
 
 const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   const {
@@ -175,7 +189,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   );
 
   if (isLoading) {
-    return <MessengerAppSkeleton isMobile={isMobile} />;
+    return <SessionLoading label={translations.authLayout.checkingSession} retryLabel={translations.securityPage.retry} />;
   }
 
   return (

@@ -49,9 +49,9 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const { theme } = useAppearance();
   const {
     avatarFile, setAvatarFile, avatarCropUrl, setAvatarCropUrl, isUploading, bio, newBio, setNewBio,
-    displayName, newDisplayName, setNewDisplayName, isUpdatingBio, isUpdatingDisplayName, isAvatarViewerOpen, setIsAvatarViewerOpen, isVisible,
-    modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete, handleUpdateBio,
-    handleUpdateDisplayName, handleSavePersonalInfo, discardPersonalInfo, handleLogout, handleDeleteAccount, handleClose, displayNameChanged,
+    displayName, newDisplayName, setNewDisplayName, isSavingPersonalInfo, isAvatarViewerOpen, setIsAvatarViewerOpen, isVisible,
+    modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete,
+    handleSavePersonalInfo, discardPersonalInfo, handleLogout, handleDeleteAccount, handleClose, displayNameChanged,
     displayNameInvalid,
   } = useProfileAccountActions({ userData, refetchCurrentUser, onClose: safeClose, onLogout });
   const [avatarStart, setAvatarStart] = useState(0);
@@ -118,17 +118,17 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     slot('language', <LanguageSettingsPage language={language} onChange={(next) => { setLanguage(next); window.location.reload(); }} onBack={back} />),
     slot('personal', <PersonalInfoPage avatarUrl={avatarUrl} displayName={displayName} isUploadingAvatar={isUploading} onPickAvatar={pickAvatar}
       newDisplayName={newDisplayName} displayNameChanged={displayNameChanged} displayNameInvalid={displayNameInvalid}
-      isUpdatingDisplayName={isUpdatingDisplayName}
-      onDisplayNameChange={setNewDisplayName} onSaveDisplayName={handleUpdateDisplayName} bio={bio} newBio={newBio} isUpdatingBio={isUpdatingBio}
-      onBioChange={setNewBio} onSaveBio={handleUpdateBio} onSaveAll={handleSavePersonalInfo} onDiscard={discardPersonalInfo} onBack={back}
+      isSaving={isSavingPersonalInfo}
+      onDisplayNameChange={setNewDisplayName} bio={bio} newBio={newBio}
+      onBioChange={setNewBio} onSaveAll={handleSavePersonalInfo} onDiscard={discardPersonalInfo} onBack={back}
       username={userData.username} createdAt={userData.created_at} hasCustomAvatar={hasCustomAvatar}
       onOpenAvatar={openAvatar} />),
     slot('privacy', <PrivacySettingsPanel isActive={current === 'privacy'} detail={panelData.privacyDetail} showExceptions={panelData.privacyExceptions}
-      onOpenDetail={panelData.openPrivacyDetail} onBack={back}>
+      onOpenDetail={panelData.openPrivacyDetail} onOpenRequests={() => setActiveProfilePage('requests')} onBack={back}>
       <BlockedUsersSection blockedUsers={blockedUsers} handleUnblockUser={handleUnblockUser} isUnblockingUser={isUnblockingUser} />
     </PrivacySettingsPanel>),
     slot('notifications', <NotificationSettingsPanel isActive={current === 'notifications'} onBack={back} />),
-    slot('security', <SecuritySettingsPanel isActive={current === 'security'} detail={panelData.securityDetail}
+    slot('security', <SecuritySettingsPanel username={userData.username} isActive={current === 'security'} detail={panelData.securityDetail}
       onOpenDetail={(detail) => { if (!dismissBlockedRef.current) panelData.openSecurityDetail(detail); }}
       onBack={() => { if (!dismissBlockedRef.current) back(); }} onLoggedOut={onLogout} onDismissSafetyChange={onDismissSafetyChange}
       onDeleteAccount={handleDeleteAccount} isDeletingAccount={isDeletingAccount} />),

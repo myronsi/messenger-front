@@ -19,7 +19,8 @@ export interface CreatedRecoveryKey {
   username: string;
 }
 
-export const RecoveryKeySettings = ({ onDismissSafetyChange, onCreated }: {
+export const RecoveryKeySettings = ({ onDismissSafetyChange, onCreated, onReceiptComplete }: {
+  onReceiptComplete?: () => void;
   onDismissSafetyChange?: (blocked: boolean) => void; onCreated?: (created: CreatedRecoveryKey) => void;
 }) => {
   const { translations, language } = useLanguage();
@@ -54,12 +55,16 @@ export const RecoveryKeySettings = ({ onDismissSafetyChange, onCreated }: {
     } catch (e) { if (!isTwoFactorCancelled(e)) setError(e instanceof Error ? e.message : t.keyCreateFailed); }
     finally { setBusy(false); }
   };
+  const unconfirmed = user && localStorage.getItem(`recovery_receipt_skipped:${user.username}`) === 'true';
   const description = !status ? t.keyLoading : status.exists
-    ? [t.keyExists, status.created_at && fillTemplate(t.keyCreatedOn, { date: new Date(status.created_at).toLocaleDateString(locale) }), t.keyReplaceHint]
-      .filter(Boolean).join(' ')
+    ? [
+      unconfirmed ? t.keySavingUnconfirmed : t.keyExists,
+      status.created_at && fillTemplate(t.keyCreatedOn, { date: new Date(status.created_at).toLocaleDateString(locale) }),
+      t.keyReplaceHint,
+    ].filter(Boolean).join(' ')
     : t.keyMissing;
   return <SecurityRow id="recovery-key-settings" title={t.keyTitle} description={key ? undefined : description}>
-    {key ? <RecoveryKeyReceipt recoveryKey={key} username={user?.username || ''} onContinue={() => setKey('')} /> : <>
+    {key ? <RecoveryKeyReceipt recoveryKey={key} username={user?.username || ''} onContinue={() => { setKey(''); onReceiptComplete?.(); }} /> : <>
       {locked ? <p className="text-sm text-muted-foreground">{fillTemplate(t.lockedUntil, { date: new Date(status!.locked_until!).toLocaleString(locale) })}</p>
         : status && <form id="recovery-key-form" className="flex flex-col gap-3" onSubmit={e => { e.preventDefault(); void create(); }}>
           <div className="flex flex-col gap-1.5">

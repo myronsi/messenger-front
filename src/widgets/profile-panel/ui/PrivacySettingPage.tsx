@@ -16,12 +16,13 @@ interface PrivacySettingPageProps {
   disabled: boolean;
   translations: Translations;
   choiceLabel: (choice: string) => string;
+  onOpenRequests?: () => void;
   onChoose: (choice: PrivacyChoice) => void;
   onOpenExceptions: (effect: PrivacyExceptionEffect) => void;
 }
 
 const PrivacySettingPage: React.FC<PrivacySettingPageProps> = ({
-  title, hint, mode, modes, exceptionCount, supportsExceptions, disabled, translations, choiceLabel, onChoose, onOpenExceptions,
+  title, hint, mode, modes, exceptionCount, supportsExceptions, disabled, translations, choiceLabel, onOpenRequests, onChoose, onOpenExceptions,
 }) => {
   const selected = choiceOf(mode);
   const effects = supportsExceptions ? exceptionEffectsOf(selected) : [];
@@ -40,12 +41,18 @@ const PrivacySettingPage: React.FC<PrivacySettingPageProps> = ({
           >
             <span className="min-w-0">
               <span className={`block ${choice === selected ? 'font-medium text-primary' : 'text-foreground'}`}>{choiceLabel(choice)}</span>
+              {choice === 'wait_approval' && <span className="block text-xs text-muted-foreground">{translations.waitApprovalHint}</span>}
               {choice === 'shared_chats' && <span className="block text-xs text-muted-foreground">{translations.sharedChatsHint}</span>}
             </span>
             {choice === selected && <Check className="h-4 w-4 text-primary" />}
           </button>
         ))}
       </div>
+      {modes.includes('wait_approval') && (
+        <button type="button" disabled={!onOpenRequests} onClick={onOpenRequests} className="disabled:opacity-60 px-1 text-sm font-medium text-primary underline-offset-4 hover:underline">
+          {translations.appShell.messageRequests}
+        </button>
+      )}
       {effects.length > 0 && (
         <section>
           <p className="mb-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{translations.privacyExceptions}</p>

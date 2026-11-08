@@ -21,7 +21,7 @@ test('notification preferences persist and conversations can be muted', async ({
     await openProfile(page);
     await page.getByRole('button', { name: /Notifications/ }).click();
     const settings = page.getByRole('region', { name: 'Notifications', exact: true });
-    await expect(settings.getByLabel('Message notifications')).toBeChecked();
+    await expect(settings.getByLabel('New message alerts')).toBeChecked();
     await expect(settings.getByLabel('Show sender and message previews')).not.toBeChecked();
     const saved = page.waitForResponse((response) => response.url().endsWith('/me/notifications') && response.request().method() === 'PUT');
     await settings.getByLabel('Show sender and message previews').click();

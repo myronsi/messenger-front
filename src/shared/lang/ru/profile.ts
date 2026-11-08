@@ -1,4 +1,5 @@
 export const profile = {
+  profileSaveFailed: "Не удалось сохранить профиль. Попробуйте ещё раз.",
   profile: "Профиль",
   bio: "Описание",
   saveBio: "Сохранить описание",
@@ -100,6 +101,7 @@ export const profile = {
   selected: "выбрано",
   userNotFound: "Пользователь не найден",
   waitApproval: "Ждать моего подтверждения",
+  waitApprovalHint: "Новые собеседники могут отправить запрос. Они смогут продолжить чат после вашего одобрения.",
   cropProfilePicture: "Обрезать фото профиля",
   failedToLoadImage: "Не удалось загрузить изображение",
   noPreviousAvatars: "Нет предыдущих аватаров",

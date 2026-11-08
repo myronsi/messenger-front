@@ -1,4 +1,5 @@
 export const profile = {
+  profileSaveFailed: "No se pudo guardar tu perfil. Inténtalo de nuevo.",
   profile: "Perfil",
   bio: "Biografía",
   saveBio: "Guardar biografía",
@@ -100,6 +101,7 @@ export const profile = {
   selected: "seleccionados",
   userNotFound: "Usuario no encontrado",
   waitApproval: "Esperar mi aprobación",
+  waitApprovalHint: "Los nuevos remitentes pueden enviar una solicitud. Podrán seguir chateando cuando la apruebes.",
   cropProfilePicture: "Recortar foto de perfil",
   failedToLoadImage: "No se pudo cargar la imagen",
   noPreviousAvatars: "No hay avatares anteriores",

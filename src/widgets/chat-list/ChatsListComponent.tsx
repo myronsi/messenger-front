@@ -84,6 +84,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         getLastMessageTime={model.getLastMessageTime}
         isOwnLastMessage={model.isOwnLastMessage}
         isOwnLastMessageRead={model.isOwnLastMessageRead}
+        onStartChat={model.handleOpenSearch}
         onChatClick={model.handleChatClick}
         onChatContextMenu={model.handleChatContextMenu}
       />

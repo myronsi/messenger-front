@@ -54,12 +54,13 @@ interface PrivacySettingsPanelProps {
   showExceptions?: PrivacyExceptionEffect;
   onOpenDetail: (detail: PrivacyDetail | null, exceptions?: PrivacyExceptionEffect) => void;
   onBack: () => void;
+  onOpenRequests: () => void;
   children?: React.ReactNode;
 }
 
 const getAvatarSrc = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
 
-const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, detail, showExceptions, onOpenDetail, onBack, children }) => {
+const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, detail, showExceptions, onOpenDetail, onBack, onOpenRequests, children }) => {
   const {
     translations, currentUsername, privacySettings, isLoadingPrivacy, isUpdatingPrivacy, isUpdatingExceptions, isLookingUpUser, status,
     setActiveExceptionKey, exceptionDrafts, setExceptionDrafts, debouncedSearch, searchData, isSearchingUsers, dmCandidates,
@@ -211,6 +212,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
         )}
         {definition && !showingExceptions && (
           <PrivacySettingPage
+            onOpenRequests={hasUnsavedChanges ? undefined : onOpenRequests}
             title={definition.label(translations)} mode={mode} modes={definition.modes}
             hint={(nextEffect) => translations.privacyExceptionHints[definition.key][nextEffect]}
             exceptionCount={(nextEffect) => (exceptionKey ? exceptionsOf(exceptionKey, nextEffect).length : 0)} supportsExceptions={!!exceptionKey}

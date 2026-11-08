@@ -16,14 +16,17 @@ interface SearchUsersProps {
 
 const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations, onOpenPreview }) => {
   const [targetUser, setTargetUser] = useState('');
+  const query = targetUser.trim().replace(/^@/, '');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(targetUser.trim()), 300);
+    const t = setTimeout(() => setDebouncedSearch(query), 300);
     return () => clearTimeout(t);
-  }, [targetUser]);
+  }, [query]);
 
-  const { data: searchData } = useSearchUsersQuery(debouncedSearch, { skip: !debouncedSearch || debouncedSearch.length < 2 });
+  const { currentData: searchData, isError, isFetching } = useSearchUsersQuery(debouncedSearch, { skip: !debouncedSearch || debouncedSearch.length < 2 });
+
+  const settled = query === debouncedSearch && query.length >= 2 && !isFetching;
 
   return (
     <div className="border-b border-border">
@@ -40,13 +43,19 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
             className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-ellipsis"
           />
 
-          {debouncedSearch && searchData?.users && searchData.users.length > 0 && (
+          {settled && (isError || searchData?.users.length === 0) && (
+            <p role="status" className="mt-3 px-3 py-2 text-sm text-muted-foreground">
+              {isError ? translations.appShell.peopleSearchFailed : translations.appShell.noPeopleFound}
+            </p>
+          )}
+          {query === debouncedSearch && !!searchData?.users.length && (
             <div className="mt-3">
               <div className="bg-card border border-border rounded-md max-h-72 overflow-auto">
                 {searchData.users.map((u) => {
                   const isSelf = u.username?.toLowerCase() === currentUsername?.toLowerCase();
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={u.id}
                       onClick={() => {
                         if (isSelf) return;
@@ -54,23 +63,22 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
                       }}
                       data-testid="user-search-result"
                       data-username={u.username}
-                      role="button"
-                      tabIndex={isSelf ? -1 : 0}
-                      aria-disabled={isSelf}
-                      className={`flex items-center p-3 rounded-lg transition-all ${isSelf ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'}`}
+                      disabled={isSelf}
+                      className={`flex w-full items-center p-3 text-left rounded-lg transition-all ${isSelf ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'}`}
                     >
                       <AuthenticatedImage
                         src={resolveMediaUrl(u.avatar_url, DEFAULT_AVATAR)}
-                        alt={u.username}
+                        alt=""
                         className={`w-10 h-10 rounded-full mr-3 object-cover ${isSelf ? 'opacity-50' : ''}`}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{u.username}</div>
+                        <div className="font-medium truncate">{u.display_name || u.username}</div>
+                        <div className="truncate text-xs text-muted-foreground">@{u.username}</div>
                       </div>
                       {isSelf && (
                         <span className="ml-2 text-xs text-muted-foreground">(you)</span>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
