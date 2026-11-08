@@ -1,4 +1,6 @@
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/shared/ui/breadcrumb';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/shared/ui/breadcrumb';
+import { useSettingsLayout } from '../model/settingsLayout';
+import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import React from 'react';
 import { Check, Globe } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -12,19 +14,16 @@ interface LanguageSettingsPageProps {
 
 const LanguageSettingsPage: React.FC<LanguageSettingsPageProps> = ({ language, onChange, onBack }) => {
   const { translations } = useLanguage();
+  const pane = useSettingsLayout() === 'pane';
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="border-b border-border px-5 py-4">
+      <PageBackHeader onBack={onBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem><BreadcrumbLink asChild className="cursor-pointer"><button type="button" onClick={onBack}>{translations.profile || 'Profile'}</button></BreadcrumbLink></BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem><BreadcrumbLink asChild className="cursor-pointer"><button type="button" onClick={onBack}>{translations.settings || 'Settings'}</button></BreadcrumbLink></BreadcrumbItem>
-            <BreadcrumbSeparator />
             <BreadcrumbItem><BreadcrumbPage className="inline-flex items-center gap-2 font-medium"><Globe className="h-4 w-4 text-muted-foreground" />{translations.language || 'Language'}</BreadcrumbPage></BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-      </div>
+      </PageBackHeader>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         <p className="text-sm text-muted-foreground">{translations.languageDescription}</p>
         <div role="radiogroup" aria-label={translations.language || 'Language'} className="overflow-hidden rounded-lg border border-border">

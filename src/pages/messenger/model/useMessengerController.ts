@@ -41,6 +41,9 @@ export const useMessengerController = () => {
     else if (isProfileOpen && marks.settingsOpened && marks.settingsChain && marks.settingsChain === marks.settingsDepth) navigate(-(marks.settingsChain + 1));
     else if (isProfileOpen) closeOverlay();
   }, [closeOverlay, isProfileOpen, navigate, openOverlay]);
+  const openMessageRequests = useCallback(() => {
+    openOverlay({ kind: 'settings', page: 'requests' }, { settingsOpened: true, settingsDepth: 0, settingsChain: 0 });
+  }, [openOverlay]);
   const {
     backToChats,
     mobileChatPanelClass,
@@ -251,6 +254,7 @@ export const useMessengerController = () => {
     currentChat,
     isProfileOpen,
     setIsProfileOpen,
+    openMessageRequests,
     isUserProfileOpen,
     setIsUserProfileOpen,
     profileUsername,

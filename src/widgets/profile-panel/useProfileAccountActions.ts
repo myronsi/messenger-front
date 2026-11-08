@@ -1,6 +1,7 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useRef, useState } from 'react';
 import { useDeleteAccountMutation } from '@/features/profile';
+import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { useLogoutMutation } from '@/features/auth';
 import { authFetch, endSession } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -185,7 +186,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
 
   const handleClose = () => {
     setIsVisible(false);
-    setTimeout(onClose, 200);
+    setTimeout(onClose, WINDOW_MOTION_MS);
   };
 
   return {

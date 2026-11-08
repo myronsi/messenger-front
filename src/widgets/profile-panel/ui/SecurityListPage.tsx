@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { QrScannerDialog } from '@/features/auth';
+import { useGetSecurityActivityQuery } from '@/features/profile';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { SecurityDetail } from '@/shared/lib/urlOverlay';
-import { recoveryDetails, type RecoveryOverview } from '../model/recoveryMethods';
+import { recoveryDetails, recoveryMethods, type RecoveryOverview } from '../model/recoveryMethods';
 import { securitySummaries } from '../model/securitySummaries';
 import { RecoveryOverviewCard } from './RecoveryOverviewCard';
-import { SecurityActivity } from './SecurityActivity';
 import { SecurityNavRow, SecuritySection } from './SecuritySection';
 import { SessionDurationRow } from './SessionsSection';
 import type { useSecuritySettings } from './useSecuritySettings';
@@ -18,14 +18,27 @@ export const SecurityListPage = ({ settings, overview, onOpen }: {
 }) => {
   const { language } = useLanguage();
   const [scanning, setScanning] = useState(false);
-  const { translations, securityPage: t, securitySettings, sessionsData, isRevokingOthers, handleRevokeOtherSessions } = settings;
+  const { translations, securityPage: t, securitySettings, sessionsData } = settings;
+  const { data: activity } = useGetSecurityActivityQuery();
+  const latest = activity?.[0];
+  const events = t.events as Record<string, string>;
   const summary = securitySummaries({
     overview, labels: t,
     twoFactorEnabled: securitySettings ? Boolean(securitySettings.two_factor_enabled) : undefined,
     sessionCount: sessionsData?.sessions?.length,
+    latestActivity: latest && (events[latest.type] || t.eventFallback),
     formatDate: value => new Date(value).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
   });
-  const row = (detail: SecurityDetail, label: string) => <SecurityNavRow key={detail} label={label} summary={summary[detail]} onClick={() => onOpen(detail)} />;
+  const recovery = overview ? recoveryMethods(overview) : [];
+  const statusOf = (detail: SecurityDetail) => {
+    const method = recovery.find(item => recoveryDetails[item.id] === detail);
+    return method && (method.active ? 'ready' as const : 'missing' as const);
+  };
+  const row = (detail: SecurityDetail, label: string) => {
+    const status = statusOf(detail);
+    return <SecurityNavRow key={detail} label={label} summary={summary[detail]} status={status}
+      statusLabel={status && `${t.recoveryTitle}: ${status === 'ready' ? t.methodReady : t.methodMissing}`} onClick={() => onOpen(detail)} />;
+  };
   return <>
     <p className="text-sm text-muted-foreground">{t.pageDescription}</p>
     <RecoveryOverviewCard canAddPasskey={browserSupportsWebAuthn()} onAction={method => onOpen(recoveryDetails[method])} />
@@ -40,11 +53,10 @@ export const SecurityListPage = ({ settings, overview, onOpen }: {
     </SecuritySection>
     <SecuritySection id="security-devices" title={t.devicesTitle} description={t.sessionsDescription}>
       {row('sessions', translations.activeSessions)}
+      {row('activity', t.activityTitle)}
       <SecurityNavRow label={translations.qrLogin.scanEntry} summary={translations.qrLogin.scanEntrySummary} onClick={() => setScanning(true)} />
       <SessionDurationRow settings={settings} />
     </SecuritySection>
-    <SecurityActivity onSignOutOthers={() => { void handleRevokeOtherSessions(); }} signingOutOthers={isRevokingOthers}
-      signOutLabel={translations.signOutOtherDevices} />
     <QrScannerDialog open={scanning} onClose={() => setScanning(false)} />
   </>;
 };

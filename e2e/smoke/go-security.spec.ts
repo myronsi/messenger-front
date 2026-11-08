@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
-import { confirmTwoFactor, createEnglishContext, loginUser, logoutUser, openSecuritySetting } from './helpers';
+import { confirmTwoFactor, createEnglishContext, loginUser, logoutUser, openProfile, openSecuritySetting } from './helpers';
 
 const totp = (secret: string) => {
   let bits = 0, value = 0;
@@ -27,7 +27,7 @@ test('Go two-factor setup, backup-code login and disable work through the UI', a
   page.setDefaultTimeout(10000);
   try {
     await loginUser(page, { ...fixture, displayName: 'Security fixture' });
-    await page.getByRole('button', { name: 'Open profile', exact: true }).click();
+    await openProfile(page);
     await openSecuritySetting(page, 'Sign-in', 'Two-factor authentication');
     const section = page.getByRole('region', { name: 'Two-factor authentication', exact: true });
     await page.getByLabel('Password for two-factor setup').fill(fixture.password);
@@ -51,7 +51,7 @@ test('Go two-factor setup, backup-code login and disable work through the UI', a
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await confirmTwoFactor(page, result.recovery_codes[0]);
     await expect(page.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Open profile', exact: true }).click();
+    await openProfile(page);
     await openSecuritySetting(page, 'Sign-in', 'Two-factor authentication');
     await expect(section.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
     await nextStep();

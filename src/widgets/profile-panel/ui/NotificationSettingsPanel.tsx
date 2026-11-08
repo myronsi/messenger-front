@@ -1,13 +1,13 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useSettingsLayout } from '../model/settingsLayout';
+import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import { AlertCircle, Bell, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import {
   Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
+  BreadcrumbItem,
   BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+  BreadcrumbPage,
 } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
@@ -19,6 +19,7 @@ interface Status { type: 'success' | 'error'; text: string }
 interface Props { isActive: boolean; onBack: () => void }
 
 export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
+  const pane = useSettingsLayout() === 'pane';
   const { language, translations } = useLanguage();
   const ru = language === 'ru';
   const settings = useSyncExternalStore(subscribeNotifications, notificationSnapshot);
@@ -75,21 +76,9 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
 
   return (
     <section className="relative flex h-full flex-col bg-white" aria-label={ru ? 'Уведомления' : 'Notifications'}>
-      <div className="border-b border-border px-5 py-4">
+      <PageBackHeader onBack={onBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild className="cursor-pointer">
-                <button type="button" onClick={onBack}>{translations.profile || (ru ? 'Профиль' : 'Profile')}</button>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild className="cursor-pointer">
-                <button type="button" onClick={onBack}>{translations.settings || (ru ? 'Настройки' : 'Settings')}</button>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage className="inline-flex items-center gap-2 font-medium">
                 <Bell className="h-4 w-4 text-muted-foreground" />
@@ -98,7 +87,7 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-      </div>
+      </PageBackHeader>
 
       {status && (
         <div

@@ -20,11 +20,13 @@ const overview = {
   email: { address: 'person@example.test', state: 'pending', enabled: true },
 };
 
+let activity: { id: string; type: string; user_agent: string; location: null; created_at: string }[] = [];
+
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: en }) }));
 vi.mock('./useSecuritySettings', () => ({ useSecuritySettings: () => settings }));
 vi.mock('@/features/profile', () => ({
   useGetRecoveryOverviewQuery: () => ({ data: overview, isLoading: false, error: undefined, refetch: vi.fn() }),
-  useGetSecurityActivityQuery: () => ({ data: [], isLoading: false, error: undefined, refetch: vi.fn() }),
+  useGetSecurityActivityQuery: () => ({ data: activity, isLoading: false, error: undefined, refetch: vi.fn() }),
   useGetCurrentUserQuery: () => ({ data: { username: 'alice' } }),
   useGetRecoveryKeyStatusQuery: () => ({ data: { exists: true, created_at: null, locked_until: null }, error: undefined }),
   useGetSecuritySettingsQuery: () => ({ data: { two_factor_enabled: false } }),
@@ -37,11 +39,15 @@ vi.mock('@/shared/hooks/redux', () => ({ useAppDispatch: () => vi.fn() }));
 const onOpenDetail = vi.fn();
 const onBack = vi.fn();
 const renderPanel = (detail?: Parameters<typeof SecuritySettingsPanel>[0]['detail']) => render(
-  <SecuritySettingsPanel isActive detail={detail} onOpenDetail={onOpenDetail} onBack={onBack} onLoggedOut={vi.fn()} onDismissSafetyChange={vi.fn()} />,
+  <SecuritySettingsPanel isActive detail={detail} onOpenDetail={onOpenDetail} onBack={onBack} onLoggedOut={vi.fn()} onDismissSafetyChange={vi.fn()}
+    onDeleteAccount={vi.fn()} isDeletingAccount={false} />,
 );
 const row = (group: string, name: RegExp) => within(screen.getByRole('region', { name: group })).getByRole('button', { name });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  activity = [];
+});
 afterEach(cleanup);
 
 it('lists every setting as a row with a short summary', () => {
@@ -51,8 +57,8 @@ it('lists every setting as a row with a short summary', () => {
   expect(row('Sign-in', /^Passkeys/)).toHaveTextContent('2 added');
   expect(row('Recovery', /^Recovery key/)).toHaveTextContent('Created 6 Nov 2026');
   expect(row('Recovery', /^Recovery email/)).toHaveTextContent('Pending');
-  expect(row('Devices', /^Active sessions/)).toHaveTextContent('1 active');
-  expect(screen.getByLabelText('Session duration')).toBeInTheDocument();
+  expect(row('Devices', /^Active sessions/)).toHaveTextContent('1 other device');
+  expect(screen.getByLabelText('Sign out unused devices after')).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument();
 });
 
@@ -62,8 +68,17 @@ it('opens the matching sub-page from a row and from the health card', () => {
   expect(onOpenDetail).toHaveBeenLastCalledWith('two-factor');
   fireEvent.click(row('Devices', /^Active sessions/));
   expect(onOpenDetail).toHaveBeenLastCalledWith('sessions');
-  fireEvent.click(screen.getAllByRole('button', { name: /^Other devices/ })[0]);
-  expect(onOpenDetail).toHaveBeenLastCalledWith('sessions');
+});
+
+it('shows each way back in once, as a marked row instead of a tile', () => {
+  renderPanel();
+  expect(screen.queryByRole('button', { name: /^Other devices/ })).not.toBeInTheDocument();
+  expect(screen.getAllByRole('button', { name: /^Recovery key/ })).toHaveLength(1);
+  expect(row('Recovery', /^Recovery key/)).toHaveTextContent('Recovery: Ready');
+  expect(row('Recovery', /^Recovery email/)).toHaveTextContent('Recovery: Not set up');
+  expect(row('Sign-in', /^Passkeys/)).toHaveTextContent('Recovery: Ready');
+  expect(row('Devices', /^Active sessions/)).toHaveTextContent('Recovery: Ready');
+  expect(row('Sign-in', /^Password/)).not.toHaveTextContent('Recovery:');
 });
 
 it('shows the setting open on its sub-page with one more breadcrumb', () => {
@@ -74,7 +89,10 @@ it('shows the setting open on its sub-page with one more breadcrumb', () => {
   expect(screen.queryByRole('region', { name: 'Sign-in' })).not.toBeInTheDocument();
   fireEvent.click(within(breadcrumb).getByRole('button', { name: 'Security & devices' }));
   expect(onOpenDetail).toHaveBeenCalledWith(null);
-  fireEvent.click(within(breadcrumb).getByRole('button', { name: 'Settings' }));
+  expect(within(breadcrumb).queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument();
+  cleanup();
+  renderPanel();
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
   expect(onBack).toHaveBeenCalled();
 });
 
@@ -89,7 +107,7 @@ it('keeps a new recovery key on screen when the security page changes until it i
   const key = 'ABCD-EFGH-JKLM-NPQR';
   post.mockResolvedValueOnce({ data: { recovery_key: key }, error: undefined, response: { status: 200 } });
   const onDismissSafetyChange = vi.fn();
-  const props = { isActive: true, onOpenDetail, onBack, onLoggedOut: vi.fn(), onDismissSafetyChange };
+  const props = { isActive: true, onOpenDetail, onBack, onLoggedOut: vi.fn(), onDismissSafetyChange, onDeleteAccount: vi.fn(), isDeletingAccount: false };
   const { rerender } = render(<SecuritySettingsPanel {...props} detail="recovery-key" />);
   fireEvent.change(screen.getByLabelText(en.securityPage.currentPassword), { target: { value: 'secret' } });
   fireEvent.click(screen.getByRole('button', { name: en.securityPage.keyReplace }));
@@ -104,4 +122,20 @@ it('keeps a new recovery key on screen when the security page changes until it i
   await waitFor(() => expect(screen.queryByTestId('recovery-key')).not.toBeInTheDocument());
   expect(onDismissSafetyChange).toHaveBeenLastCalledWith(false);
   expect(row('Sign-in', /^Password/)).toBeInTheDocument();
+});
+
+it('opens security activity as its own sub-page with the sign-out action', () => {
+  activity = [{ id: 'e1', type: 'login', user_agent: 'Firefox', location: null, created_at: '2026-11-06T10:00:00Z' }];
+  renderPanel();
+  expect(row('Devices', /^Security activity/)).toHaveTextContent('Signed in');
+  expect(screen.queryByRole('button', { name: en.signOutOtherDevices })).not.toBeInTheDocument();
+  fireEvent.click(row('Devices', /^Security activity/));
+  expect(onOpenDetail).toHaveBeenLastCalledWith('activity');
+  cleanup();
+  renderPanel('activity');
+  const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+  expect(within(breadcrumb).getByText('Security activity')).toHaveAttribute('aria-current', 'page');
+  expect(within(screen.getByRole('list', { name: 'Security activity' })).getAllByRole('listitem')).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: en.signOutOtherDevices }));
+  expect(settings.handleRevokeOtherSessions).toHaveBeenCalled();
 });

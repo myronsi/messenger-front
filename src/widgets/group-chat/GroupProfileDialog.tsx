@@ -3,11 +3,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
 import { useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useBackToClose } from '@/shared/lib/useBackToClose';
+import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
+import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { ProfileAudiosPanel, ProfilePhotosPanel, toProfileAudios, toProfilePhotos } from '@/entities/message';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupProfileView, GroupProfileTransition } from './GroupProfileTypes';
 import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';
 import GroupProfileDialogShell from './GroupProfileDialogShell';
+import GroupRoleHistoryPage from './GroupRoleHistoryPage';
 export type { GroupRole, GroupParticipant, GroupPendingInvite, GroupPermissions, GroupDetails, GroupProfileConfirmState } from './GroupProfileTypes';
 
 const emptyParticipants: GroupParticipant[] = [];
@@ -23,6 +27,9 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const [panelTransition, setPanelTransition] = useState<GroupProfileTransition | null>(null);
   const [isDmContactsCollapsed, setIsDmContactsCollapsed] = useState(true);
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
+  const [isRoleHistoryOpen, setIsRoleHistoryOpen] = useState(false);
+  useBackToClose(open && isRoleHistoryOpen, () => setIsRoleHistoryOpen(false), 'groupRoleHistory');
+  const roleHistoryPage = useDelayedUnmount(isRoleHistoryOpen, WINDOW_MOTION_MS);
   const panelTransitionTimeoutRef = useRef<number | null>(null);
   const {
     data: chatPhotosData,
@@ -39,6 +46,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     skip: !open || !isPersistedId(chatId),
   });
   useEffect(() => {
+    setIsRoleHistoryOpen(false);
     if (!open) return;
     setActiveView('details');
     setPanelTransition(null);
@@ -172,6 +180,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
       <GroupProfileDetailsPanel
         model={model} canEdit={canEdit} canDeleteGroup={canDeleteGroup} hasGroupChanges={hasGroupChanges}
         currentRole={currentRole} participants={participants} pendingInvites={pendingInvites}
+        onOpenRoleHistory={() => setIsRoleHistoryOpen(true)}
       />
     );
   };
@@ -186,6 +195,10 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     renderPanelContent={renderPanelContent} groupConfirm={groupConfirm}
     onCloseGroupConfirm={onCloseGroupConfirm} isAvatarViewerOpen={isAvatarViewerOpen}
     setIsAvatarViewerOpen={setIsAvatarViewerOpen}
+    subPage={roleHistoryPage.mounted ? (
+      <GroupRoleHistoryPage chatId={chatId} rolesKey={participants.map((participant) => `${participant.id}:${participant.role}`).join(',')}
+        onBack={() => setIsRoleHistoryOpen(false)} closing={roleHistoryPage.closing} />
+    ) : null}
   />;
 
 };

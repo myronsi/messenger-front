@@ -5,14 +5,17 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel } from './groupProfileHelpers';
-import GroupRoleHistory from './GroupRoleHistory';
+import GroupRoleHistoryRow from './GroupRoleHistoryRow';
 
 interface Props {
   model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
   currentRole: GroupRole; participants: GroupParticipant[]; pendingInvites: GroupPendingInvite[];
+  onOpenRoleHistory: () => void;
 }
 
-const GroupProfileDetailsPanel: React.FC<Props> = ({ model, canEdit, canDeleteGroup, hasGroupChanges, currentRole, participants, pendingInvites }) => {
+const GroupProfileDetailsPanel: React.FC<Props> = ({
+  model, canEdit, canDeleteGroup, hasGroupChanges, currentRole, participants, pendingInvites, onOpenRoleHistory,
+}) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const {
@@ -105,7 +108,7 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({ model, canEdit, canDeleteGr
         </div>
       </section>
 
-      <GroupRoleHistory chatId={model.chatId} rolesKey={participants.map((participant) => `${participant.id}:${participant.role}`).join(',')} />
+      <GroupRoleHistoryRow chatId={model.chatId} onOpen={onOpenRoleHistory} />
 
       <button
         type="button"

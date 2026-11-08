@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import {
-  confirmRecoveryReceipt, createEnglishContext, createSmokeUser, loginUser, logoutUser, openSecuritySetting, skipRegistrationExtras, waitForMessenger,
+  confirmRecoveryReceipt, createEnglishContext, createSmokeUser, loginUser, logoutUser, openProfile, openSecuritySetting,
+  skipRegistrationExtras, waitForMessenger,
 } from './helpers';
 
 test('an existing Go user can enroll a recovery key after signing in', async ({ browser }) => {
@@ -88,7 +89,7 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
       return { old: old.status, replay: replay.status, oldPassword: oldPassword.status };
     }, { oldToken, username: user.username, key, password: user.password, api: process.env.E2E_API_URL });
     expect(checks).toEqual({ old: 401, replay: 400, oldPassword: 401 });
-    await page.getByRole('button', { name: 'Open profile', exact: true }).click();
+    await openProfile(page);
     await openSecuritySetting(page, 'Recovery', 'Recovery key');
     await expect(page.getByText(/Security changes are locked until/)).toBeVisible();
   } finally { await context.close(); await otherContext.close(); }

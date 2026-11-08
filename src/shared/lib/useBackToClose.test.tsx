@@ -1,7 +1,8 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, render, renderHook } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { BackToClose } from '@/shared/ui/BackToClose';
 import { useBackToClose } from './useBackToClose';
 
 const wrapper = ({ children }: { children: ReactNode }) => <MemoryRouter initialEntries={['/', { pathname: '/chat/7', state: { chatName: 'alice' } }]} initialIndex={1}>{children}</MemoryRouter>;
@@ -93,4 +94,23 @@ it('clears a selection that was reopened while search stayed open', () => {
   act(() => view.result.current.navigate(-1));
   expect(closeSelection).toHaveBeenCalledOnce();
   expect(closeSearch).not.toHaveBeenCalled();
+});
+
+it('removes its history entry when the panel unmounts while open', () => {
+  const close = vi.fn();
+  let current: { location: ReturnType<typeof useLocation>; navigate: ReturnType<typeof useNavigate> } | null = null;
+  const Probe = () => { current = { location: useLocation(), navigate: useNavigate() }; return null; };
+  const Panel = () => { useBackToClose(true, close, 'imageViewer'); return null; };
+  const tree = (shown: boolean) => wrapper({ children: <><Probe />{shown && <Panel />}</> });
+  const view = render(tree(true));
+  expect(current!.location.state).toEqual({ chatName: 'alice', imageViewer: expect.any(String) });
+  view.rerender(tree(false));
+  expect(current!.location.state).toEqual({ chatName: 'alice' });
+  act(() => current!.navigate(-1));
+  expect(current!.location.pathname).toBe('/');
+  expect(close).not.toHaveBeenCalled();
+});
+
+it('does nothing outside a router', () => {
+  expect(() => render(<BackToClose onClose={vi.fn()} flag="imageViewer" />)).not.toThrow();
 });

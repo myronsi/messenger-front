@@ -14,6 +14,7 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
   const location = useLocation();
   const locationRef = useLatestRef(location);
   const closeRef = useLatestRef(close);
+  const navigateRef = useLatestRef(navigate);
   const token = useRef<string | null>(null);
   const ownedKey = useRef<string | null>(null);
   const staleKey = useRef<string | null>(null);
@@ -33,6 +34,13 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
       else if (owned) staleKey.current = owned;
     }
   }, [active, flag, navigate, locationRef]);
+
+  useEffect(() => () => {
+    if (!token.current || !ownedKey.current || locationRef.current.key !== ownedKey.current) return;
+    token.current = null;
+    ownedKey.current = null;
+    navigateRef.current(-1);
+  }, [locationRef, navigateRef]);
 
   useEffect(() => {
     if (staleKey.current && location.key === staleKey.current) {

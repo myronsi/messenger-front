@@ -29,6 +29,7 @@ export interface ChatsListComponentProps {
     pendingApprovalMessage?: string,
   ) => void;
   setIsProfileOpen: (open: boolean) => void;
+  onOpenRequests?: () => void;
   activeChatId?: EntityId;
   activeChatName?: string;
   onActiveChatUpdate?: (chat: Chat) => void;

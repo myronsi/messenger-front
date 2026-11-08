@@ -13,6 +13,7 @@ import { useGallerySwipe } from './useGallerySwipe';
 import { useSwipeDismiss } from './useSwipeDismiss';
 import { useSwipeMorph } from './useSwipeMorph';
 import { useFadeClose } from './useFadeClose';
+import { BackToClose } from '@/shared/ui/BackToClose';
 import { mobileImageDirection } from './mobileImageDirection';
 import { MobileGalleryEdges } from './MobileGalleryEdges';
 import ImageViewerHeader, { type ViewerImageInfo } from './ImageViewerHeader';
@@ -179,11 +180,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             onTouchStart={stopPropagation}
             onTouchEnd={stopPropagation}
             onKeyDown={stopPropagation}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
+            onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}
           >
+            <BackToClose onClose={fadeClose} flag="imageViewer" />
             <DialogPrimitive.Title className="sr-only">{image.name}</DialogPrimitive.Title>
             <ImageViewerHeader info={image.info} index={index} total={images.length} onShowInChat={image.onShowInChat} onClose={onClose} />
             <div className="fixed top-4 right-4 flex gap-2 z-[10000]">

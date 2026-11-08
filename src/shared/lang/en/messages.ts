@@ -60,6 +60,7 @@ export const messages = {
   roleHistory: "Role history",
   roleHistoryError: "Couldn't load the role history",
   roleHistoryEmpty: "No role changes yet",
+  roleHistoryCount: "{count} changes",
   roleMadeAdmin: "{actor} made {target} an admin",
   roleMadeModerator: "{actor} made {target} a moderator",
   roleMadeMember: "{actor} made {target} a regular member",

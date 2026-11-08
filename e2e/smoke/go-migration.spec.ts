@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { createEnglishContext, createSmokeUser, loginUser, registerUser } from './helpers';
+import { createEnglishContext, createSmokeUser, loginUser, openProfile, registerUser } from './helpers';
 
 test('Go profile, avatar, privacy, sessions, groups and blocking remain usable', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the isolated Go staging backend');
@@ -66,7 +66,7 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
     await expect.poll(() => groupPicture.evaluate(image => image instanceof HTMLImageElement &&
       image.src.startsWith('blob:') && image.complete && image.naturalWidth > 0)).toBe(true);
     await groupPicture.screenshot({ path: resolve('../../outputs/group-picture-after.png') });
-    await page.getByRole('button', { name: 'Open profile', exact: true }).click();
+    await openProfile(page);
     await expect(page.getByText('Updated smoke profile').first()).toBeVisible();
     await expect.poll(async () => page.locator('img').evaluateAll(images => images.some(image => image instanceof HTMLImageElement && image.src.startsWith('blob:') && image.complete && image.naturalWidth > 0))).toBe(true);
     await page.evaluate(async ({ groupId, api }) => {

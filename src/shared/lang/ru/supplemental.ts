@@ -63,7 +63,7 @@ export const supplemental = {
   saved: "Сохранено",
   saveRecoveryCodes: "Сохраните эти коды восстановления сейчас.",
   selectedParticipants: "Выбранные участники",
-  sessionDuration: "Длительность сессии",
+  sessionDuration: "Выходить на неиспользуемых устройствах через",
   settings: "Настройки",
   setupProfile: "Настройте профиль",
   setupProfileDescription: "Добавьте аватар и описание сейчас или пропустите этот шаг.",

@@ -7,11 +7,13 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     translations: {
       changeAvatar: 'Change avatar', bio: 'Bio', profile: 'Profile', settings: 'Settings', unsavedChanges: 'Unsaved changes',
+      appShell: { addPhoto: 'Add a profile photo', openPhotos: 'Open profile photos ({count})', earlierPhotos: 'Earlier photos' },
       saveAllChanges: 'Save all changes', discardChanges: 'Discard', leaveUnsavedTitle: 'Save before leaving?', stayOnPage: 'Stay',
     },
   }),
 }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { alt?: string }) => <img alt={props.alt} /> }));
+vi.mock('@/entities/user', () => ({ useGetUserAvatarHistoryQuery: () => ({ data: undefined }) }));
 
 type Props = ComponentProps<typeof PersonalInfoPage>;
 
@@ -28,21 +30,21 @@ const renderPage = (overrides: Partial<Props> = {}) => {
 
 describe('PersonalInfoPage', () => {
   it('hands a picked photo to the crop step', () => {
-    const { onPickAvatar } = renderPage();
+    const { onPickAvatar } = renderPage({ hasCustomAvatar: true });
     const file = new File(['x'], 'me.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('Change avatar'), { target: { files: [file] } });
     expect(onPickAvatar).toHaveBeenCalledWith(file);
   });
 
   it('does not take a new photo while one is uploading', () => {
-    renderPage({ isUploadingAvatar: true });
+    renderPage({ isUploadingAvatar: true, hasCustomAvatar: true });
     expect(screen.getByLabelText('Change avatar')).toBeDisabled();
   });
 
   it('goes straight back when nothing changed', () => {
     const { onBack } = renderPage();
     expect(screen.queryByRole('status', { name: 'Unsaved changes' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(onBack).toHaveBeenCalled();
   });
 
@@ -57,7 +59,7 @@ describe('PersonalInfoPage', () => {
 
   it('asks before leaving with unsaved changes and leaves once they are saved', async () => {
     const { onBack, onSaveAll } = renderPage({ displayNameChanged: true, newDisplayName: 'Anna' });
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(onBack).not.toHaveBeenCalled();
     expect(screen.getByText('Save before leaving?')).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Save all changes' }).slice(-1)[0]);
@@ -67,7 +69,7 @@ describe('PersonalInfoPage', () => {
 
   it('stays on the page when saving fails', async () => {
     const { onBack } = renderPage({ newBio: 'x', onSaveAll: vi.fn(async () => false) });
-    fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Save all changes' }).slice(-1)[0]);
     await waitFor(() => expect(screen.getByText('Save before leaving?')).toBeInTheDocument());
     expect(onBack).not.toHaveBeenCalled();

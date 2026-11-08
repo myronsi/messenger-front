@@ -26,24 +26,18 @@ const GroupRoleHistory: React.FC<Props> = ({ chatId, rolesKey }) => {
     });
   };
 
+  if (!data) return <p className="text-sm text-muted-foreground">{isError ? translations.roleHistoryError : translations.loading}</p>;
+  if (items.length === 0) return <p className="text-sm text-muted-foreground">{translations.roleHistoryEmpty}</p>;
   return (
-    <section data-testid="group-role-history" className="rounded-lg border border-gray-200 bg-white p-3">
-      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{translations.roleHistory}</div>
-      {!data ? (
-        <p className="text-sm text-gray-500">{isError ? translations.roleHistoryError : translations.loading}</p>
-      ) : items.length === 0 ? (
-        <p className="text-sm text-gray-500">{translations.roleHistoryEmpty}</p>
-      ) : (
-        <ul className="max-h-60 space-y-2 overflow-y-auto">
-          {items.map((event) => (
-            <li key={event.id} className="flex items-start justify-between gap-3 text-sm">
-              <span className="min-w-0 break-words text-gray-900">{describe(event)}</span>
-              <time dateTime={event.created_at} className="shrink-0 text-xs text-gray-500">{formatter.format(parseUtcDate(event.created_at))}</time>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <ul data-testid="group-role-history" aria-label={translations.roleHistory}
+      className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+      {items.map((event) => (
+        <li key={event.id} className="flex flex-col gap-1 px-4 py-3 text-sm">
+          <span className="break-words text-foreground">{describe(event)}</span>
+          <time dateTime={event.created_at} className="text-xs text-muted-foreground">{formatter.format(parseUtcDate(event.created_at))}</time>
+        </li>
+      ))}
+    </ul>
   );
 };
 

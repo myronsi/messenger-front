@@ -2,8 +2,7 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import { authFetch } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import type { GroupCreatePayload } from '@/features/groups';
-import type { ProfileModalState } from './useProfileAccountActions';
+import type { GroupCreatePayload } from './useGroupCreateForm';
 
 const BASE_URL = getApiBaseUrl();
 
@@ -12,12 +11,7 @@ interface CreateGroupResponse {
   detail?: string;
 }
 
-interface CreateGroupOptions {
-  setIsGroupModalOpen: (open: boolean) => void;
-  setModal: (modal: ProfileModalState | null) => void;
-}
-
-export const useCreateGroupFromProfile = ({ setIsGroupModalOpen, setModal }: CreateGroupOptions) => {
+export const useCreateGroup = (onCreated: (message: string) => void) => {
   const { translations } = useLanguage();
 
   return async ({ groupName, description, participants, avatarFile, setRejectedParticipants }: GroupCreatePayload) => {
@@ -39,15 +33,9 @@ export const useCreateGroupFromProfile = ({ setIsGroupModalOpen, setModal }: Cre
     if (avatarFile && createdGroup.chat_id) {
       const formData = new FormData();
       formData.append('file', avatarFile);
-      const avatarResponse = await authFetch(`${BASE_URL}/groups/${createdGroup.chat_id}/avatar`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!avatarResponse.ok) {
-        avatarWarning = ` ${translations.avatarUploadFailed || 'Avatar upload failed.'}`;
-      }
+      const avatarResponse = await authFetch(`${BASE_URL}/groups/${createdGroup.chat_id}/avatar`, { method: 'POST', body: formData });
+      if (!avatarResponse.ok) avatarWarning = ` ${translations.avatarUploadFailed || 'Avatar upload failed.'}`;
     }
-    setIsGroupModalOpen(false);
-    setModal({ type: 'success', message: `${translations.groupCreated}${avatarWarning}` });
+    onCreated(`${translations.groupCreated}${avatarWarning}`);
   };
 };

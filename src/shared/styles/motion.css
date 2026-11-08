@@ -24,6 +24,7 @@
     to { transform: translateX(0); opacity: 1; }
   }
 
+
   @keyframes listItemIn {
     from { transform: translateY(6px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -327,3 +328,16 @@
     visibility: hidden;
   }
 }
+
+:root {
+  --motion-window-duration: 280ms;
+  --motion-window-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@layer utilities {
+  .motion-window-slide {
+    transition-property: transform;
+    transition-duration: var(--motion-window-duration);
+    transition-timing-function: var(--motion-window-ease);
+    will-change: transform;
+  }}

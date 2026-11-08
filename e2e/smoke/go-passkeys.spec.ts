@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createEnglishContext, createSmokeUser, logoutUser, openProfile, openSecuritySetting, registerUser, waitForMessenger } from './helpers';
+import { closeProfile, createEnglishContext, createSmokeUser, logoutUser, openProfile, openSecuritySetting, registerUser, waitForMessenger } from './helpers';
 
 test('a verified resident passkey registers, signs in and can be removed with the password', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the Go backend with localhost passkeys configured');
@@ -28,7 +28,7 @@ test('a verified resident passkey registers, signs in and can be removed with th
     await settings.getByRole('button', { name: 'Add passkey', exact: true }).click();
     expect((await registration).status()).toBe(204);
     await expect(settings.getByText('Browser test key', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Close', exact: true }).first().click();
+    await closeProfile(page);
     await logoutUser(page);
     const login = page.waitForResponse(response => response.url().endsWith('/auth/passkeys/login/verify'));
     await page.getByRole('button', { name: 'Sign in with a passkey', exact: true }).click();

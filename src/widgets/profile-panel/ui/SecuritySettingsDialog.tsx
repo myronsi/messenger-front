@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { DeleteAccountZone } from './DeleteAccountZone';
+import { useSettingsLayout } from '../model/settingsLayout';
+import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import { AlertCircle, CheckCircle2, Smartphone } from 'lucide-react';
 import { useGetRecoveryOverviewQuery } from '@/features/profile';
 import type { SecurityDetail } from '@/shared/lib/urlOverlay';
@@ -24,10 +27,15 @@ interface SecuritySettingsPanelProps {
   onBack: () => void;
   onLoggedOut: () => void;
   onDismissSafetyChange: (blocked: boolean) => void;
+  onDeleteAccount: () => void;
+  isDeletingAccount: boolean;
 }
 
-const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive, detail, onOpenDetail, onBack, onLoggedOut, onDismissSafetyChange }) => {
+const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
+  isActive, detail, onOpenDetail, onBack, onLoggedOut, onDismissSafetyChange, onDeleteAccount, isDeletingAccount,
+}) => {
   const settings = useSecuritySettings(isActive, onLoggedOut);
+  const pane = useSettingsLayout() === 'pane';
   const { translations, status } = settings;
   const { data: overview } = useGetRecoveryOverviewQuery(undefined, { skip: !isActive });
   const [createdKey, setCreatedKey] = useState<CreatedRecoveryKey | null>(null);
@@ -45,13 +53,9 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
 
   return (
     <div className="relative flex h-full flex-col bg-white">
-      <div className="border-b border-border px-5 py-4">
+      <PageBackHeader onBack={detail ? () => onOpenDetail(null) : onBack} hideBack={pane && !detail}>
         <Breadcrumb>
           <BreadcrumbList>
-            {crumb(translations.profile || 'Profile', onBack)}
-            <BreadcrumbSeparator />
-            {crumb(translations.settings || 'Settings', onBack)}
-            <BreadcrumbSeparator />
             {crumb(securityLabel, detail ? () => onOpenDetail(null) : undefined)}
             {detail && (
               <>
@@ -61,7 +65,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
             )}
           </BreadcrumbList>
         </Breadcrumb>
-      </div>
+      </PageBackHeader>
 
       {status && (
         <div
@@ -78,13 +82,16 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({ isActive,
       )}
 
       <div key={detail ?? 'list'} className="motion-sheet-in min-h-0 flex-1 overflow-y-auto px-5 py-5">
-        <div className="mx-auto flex max-w-3xl flex-col gap-5">
+        <div className="flex flex-col gap-5">
           {isActive && (createdKey
             ? <RecoveryKeyReceipt recoveryKey={createdKey.recoveryKey} username={createdKey.username} onContinue={finishCreatedKey} />
             : detail
               ? <SecurityDetailPage detail={detail} settings={settings} overview={overview} onDismissSafetyChange={onDismissSafetyChange}
                 onRecoveryKeyCreated={setCreatedKey} />
-              : <SecurityListPage settings={settings} overview={overview} onOpen={onOpenDetail} />)}
+              : <>
+                <SecurityListPage settings={settings} overview={overview} onOpen={onOpenDetail} />
+                <DeleteAccountZone onDelete={onDeleteAccount} isDeleting={isDeletingAccount} />
+              </>)}
         </div>
       </div>
       {settings.twoFactorDialog}
