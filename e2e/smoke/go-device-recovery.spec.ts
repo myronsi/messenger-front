@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { confirmRecoveryReceipt, createEnglishContext, createSmokeUser, openProfile, openSecuritySetting, registerUser, waitForMessenger } from './helpers';
+import { closeProfile, confirmRecoveryReceipt, createEnglishContext, createSmokeUser, openProfile, openSecuritySetting, registerUser, waitForMessenger } from './helpers';
 
 test('a signed-in device approves the matching number and is revoked after recovery', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the Go backend');
@@ -63,7 +63,7 @@ test('an account with a passkey approves recovery with user verification instead
     await settings.getByLabel('Current password').fill(user.password);
     await settings.getByRole('button', { name: 'Add passkey', exact: true }).click();
     await expect(settings.getByText('Phone', { exact: true })).toBeVisible();
-    await trusted.getByRole('button', { name: 'Close', exact: true }).first().click();
+    await closeProfile(trusted);
     await recovery.goto('/recover-device');
     await recovery.getByLabel('Username', { exact: true }).fill(user.username);
     await recovery.getByRole('button', { name: 'Request approval', exact: true }).click();
