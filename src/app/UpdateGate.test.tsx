@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DISMISSED_UPDATE_KEY, reportNewBuild, resetUpdateStatusForTests } from '@/shared/api/updateGate';
 import { setCallActive } from '@/shared/lib/callActivity';
+import { reloadApp } from '@/shared/lib/reloadApp';
 import UpdateGate from './UpdateGate';
 
 vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => false } }));
@@ -15,6 +16,7 @@ describe('UpdateGate', () => {
   beforeEach(() => {
     localStorage.clear();
     resetUpdateStatusForTests();
+    vi.mocked(reloadApp).mockClear();
   });
 
   it('shows no banner while no update is offered', () => {
@@ -36,6 +38,17 @@ describe('UpdateGate', () => {
     render(<UpdateGate />);
     act(() => { reportNewBuild('0.6.7+abc1234'); });
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('shows progress and ignores further presses while the update loads', () => {
+    render(<UpdateGate />);
+    act(() => { reportNewBuild('0.6.9+fed4321'); });
+    const button = screen.getByRole('button', { name: 'Reload' });
+    fireEvent.click(button);
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    fireEvent.click(button);
+    expect(reloadApp).toHaveBeenCalledOnce();
   });
 
   it('holds the update banner while a call is running', () => {

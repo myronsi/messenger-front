@@ -18,9 +18,10 @@ import { appShell } from './appShell';
 import { appearance } from './appearance';
 import { authLayout } from './authLayout';
 import { notificationSettings } from './notificationSettings';
+import { presence } from './presence';
 
 export const en = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
-  ...appearance, ...authLayout, ...notificationSettings,
+  ...appearance, ...authLayout, ...notificationSettings, ...presence,
 };

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { Loader2 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/shared/ui/alert-dialog';
@@ -20,6 +22,12 @@ const UpdateGate = () => {
   const isNative = Capacitor.isNativePlatform();
   const inCall = useCallActive();
   useServerVersionCheck();
+  const [reloading, setReloading] = useState(false);
+  const reload = () => {
+    setReloading(true);
+    void reloadApp();
+  };
+  const reloadLabel = <>{reloading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}{translations.updateReload}</>;
 
   if (status === 'required') {
     return (
@@ -33,7 +41,9 @@ const UpdateGate = () => {
           </AlertDialogHeader>
           {!isNative && (
             <AlertDialogFooter>
-              <AlertDialogAction onClick={(event) => { event.preventDefault(); void reloadApp(); }}>{translations.updateReload}</AlertDialogAction>
+              <AlertDialogAction disabled={reloading} aria-busy={reloading} onClick={(event) => { event.preventDefault(); reload(); }}>
+                {reloadLabel}
+              </AlertDialogAction>
             </AlertDialogFooter>
           )}
         </AlertDialogContent>
@@ -48,7 +58,7 @@ const UpdateGate = () => {
         className="fixed bottom-4 left-1/2 z-[1100] flex -translate-x-1/2 items-center gap-3 rounded-lg border bg-background px-4 py-2 shadow-lg"
       >
         <span className="text-sm">{isNative ? translations.updateAvailableNativeMessage : translations.updateAvailableMessage}</span>
-        {!isNative && <Button size="sm" onClick={() => { void reloadApp(); }}>{translations.updateReload}</Button>}
+        {!isNative && <Button size="sm" className="gap-1.5" disabled={reloading} aria-busy={reloading} onClick={reload}>{reloadLabel}</Button>}
         <Button size="sm" variant="ghost" onClick={dismissUpdate}>{translations.updateLater}</Button>
       </div>
     );
