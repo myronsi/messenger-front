@@ -4,6 +4,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { cn } from '@/shared/lib/utils';
 import { authInputClass, fieldMessageId } from './authFieldStyles';
+import { afterPointerRelease } from './pointerRelease';
 
 export const AuthHeader: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
   <div className="flex flex-col gap-1.5">
@@ -28,7 +29,7 @@ export const AuthField: React.FC<AuthFieldProps> = ({ id, label, hint, error, va
   const showHint = Boolean(hint) && (focused || valid);
   return (
     <div className="flex flex-col gap-1.5" onFocus={() => setFocused(true)}
-      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) afterPointerRelease(() => setFocused(false)); }}>
       <div className="flex items-baseline justify-between gap-3">
         <Label htmlFor={id} className="text-[13px] font-medium text-subtle-foreground">{label}</Label>
         {labelAside}

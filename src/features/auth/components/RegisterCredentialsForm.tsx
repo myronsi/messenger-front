@@ -7,6 +7,7 @@ import { validateRegisterField, type AccountField, type RegisterFieldErrors } fr
 import { generatePassword } from '../model/generatePassword';
 import { AuthField, PasswordInput } from './AuthFormParts';
 import { authInputClass, fieldMessageId } from './authFieldStyles';
+import { afterPointerRelease } from './pointerRelease';
 import { PasswordRuleList } from './PasswordRuleList';
 
 interface RegisterCredentialsFormProps {
@@ -43,7 +44,7 @@ export const RegisterCredentialsForm = ({
   const described = (id: string, field: AccountField) => ({
     'aria-describedby': fieldMessageId(id),
     'aria-invalid': fieldErrors[field] ? true : undefined,
-    onBlur: () => onBlur(field),
+    onBlur: () => afterPointerRelease(() => onBlur(field)),
   });
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
