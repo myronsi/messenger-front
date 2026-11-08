@@ -18,6 +18,7 @@ import { useJumpRequest } from './model/useJumpRequest';
 import { QrApprovalRoute } from './ui/QrApprovalRoute';
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { pathOutsideAuth } from '@/shared/lib/authPaths';
 import { CallProvider, CallStage } from '@/features/calls';
 
 interface MessengerAppProps {
@@ -77,6 +78,11 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const qrRequestId = qrLoginRequestId(location.pathname);
+
+  useEffect(() => {
+    const target = isLoggedIn ? pathOutsideAuth(location.pathname) : null;
+    if (target !== null) navigate(target, { replace: true });
+  }, [isLoggedIn, location.pathname, navigate]);
 
   useEffect(() => {
     if (isUserProfileOpen && (currentChat || profileUsername)) {
@@ -171,7 +177,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-background">
       <Toaster />
       {isLoggedIn && isGoApi() && <RecoverySetupPrompt key={username} />}
       {isLoggedIn && <RecoveryApprovalPrompt key={`approval:${username}`} />}
@@ -185,7 +191,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
         <div className="mx-0 min-h-screen min-w-screen px-0">
           {isMobile ? (
             <div className="fixed inset-x-0 overflow-hidden" style={visualViewportStyle}>
-              <div className="absolute inset-0 overflow-hidden bg-white">
+              <div className="absolute inset-0 overflow-hidden bg-background">
                 <ChatsListComponentRTK
                   username={username}
                   onChatOpen={openChat}
@@ -199,12 +205,12 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
               </div>
 
               <div
-                className={`absolute inset-0 z-50 overflow-hidden bg-white motion-window-slide ${mobileChatPanelClass}`}
+                className={`absolute inset-0 z-50 overflow-hidden bg-background motion-window-slide ${mobileChatPanelClass}`}
                 style={{ pointerEvents: currentChat ? 'auto' : 'none' }}
               >
                 {activeChat || (
                   <div className="h-full flex items-center justify-center">
-                    <p className="text-gray-500">{translations.selectChat}</p>
+                    <p className="text-muted-foreground">{translations.selectChat}</p>
                   </div>
                 )}
               </div>
@@ -232,8 +238,8 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                 <div className="relative h-full">
                   {activeChat || (
                     <div className="h-full flex items-center justify-center">
-                      <div className="bg-gray-100 px-3 py-1 rounded-xl">
-                        <p className="text-gray-500 text-sm">{translations.selectChat}</p>
+                      <div className="bg-muted px-3 py-1 rounded-xl">
+                        <p className="text-muted-foreground text-sm">{translations.selectChat}</p>
                       </div>
                     </div>
                   )}
