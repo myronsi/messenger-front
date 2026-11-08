@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { QrScannerDialog } from '@/features/auth';
+import { useCanScanQr } from '@/shared/hooks/useCanScanQr';
 import { useGetSecurityActivityQuery } from '@/features/profile';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { SecurityDetail } from '@/shared/lib/urlOverlay';
@@ -18,6 +19,7 @@ export const SecurityListPage = ({ settings, overview, onOpen }: {
 }) => {
   const { language } = useLanguage();
   const [scanning, setScanning] = useState(false);
+  const canScanQr = useCanScanQr();
   const { translations, securityPage: t, securitySettings, sessionsData } = settings;
   const { data: activity } = useGetSecurityActivityQuery();
   const latest = activity?.[0];
@@ -42,7 +44,7 @@ export const SecurityListPage = ({ settings, overview, onOpen }: {
   return <>
     <p className="text-sm text-muted-foreground">{t.pageDescription}</p>
     <RecoveryOverviewCard canAddPasskey={browserSupportsWebAuthn()} onAction={method => onOpen(recoveryDetails[method])} />
-    <SecuritySection id="security-sign-in" title={t.signInTitle} description={t.signInDescription}>
+    <SecuritySection id="security-sign-in" title={t.signInTitle}>
       {row('password', t.passwordTitle)}
       {row('two-factor', translations.twoFactorAuthentication)}
       {row('passkeys', t.passkeysTitle)}
@@ -54,7 +56,7 @@ export const SecurityListPage = ({ settings, overview, onOpen }: {
     <SecuritySection id="security-devices" title={t.devicesTitle} description={t.sessionsDescription}>
       {row('sessions', translations.activeSessions)}
       {row('activity', t.activityTitle)}
-      <SecurityNavRow label={translations.qrLogin.scanEntry} summary={translations.qrLogin.scanEntrySummary} onClick={() => setScanning(true)} />
+      {canScanQr && <SecurityNavRow label={translations.qrLogin.scanEntry} summary={translations.qrLogin.scanEntrySummary} onClick={() => setScanning(true)} />}
       <SessionDurationRow settings={settings} />
     </SecuritySection>
     <QrScannerDialog open={scanning} onClose={() => setScanning(false)} />

@@ -42,7 +42,6 @@ export const securityUi: typeof en = {
     noOtherDevices: "Нет других устройств",
     lockedNotice: "После сброса пароля настройки восстановления заблокированы на 24 часа, до {date}.",
     signInTitle: "Вход",
-    signInDescription: "Пароль, двухфакторная аутентификация и ключи доступа.",
     passwordTitle: "Пароль",
     passwordHint: "Не менее 8 символов, которые вы больше нигде не используете.",
     twoFactorOn: "Вкл.",
