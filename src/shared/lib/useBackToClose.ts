@@ -9,6 +9,11 @@ const stateOf = (state: unknown): EntryState => (state && typeof state === 'obje
 
 let openings = 0;
 
+const browserEntryKey = () => {
+  const key = stateOf(window.history.state).key;
+  return typeof key === 'string' ? key : undefined;
+};
+
 export const useBackToClose = (active: boolean, close: () => void, flag: string) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,6 +42,8 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
 
   useEffect(() => () => {
     if (!token.current || !ownedKey.current || locationRef.current.key !== ownedKey.current) return;
+    const entry = browserEntryKey();
+    if (entry !== undefined && entry !== ownedKey.current) return;
     token.current = null;
     ownedKey.current = null;
     navigateRef.current(-1);

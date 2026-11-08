@@ -56,7 +56,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
         )}
       </button>
       <h2 className="min-w-0 flex-1 truncate text-xl font-semibold">{translations.chats}</h2>
-      <button ref={searchButton} type="button" onClick={() => onOpenSearch(rectOf(searchButton.current))} aria-label="Open search"
+      <button ref={searchButton} type="button" onClick={() => onOpenSearch(rectOf(searchButton.current))} aria-label={t.openSearch}
         className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent">
         <Search className="h-5 w-5" />
       </button>

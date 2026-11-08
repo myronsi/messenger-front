@@ -5,6 +5,7 @@ export const appShell = {
     openSettingsWithRequest: "Ваш профиль и настройки, запросов сообщений: 1",
     newAction: "Новый",
     newMenuLabel: "Новый чат, группа или вход по QR",
+    openSearch: "Открыть поиск",
     newChat: "Новый чат",
     newChatHint: "Найдите человека по имени или нику",
     newGroup: "Новая группа",

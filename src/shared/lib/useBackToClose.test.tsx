@@ -111,6 +111,23 @@ it('removes its history entry when the panel unmounts while open', () => {
   expect(close).not.toHaveBeenCalled();
 });
 
+it('leaves history alone when the browser already moved to another entry before the panel unmounts', () => {
+  const close = vi.fn();
+  let current: { location: ReturnType<typeof useLocation> } | null = null;
+  const Probe = () => { current = { location: useLocation() }; return null; };
+  const Panel = () => { useBackToClose(true, close, 'imageViewer'); return null; };
+  const tree = (shown: boolean) => wrapper({ children: <><Probe />{shown && <Panel />}</> });
+  const view = render(tree(true));
+  const opened = current!.location.state;
+  window.history.replaceState({ key: 'logged-out' }, '');
+  try {
+    view.rerender(tree(false));
+    expect(current!.location.state).toEqual(opened);
+  } finally {
+    window.history.replaceState(null, '');
+  }
+});
+
 it('does nothing outside a router', () => {
   expect(() => render(<BackToClose onClose={vi.fn()} flag="imageViewer" />)).not.toThrow();
 });

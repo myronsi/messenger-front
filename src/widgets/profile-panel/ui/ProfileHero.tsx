@@ -58,15 +58,15 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
             <Loader2 className="h-7 w-7 animate-spin" aria-hidden="true" />
           </span>
         )}
-        <label htmlFor={inputId} title={pickLabel}
-          className="absolute -bottom-0.5 -right-0.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-[3px] border-white bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
-          <Camera className="h-4 w-4" aria-hidden="true" />
-        </label>
-        <input id={inputId} type="file" accept="image/*" className="sr-only" disabled={isUploadingAvatar} aria-label={pickLabel} onChange={(event) => {
+        <input id={inputId} type="file" accept="image/*" className="peer sr-only" disabled={isUploadingAvatar} aria-label={pickLabel} onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = '';
           if (file) onPickAvatar(file);
         }} />
+        <label htmlFor={inputId} title={pickLabel}
+          className="absolute -bottom-0.5 -right-0.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-[3px] border-white bg-primary text-primary-foreground transition-colors hover:bg-primary/90 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2">
+          <Camera className="h-4 w-4" aria-hidden="true" />
+        </label>
       </div>
       {!hasCustomAvatar && (
         <label htmlFor={inputId} className="cursor-pointer text-[13px] font-medium text-primary hover:underline">{t.addPhoto}</label>

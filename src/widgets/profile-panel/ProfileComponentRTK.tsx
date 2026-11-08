@@ -69,7 +69,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const pane = layout === 'pane';
   const closeSafely = () => { if (!dismissBlockedRef.current) handleClose(); };
   const frame = (content: ReactNode) => (pane
-    ? <div role="region" aria-label={t.settings} className="absolute inset-0 z-30 flex items-center justify-center bg-white p-4">{content}</div>
+    ? <div role="region" aria-label={t.settings} className="absolute inset-0 z-50 flex items-center justify-center bg-white p-4">{content}</div>
     : <ModalSurface label="Profile" className="fixed inset-0 z-[1000] flex items-center justify-center bg-white p-4 sm:bg-white/80 sm:backdrop-blur-sm">{content}</ModalSurface>);
 
   if (isLoadingUser) return frame(<div className="flex items-center gap-2"><Loader2 className="h-6 w-6 animate-spin" /><span>{translations.loading}</span></div>);
@@ -148,7 +148,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
       <SettingsLayoutContext.Provider value="pane">
         <div ref={ref} role="region" aria-label={t.settings}
           onKeyDown={(event) => { if (event.key === 'Escape' && !event.defaultPrevented) closeSafely(); }}
-          className={`motion-sheet-in absolute inset-0 z-30 flex bg-white transition-opacity duration-200 ${shown ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+          className={`motion-sheet-in absolute inset-0 z-50 flex bg-white transition-opacity duration-200 ${shown ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
           <SettingsSectionNav avatarUrl={avatarUrl} displayName={displayName} username={userData.username} sections={sections} active={current}
             onSelect={setActiveProfilePage} onLogout={handleLogout} isLoggingOut={isLoggingOut} />
           <div className="relative min-w-0 flex-1">
@@ -181,7 +181,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
             </button>
             <h2 className="text-lg font-semibold">{t.settings}</h2>
           </div>}
-          <div className="relative min-h-0 flex-1 overflow-clip">
+          <div className="relative min-h-0 flex-1 overflow-hidden supports-[overflow:clip]:overflow-clip">
             <div aria-hidden={current !== 'profile'} inert={current !== 'profile'}
               className={`absolute inset-0 overflow-y-auto bg-slate-50 motion-window-slide ${current === 'profile' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none -translate-x-full'}`}>
               <ProfileHomePage username={userData.username} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName} bio={bio}
