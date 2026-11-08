@@ -21,7 +21,7 @@ it('edits in place with focused input, gray default name, and name-sized measure
   expect(input).toHaveFocus();
   expect(input).toHaveAttribute('placeholder', 'Alice Smith');
   expect(input).toHaveClass('placeholder:text-muted-foreground', 'text-xl', 'p-0');
-  expect(screen.getByTestId('edit-contact-name')).toHaveAttribute('aria-hidden', 'true');
+  expect(screen.getByTestId('edit-contact-name')).not.toBeVisible();
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   fireEvent.change(input, { target: { value: 'Al' } });

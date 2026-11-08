@@ -24,7 +24,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
 
   return (
     <ModalSurface label={translations.createGroup || 'Create group'} className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="motion-panel-in relative flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+      <div className="relative flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h2 className="text-lg font-semibold">{translations.createGroup || 'Create group'}</h2>
@@ -50,7 +50,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {step === 1 ? (
-            <div className="motion-panel-in space-y-5">
+            <div className="space-y-5">
               <div className="flex items-center gap-4">
                 <AuthenticatedImage
                   src={avatarPreview || DEFAULT_GROUP_AVATAR}
@@ -96,7 +96,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
               />
             </div>
           ) : (
-            <div className="motion-panel-in space-y-4">
+            <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input

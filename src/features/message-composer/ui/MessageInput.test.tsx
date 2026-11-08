@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MessageInput from './MessageInput';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: {
+  saveMessageEdit: 'Save edit',
   writeMessage: 'Write a message', writeCaption: 'Write a caption...', attachFile: 'Attach file', dropFileToAttach: 'Drop a file to attach it', attachDisabledWhileEditing: 'Not while editing',
 } }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
@@ -123,7 +124,7 @@ describe('MessageInput', () => {
 
   it('saves instead of recording a voice message while editing with an empty caption', () => {
     const { onSendMessage } = renderInput('', editing);
-    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save edit' }));
     expect(onSendMessage).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'Hold to record a voice message' })).not.toBeInTheDocument();
   });

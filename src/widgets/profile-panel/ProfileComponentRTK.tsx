@@ -101,7 +101,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     label: section.label, description: section.hint ?? '', icon: section.icon, indicatorCount: section.badge, onClick: () => setActiveProfilePage(section.page),
   });
   const pick = (...pages: SettingsPage[]) => sections.filter((section) => pages.includes(section.page)).map(toRow);
-  const homeSections = [pendingRequestCount > 0 ? pick('requests') : [], pick('privacy', 'security', 'notifications', 'appearance', 'language'), pick('about')]
+  const homeSections = [pick('requests'), pick('privacy', 'security', 'notifications', 'appearance', 'language'), pick('about')]
     .filter((rows) => rows.length > 0);
   const current: SettingsPage = pane && activeProfilePage === 'profile' ? 'personal' : activeProfilePage;
   const back = () => setActiveProfilePage('profile');

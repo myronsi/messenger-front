@@ -48,13 +48,13 @@ export function ContactNameHeading(props: Props) {
         <span aria-hidden="true" className={`pointer-events-none absolute -bottom-1 left-0 h-px w-full origin-center bg-primary/50 transition-transform duration-200 ease-out motion-reduce:transition-none ${editing ? 'scale-x-100' : 'scale-x-0'}`} />
         {!props.isCurrentUser && (
           <div className="absolute left-full top-1/2 ml-1 h-6 w-12 -translate-y-1/2">
-            <button type="button" onClick={props.onSaveContactName} disabled={!editing || props.isSavingContactName} tabIndex={editing ? 0 : -1} aria-hidden={!editing} aria-label={translations.save || 'Save'}
+            <button type="button" onClick={props.onSaveContactName} disabled={!editing || props.isSavingContactName} tabIndex={editing ? 0 : -1} hidden={!editing} aria-label={translations.save || 'Save'}
               className={`${actionClass} left-0 text-primary ${editing ? 'rotate-0 scale-100 opacity-100' : 'pointer-events-none -rotate-45 scale-50 opacity-0'}`}>
               {props.isSavingContactName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             </button>
-            <button type="button" onClick={props.onCancelContactNameEdit} disabled={!editing || props.isSavingContactName} tabIndex={editing ? 0 : -1} aria-hidden={!editing} aria-label={translations.cancel || 'Cancel'}
+            <button type="button" onClick={props.onCancelContactNameEdit} disabled={!editing || props.isSavingContactName} tabIndex={editing ? 0 : -1} hidden={!editing} aria-label={translations.cancel || 'Cancel'}
               className={`${actionClass} left-6 text-muted-foreground ${editing ? 'translate-x-0 rotate-0 scale-100 opacity-100 delay-75' : 'pointer-events-none -translate-x-4 -rotate-90 scale-50 opacity-0'}`}><X className="h-4 w-4" /></button>
-            <button type="button" data-testid="edit-contact-name" disabled={editing || props.isSavingContactName} tabIndex={editing ? -1 : 0} aria-hidden={editing} aria-label={translations.customName || 'Custom name'} title={translations.customName || 'Custom name'}
+            <button type="button" data-testid="edit-contact-name" disabled={editing || props.isSavingContactName} tabIndex={editing ? -1 : 0} hidden={editing} aria-label={translations.customName || 'Custom name'} title={translations.customName || 'Custom name'}
               className={`${actionClass} left-0 text-muted-foreground hover:text-foreground ${editing ? 'pointer-events-none rotate-45 scale-50 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} onClick={() => {
                 flushSync(props.onEditContactName);
                 input.current?.focus({ preventScroll: true });

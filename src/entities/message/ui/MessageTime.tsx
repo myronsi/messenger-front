@@ -40,9 +40,11 @@ interface MessageTimeProps {
 const MessageTime: React.FC<MessageTimeProps> = ({
   message, time, isMine, isGroup, isUploading, userId, translations, onOpenReadStatus, interactive = true,
 }) => {
+  const isRead = message.read_by?.some((reader) => reader.user_id !== userId);
+  const statusLabel = isUploading ? translations.uploading : isRead ? translations.messageRead : translations.messageSent;
   const status = isUploading ? <UploadClockStatus progress={message.upload_progress} animated={interactive} /> : (
     <>
-      {message.read_by?.some((reader) => reader.user_id !== userId) ? <CheckCheck size={14} /> : <Check size={14} />}
+      {isRead ? <CheckCheck size={14} /> : <Check size={14} />}
       {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
     </>
   );
@@ -50,15 +52,17 @@ const MessageTime: React.FC<MessageTimeProps> = ({
     <span className="inline-flex items-center gap-1 whitespace-nowrap">
       {message.edited_at && <span>{translations.edited}</span>}
       <span>{time}</span>
-      {isMine && !message.delivery_error && (interactive ? (
-        <button type="button" className="inline-flex items-center gap-0.5 transition-colors duration-150" onClick={(event) => {
+      {isMine && !message.delivery_error && (interactive && isGroup && !isUploading && onOpenReadStatus ? (
+        <button type="button" aria-label={translations.readBy} className="inline-flex items-center gap-0.5 transition-colors duration-150" onClick={(event) => {
           event.stopPropagation();
-          if (isGroup) onOpenReadStatus?.(message);
+          onOpenReadStatus(message);
         }}>
           {status}
         </button>
       ) : (
-        <span className="inline-flex items-center gap-0.5">{status}</span>
+        <span className="inline-flex items-center gap-0.5" title={statusLabel}>
+          <span className="sr-only">{statusLabel}</span>{status}
+        </span>
       ))}
     </span>
   );

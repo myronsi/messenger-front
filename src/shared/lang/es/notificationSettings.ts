@@ -20,7 +20,7 @@ export const notificationSettings = {
     enableHere: "Activar en este dispositivo",
     disableHere: "Desactivar en este dispositivo",
     newMessage: "Mensaje nuevo",
-    muteHint: "Para silenciar una conversación concreta, haz clic derecho sobre ella en la lista de chats o abre su perfil.",
+    muteHint: "Para silenciar una conversación, abre su perfil y selecciona Silenciar.",
     open: "Abrir",
   },
 };

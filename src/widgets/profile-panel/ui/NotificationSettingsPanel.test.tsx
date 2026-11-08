@@ -37,6 +37,6 @@ it('does not load anything while the page is hidden', () => {
 });
 it('points to the chat list and chat profile for muting a conversation', () => {
   render(<NotificationSettingsPanel isActive onBack={vi.fn()} />);
-  expect(screen.getByText(/right-click it in the chat list or open its profile/)).toBeInTheDocument();
+  expect(screen.getByText(/open its profile and select Mute/)).toBeInTheDocument();
   expect(screen.queryByText('Mute a conversation')).not.toBeInTheDocument();
 });

@@ -96,7 +96,7 @@ export const securityUi = {
     recoveryDescription: "How you get back in when you forget your password.",
     keyTitle: "Recovery key",
     keyExists: "A recovery key is set up.",
-    keySavingUnconfirmed: "Key created · saving unconfirmed on this browser",
+    keySavingUnconfirmed: "A recovery key exists. This browser cannot confirm that you saved a copy.",
     keyCreatedOn: "Created {date}.",
     keyReplaceHint: "Making a new one turns the old one off.",
     keyMissing: "Create a recovery key so you can reset a forgotten password. Save it somewhere safe.",

@@ -20,7 +20,7 @@ export const notificationSettings = {
     enableHere: "Enable on this device",
     disableHere: "Disable on this device",
     newMessage: "New message",
-    muteHint: "To mute a single conversation, right-click it in the chat list or open its profile.",
+    muteHint: "To mute a conversation, open its profile and select Mute.",
     open: "Open",
   },
 };

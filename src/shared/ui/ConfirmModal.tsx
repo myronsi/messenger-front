@@ -14,6 +14,7 @@ interface ConfirmModalProps {
   onCancel: () => void;
   confirmText?: string;
   cancelText?: string;
+  hideCancel?: boolean;
   isError?: boolean;
   isDestructive?: boolean;
   contained?: boolean;
@@ -30,6 +31,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onCancel,
   confirmText,
   cancelText,
+  hideCancel = false,
   isError = false,
   isDestructive = false,
   contained = false,
@@ -73,7 +75,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </label>
         )}
         <div className="flex justify-end space-x-2">
-          {!isError && (
+          {!isError && !hideCancel && (
             <button
               onClick={onCancel}
               className="motion-press px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
