@@ -47,7 +47,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
             width: circleStyle.size,
             height: circleStyle.size,
           }}
-          className={`absolute rounded-full bg-white/90 transform transition-transform duration-300 ease-out ${
+          className={`absolute rounded-full bg-background/90 transform transition-transform duration-300 ease-out ${
             circleActive ? 'scale-100' : 'scale-0'
           }`}
         />

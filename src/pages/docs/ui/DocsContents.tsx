@@ -33,14 +33,14 @@ const DocsContents = ({ docs }: { docs: Translations['docs'] }) => {
           <Link
             key={row.id}
             to={{ hash: `#${row.id}` }} replace state={location.state}
-            className="flex w-full items-center gap-3 border-b border-gray-200 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-gray-50"
+            className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-accent/60"
           >
             <IconTile icon={row.icon} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-gray-800">{row.title}</span>
-              <span className="block truncate text-xs text-gray-500">{row.description}</span>
+              <span className="block truncate text-sm font-medium text-foreground">{row.title}</span>
+              <span className="block truncate text-xs text-muted-foreground">{row.description}</span>
             </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           </Link>
         ))}
       </DocsCard>

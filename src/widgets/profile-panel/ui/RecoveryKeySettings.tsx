@@ -71,8 +71,8 @@ export const RecoveryKeySettings = ({ onDismissSafetyChange, onCreated }: {
           </div>
         </form>}
     </>}
-    {loadError && <p role="alert" className="text-sm text-red-700">{t.keyLoadFailed}</p>}
-    {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+    {loadError && <p role="alert" className="text-sm text-destructive">{t.keyLoadFailed}</p>}
+    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {twoFactor.dialog}
   </SecurityRow>;
 };

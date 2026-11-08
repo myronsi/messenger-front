@@ -20,10 +20,10 @@ export function ContactNameHeading(props: Props) {
   const { translations } = useLanguage();
   const input = useRef<HTMLInputElement>(null);
   const editing = !props.isCurrentUser && props.isEditingContactName;
-  const actionClass = 'absolute top-0 rounded p-1 transition-[transform,opacity,color,background-color] duration-200 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1.2)] hover:bg-gray-100 motion-reduce:transition-none';
+  const actionClass = 'absolute top-0 rounded p-1 transition-[transform,opacity,color,background-color] duration-200 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1.2)] hover:bg-accent motion-reduce:transition-none';
   return (
     <div className="mt-3 flex justify-center px-12">
-      <div className="relative min-w-0 max-w-full text-xl font-semibold leading-tight text-gray-950">
+      <div className="relative min-w-0 max-w-full text-xl font-semibold leading-tight text-foreground">
         {editing ? (
           <div className="relative grid min-w-0 max-w-full">
             <span aria-hidden="true" className="invisible col-start-1 row-start-1 overflow-hidden whitespace-pre">{props.customNameInput || props.accountDisplayName || ' '}</span>
@@ -41,7 +41,7 @@ export function ContactNameHeading(props: Props) {
                 if (event.key === 'Enter') { event.preventDefault(); props.onSaveContactName(); }
                 if (event.key === 'Escape') { event.preventDefault(); props.onCancelContactNameEdit(); }
               }}
-              className="absolute inset-0 min-w-0 w-full border-0 bg-transparent p-0 text-center text-xl font-semibold leading-tight outline-none placeholder:text-gray-400 focus:ring-0"
+              className="absolute inset-0 min-w-0 w-full border-0 bg-transparent p-0 text-center text-xl font-semibold leading-tight outline-none placeholder:text-muted-foreground focus:ring-0"
             />
           </div>
         ) : <h3 className="min-w-0 break-words text-center">{props.displayName}</h3>}
@@ -53,9 +53,9 @@ export function ContactNameHeading(props: Props) {
               {props.isSavingContactName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             </button>
             <button type="button" onClick={props.onCancelContactNameEdit} disabled={!editing || props.isSavingContactName} tabIndex={editing ? 0 : -1} aria-hidden={!editing} aria-label={translations.cancel || 'Cancel'}
-              className={`${actionClass} left-6 text-gray-500 ${editing ? 'translate-x-0 rotate-0 scale-100 opacity-100 delay-75' : 'pointer-events-none -translate-x-4 -rotate-90 scale-50 opacity-0'}`}><X className="h-4 w-4" /></button>
+              className={`${actionClass} left-6 text-muted-foreground ${editing ? 'translate-x-0 rotate-0 scale-100 opacity-100 delay-75' : 'pointer-events-none -translate-x-4 -rotate-90 scale-50 opacity-0'}`}><X className="h-4 w-4" /></button>
             <button type="button" data-testid="edit-contact-name" disabled={editing || props.isSavingContactName} tabIndex={editing ? -1 : 0} aria-hidden={editing} aria-label={translations.customName || 'Custom name'} title={translations.customName || 'Custom name'}
-              className={`${actionClass} left-0 text-gray-400 hover:text-gray-800 ${editing ? 'pointer-events-none rotate-45 scale-50 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} onClick={() => {
+              className={`${actionClass} left-0 text-muted-foreground hover:text-foreground ${editing ? 'pointer-events-none rotate-45 scale-50 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} onClick={() => {
                 flushSync(props.onEditContactName);
                 input.current?.focus({ preventScroll: true });
               }}><Pencil className="h-4 w-4" /></button>

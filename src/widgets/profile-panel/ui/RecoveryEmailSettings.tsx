@@ -52,7 +52,7 @@ export const RecoveryEmailSettings = ({ locked, enabled }: { locked: boolean; en
   return <SecurityRow id="recovery-email-settings" region title={t.emailTitle}
     description={<><span className="block">{t.emailDescription}</span>{enabled && <span role="status" className="mt-1 block text-muted-foreground">{state}</span>}</>}>
     {!enabled ? <p className="text-sm text-muted-foreground">{t.emailUnavailable}</p> : <>
-      {error && <p role="alert" className="text-sm text-red-700">{t.emailLoadFailed}</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{t.emailLoadFailed}</p>}
       <form id="recovery-email-form" className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); void save(); }}>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="recovery-email-address" className={securityLabel}>{t.emailAddress}</Label>
@@ -67,13 +67,13 @@ export const RecoveryEmailSettings = ({ locked, enabled }: { locked: boolean; en
         <div className="flex flex-wrap gap-2"><Button className="h-11 font-semibold" disabled={busy || locked || !data}>{t.emailSave}</Button>
           {data?.state === 'pending' && <Button type="button" variant="outline" className="h-11" disabled={busy || locked || !password}
             onClick={() => { void save(true); }}>{t.emailResend}</Button>}
-          {data?.address && <Button type="button" variant="ghost" className="h-11 text-red-700 hover:text-red-800" disabled={busy || locked}
+          {data?.address && <Button type="button" variant="ghost" className="h-11 text-destructive hover:text-destructive" disabled={busy || locked}
             onClick={() => setRemoving(true)}>{t.emailRemove}</Button>}
         </div>
       </form>
       {removing && <div role="alert" className="flex flex-col gap-2"><p className="text-sm text-muted-foreground">{t.emailRemoveConfirm}</p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="destructive" className="h-11 bg-red-700 hover:bg-red-800" disabled={busy || locked || !password} onClick={() => { void remove(); }}>{t.emailConfirmRemove}</Button>
+          <Button variant="destructive" className="h-11 bg-destructive hover:bg-destructive/90" disabled={busy || locked || !password} onClick={() => { void remove(); }}>{t.emailConfirmRemove}</Button>
           <Button variant="ghost" className="h-11" onClick={() => setRemoving(false)}>{t.cancel}</Button>
         </div></div>}
     </>}

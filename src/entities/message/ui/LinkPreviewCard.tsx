@@ -57,7 +57,7 @@ const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({ url, isMine }) => {
           onClick={confirm}
           onAuxClick={(event) => { if (event.button === 1) confirm(event); }}
           className={`flex max-w-full flex-col overflow-hidden rounded-lg border-l-[3px] no-underline transition-colors ${
-            isMine ? 'border-white/80 bg-white/15 hover:bg-white/20' : 'border-primary bg-primary/10 hover:bg-primary/15'
+            isMine ? 'border-primary-foreground/80 bg-primary-foreground/15 hover:bg-primary-foreground/20' : 'border-primary bg-primary/10 hover:bg-primary/15'
           }`}
         >
           {large && imageNode('max-h-48 w-full object-cover')}

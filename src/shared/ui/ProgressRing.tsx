@@ -9,7 +9,7 @@ export const ProgressRing = ({ progress, size, stroke, label, className, trackCl
   const clamped = Math.min(1, Math.max(0, progress));
   return <div role="img" aria-label={label} className="relative flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className="absolute inset-0 -rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} className={cn('stroke-slate-200', trackClassName)} />
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} className={cn('stroke-border', trackClassName)} />
       <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} strokeLinecap="round"
         strokeDasharray={circumference} strokeDashoffset={circumference * (1 - clamped)}
         className={cn('motion-safe:transition-[stroke-dashoffset] motion-safe:duration-1000 motion-safe:ease-linear', className)} />

@@ -4,7 +4,7 @@ import { MessageLink } from './MessageLink';
 
 const Highlighted = ({ text, query }: { text: string; query: string }) => (
   <>{splitByQuery(text, query).map((part, index) => part.match
-    ? <mark key={index} data-search-match className="rounded-sm bg-yellow-300/80 text-inherit">{part.text}</mark> : part.text)}</>
+    ? <mark key={index} data-search-match className="rounded-sm bg-highlight text-inherit">{part.text}</mark> : part.text)}</>
 );
 
 export function LinkedMessageText({ text }: { text: string }) {

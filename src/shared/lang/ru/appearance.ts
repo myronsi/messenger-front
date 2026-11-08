@@ -1,0 +1,25 @@
+export const appearance = {
+  appearance: {
+    title: "Оформление",
+    description: "Настройте внешний вид мессенджера на этом устройстве.",
+    preview: "Предпросмотр",
+    previewIncoming: "Видел новые цвета?",
+    previewOutgoing: "Да, чат теперь выглядит отлично!",
+    theme: "Тема",
+    themes: { light: "Светлая", dark: "Тёмная", system: "Системная" },
+    accent: "Акцентный цвет",
+    accents: {
+      blue: "Синий", violet: "Фиолетовый", green: "Зелёный", orange: "Оранжевый", pink: "Розовый", teal: "Бирюзовый", graphite: "Графит",
+    },
+    textSize: "Размер текста сообщений",
+    textSizeValue: "{size} px",
+    corners: "Углы сообщений",
+    cornerOptions: { sharp: "Острые", default: "Обычные", round: "Круглые" },
+    density: "Отступы между сообщениями",
+    densities: { comfortable: "Просторно", compact: "Компактно" },
+    chatBackground: "Фон чата",
+    chatBackgrounds: { plain: "Без фона", tint: "Оттенок", gradient: "Градиент", dots: "Точки", grid: "Сетка" },
+    reset: "Сбросить настройки",
+    deviceOnly: "Эти настройки сохраняются только на этом устройстве.",
+  },
+};

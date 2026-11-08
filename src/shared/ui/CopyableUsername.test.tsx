@@ -26,6 +26,6 @@ it('preserves focus when copying through keyboard activation', async () => {
   const button = screen.getByRole('button');
   button.focus();
   fireEvent.click(button, { detail: 0 });
-  await waitFor(() => expect(button.querySelector('.text-green-600')).not.toBeNull());
+  await waitFor(() => expect(button.querySelector('.text-success')).not.toBeNull());
   expect(button).toHaveFocus();
 });

@@ -113,19 +113,19 @@ export const RecoveryApprovalPrompt = () => {
     onPointerDownOutside={event => event.preventDefault()} overlayClassName={ACCOUNT_PROMPT_LAYER}
     className={`${ACCOUNT_PROMPT_LAYER} max-h-[90dvh] w-[calc(100%-2rem)] max-w-[440px] gap-[18px] overflow-y-auto rounded-2xl p-6 sm:rounded-2xl`}>
     <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[10px] bg-amber-100 text-amber-700">
+      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[10px] bg-warning-soft text-warning">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" /><path d="M12 8v4M12 16h.01" /></svg>
       </div>
       <div className="flex flex-col gap-1 text-left">
         <DialogTitle className="text-lg font-bold leading-snug">{t.title}</DialogTitle>
-        <DialogDescription className="text-[13px] text-slate-600">{requested}</DialogDescription>
+        <DialogDescription className="text-[13px] text-subtle-foreground">{requested}</DialogDescription>
       </div>
     </div>
-    <dl className="grid grid-cols-2 gap-2.5 rounded-[10px] border border-border bg-slate-50 px-3.5 py-3">
-      <div className="min-w-0"><dt className="text-[11px] uppercase tracking-wide text-slate-500">{t.device}</dt>
+    <dl className="grid grid-cols-2 gap-2.5 rounded-[10px] border border-border bg-muted/50 px-3.5 py-3">
+      <div className="min-w-0"><dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{t.device}</dt>
         <dd className="mt-0.5 break-words text-sm font-medium">{device}</dd></div>
-      <div className="min-w-0"><dt className="text-[11px] uppercase tracking-wide text-slate-500">{t.location}</dt>
+      <div className="min-w-0"><dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{t.location}</dt>
         <dd className="mt-0.5 break-words text-sm font-medium">{place ?? t.locationUnknown}</dd></div>
     </dl>
     <fieldset className="flex flex-col gap-2.5">
@@ -134,19 +134,19 @@ export const RecoveryApprovalPrompt = () => {
         {notice?.choices.map(number => <button key={number} type="button" aria-label={fillTemplate(t.choose, { number: String(number) })}
           aria-pressed={choice === number} onClick={() => setChoice(number)} className={cn(
             'h-[72px] rounded-xl text-3xl font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            choice === number ? 'border-2 border-primary bg-blue-50 text-blue-700' : 'border border-slate-300 bg-white text-foreground hover:bg-slate-50',
+            choice === number ? 'border-2 border-primary bg-primary/10 text-primary' : 'border border-input bg-background text-foreground hover:bg-accent/60',
           )}>{number}</button>)}
       </div>
     </fieldset>
-    <p className="text-xs text-slate-500">{t.verifyHint}</p>
-    {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+    <p className="text-xs text-muted-foreground">{t.verifyHint}</p>
+    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <div className="flex flex-wrap gap-2.5">
-      <Button variant="outline" className="h-11 flex-1 border-red-200 font-semibold text-red-700 hover:bg-red-50 hover:text-red-800" disabled={busy}
+      <Button variant="outline" className="h-11 flex-1 border-destructive/30 font-semibold text-destructive hover:bg-destructive-soft hover:text-destructive" disabled={busy}
         onClick={() => { void decide(true); }}>{t.deny}</Button>
       <Button className="h-11 flex-1 font-semibold" disabled={busy || choice === null}
         onClick={() => { void decide(false); }}>{t.approve}</Button>
     </div>
-    <p className="text-xs text-slate-500">{t.footnote}</p>
+    <p className="text-xs text-muted-foreground">{t.footnote}</p>
     {twoFactor.dialog}
   </DialogContent></Dialog>;
 };

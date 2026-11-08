@@ -5,7 +5,7 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import type { CallSession } from '../model/stores';
 import { useUserName } from './callHooks';
 
-const WARNING = 'flex gap-2 rounded-lg bg-amber-50 p-2 text-amber-900';
+const WARNING = 'flex gap-2 rounded-lg bg-warning-soft p-2 text-warning';
 
 const KeyChangeNotice: React.FC<{ userId: string }> = ({ userId }) => {
   const { translations } = useLanguage();

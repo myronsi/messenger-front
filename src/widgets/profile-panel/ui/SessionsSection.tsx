@@ -21,14 +21,14 @@ export const SessionsList = ({ settings }: { settings: Settings }) => {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
               <span className="truncate">{deviceLabel(session.user_agent)}</span>
-              {session.is_current && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">{translations.current}</span>}
+              {session.is_current && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">{translations.current}</span>}
             </div>
             <div className="truncate text-xs text-muted-foreground">
               {locationLabel(session.location, language) ?? t.locationUnknown} · {translations.lastActive} {new Date(session.last_active_at).toLocaleString(language === 'ru' ? 'ru-RU' : undefined)}
             </div>
           </div>
           <button type="button" onClick={() => handleRevokeSession(session.id, session.is_current)} aria-label={t.signOutSession} title={t.signOutSession}
-            className="flex h-11 w-11 flex-none items-center justify-center rounded-md text-red-700 hover:bg-red-50">
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-md text-destructive hover:bg-destructive-soft">
             <LogOut className="h-4 w-4" aria-hidden="true" />
           </button>
         </li>)}

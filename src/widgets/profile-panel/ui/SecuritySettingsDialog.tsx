@@ -52,7 +52,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
   const securityLabel = <><Smartphone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />{translations.securityDevices || 'Security & devices'}</>;
 
   return (
-    <div className="relative flex h-full flex-col bg-white">
+    <div className="relative flex h-full flex-col bg-background">
       <PageBackHeader onBack={detail ? () => onOpenDetail(null) : onBack} hideBack={pane && !detail}>
         <Breadcrumb>
           <BreadcrumbList>
@@ -72,8 +72,8 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
           aria-live="polite"
           className={`pointer-events-none absolute right-4 top-[58px] z-10 inline-flex max-w-[min(18rem,calc(100%-2rem))] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm ${
             status.type === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-red-200 bg-red-50 text-red-700'
+              ? 'border-success/30 bg-success-soft text-success'
+              : 'border-destructive/30 bg-destructive-soft text-destructive'
           }`}
         >
           {status.type === 'success' ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />}

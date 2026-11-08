@@ -5,6 +5,11 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import boundaries from "eslint-plugin-boundaries";
 
+const PALETTE_UTILITIES = "bg|text|border|divide|ring|ring-offset|from|via|to|fill|stroke|outline|placeholder|decoration|shadow|caret|accent";
+const PALETTE_SCALES = "gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose";
+const FIXED_PALETTE_CLASS = `(^|[\\s:'"\`])(${PALETTE_UTILITIES})-(${PALETTE_SCALES})-\\d`;
+const SOLID_WHITE_BACKGROUND = "(^|[\\s:])bg-white(?![\\w\\x2F-])";
+
 export default tseslint.config(
   { ignores: ["dist", "src/shared/api/generated", "playwright-report", "test-results"] },
   {
@@ -159,6 +164,25 @@ export default tseslint.config(
           selector: "ExpressionStatement, IfStatement, ForStatement, WhileStatement, TryStatement, ReturnStatement",
           message: "Index files should not contain implementation logic.",
         },
+      ],
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["**/index.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...[["Literal", "value"], ["TemplateElement", "value.raw"]].flatMap(([node, field]) => [
+          {
+            selector: `${node}[${field}=/${FIXED_PALETTE_CLASS}/]`,
+            message: "Use theme tokens (bg-background, text-muted-foreground, bg-primary, text-destructive …) instead of fixed palette colours, so dark mode and accent colours work.",
+          },
+          {
+            selector: `${node}[${field}=/${SOLID_WHITE_BACKGROUND}/]`,
+            message: "Use bg-background or bg-card instead of bg-white, so dark mode works.",
+          },
+        ]),
       ],
     },
   },

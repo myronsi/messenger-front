@@ -66,7 +66,7 @@ export const PasskeySettings = ({ locked, enabled, overview }: { locked: boolean
   return <SecurityRow id="passkey-settings" region title={t.passkeysTitle} description={t.passkeysDescription}>
     {!enabled ? <p className="text-sm text-muted-foreground">{t.passkeysUnavailable}</p> : <>
       {isLoading && <p role="status" className="text-sm text-muted-foreground">{t.passkeysLoading}</p>}
-      {loadError && <p role="alert" className="text-sm text-red-700">{t.passkeysLoadFailed}</p>}
+      {loadError && <p role="alert" className="text-sm text-destructive">{t.passkeysLoadFailed}</p>}
       {!isLoading && !loadError && !keys.length && <p className="text-sm text-muted-foreground">{t.noPasskeys}</p>}
       {keys.length > 0 && <ul className="flex flex-col gap-2">{keys.map(key => <li key={key.id}
         className="flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 p-3">
@@ -79,7 +79,7 @@ export const PasskeySettings = ({ locked, enabled, overview }: { locked: boolean
         </div>
         <Button variant="ghost" className="h-11 px-2.5 text-[13px] text-muted-foreground" disabled={busy || locked}
           aria-label={fillTemplate(t.renameLabel, { name: key.name })} onClick={() => { setEditing(key.id); setRenamed(key.name); }}>{t.rename}</Button>
-        <Button variant="ghost" className="h-11 px-2.5 text-[13px] text-red-700 hover:text-red-800" disabled={busy || locked}
+        <Button variant="ghost" className="h-11 px-2.5 text-[13px] text-destructive hover:text-destructive" disabled={busy || locked}
           aria-label={fillTemplate(t.removeLabel, { name: key.name })}
           onClick={() => { setRemoving(key.id); setPassword(''); }}>{t.remove}</Button>
       </li>)}</ul>}
@@ -91,12 +91,12 @@ export const PasskeySettings = ({ locked, enabled, overview }: { locked: boolean
       </form>}
       {removing && <div role="alert" className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">{t.removeConfirm}</p>
-        {lastMethod && <p className="text-sm font-medium text-red-700">{t.lastMethodWarning}</p>}
+        {lastMethod && <p className="text-sm font-medium text-destructive">{t.lastMethodWarning}</p>}
         <Label htmlFor="remove-passkey-password" className={securityLabel}>{t.currentPassword}</Label>
         <Input id="remove-passkey-password" type="password" autoComplete="current-password" className={securityInput} value={password}
           onChange={event => setPassword(event.target.value)} />
         <div className="flex flex-wrap gap-2">
-          <Button variant="destructive" className="h-11 bg-red-700 hover:bg-red-800" disabled={busy || locked || (keys.length === 1 && !password)}
+          <Button variant="destructive" className="h-11 bg-destructive hover:bg-destructive/90" disabled={busy || locked || (keys.length === 1 && !password)}
             onClick={() => { void remove(); }}>{t.confirmRemoval}</Button>
           <Button variant="ghost" className="h-11" onClick={() => { setRemoving(null); setPassword(''); }}>{t.cancel}</Button>
         </div>

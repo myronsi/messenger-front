@@ -197,7 +197,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
   });
 
   return (
-    <div className="relative min-h-0 flex-1">
+    <div className="chat-surface relative min-h-0 flex-1">
     <div className="absolute inset-0 overflow-x-hidden overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
         <div data-testid="sticky-date" className="sticky top-0 z-50 flex h-0 justify-center overflow-visible pointer-events-none md:w-2/3 md:mx-auto md:px-0">
@@ -210,7 +210,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
           </div>
         </div>
       )}
-      <div ref={setContentRef} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-4 ${bottomSpaceClass}`} style={bottomSpaceStyle}>
+      <div ref={setContentRef} className={`px-[10px] pt-6 md:w-2/3 md:mx-auto md:px-0 space-y-[var(--chat-gap)] ${bottomSpaceClass}`} style={bottomSpaceStyle}>
         {isLoadingOlderMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">

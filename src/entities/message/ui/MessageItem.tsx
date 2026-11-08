@@ -228,8 +228,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 {message.sender}
               </button>
             )}
-            <div className={`motion-message-bubble relative w-fit min-w-0 max-w-full rounded-2xl [overflow-wrap:anywhere] ${message.is_deleting ? 'message-dissolve' : ''} ${
-              isMine ? `bg-primary text-primary-foreground${showTail ? ' message-tail-right' : ''}` : `bg-accent text-accent-foreground${showTail ? ' message-tail-left' : ''}`
+            <div className={`motion-message-bubble relative w-fit min-w-0 max-w-full rounded-bubble [overflow-wrap:anywhere] ${message.is_deleting ? 'message-dissolve' : ''} ${
+              isMine ? `bubble-out bg-primary text-primary-foreground${showTail ? ' message-tail-right' : ''}` : `bubble-in bg-accent text-accent-foreground${showTail ? ' message-tail-left' : ''}`
             } ${isImage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}`
               : `px-3 ${isText ? 'pt-0.5 pb-1.5' : 'py-1.5'} border${isMine ? ' border-primary' : ' border-accent'}`} ${
               hasReactions ? (isImage ? 'mb-4' : 'mb-3.5') : ''
@@ -256,7 +256,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     ? <span data-message-time-spacer aria-hidden="true" className="invisible ml-2 inline-block text-[10px]">{time(false)}</span> : undefined}
                 />
                 {isText && hasTime && (
-                  <div data-testid="message-time" className={`absolute bottom-0 right-0 translate-y-1 select-none text-[10px] opacity-80 ${isMine ? 'text-white' : 'text-muted-foreground'}`}>
+                  <div data-testid="message-time" className={`absolute bottom-0 right-0 translate-y-1 select-none text-[10px] opacity-80 ${isMine ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
                     {time()}
                   </div>
                 )}
@@ -273,15 +273,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     : undefined} />
               ) : null}
               {!isText && (!isImage || hasImageCaption) && hasTime && (
-                <div className={`text-[10px] opacity-80 select-none flex items-center ${hasImageCaption ? '-mt-1 px-3 pb-2' : 'mt-1'} ${isMine ? 'justify-end text-white' : 'text-muted-foreground'}`}>
+                <div className={`text-[10px] opacity-80 select-none flex items-center ${hasImageCaption ? '-mt-1 px-3 pb-2' : 'mt-1'} ${isMine ? 'justify-end text-primary-foreground' : 'text-muted-foreground'}`}>
                   {time()}
                 </div>
               )}
               {message.delivery_error && (
-                <div className={`mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-snug ${isMine ? 'text-red-100' : 'text-red-600'}`}>
+                <div className={`mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-snug ${isMine ? 'text-primary-foreground/80' : 'text-destructive'}`}>
                   <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
                   <span>{message.delivery_error}</span>
-                  {isMine && onResendMessage && <button type="button" className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline" onClick={(event) => {
+                  {isMine && onResendMessage && <button type="button" className="ml-1 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline" onClick={(event) => {
                     event.stopPropagation();
                     onResendMessage(message);
                   }}>{message.upload_status === 'lost' ? translations.remove || 'Remove' : translations.resend || 'Resend'}</button>}

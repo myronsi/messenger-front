@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, useLocation, useNavigate, type Location }
 import { AuthFlowPage, RecoveryEmailLinkPage } from '@/pages/auth';
 import { MessengerApp } from '@/pages/messenger';
 import { LanguageProvider, useLanguage } from '@/shared/contexts/LanguageContext';
+import { AppearanceProvider } from '@/shared/contexts/AppearanceContext';
 import UpdateGate from '@/app/UpdateGate';
 import { Toaster as NotificationToaster } from '@/shared/ui/sonner';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
@@ -40,14 +41,16 @@ export function AppRoutes() {
 }
 
 const App = () => (
-  <LanguageProvider>
-    <ConnectionIndicator />
-    <UpdateGate />
-    <NotificationToaster />
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
-  </LanguageProvider>
+  <AppearanceProvider>
+    <LanguageProvider>
+      <ConnectionIndicator />
+      <UpdateGate />
+      <NotificationToaster />
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </LanguageProvider>
+  </AppearanceProvider>
 );
 
 export default App;

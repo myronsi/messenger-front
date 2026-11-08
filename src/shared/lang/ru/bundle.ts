@@ -15,8 +15,11 @@ import { securityUi } from './securityUi';
 import { qrLogin } from './qrLogin';
 import { calls } from './calls';
 import { appShell } from './appShell';
+import { appearance } from './appearance';
+import { authLayout } from './authLayout';
 
 export const ru = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
+  ...appearance, ...authLayout,
 };

@@ -16,7 +16,7 @@ const LanguageSettingsPage: React.FC<LanguageSettingsPageProps> = ({ language, o
   const { translations } = useLanguage();
   const pane = useSettingsLayout() === 'pane';
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-background">
       <PageBackHeader onBack={onBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
@@ -34,7 +34,7 @@ const LanguageSettingsPage: React.FC<LanguageSettingsPageProps> = ({ language, o
               role="radio"
               aria-checked={language === code}
               onClick={() => { if (language !== code) onChange(code); }}
-              className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left text-sm transition-colors last:border-b-0 hover:bg-gray-50"
+              className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left text-sm transition-colors last:border-b-0 hover:bg-accent/60"
             >
               <span className="min-w-0 flex-1 font-medium text-foreground">{LANGUAGE_NAMES[code]}</span>
               {language === code && <Check className="h-4 w-4 text-primary" aria-hidden="true" />}

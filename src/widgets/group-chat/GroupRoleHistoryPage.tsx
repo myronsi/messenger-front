@@ -29,7 +29,7 @@ const GroupRoleHistoryPage: React.FC<Props> = ({ chatId, rolesKey, onBack, closi
     <section
       aria-label={translations.roleHistory}
       data-closing={closing || undefined}
-      className={`absolute inset-0 z-20 flex flex-col bg-white text-gray-950 shadow-xl ${windowSlide(entered && !closing)}`}
+      className={`absolute inset-0 z-20 flex flex-col bg-background text-foreground shadow-xl ${windowSlide(entered && !closing)}`}
       onKeyDown={(event) => {
         if (event.key !== 'Escape') return;
         event.stopPropagation();

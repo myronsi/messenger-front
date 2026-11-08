@@ -26,7 +26,7 @@ export function ProfileTabHighlight({ active, layoutKey = '' }: { active: string
   const interpolate = (key: keyof Box) => !frames ? '0px'
     : `calc(${frames.current[key]}px + var(--profile-swipe-next, 0) * ${frames.next[key] - frames.current[key]}px + var(--profile-swipe-previous, 0) * ${frames.previous[key] - frames.current[key]}px)`;
   return <span ref={ref} aria-hidden="true" data-testid="profile-tab-highlight"
-    className="pointer-events-none absolute left-0 top-0 -z-10 rounded-md bg-gray-100 motion-reduce:!transition-none"
+    className="pointer-events-none absolute left-0 top-0 -z-10 rounded-md bg-muted motion-reduce:!transition-none"
     style={{ visibility: frames ? 'visible' : 'hidden', width: interpolate('width'), height: interpolate('height'),
       transform: `translate(${interpolate('x')}, ${interpolate('y')})`,
       transition: 'var(--profile-swipe-transition, transform 200ms ease-out, width 200ms ease-out, height 200ms ease-out)' }} />;

@@ -27,7 +27,7 @@ export const TwoFactorDialog = ({ open, busy, error, onConfirm, onCancel }: {
           <Input ref={input} id={`${id}-code`} autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={128} value={code}
             aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} className="h-11 border-input"
             onChange={event => setCode(event.target.value)} />
-          {error && <p id={`${id}-error`} role="alert" className="text-sm text-red-700">{error}</p>}
+          {error && <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter className="gap-2">
           <Button type="button" variant="ghost" className="h-11" disabled={busy} onClick={onCancel}>{t.cancel}</Button>

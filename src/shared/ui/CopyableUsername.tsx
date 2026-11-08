@@ -34,13 +34,13 @@ const CopyableUsername: React.FC<CopyableUsernameProps> = ({ username, className
       }}
       title={translations.copyUsername}
       aria-label={`${translations.copyUsername}: ${handle}`}
-      className={`group inline-flex min-w-0 max-w-full touch-manipulation select-none items-center gap-1.5 rounded text-left font-medium text-gray-900 [@media(hover:hover)]:hover:text-primary ${className}`}
+      className={`group inline-flex min-w-0 max-w-full touch-manipulation select-none items-center gap-1.5 rounded text-left font-medium text-foreground [@media(hover:hover)]:hover:text-primary ${className}`}
       style={{ WebkitTouchCallout: 'none' }}
     >
       <span className="truncate">{handle}</span>
       <span aria-hidden="true" className="relative h-3.5 w-3.5 shrink-0">
-        <Check className={`absolute inset-0 h-3.5 w-3.5 text-green-600 transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`} />
-        <Copy className={`absolute inset-0 h-3.5 w-3.5 text-gray-400 transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${copied ? 'scale-75 opacity-0' : 'scale-100 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 group-focus-visible:opacity-100'}`} />
+        <Check className={`absolute inset-0 h-3.5 w-3.5 text-success transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`} />
+        <Copy className={`absolute inset-0 h-3.5 w-3.5 text-muted-foreground transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${copied ? 'scale-75 opacity-0' : 'scale-100 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 group-focus-visible:opacity-100'}`} />
       </span>
     </button>
   );

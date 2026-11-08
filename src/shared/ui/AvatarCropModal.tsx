@@ -141,15 +141,15 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
         if (event.target === event.currentTarget && !isBusy) onCancel();
       }}
     >
-      <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-lg">
+      <div className="w-full max-w-md rounded-lg bg-background p-5 shadow-lg">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             {translations.cropProfilePicture || 'Crop profile picture'}
           </h3>
           <button
             onClick={onCancel}
             disabled={isBusy}
-            className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
+            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
             aria-label="Close crop dialog"
           >
             <X className="h-5 w-5" />
@@ -158,7 +158,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
 
         <div className="flex flex-col items-center gap-4">
           <div
-            className="relative h-[280px] w-[280px] touch-none overflow-hidden rounded-lg bg-gray-950"
+            className="relative h-[280px] w-[280px] touch-none overflow-hidden rounded-lg bg-black"
             onPointerDown={(event) => {
               if (isBusy) return;
               dragStartRef.current = {
@@ -189,7 +189,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
             <div className="pointer-events-none absolute inset-0 rounded-full border-2 border-white shadow-[0_0_0_999px_rgba(0,0,0,0.35)]" />
           </div>
 
-          <label className="w-full text-sm font-medium text-gray-700">
+          <label className="w-full text-sm font-medium text-subtle-foreground">
             {translations.zoom || 'Zoom'}
             <input
               type="range"
@@ -203,7 +203,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
                 setZoom(nextZoom);
                 setOffset((currentOffset) => clampOffset(currentOffset, sourceSize, nextZoom));
               }}
-              className="mt-2 w-full accent-blue-500"
+              className="mt-2 w-full accent-primary"
             />
           </label>
 
@@ -211,14 +211,14 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
             <button
               onClick={onCancel}
               disabled={isBusy}
-              className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              className="flex-1 rounded-md border border-input px-4 py-2 text-subtle-foreground transition-colors hover:bg-accent/60 disabled:opacity-50"
             >
               {translations.cancel || 'Cancel'}
             </button>
             <button
               onClick={handleConfirm}
               disabled={isBusy}
-              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               <span>{translations.save || 'Save'}</span>

@@ -55,10 +55,10 @@ export function SwipeProfilePanels<T extends string>({ active, views, onSelect, 
     return () => animations.forEach(animation => animation.cancel());
   }, [active, releaseRef]);
   return (
-    <div ref={root} {...handlers} data-testid="swipe-profile-panels" className="relative min-h-0 flex-1 touch-pan-y overflow-hidden bg-white">
+    <div ref={root} {...handlers} data-testid="swipe-profile-panels" className="relative min-h-0 flex-1 touch-pan-y overflow-hidden bg-background">
       {views.map((view, i) => (
         <div key={view} aria-hidden={i !== shown} inert={i !== shown} data-profile-panel={view}
-          className="absolute inset-0 touch-pan-y overflow-y-auto bg-white"
+          className="absolute inset-0 touch-pan-y overflow-y-auto bg-background"
           style={{ transform: `translateX(calc(${(i - shown) * 100}% + ${offset}px))`,
             transition: dragging || previous.current !== active ? 'none' : 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
             willChange: dragging ? 'transform' : undefined }}>

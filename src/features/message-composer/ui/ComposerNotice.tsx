@@ -28,7 +28,7 @@ const ComposerNotice: React.FC<ComposerNoticeProps> = ({ message, closeLabel, on
     <div role="status" className={`${leaving ? 'motion-collapse-out' : 'motion-collapse-in'} -mb-2 grid`}>
       <div className="min-h-0 overflow-hidden">
         <div className="pb-2">
-          <div className="flex items-start gap-2 rounded-2xl bg-red-100 py-2 pl-3 pr-2 text-sm text-red-700 shadow-sm">
+          <div className="flex items-start gap-2 rounded-2xl bg-destructive/15 py-2 pl-3 pr-2 text-sm text-destructive shadow-sm">
             <span className="min-w-0 flex-1">{message}</span>
             <button
               type="button"
@@ -36,7 +36,7 @@ const ComposerNotice: React.FC<ComposerNoticeProps> = ({ message, closeLabel, on
               onPointerDown={(event) => event.preventDefault()}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => setLeaving(true)}
-              className="motion-press shrink-0 rounded-full p-0.5 text-red-700 transition-colors hover:bg-red-200 hover:text-red-900"
+              className="motion-press shrink-0 rounded-full p-0.5 text-destructive transition-colors hover:bg-destructive/25 hover:text-destructive"
             >
               <X className="h-4 w-4" />
             </button>

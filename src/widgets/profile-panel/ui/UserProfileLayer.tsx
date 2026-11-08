@@ -15,7 +15,7 @@ export const UserProfileLayer: React.FC<UserProfileLayerProps> = ({ isMobile, is
   if (isMobile) {
     return (
       <ModalSurface label={translations.userProfile}
-        className={`fixed inset-0 z-[1000] bg-white ${windowSlide(!isClosing)}`}>
+        className={`fixed inset-0 z-[1000] bg-background ${windowSlide(!isClosing)}`}>
         {children}
       </ModalSurface>
     );
@@ -29,7 +29,7 @@ export const UserProfileLayer: React.FC<UserProfileLayerProps> = ({ isMobile, is
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div
-        className={`h-[min(780px,calc(100vh-3rem))] w-[420px] max-w-full overflow-hidden rounded-lg bg-white shadow-2xl transition-all duration-200 ease-out ${
+        className={`h-[min(780px,calc(100vh-3rem))] w-[420px] max-w-full overflow-hidden rounded-lg bg-background shadow-2xl transition-all duration-200 ease-out ${
           isClosing ? 'translate-y-3 scale-95 opacity-0' : 'translate-y-0 scale-100 opacity-100'
         }`}
       >

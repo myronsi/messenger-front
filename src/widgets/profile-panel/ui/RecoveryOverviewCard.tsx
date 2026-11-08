@@ -6,7 +6,7 @@ import { ProgressRing } from '@/shared/ui/ProgressRing';
 import type { RecoveryMethodId } from '../model/recoveryMethods';
 import { recoveryHealth } from '../model/recoveryHealth';
 
-const ringColors = { full: 'stroke-green-600', good: 'stroke-green-600', weak: 'stroke-amber-500', none: 'stroke-red-600' };
+const ringColors = { full: 'stroke-success', good: 'stroke-success', weak: 'stroke-warning', none: 'stroke-destructive' };
 
 export const RecoveryOverviewCard = ({ canAddPasskey, onAction }: { canAddPasskey: boolean; onAction: (method: RecoveryMethodId) => void }) => {
   const { data, isLoading, error, refetch } = useGetRecoveryOverviewQuery();
@@ -26,7 +26,7 @@ export const RecoveryOverviewCard = ({ canAddPasskey, onAction }: { canAddPasske
       <p className="text-xs text-muted-foreground">{health.sentence}</p>
     </div>
     {health.next && health.actionLabel && <Button className="h-11 font-semibold" onClick={() => onAction(health.next!)}>{health.actionLabel}</Button>}
-    {locked && <p role="status" className="w-full text-sm text-amber-800">
+    {locked && <p role="status" className="w-full text-sm text-warning">
       {fillTemplate(t.lockedNotice, { date: new Date(data.recovery_key.locked_until!).toLocaleString(language === 'ru' ? 'ru-RU' : undefined) })}</p>}
   </section>;
 };

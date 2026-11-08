@@ -26,7 +26,7 @@ describe('ChatListItem', () => {
   it('uses a gray context selection instead of the active chat color', () => {
     renderItem(true);
     const row = screen.getByTestId('chat-list-item');
-    expect(row).toHaveClass('bg-gray-100', 'text-foreground');
+    expect(row).toHaveClass('bg-muted', 'text-foreground');
     expect(row).not.toHaveClass('md:bg-primary');
     expect(row).toHaveAttribute('data-context-selected', 'true');
   });
@@ -41,7 +41,7 @@ describe('ChatListItem', () => {
     snapshot = { ...snapshot, mutes: [{ chat_id: '7', until: '9999-01-01T00:00:00Z' }] };
     renderItem();
     expect(screen.getByTestId('chat-muted-icon')).toBeInTheDocument();
-    expect(screen.getByText('3')).toHaveClass('bg-gray-400');
+    expect(screen.getByText('3')).toHaveClass('bg-muted-foreground');
     expect(screen.getByText('3')).not.toHaveClass('bg-primary');
   });
 });
