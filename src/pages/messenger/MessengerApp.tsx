@@ -19,6 +19,7 @@ import { QrApprovalRoute } from './ui/QrApprovalRoute';
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { pathOutsideAuth } from '@/shared/lib/authPaths';
+import { notificationReturnPath } from '@/shared/lib/notifications/navigation';
 import { CallProvider, CallStage } from '@/features/calls';
 
 interface MessengerAppProps {
@@ -80,9 +81,10 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   const qrRequestId = qrLoginRequestId(location.pathname);
 
   useEffect(() => {
-    const target = isLoggedIn ? pathOutsideAuth(location.pathname) : null;
-    if (target !== null) navigate(target, { replace: true });
-  }, [isLoggedIn, location.pathname, navigate]);
+    const target = isLoggedIn ? pathOutsideAuth(window.location.pathname) : null;
+    if (target === null) return;
+    navigate(target === '/' ? notificationReturnPath(location.pathname, location.search, location.state) : target, { replace: true });
+  }, [isLoggedIn, location.pathname, location.search, location.state, navigate]);
 
   useEffect(() => {
     if (isUserProfileOpen && (currentChat || profileUsername)) {
