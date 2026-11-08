@@ -1,7 +1,7 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { ContactNameHeading } from './ContactNameHeading';
-import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
+import { usePresenceLabel } from '@/shared/utils/presenceFormatters';
 
 interface UserProfileHeaderProps {
   avatarUrl: string;
@@ -25,6 +25,7 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
   const {
     avatarUrl, hasCustomAvatar, displayName, isOnline, lastSeen, onAvatarHistory,
   } = props;
+  const presenceLabel = usePresenceLabel(isOnline, lastSeen);
   return (
         <div className="px-5 pb-3 pt-5 text-center md:pt-4">
           {hasCustomAvatar ? (
@@ -49,7 +50,7 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
           <ContactNameHeading {...props} />
           <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-muted px-3 py-1 text-sm text-subtle-foreground">
             <span className={`mr-2 h-2 w-2 rounded-full ${isOnline ? 'bg-success' : 'bg-muted-foreground'}`} />
-            <span className="truncate">{getPresenceLabel(isOnline, lastSeen)}</span>
+            <span className="truncate">{presenceLabel}</span>
           </div>
         </div>
 

@@ -4,7 +4,10 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import ChatHeader from './ChatHeader';
 
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { search: 'Search', back: 'Back' } }) }));
+vi.mock('@/shared/contexts/LanguageContext', async () => {
+  const { en } = await import('@/shared/lang/en');
+  return { useLanguage: () => ({ language: 'en', translations: { ...en, search: 'Search', back: 'Back' } }) };
+});
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

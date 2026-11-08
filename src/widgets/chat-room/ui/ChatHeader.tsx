@@ -2,7 +2,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { getPresenceLabel } from '@/shared/utils/presenceFormatters';
+import { usePresenceLabel } from '@/shared/utils/presenceFormatters';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import type { EntityId } from '@/shared/api/entityId';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
@@ -26,6 +26,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onOpenSearch, interlocutorAvatar,
 }) => {
   const { translations } = useLanguage();
+  const presenceLabel = usePresenceLabel(isOnline, lastSeen);
   const displayName = chatDisplayName || chatName;
   const longPress = useLongPress(onOpenSearch);
 
@@ -42,7 +43,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>
               {!interlocutorDeleted && (
                 <span className="text-xs font-normal text-muted-foreground">
-                  {getPresenceLabel(isOnline, lastSeen)}
+                  {presenceLabel}
                 </span>
               )}
             </span>
