@@ -4,6 +4,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
+import { localeOf } from '@/shared/lang/languages';
 
 export interface ViewerImageInfo {
   sender: string;
@@ -24,7 +25,7 @@ const formatSentAt = (value: string, language: string) => {
   const date = parseUtcDate(value);
   if (Number.isNaN(date.getTime())) return '';
   const sameYear = date.getFullYear() === new Date().getFullYear();
-  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-GB', {
+  return new Intl.DateTimeFormat(localeOf(language), {
     day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }), hour: '2-digit', minute: '2-digit',
   }).format(date);
 };

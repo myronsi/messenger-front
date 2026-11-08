@@ -9,6 +9,7 @@ import { isTwoFactorCancelled, useTwoFactorConfirm } from '@/shared/ui/useTwoFac
 import { approveQrLogin, denyQrLogin, getQrLogin, isQrLoginForbidden, isQrLoginGone, isQrLoginUsed } from './api/qrLoginApi';
 import type { QrLoginDetails } from './model/qrLoginTypes';
 import { QR_LOGIN_TTL_MS } from './model/requestLifetimes';
+import { localeOf } from '@/shared/lang/languages';
 
 type View = 'loading' | 'ready' | 'approved' | 'denied' | 'expired' | 'used' | 'failed';
 
@@ -95,7 +96,7 @@ const QrApprovalDetails = ({ details, language, busy, error, onDecide }: {
 }) => {
   const t = useLanguage().translations.qrLogin;
   const place = locationLabel(details.location, language);
-  const time = new Date(details.created_at).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+  const time = new Date(details.created_at).toLocaleTimeString(localeOf(language), { hour: '2-digit', minute: '2-digit' });
   const facts = [
     [t.device, details.device ? deviceLabel(details.device) : t.unknownDevice],
     [t.location, place ?? t.locationUnknown],

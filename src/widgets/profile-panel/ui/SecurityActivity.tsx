@@ -5,6 +5,7 @@ import { locationLabel } from '@/shared/lib/locationLabel';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { isWarningEvent } from '../model/securityEvents';
+import { localeOf } from '@/shared/lang/languages';
 
 export const SecurityActivity = ({ onSignOutOthers, signingOutOthers, signOutLabel }: {
   onSignOutOthers?: () => void; signingOutOthers?: boolean; signOutLabel: string;
@@ -34,7 +35,7 @@ export const SecurityActivity = ({ onSignOutOthers, signingOutOthers, signOutLab
                   {labels[event.type] || t.eventFallback}{warning && <span className="sr-only"> ({t.needsAttention})</span>}
                 </p>
                 <p className="text-xs text-muted-foreground">{deviceLabel(event.user_agent)} · {locationLabel(event.location, language) ?? t.locationUnknown} · <time dateTime={event.created_at}>
-                  {new Date(event.created_at).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(event.created_at).toLocaleString(localeOf(language), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </time></p>
               </div>
             </li>;

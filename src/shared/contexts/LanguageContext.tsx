@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { en } from '@/shared/lang/en';
 import { ru } from '@/shared/lang/ru';
+import { es } from '@/shared/lang/es';
+import { isAppLanguage, type AppLanguage } from '@/shared/lang/languages';
 import { syncNotificationWorkerLanguage } from '@/shared/lib/notifications/workerSettings';
 
-type Language = 'en' | 'ru';
+type Language = AppLanguage;
 export type Translations = typeof en;
+const BUNDLES: Record<AppLanguage, Translations> = { en, ru, es };
 
 interface LanguageContextType {
   language: Language;
@@ -17,14 +20,14 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('language');
-    return (saved as Language) || 'ru';
+    return isAppLanguage(saved) ? saved : 'ru';
   });
 
-  const [translations, setTranslations] = useState<Translations>(language === 'ru' ? ru : en);
+  const [translations, setTranslations] = useState<Translations>(BUNDLES[language]);
 
   useEffect(() => {
     localStorage.setItem('language', language);
-    setTranslations(language === 'ru' ? ru : en);
+    setTranslations(BUNDLES[language]);
     syncNotificationWorkerLanguage(language);
   }, [language]);
 

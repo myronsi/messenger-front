@@ -1,3 +1,10 @@
+import { localeOf } from '@/shared/lang/languages';
+import type { AppLanguage } from '@/shared/lang/languages';
+import { timeDate as enDays } from '@/shared/lang/en/timeDate';
+import { timeDate as ruDays } from '@/shared/lang/ru/timeDate';
+import { timeDate as esDays } from '@/shared/lang/es/timeDate';
+
+const DAY_WORDS: Record<AppLanguage, { today: string; yesterday: string }> = { en: enDays, ru: ruDays, es: esDays };
 export const parseUtcDate = (date: string | Date): Date => {
   if (typeof date === 'string') {
     const trimmed = date.trim();
@@ -8,7 +15,7 @@ export const parseUtcDate = (date: string | Date): Date => {
   return date;
 };
 
-export const formatDate = (date: string | Date, language: 'en' | 'ru') => {
+export const formatDate = (date: string | Date, language: AppLanguage) => {
   const dateObj = parseUtcDate(date);
   
   const options: Intl.DateTimeFormatOptions = {
@@ -19,10 +26,10 @@ export const formatDate = (date: string | Date, language: 'en' | 'ru') => {
     minute: '2-digit'
   };
 
-  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', options).format(dateObj);
+  return new Intl.DateTimeFormat(localeOf(language, 'en-US'), options).format(dateObj);
 };
 
-export const formatDateOnly = (date: string | Date, language: 'en' | 'ru') => {
+export const formatDateOnly = (date: string | Date, language: AppLanguage) => {
   const dateObj = parseUtcDate(date);
 
   const options: Intl.DateTimeFormatOptions = {
@@ -31,23 +38,23 @@ export const formatDateOnly = (date: string | Date, language: 'en' | 'ru') => {
     day: 'numeric',
   };
 
-  return new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', options).format(dateObj);
+  return new Intl.DateTimeFormat(localeOf(language, 'en-US'), options).format(dateObj);
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-export const formatDateLabel = (date: string | Date, language: 'en' | 'ru', today: Date, yesterday: Date): string => {
+export const formatDateLabel = (date: string | Date, language: AppLanguage, today: Date, yesterday: Date): string => {
   const dateObj = parseUtcDate(date);
-  const locale = language === 'ru' ? 'ru-RU' : 'en-GB';
+  const locale = localeOf(language);
 
   if (dateObj.toDateString() === today.toDateString()) {
-    return language === 'ru' ? 'Сегодня' : 'Today';
+    return DAY_WORDS[language].today;
   }
 
   if (dateObj.toDateString() === yesterday.toDateString()) {
-    return language === 'ru' ? 'Вчера' : 'Yesterday';
+    return DAY_WORDS[language].yesterday;
   }
 
   const daysAgo = Math.round((startOfDay(today).getTime() - startOfDay(dateObj).getTime()) / DAY_MS);
@@ -64,9 +71,9 @@ export const formatDateLabel = (date: string | Date, language: 'en' | 'ru', toda
     .replace(/\s?г\.$/, '');
 };
 
-export const formatTime = (date: string | Date, language: 'en' | 'ru'): string => {
+export const formatTime = (date: string | Date, language: AppLanguage): string => {
   const dateObj = parseUtcDate(date);
-  return dateObj.toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-US', { 
+  return dateObj.toLocaleTimeString(localeOf(language, 'en-US'), { 
     hour: '2-digit', 
     minute: '2-digit' 
   });

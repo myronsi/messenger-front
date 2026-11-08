@@ -1,6 +1,14 @@
 import { toast } from 'sonner';
 import { notificationAccount, notificationSnapshot } from './api';
 import { openNotificationChatInApp } from './openChat';
+import { isAppLanguage, type AppLanguage } from '@/shared/lang/languages';
+import { notificationSettings as enWords } from '@/shared/lang/en/notificationSettings';
+import { notificationSettings as ruWords } from '@/shared/lang/ru/notificationSettings';
+import { notificationSettings as esWords } from '@/shared/lang/es/notificationSettings';
+
+const NOTIFICATION_WORDS: Record<AppLanguage, { newMessage: string; open: string }> = {
+  en: enWords.notificationSettings, ru: ruWords.notificationSettings, es: esWords.notificationSettings,
+};
 
 interface IncomingMessage { chatId: string; messageId: string; senderId: string; title: string; body: string; timestamp: string }
 const seen = new Set<string>();
@@ -36,10 +44,11 @@ export function alertIncomingMessage(message: IncomingMessage, activeChatId?: st
     try { recent = JSON.parse(localStorage.getItem(marker) || '[]') as string[]; } catch { /* Start a fresh replay window. */ }
     if (recent.includes(message.messageId)) return;
     localStorage.setItem(marker, JSON.stringify([...recent.slice(-99), message.messageId]));
-    const ru = localStorage.getItem('language') !== 'en';
+    const stored = localStorage.getItem('language');
+    const words = NOTIFICATION_WORDS[isAppLanguage(stored) ? stored : 'ru'];
     const id = toast(latest.preferences.previews ? message.title : 'Messenger', {
-      description: latest.preferences.previews ? message.body : ru ? 'Новое сообщение' : 'New message',
-      action: { label: ru ? 'Открыть' : 'Open', onClick: () => {
+      description: latest.preferences.previews ? message.body : words.newMessage,
+      action: { label: words.open, onClick: () => {
         if (user === notificationAccount() && scheduledGeneration === generation) openNotificationChatInApp(message.chatId);
       } },
       onDismiss: (item) => { activeToasts.delete(item.id); }, onAutoClose: (item) => { activeToasts.delete(item.id); },

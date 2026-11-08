@@ -13,6 +13,10 @@ const ACTION_TITLES = {
     reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}`, call: 'Входящий звонок', groupCall: 'Входящий групповой звонок',
     missed: 'Пропущенный звонок', ended: 'Звонок завершён', answered: 'Принят на другом устройстве',
   },
+  es: {
+    reply: 'Responder', read: 'Marcar como leído', many: (n) => `${n} mensajes nuevos`, call: 'Llamada entrante', groupCall: 'Llamada grupal entrante',
+    missed: 'Llamada perdida', ended: 'Llamada finalizada', answered: 'Respondida en otro dispositivo',
+  },
 };
 const CALL_MAX_RING_MS = 120000;
 const cancelledCalls = new Map();
@@ -33,7 +37,7 @@ async function saveSettings(data, previous = {}) {
   const cache = await caches.open(notificationCache);
   await cache.put(settingsKey, new Response(JSON.stringify({
     api: typeof data.api === 'string' ? data.api : previous.api || '',
-    language: data.language === 'ru' || data.language === 'en' ? data.language : previous.language || 'en',
+    language: ACTION_TITLES[data.language] ? data.language : previous.language || 'en',
   })));
 }
 function apiUrl(api, path) {

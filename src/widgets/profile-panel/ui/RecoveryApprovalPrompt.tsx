@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/
 import { ACCOUNT_PROMPT_LAYER } from '@/shared/ui/layers';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/ui/sonner';
+import { localeOf } from '@/shared/lang/languages';
 
 type Notice = ServerRecoveryRequestEvent['data'];
 
@@ -57,7 +58,7 @@ export const RecoveryApprovalPrompt = () => {
   const approvalError = (caught: unknown) => {
     if (caught instanceof ApprovalSessionTooNew) {
       return caught.approvableFrom
-        ? fillTemplate(t.sessionTooNew, { date: new Date(caught.approvableFrom).toLocaleString(language === 'ru' ? 'ru-RU' : undefined) })
+        ? fillTemplate(t.sessionTooNew, { date: new Date(caught.approvableFrom).toLocaleString(localeOf(language, undefined)) })
         : t.sessionTooNewSoon;
     }
     if (isPasskeyCancelled(caught)) return t.passkeyCancelled;

@@ -3,10 +3,11 @@ import { Ban, Info, Loader2, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateOnly } from '@/shared/utils/dateFormatters';
 import CopyableUsername from '@/shared/ui/CopyableUsername';
+import type { AppLanguage } from '@/shared/lang/languages';
 
 interface UserProfileInfoPanelProps {
   username: string;
-  language: 'en' | 'ru';
+  language: AppLanguage;
   bio?: string;
   actionError: string | null;
   isCurrentUser: boolean;

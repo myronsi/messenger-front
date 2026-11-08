@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import { muteNotifications, notificationSnapshot, subscribeNotifications, type NotificationSettings } from '@/shared/lib/notifications/api';
+import { localeOf } from '@/shared/lang/languages';
 
 export type MuteDuration = '1h' | '8h' | 'forever';
 export interface ChatMute { until: Date; forever: boolean }
@@ -16,7 +17,7 @@ export const getChatMute = (settings: NotificationSettings | null, chatId: Entit
 };
 
 export const formatMuteUntil = (until: Date, language: string, now = new Date()) => {
-  const locale = language === 'ru' ? 'ru-RU' : 'en-GB';
+  const locale = localeOf(language);
   const sameDay = until.toDateString() === now.toDateString();
   return until.toLocaleString(locale, sameDay
     ? { hour: '2-digit', minute: '2-digit' }
