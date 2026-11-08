@@ -156,6 +156,7 @@ export const securityUi = {
     },
     notices: {
       password_changed: "Your password was changed",
+      recovery_request_approved: "A recovery request was approved",
       recovery_key_changed: "Your recovery key was changed",
       "2fa_enabled": "Two-factor authentication was enabled",
       "2fa_disabled": "Two-factor authentication was disabled",

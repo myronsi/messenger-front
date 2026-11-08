@@ -2,6 +2,7 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { useCallback, useEffect, useState } from 'react';
 import { authFetch } from '@/shared/auth/session';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
+import { ACCOUNT_PROMPT_LAYER } from '@/shared/ui/layers';
 import { RecoveryKeySettings } from './RecoveryKeySettings';
 
 export const RecoverySetupPrompt = () => {
@@ -19,7 +20,8 @@ export const RecoverySetupPrompt = () => {
   return (
     <Dialog open={open} onOpenChange={next => { if (next || !dismissBlocked) setOpen(next); }}>
       <DialogContent
-        className="max-h-[90dvh] overflow-y-auto"
+        className={`${ACCOUNT_PROMPT_LAYER} max-h-[90dvh] overflow-y-auto`}
+        overlayClassName={ACCOUNT_PROMPT_LAYER}
         hideClose={dismissBlocked}
         onEscapeKeyDown={event => { if (dismissBlocked) event.preventDefault(); }}
         onPointerDownOutside={event => { if (dismissBlocked) event.preventDefault(); }}

@@ -20,5 +20,5 @@ for (let i = 0; i < lines.length; i++) {
 const expanded = lines.map((line) => line.startsWith('#') ? line : line.replace(/\$\{([A-Z0-9_]+)\}/g, (match, key) => values[key] ?? match));
 expanded.push('APP_ENV=development', 'COOKIE_SECURE=false', `API_PORT=${port}`, 'WORKER_PORT=18081',
   'CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173', 'RP_ID=localhost', 'RP_ORIGINS=http://localhost:5173',
-  'RECOVERY_WEB_URL=http://localhost:5173', 'HTTP_DRAIN_DELAY=0s');
+  'RECOVERY_WEB_URL=http://localhost:5173', 'HTTP_DRAIN_DELAY=0s', 'RECOVERY_APPROVAL_MIN_SESSION_AGE=0s');
 writeFileSync(output, `${expanded.join('\n')}\n`, { flag: 'wx', mode: 0o600 });
