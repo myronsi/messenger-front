@@ -14,7 +14,6 @@ export const profile = {
   userName: "Username",
   account: "Account",
   info: "Info",
-  avatarHistory: "Avatar history",
   avatarVisibility: "Avatar visibility",
   avatarVisibilityDescription: "Who can see your avatar.",
   blockedUsers: "Blocked users",

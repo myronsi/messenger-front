@@ -3,10 +3,15 @@ import type { SecurityDetail } from '@/shared/lib/urlOverlay';
 import type { RecoveryOverview } from './recoveryMethods';
 
 type SummaryLabels = Record<'twoFactorOn' | 'twoFactorOff' | 'passkeysCount' | 'notAdded' | 'keyCreatedTile' | 'keySetUp' | 'methodMissing'
-  | 'emailVerified' | 'emailPendingShort' | 'unavailable' | 'sessionsCount', string>;
+  | 'emailVerified' | 'emailPendingShort' | 'unavailable' | 'sessionsCount' | 'otherDeviceOne' | 'otherDevicesCount' | 'noOtherDevices', string>;
 
-export const securitySummaries = ({ overview, twoFactorEnabled, sessionCount, labels, formatDate }: {
-  overview?: RecoveryOverview; twoFactorEnabled?: boolean; sessionCount?: number; labels: SummaryLabels; formatDate: (value: string) => string;
+const otherDevices = (count: number, labels: SummaryLabels) => (
+  count === 0 ? labels.noOtherDevices : count === 1 ? labels.otherDeviceOne : fillTemplate(labels.otherDevicesCount, { count: String(count) })
+);
+
+export const securitySummaries = ({ overview, twoFactorEnabled, sessionCount, latestActivity, labels, formatDate }: {
+  overview?: RecoveryOverview; twoFactorEnabled?: boolean; sessionCount?: number; latestActivity?: string; labels: SummaryLabels;
+  formatDate: (value: string) => string;
 }): Record<SecurityDetail, string> => {
   const key = overview?.recovery_key;
   const email = overview?.email;
@@ -19,12 +24,14 @@ export const securitySummaries = ({ overview, twoFactorEnabled, sessionCount, la
       : key.created_at ? fillTemplate(labels.keyCreatedTile, { date: formatDate(key.created_at) }) : labels.keySetUp,
     'recovery-email': !email ? '' : !email.enabled ? labels.unavailable
       : email.state === 'verified' ? labels.emailVerified : email.state === 'pending' ? labels.emailPendingShort : labels.notAdded,
-    sessions: sessionCount === undefined ? '' : fillTemplate(labels.sessionsCount, { count: String(sessionCount) }),
+    sessions: overview ? otherDevices(overview.other_devices, labels)
+      : sessionCount === undefined ? '' : fillTemplate(labels.sessionsCount, { count: String(sessionCount) }),
+    activity: latestActivity ?? '',
   };
 };
 
 type TitleLabels = {
-  twoFactorAuthentication: string; activeSessions: string; securityPage: Record<'passwordTitle' | 'passkeysTitle' | 'keyTitle' | 'emailTitle', string>;
+  twoFactorAuthentication: string; activeSessions: string; securityPage: Record<'passwordTitle' | 'passkeysTitle' | 'keyTitle' | 'emailTitle' | 'activityTitle', string>;
 };
 
 export const securityDetailTitle = (detail: SecurityDetail, { twoFactorAuthentication, activeSessions, securityPage: t }: TitleLabels) => ({
@@ -34,4 +41,5 @@ export const securityDetailTitle = (detail: SecurityDetail, { twoFactorAuthentic
   'recovery-key': t.keyTitle,
   'recovery-email': t.emailTitle,
   sessions: activeSessions,
+  activity: t.activityTitle,
 })[detail];

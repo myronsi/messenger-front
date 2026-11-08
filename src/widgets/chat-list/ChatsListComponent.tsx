@@ -1,26 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Inbox, ChevronRight } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
+import { useGetCurrentUserQuery } from '@/features/profile';
+import { GroupCreateModal, useCreateGroup } from '@/features/groups';
+import { QrScannerDialog } from '@/features/auth';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
 import ChatsListHeader from './ChatsListHeader';
 import ChatListBody from './ui/ChatListBody';
 import ChatSearchOverlay from './ui/ChatSearchOverlay';
 import ChatContextMenu from './ui/ChatContextMenu';
 import { useChatListModel } from './model/useChatListModel';
-import type { ChatsListComponentProps } from './model/types';
+import { getMediaSrc, type ChatsListComponentProps } from './model/types';
 
 const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
-  const { setIsProfileOpen } = props;
+  const { setIsProfileOpen, onOpenRequests } = props;
   const model = useChatListModel(props);
+  const { data: me } = useGetCurrentUserQuery();
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const createGroup = useCreateGroup((message) => {
+    setCreatingGroup(false);
+    model.setModal({ type: 'success', message });
+    void model.refetch();
+  });
+  const pendingRequests = model.requestInbox?.unread_count || 0;
+  const header = (
+    <ChatsListHeader
+      translations={model.translations}
+      avatarUrl={getMediaSrc(me?.avatar_url)}
+      displayName={me?.display_name || me?.username || model.username}
+      onOpenSearch={model.handleOpenSearch}
+      onNewGroup={() => setCreatingGroup(true)}
+      onScanQr={() => setScanning(true)}
+      profileIndicatorCount={pendingRequests}
+      onOpenProfile={() => setIsProfileOpen(true)}
+    />
+  );
 
   if (model.isLoading) {
     return (
       <div ref={model.containerRef} className="h-full bg-background text-foreground flex flex-col relative">
-        <ChatsListHeader
-          translations={model.translations}
-          onOpenSearch={model.handleOpenSearch}
-          profileIndicatorCount={model.requestInbox?.unread_count || 0}
-          onOpenProfile={() => setIsProfileOpen(true)}
-        />
+        {header}
         <ChatListBodySkeleton />
       </div>
     );
@@ -28,13 +49,16 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
 
   return (
     <div ref={model.containerRef} className="h-full bg-background text-foreground flex flex-col relative">
-      {/* Header */}
-      <ChatsListHeader
-        translations={model.translations}
-        onOpenSearch={model.handleOpenSearch}
-        profileIndicatorCount={model.requestInbox?.unread_count || 0}
-        onOpenProfile={() => setIsProfileOpen(true)}
-      />
+      {header}
+      {pendingRequests > 0 && onOpenRequests && (
+        <button type="button" onClick={onOpenRequests}
+          className="mx-3 mb-1 mt-2.5 flex items-center gap-3 rounded-xl bg-blue-50 px-3.5 py-3 text-left text-blue-900 transition-colors hover:bg-blue-100 md:hidden">
+          <Inbox className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1 text-[15px] font-medium">{pendingRequests === 1 ? model.translations.appShell.messageRequestsRowOne
+            : fillTemplate(model.translations.appShell.messageRequestsRow, { count: String(pendingRequests) })}</span>
+          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+        </button>
+      )}
 
       {/* Overlay search that covers the chat list area when active */}
       <ChatSearchOverlay
@@ -74,7 +98,11 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         onError={(message) => model.setModal({ type: 'error', message })}
       />
 
-      {/* Modals */}
+      {creatingGroup && (
+        <GroupCreateModal currentUsername={model.username} onClose={() => setCreatingGroup(false)} onCreate={createGroup} />
+      )}
+      <QrScannerDialog open={scanning} onClose={() => setScanning(false)} />
+
       {model.modal && (
         <ConfirmModal
           title={model.modal.type === 'success' ? model.translations.success : model.translations.error}

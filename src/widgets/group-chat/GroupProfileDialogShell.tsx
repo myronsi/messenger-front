@@ -1,4 +1,5 @@
 import { ModalSurface } from '@/shared/ui/ModalSurface';
+import { mobileWindowSlide } from '@/shared/ui/windowMotion';
 import { SwipeProfilePanels } from '@/shared/ui/SwipeProfilePanels';
 import { ProfileTabHighlight } from '@/shared/ui/ProfileTabHighlight';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
@@ -36,12 +37,13 @@ interface Props {
   onCloseGroupConfirm: () => void;
   isAvatarViewerOpen: boolean;
   setIsAvatarViewerOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  subPage?: React.ReactNode;
 }
 
 const GroupProfileDialogShell: React.FC<Props> = ({
   chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, actionColumns,
   canShowPhotosAction, canShowAudiosAction, activeView, panelTransition, onSelectView, renderPanelContent,
-  groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen,
+  groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null,
 }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
@@ -69,20 +71,18 @@ const GroupProfileDialogShell: React.FC<Props> = ({
 
   return (
     <ModalSurface label={translations.groupProfile || 'Group profile'}
-      className={`fixed inset-0 z-[1000] flex items-center justify-center bg-white px-0 py-0 transition-opacity duration-200 ease-out sm:bg-black/40 sm:px-6 sm:py-6 ${
-        isClosing ? 'opacity-95 sm:opacity-0' : 'opacity-100'
+      className={`fixed inset-0 z-[1000] flex items-center justify-center bg-transparent px-0 py-0 sm:bg-black/40 sm:px-6 sm:py-6 sm:transition-opacity sm:duration-200 sm:ease-out ${
+        isClosing ? 'sm:opacity-0' : 'sm:opacity-100'
       }`}
       onMouseDown={requestClose}
     >
       <div
-        className={`relative h-full w-full max-w-full overflow-hidden bg-white shadow-2xl transition-all duration-200 ease-out sm:h-[min(780px,calc(100vh-3rem))] sm:w-[420px] sm:rounded-lg ${
-          isClosing
-            ? 'translate-x-full opacity-95 sm:translate-x-0 sm:translate-y-3 sm:scale-95 sm:opacity-0'
-            : 'translate-x-0 opacity-100 sm:translate-y-0 sm:scale-100'
+        className={`relative h-full w-full max-w-full overflow-hidden bg-white shadow-2xl sm:h-[min(780px,calc(100vh-3rem))] sm:w-[420px] sm:rounded-lg sm:transition-all sm:duration-200 sm:ease-out ${
+          mobileWindowSlide(!isClosing)} ${isClosing ? 'sm:translate-y-3 sm:scale-95 sm:opacity-0' : 'sm:translate-y-0 sm:scale-100 sm:opacity-100'
         }`}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div data-profile-swipe className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950">
+        <div data-profile-swipe className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950" inert={!!subPage}>
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-gray-500" />
@@ -141,10 +141,11 @@ const GroupProfileDialogShell: React.FC<Props> = ({
               </div>
 
               <SwipeProfilePanels active={activeView} views={visibleViews} onSelect={onSelectView}
-                renderPanel={renderPanelContent} enabled={open && !isClosing && !panelTransition && !groupConfirm && !isAvatarViewerOpen} />
+                renderPanel={renderPanelContent} enabled={open && !isClosing && !panelTransition && !groupConfirm && !isAvatarViewerOpen && !subPage} />
             </div>
           </div>
         </div>
+        {subPage}
         {groupConfirm && (
           <ConfirmModal
             title={groupConfirm.title}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
+import { windowSlide } from '@/shared/ui/windowMotion';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface UserProfileLayerProps {
@@ -14,7 +15,7 @@ export const UserProfileLayer: React.FC<UserProfileLayerProps> = ({ isMobile, is
   if (isMobile) {
     return (
       <ModalSurface label={translations.userProfile}
-        className={`fixed inset-0 z-[1000] bg-white transition-transform duration-200 ease-out ${isClosing ? 'translate-x-full opacity-95' : 'translate-x-0 opacity-100'}`}>
+        className={`fixed inset-0 z-[1000] bg-white ${windowSlide(!isClosing)}`}>
         {children}
       </ModalSurface>
     );

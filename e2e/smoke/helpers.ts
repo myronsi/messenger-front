@@ -1,8 +1,7 @@
 import { expect, type Browser, type BrowserContext, type Page, type Locator } from '@playwright/test';
 
 const MESSENGER_HEADING = 'Chats';
-const PROFILE_BUTTON_NAME = 'Open profile';
-const PROFILE_HEADING = 'Profile';
+const PROFILE_BUTTON_NAME = /^Your profile and settings/;
 const LOGIN_BUTTON_NAME = 'Sign in';
 
 export interface SmokeUser {
@@ -93,12 +92,15 @@ export const loginUser = async (page: Page, user: SmokeUser) => {
 
 export const openProfile = async (page: Page) => {
   await page.getByRole('button', { name: PROFILE_BUTTON_NAME }).click();
-  await expect(page.getByRole('dialog', { name: PROFILE_HEADING })).toBeVisible();
+  await expect(settingsSurface(page)).toBeVisible();
 };
 
+export const settingsSurface = (page: Page) => page.getByRole('dialog', { name: 'Profile', exact: true })
+  .or(page.getByRole('region', { name: 'Settings', exact: true }));
+
 export const closeProfile = async (page: Page) => {
-  await page.getByRole('button', { name: 'Close' }).first().click();
-  await expect(page.getByRole('dialog', { name: PROFILE_HEADING })).not.toBeVisible();
+  await page.getByRole('button', { name: /^(Close settings|Back to chats)$/ }).first().click();
+  await expect(settingsSurface(page)).not.toBeVisible();
 };
 
 export const confirmTwoFactor = async (page: Page, code: string) => {
@@ -117,7 +119,7 @@ export const openSecuritySetting = async (page: Page, group: 'Sign-in' | 'Recove
 
 export const logoutUser = async (page: Page) => {
   await openProfile(page);
-  await page.getByRole('button', { name: 'Logout' }).click();
+  await page.getByRole('button', { name: 'Log out', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm' }).click();
   await waitForLoginPage(page);
 };

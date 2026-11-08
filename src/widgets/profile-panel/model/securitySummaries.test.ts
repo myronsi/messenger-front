@@ -17,12 +17,12 @@ const summarize = (options: Partial<Parameters<typeof securitySummaries>[0]> = {
 
 describe('securitySummaries', () => {
   it('shows nothing while the data is still loading', () => {
-    expect(Object.values(summarize())).toEqual(['', '', '', '', '', '']);
+    expect(Object.values(summarize())).toEqual(['', '', '', '', '', '', '']);
   });
 
   it('describes methods that are not set up yet', () => {
     expect(summarize({ overview: overview(), twoFactorEnabled: false, sessionCount: 1 })).toEqual({
-      password: '', 'two-factor': 'Off', passkeys: 'Not added', 'recovery-key': 'Not set up', 'recovery-email': 'Not added', sessions: '1 active',
+      password: '', 'two-factor': 'Off', passkeys: 'Not added', 'recovery-key': 'Not set up', 'recovery-email': 'Not added', sessions: 'No other devices', activity: '',
     });
   });
 
@@ -33,8 +33,14 @@ describe('securitySummaries', () => {
       email: { address: 'person@example.test', state: 'verified', enabled: true },
     });
     expect(summarize({ overview: data, twoFactorEnabled: true, sessionCount: 3 })).toMatchObject({
-      'two-factor': 'On', passkeys: '2 added', 'recovery-key': 'Created 6 Nov 2026', 'recovery-email': 'Verified', sessions: '3 active',
+      'two-factor': 'On', passkeys: '2 added', 'recovery-key': 'Created 6 Nov 2026', 'recovery-email': 'Verified', sessions: 'No other devices',
     });
+  });
+
+  it('counts other devices and falls back to active sessions before the overview loads', () => {
+    expect(summarize({ overview: overview({ other_devices: 1 }) }).sessions).toBe('1 other device');
+    expect(summarize({ overview: overview({ other_devices: 3 }) }).sessions).toBe('3 other devices');
+    expect(summarize({ sessionCount: 2 }).sessions).toBe('2 active');
   });
 
   it('marks a pending email and methods this server does not offer', () => {

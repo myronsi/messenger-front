@@ -2,21 +2,16 @@ import AvatarCropModal from '@/shared/ui/AvatarCropModal';
 import { isGoApi } from '@/shared/api/goSocket';
 import AvatarHistoryViewer from './AvatarHistoryViewer';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
-import { GroupCreateModal, type GroupCreatePayload } from '@/features/groups';
 import type { en } from '@/shared/lang/en';
 import type { User } from '@/entities/user';
 import type { EntityId } from '@/shared/api/entityId';
 import type { ProfileModalState } from '../useProfileAccountActions';
 
 interface ProfilePanelDialogsProps {
-  username: string;
   userData: Pick<User, 'username'>;
   displayName: string;
   avatarUrl: string;
   hasCustomAvatar: boolean;
-  isGroupModalOpen: boolean;
-  onCloseGroupModal: () => void;
-  onCreateGroup: (payload: GroupCreatePayload) => Promise<void>;
   modal: ProfileModalState | null;
   onCancel: () => void;
   setModal: (modal: ProfileModalState | null) => void;
@@ -27,19 +22,16 @@ interface ProfilePanelDialogsProps {
   onAvatarUpload: (file: File) => void;
   onCancelAvatarCrop: () => void;
   isAvatarViewerOpen: boolean;
+  avatarViewerIndex?: number;
   onCloseAvatarViewer: () => void;
   onDeleteAvatar: (id: EntityId) => Promise<void>;
 }
 
 const ProfilePanelDialogs = ({
-  username,
   userData,
   displayName,
   avatarUrl,
   hasCustomAvatar,
-  isGroupModalOpen,
-  onCloseGroupModal,
-  onCreateGroup,
   modal,
   onCancel,
   setModal,
@@ -50,17 +42,11 @@ const ProfilePanelDialogs = ({
   onAvatarUpload,
   onCancelAvatarCrop,
   isAvatarViewerOpen,
+  avatarViewerIndex = 0,
   onCloseAvatarViewer,
   onDeleteAvatar,
 }: ProfilePanelDialogsProps) => (
   <>
-    {isGroupModalOpen && (
-      <GroupCreateModal
-        currentUsername={username}
-        onClose={onCloseGroupModal}
-        onCreate={onCreateGroup}
-      />
-    )}
     {modal && (
       <ConfirmModal
         title={
@@ -100,6 +86,7 @@ const ProfilePanelDialogs = ({
         username={userData.username}
         displayName={displayName}
         currentAvatarUrl={avatarUrl}
+        initialIndex={avatarViewerIndex}
         onClose={onCloseAvatarViewer}
         onDeleteAvatar={onDeleteAvatar}
       />

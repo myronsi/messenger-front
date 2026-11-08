@@ -10,11 +10,12 @@ interface AvatarHistoryViewerProps {
   currentAvatarUrl: string;
   onClose: () => void;
   onDeleteAvatar?: (id: EntityId) => Promise<void>;
+  initialIndex?: number;
 }
 
 const fileExtension = (url: string) => url.split('?')[0].split('.').pop()?.replace(/[^a-z0-9]/gi, '') || 'jpg';
 
-const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({ username, displayName, currentAvatarUrl, onClose, onDeleteAvatar }) => {
+const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({ username, displayName, currentAvatarUrl, onClose, onDeleteAvatar, initialIndex = 0 }) => {
   const { data } = useGetUserAvatarHistoryQuery(username);
 
   const images = useMemo<ViewerImage[]>(() => {
@@ -29,7 +30,7 @@ const AvatarHistoryViewer: React.FC<AvatarHistoryViewerProps> = ({ username, dis
     }));
   }, [currentAvatarUrl, data?.avatars, displayName, onDeleteAvatar, username]);
 
-  return <ImageViewer images={images} onClose={onClose} />;
+  return <ImageViewer images={images} initialIndex={initialIndex} onClose={onClose} />;
 };
 
 export default AvatarHistoryViewer;

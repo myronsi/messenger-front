@@ -1,12 +1,12 @@
 import { trimTrailingSlashes } from './trimTrailingSlashes';
 
-export const SETTINGS_PAGES = ['profile', 'personal', 'privacy', 'security', 'notifications', 'requests', 'language'] as const;
+export const SETTINGS_PAGES = ['profile', 'personal', 'privacy', 'security', 'notifications', 'requests', 'language', 'about'] as const;
 export type SettingsPage = typeof SETTINGS_PAGES[number];
 
 export const PRIVACY_DETAILS = ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'direct_messages', 'group_invites', 'search_visibility'] as const;
 export type PrivacyDetail = typeof PRIVACY_DETAILS[number];
 
-export const SECURITY_DETAILS = ['password', 'two-factor', 'passkeys', 'recovery-key', 'recovery-email', 'sessions'] as const;
+export const SECURITY_DETAILS = ['password', 'two-factor', 'passkeys', 'recovery-key', 'recovery-email', 'sessions', 'activity'] as const;
 export type SecurityDetail = typeof SECURITY_DETAILS[number];
 
 export type UrlOverlay =

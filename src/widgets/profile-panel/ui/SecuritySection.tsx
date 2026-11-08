@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { Check, ChevronRight, Plus } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 
 export const securityButton = 'h-11 shrink-0 border-input px-3.5 text-[13px]';
 export const securityLabel = 'text-[13px] font-medium text-foreground';
@@ -31,9 +32,15 @@ export const SecurityRow = ({ id, title, badge, description, action, children, r
   {children}
 </div>;
 
-export const SecurityNavRow = ({ label, summary, onClick }: { label: string; summary?: ReactNode; onClick: () => void }) => <button type="button"
-  onClick={onClick} className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50">
+export const SecurityNavRow = ({ label, summary, status, statusLabel, onClick }: {
+  label: string; summary?: ReactNode; status?: 'ready' | 'missing'; statusLabel?: string; onClick: () => void;
+}) => <button type="button" onClick={onClick} className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50">
   <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{label}</span>
+  {status && <span data-status={status} className={cn('flex h-5 w-5 flex-none items-center justify-center rounded-full',
+    status === 'ready' ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground')}>
+    {status === 'ready' ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" /> : <Plus className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
+    <span className="sr-only">{statusLabel}</span>
+  </span>}
   {summary && <span className="max-w-[40%] truncate text-sm text-muted-foreground">{summary}</span>}
   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 </button>;

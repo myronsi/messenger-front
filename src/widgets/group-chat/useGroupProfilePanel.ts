@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isProfileOverlayOpen } from '@/shared/lib/urlOverlay';
 import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
+import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import type { GroupProfileConfirmState } from './GroupProfileTypes';
-
-const PROFILE_CLOSE_ANIMATION_MS = 200;
 
 // Open/close animation state of the group profile dialog and its pending confirmation.
 export const useGroupProfilePanel = () => {
@@ -27,7 +26,7 @@ export const useGroupProfilePanel = () => {
       setRenderGroupProfile(false);
       setIsGroupProfileClosing(false);
       setGroupConfirm(null);
-    }, PROFILE_CLOSE_ANIMATION_MS);
+    }, WINDOW_MOTION_MS);
     return () => window.clearTimeout(timeoutId);
   }, [isGroupProfileOpen, renderGroupProfile]);
 

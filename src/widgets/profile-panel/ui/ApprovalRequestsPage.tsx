@@ -1,4 +1,7 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/shared/ui/breadcrumb';
+import { useSettingsLayout } from '../model/settingsLayout';
+import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import type { EntityId } from '@/shared/api/entityId';
 import React from 'react';
 import { Check, Inbox, MessageSquare, X } from 'lucide-react';
@@ -22,15 +25,18 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
   inbox, pendingCount, isApproving, isRejecting, onApprove, onReject, onBack, getMediaUrl,
 }) => {
   const { translations } = useLanguage();
+  const pane = useSettingsLayout() === 'pane';
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="border-b border-border px-5 py-4">
-        <nav className="flex items-center gap-2 text-sm">
-          <button type="button" onClick={onBack}>{translations.profile || 'Profile'}</button>
-          <span>/</span>
-          <span className="inline-flex items-center gap-2 font-medium"><Inbox className="h-4 w-4 text-muted-foreground" />{translations.requestInbox || 'Request inbox'}</span>
-        </nav>
-      </div>
+      <PageBackHeader onBack={onBack} hideBack={pane}>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbPage className="inline-flex items-center gap-2 font-medium">
+              <Inbox className="h-4 w-4 text-muted-foreground" />{translations.appShell.messageRequests}
+            </BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </PageBackHeader>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <p className="mb-4 text-sm text-muted-foreground">{pendingCount} {translations.pendingRequests || 'pending requests'}</p>
         {(inbox?.requests || []).length === 0 ? (

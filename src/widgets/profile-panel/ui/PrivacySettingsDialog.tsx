@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useSettingsLayout } from '../model/settingsLayout';
+import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import { AlertCircle, CheckCircle2, ChevronRight, Loader2, Shield } from 'lucide-react';
 import {
   Breadcrumb,
@@ -64,6 +66,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
     visibilityLabel, handlePrivacyChange, handleExceptionListChange, handleAddException, hasUnsavedChanges, saveChanges, discardChanges,
   } = usePrivacySettings(isActive);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const pane = useSettingsLayout() === 'pane';
   const callsOnServer = useCallsEnabledOnServer();
   const isSaving = isUpdatingPrivacy || isUpdatingExceptions;
   const requestBack = () => (hasUnsavedChanges ? setConfirmLeave(true) : onBack());
@@ -146,16 +149,13 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
   );
   const privacyLabel = <><Shield className="h-4 w-4 text-muted-foreground" />{translations.privacy || 'Privacy'}</>;
   const showingExceptions = !!definition && !!exceptionKey && !!effect;
+  const headerBack = showingExceptions && definition ? () => onOpenDetail(definition.key) : definition ? () => onOpenDetail(null) : requestBack;
 
   return (
     <div className="relative flex h-full flex-col bg-white">
-      <div className="border-b border-border px-5 py-4">
+      <PageBackHeader onBack={headerBack} hideBack={pane && !definition}>
         <Breadcrumb>
           <BreadcrumbList>
-            {crumb(translations.profile || 'Profile', requestBack)}
-            <BreadcrumbSeparator />
-            {crumb(translations.settings || 'Settings', requestBack)}
-            <BreadcrumbSeparator />
             {crumb(privacyLabel, definition ? () => onOpenDetail(null) : undefined)}
             {definition && (
               <>
@@ -171,7 +171,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
             )}
           </BreadcrumbList>
         </Breadcrumb>
-      </div>
+      </PageBackHeader>
 
       <div key={`${detail ?? 'list'}-${showingExceptions}`} className="motion-sheet-in min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
         {!definition && (

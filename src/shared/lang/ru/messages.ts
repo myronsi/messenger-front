@@ -47,6 +47,7 @@ export const messages = {
   roleHistory: "История ролей",
   roleHistoryError: "Не удалось загрузить историю ролей",
   roleHistoryEmpty: "Роли ещё не менялись",
+  roleHistoryCount: "Изменений: {count}",
   roleMadeAdmin: "{actor} назначил(а) {target} администратором",
   roleMadeModerator: "{actor} назначил(а) {target} модератором",
   roleMadeMember: "{actor} сделал(а) {target} обычным участником",

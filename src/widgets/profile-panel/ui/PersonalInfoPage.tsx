@@ -1,8 +1,12 @@
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/shared/ui/breadcrumb';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/shared/ui/breadcrumb';
+import CopyableUsername from '@/shared/ui/CopyableUsername';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
+import { useSettingsLayout } from '../model/settingsLayout';
+import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import React, { useState } from 'react';
-import { Camera, Check, Loader2, UserRound } from 'lucide-react';
+import { Check, Loader2, UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { ProfileHero } from './ProfileHero';
 import { LeaveUnsavedDialog, UnsavedChangesBar } from './UnsavedChanges';
 
 interface PersonalInfoPageProps {
@@ -24,17 +28,25 @@ interface PersonalInfoPageProps {
   onSaveAll: () => Promise<boolean>;
   onDiscard: () => void;
   onBack: () => void;
+  username?: string;
+  createdAt?: string | null;
+  hasCustomAvatar?: boolean;
+  onOpenAvatar?: (index: number) => void;
 }
+
+const memberSince = (value: string, language: string) => new Date(value).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-GB', { month: 'long', year: 'numeric' });
 
 const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
   avatarUrl, displayName, isUploadingAvatar, onPickAvatar, newDisplayName, displayNameChanged, displayNameInvalid, isUpdatingDisplayName, onDisplayNameChange,
   onSaveDisplayName, bio, newBio, isUpdatingBio, onBioChange, onSaveBio, onSaveAll, onDiscard, onBack,
+  username = '', createdAt, hasCustomAvatar = false, onOpenAvatar = () => undefined,
 }) => {
-  const { translations } = useLanguage();
+  const { translations, language } = useLanguage();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const hasUnsavedChanges = displayNameChanged || newBio !== bio;
   const isSaving = isUpdatingDisplayName || isUpdatingBio;
   const requestBack = () => (hasUnsavedChanges ? setConfirmLeave(true) : onBack());
+  const pane = useSettingsLayout() === 'pane';
   const saveAll = async () => {
     const saved = await onSaveAll();
     if (saved && confirmLeave) {
@@ -44,35 +56,23 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
   };
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="border-b border-border px-5 py-4">
+      <PageBackHeader onBack={requestBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem><BreadcrumbLink asChild className="cursor-pointer"><button type="button" onClick={requestBack}>{translations.profile || 'Profile'}</button></BreadcrumbLink></BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem><BreadcrumbLink asChild className="cursor-pointer"><button type="button" onClick={requestBack}>{translations.settings || 'Settings'}</button></BreadcrumbLink></BreadcrumbItem>
-            <BreadcrumbSeparator />
             <BreadcrumbItem><BreadcrumbPage className="inline-flex items-center gap-2 font-medium"><UserRound className="h-4 w-4 text-muted-foreground" />{translations.personalInfo || 'Personal info'}</BreadcrumbPage></BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-      </div>
+      </PageBackHeader>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
         <p className="text-sm text-muted-foreground">{translations.editProfile || 'Edit how other people see you.'}</p>
-        <section className="rounded-lg border border-border p-4">
-          <label className="group flex cursor-pointer flex-col items-center gap-3">
-            <span className="relative h-24 w-24 rounded-full">
-              <AuthenticatedImage src={avatarUrl} alt={displayName} className="h-24 w-24 rounded-full border border-gray-200 object-cover" />
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-white transition-colors group-hover:bg-black/35">
-                {isUploadingAvatar ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100" />}
-              </span>
+        <ProfileHero username={username} displayName={displayName} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar}
+          isUploadingAvatar={isUploadingAvatar} onPickAvatar={onPickAvatar} onOpenAvatar={onOpenAvatar} className="py-2"
+          subtitle={username && (
+            <span className="flex flex-col items-center gap-0.5 text-sm text-gray-600">
+              <CopyableUsername username={username} className="text-sm" />
+              {createdAt && <span>{fillTemplate(translations.appShell.memberSince, { date: memberSince(createdAt, language) })}</span>}
             </span>
-            <span className="text-sm font-medium text-primary group-hover:underline">{translations.changeAvatar}</span>
-            <input type="file" accept="image/*" className="sr-only" disabled={isUploadingAvatar} aria-label={translations.changeAvatar} onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (file) onPickAvatar(file);
-            }} />
-          </label>
-        </section>
+          )} />
         <section className="rounded-lg border border-border p-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">{translations.displayName || 'Display name'}</label>

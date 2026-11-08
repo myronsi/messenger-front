@@ -62,5 +62,5 @@ export const SessionDurationRow = ({ settings }: { settings: Settings }) => {
       {options.map((option) => <SelectItem key={option.value} value={String(option.value)}>{option.label}</SelectItem>)}
     </SelectContent>
   </Select>;
-  return <SecurityRow title={translations.sessionDuration} action={select} />;
+  return <SecurityRow title={translations.sessionDuration} description={t.sessionDurationHint} action={select} />;
 };

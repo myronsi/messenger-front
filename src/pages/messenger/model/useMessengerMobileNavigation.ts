@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import type { NavigateFunction } from 'react-router-dom';
 import type { CurrentChat } from './messengerRoutes';
 
@@ -51,7 +52,7 @@ export const useMessengerMobileNavigation = ({
     if (isMobile && currentChat) {
       clearMobileChatCloseTimer();
       setMobileChatStage('closing');
-      mobileChatCloseTimerRef.current = window.setTimeout(finishBackToChats, 260);
+      mobileChatCloseTimerRef.current = window.setTimeout(finishBackToChats, WINDOW_MOTION_MS);
       return;
     }
 
@@ -79,7 +80,7 @@ export const useMessengerMobileNavigation = ({
       setLastMobileChat(null);
       return;
     }
-    const timeoutId = window.setTimeout(() => setLastMobileChat(null), 300);
+    const timeoutId = window.setTimeout(() => setLastMobileChat(null), WINDOW_MOTION_MS);
     return () => window.clearTimeout(timeoutId);
   }, [currentChat, isMobile, lastMobileChat]);
 

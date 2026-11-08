@@ -1,10 +1,12 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useRef, useState } from 'react';
 import { useDeleteAccountMutation } from '@/features/profile';
+import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { useLogoutMutation } from '@/features/auth';
 import { authFetch, endSession } from '@/shared/auth/session';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { useDeleteMyAvatarMutation, type User } from '@/entities/user';
+import { useDeleteMyAvatarMutation, userApi, type User } from '@/entities/user';
+import { useAppDispatch } from '@/shared/hooks/redux';
 import type { EntityId } from '@/shared/api/entityId';
 
 const BASE_URL = getApiBaseUrl();
@@ -45,6 +47,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   const [deleteAccount, { isLoading: isDeletingAccount }] = useDeleteAccountMutation();
   const [deleteMyAvatar] = useDeleteMyAvatarMutation();
+  const dispatch = useAppDispatch();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarCropUrl, setAvatarCropUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -83,6 +86,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
       const response = await authFetch(`${BASE_URL}/auth/me/avatar`, { method: 'POST', body: formData });
       if (!response.ok) throw new Error('Failed to upload avatar');
       await refetchCurrentUser();
+      dispatch(userApi.util.invalidateTags([{ type: 'Avatar', id: `${userData.username}-history` }]));
       if (avatarCropUrl) URL.revokeObjectURL(avatarCropUrl);
       setAvatarCropUrl(null);
       setAvatarFile(null);
@@ -185,7 +189,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
 
   const handleClose = () => {
     setIsVisible(false);
-    setTimeout(onClose, 200);
+    setTimeout(onClose, WINDOW_MOTION_MS);
   };
 
   return {

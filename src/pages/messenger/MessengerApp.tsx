@@ -11,6 +11,8 @@ import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-pan
 import { useMessengerController } from './model/useMessengerController';
 import { MessengerAppSkeleton } from '@/shared/ui/messenger-skeletons';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
+import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
+import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { DesktopChatLayout } from './ui/DesktopChatLayout';
 import { useJumpRequest } from './model/useJumpRequest';
 import { QrApprovalRoute } from './ui/QrApprovalRoute';
@@ -30,6 +32,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     currentChat,
     isProfileOpen,
     setIsProfileOpen,
+    openMessageRequests,
     isUserProfileOpen,
     setIsUserProfileOpen,
     profileUsername,
@@ -70,6 +73,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
   const { requestJump, requestFor } = useJumpRequest(currentChat?.id);
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
   useVisualViewport(isMobile && isLoggedIn);
+  const ownProfile = useDelayedUnmount(isProfileOpen, WINDOW_MOTION_MS);
   const location = useLocation();
   const navigate = useNavigate();
   const qrRequestId = qrLoginRequestId(location.pathname);
@@ -88,7 +92,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     const timeoutId = window.setTimeout(() => {
       setRenderUserProfile(false);
       setIsUserProfileClosing(false);
-    }, 220);
+    }, WINDOW_MOTION_MS);
     return () => window.clearTimeout(timeoutId);
   }, [currentChat, currentUserProfileProps, isUserProfileOpen, profileUsername, renderUserProfile]);
 
@@ -97,7 +101,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
     setIsUserProfileClosing(true);
     window.setTimeout(() => {
       closeUserProfile();
-    }, 160);
+    }, WINDOW_MOTION_MS);
   };
 
   const jumpChatId = renderedUserProfileProps.directChatId;
@@ -148,6 +152,20 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
       )
     : null;
 
+  const renderOwnProfile = (layout: 'sheet' | 'pane') => (
+    <ProfileComponentRTK
+      username={username}
+      layout={layout}
+      isClosing={ownProfile.closing}
+      onClose={() => setIsProfileOpen(false)}
+      onLogout={() => {
+        setIsProfileOpen(false);
+        setIsUserProfileOpen(false);
+        setIsLoggedIn(false);
+      }}
+    />
+  );
+
   if (isLoading) {
     return <MessengerAppSkeleton isMobile={isMobile} />;
   }
@@ -172,6 +190,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                   username={username}
                   onChatOpen={openChat}
                   setIsProfileOpen={setIsProfileOpen}
+                  onOpenRequests={openMessageRequests}
                   activeChatId={currentChat?.id}
                   activeChatName={currentChat?.name}
                   onActiveChatUpdate={updateActiveChatFromList}
@@ -180,7 +199,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
               </div>
 
               <div
-                className={`absolute inset-0 z-50 overflow-hidden bg-white transition-transform duration-300 ease-out will-change-transform ${mobileChatPanelClass}`}
+                className={`absolute inset-0 z-50 overflow-hidden bg-white motion-window-slide ${mobileChatPanelClass}`}
                 style={{ pointerEvents: currentChat ? 'auto' : 'none' }}
               >
                 {activeChat || (
@@ -203,6 +222,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                   username={username}
                   onChatOpen={openChat}
                   setIsProfileOpen={setIsProfileOpen}
+                  onOpenRequests={openMessageRequests}
                   activeChatId={currentChat?.id}
                   activeChatName={currentChat?.name}
                   onActiveChatUpdate={updateActiveChatFromList}
@@ -217,6 +237,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                       </div>
                     </div>
                   )}
+                  {ownProfile.mounted && renderOwnProfile('pane')}
                   <CallStage />
                 </div>
               </DesktopChatLayout>
@@ -229,17 +250,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
             </div>
           )}
 
-          {isProfileOpen && (
-            <ProfileComponentRTK
-              username={username}
-              onClose={() => setIsProfileOpen(false)}
-              onLogout={() => {
-                setIsProfileOpen(false);
-                setIsUserProfileOpen(false);
-                setIsLoggedIn(false);
-              }}
-            />
-          )}
+          {isMobile && ownProfile.mounted && renderOwnProfile('sheet')}
         </div>
       )}
     </div>

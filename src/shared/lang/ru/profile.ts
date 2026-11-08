@@ -14,7 +14,6 @@ export const profile = {
   userName: "Имя пользователя",
   account: "Аккаунт",
   info: "Инфо",
-  avatarHistory: "История аватаров",
   avatarVisibility: "Видимость аватара",
   avatarVisibilityDescription: "Кто может видеть ваш аватар.",
   blockedUsers: "Заблокированные пользователи",

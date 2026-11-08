@@ -63,7 +63,7 @@ export const supplemental = {
   saved: "Saved",
   saveRecoveryCodes: "Save these recovery codes now.",
   selectedParticipants: "Selected participants",
-  sessionDuration: "Session duration",
+  sessionDuration: "Sign out unused devices after",
   settings: "Settings",
   setupProfile: "Set up your profile",
   setupProfileDescription: "Add an avatar and bio now, or skip this step.",

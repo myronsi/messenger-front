@@ -14,8 +14,9 @@ import { recoveryUi } from './recoveryUi';
 import { securityUi } from './securityUi';
 import { qrLogin } from './qrLogin';
 import { calls } from './calls';
+import { appShell } from './appShell';
 
 export const ru = {
   ...auth, ...profile, ...chat, ...group, ...messages,
-  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls,
+  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
 };
