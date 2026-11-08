@@ -12,11 +12,12 @@ import { ApiProblem, problemCode, problemStatus } from '@/shared/api/problem';
 import { localDeadline } from '@/shared/lib/countdown';
 import { DEVICE_RECOVERY_TTL_MS } from '@/features/auth';
 import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
+import { isPasskeyCancelled } from '@/shared/api/passkeys';
 import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
+import { ApprovalSessionTooNew, approveRecoveryRequest } from '../model/recoveryApproval';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
+import { ACCOUNT_PROMPT_LAYER } from '@/shared/ui/layers';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
 import { toast } from '@/shared/ui/sonner';
 
 type Notice = ServerRecoveryRequestEvent['data'];
@@ -40,7 +41,6 @@ export const RecoveryApprovalPrompt = () => {
   const [deadline, setDeadline] = useState(0);
   const current = useRef<Notice | null>(null);
   const [choice, setChoice] = useState<number | null>(null);
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { open } = useUrlOverlay();
@@ -52,14 +52,27 @@ export const RecoveryApprovalPrompt = () => {
   const requested = elapsed < 5 ? t.requestedJustNow : elapsed < 60
     ? fillTemplate(t.requestedSecondsAgo, { count: String(elapsed) }) : fillTemplate(t.requestedMinutesAgo, { count: String(Math.floor(elapsed / 60)) });
 
-  const close = () => { current.current = null; setNotice(null); setPassword(''); };
+  const close = () => { current.current = null; setNotice(null); };
+
+  const approvalError = (caught: unknown) => {
+    if (caught instanceof ApprovalSessionTooNew) {
+      return fillTemplate(t.sessionTooNew, { date: new Date(caught.approvableFrom).toLocaleString(language === 'ru' ? 'ru-RU' : undefined) });
+    }
+    if (isPasskeyCancelled(caught)) return t.passkeyCancelled;
+    const status = problemStatus(caught), code = problemCode(caught);
+    if (status !== 403) return t.failed;
+    if (code === 'forbidden') return t.sessionTooOld;
+    if (code === 'session_too_new') return t.sessionTooNewSoon;
+    if (code === 'invalid_credentials') return t.passkeyFailed;
+    return t.failed;
+  };
 
   useEffect(() => realtime.subscribe({ onEvent: frame => {
     if (frame.type !== 'recovery_request' || current.current?.request_id === frame.data.request_id) return;
     const now = Date.now();
     current.current = frame.data;
     setNotice(frame.data); setReceivedAt(now); setDeadline(localDeadline(frame.data.expires_at, DEVICE_RECOVERY_TTL_MS, now));
-    setChoice(null); setPassword(''); setError('');
+    setChoice(null); setError('');
   } }), []);
 
   useEffect(() => {
@@ -78,13 +91,7 @@ export const RecoveryApprovalPrompt = () => {
     const params = { path: { requestId } };
     try {
       const response = deny ? await apiClient.POST('/auth/recovery-requests/{requestId}/deny', { params })
-        : await twoFactor.confirm(async code => {
-          const result = await apiClient.POST('/auth/recovery-requests/{requestId}/approve', {
-            params, body: { match_number: choice!, password, ...(code ? { code } : {}) },
-          });
-          if (result.error) throw new ApiProblem(result.response.status, result.error);
-          return result;
-        });
+        : await twoFactor.confirm(code => approveRecoveryRequest(requestId, choice!, code));
       if (response.error) throw new ApiProblem(response.response.status, response.error);
       if (current.current?.request_id !== requestId) return;
       const denied = response.data?.status === 'denied';
@@ -95,14 +102,13 @@ export const RecoveryApprovalPrompt = () => {
     } catch (caught) {
       if (isTwoFactorCancelled(caught) || current.current?.request_id !== requestId) return;
       if (problemStatus(caught) === 404) { close(); toast(t.noLongerActive); return; }
-      const status = problemStatus(caught), code = problemCode(caught);
-      setError(status === 403 && code === 'forbidden' ? t.sessionTooOld : status === 403 && code === 'invalid_credentials' ? t.wrongPassword : t.failed);
+      setError(approvalError(caught));
     } finally { if (current.current?.request_id === requestId) setBusy(false); }
   };
 
   return <Dialog open={Boolean(notice)}><DialogContent hideClose onEscapeKeyDown={event => event.preventDefault()}
-    onPointerDownOutside={event => event.preventDefault()}
-    className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-[440px] gap-[18px] overflow-y-auto rounded-2xl p-6 sm:rounded-2xl">
+    onPointerDownOutside={event => event.preventDefault()} overlayClassName={ACCOUNT_PROMPT_LAYER}
+    className={`${ACCOUNT_PROMPT_LAYER} max-h-[90dvh] w-[calc(100%-2rem)] max-w-[440px] gap-[18px] overflow-y-auto rounded-2xl p-6 sm:rounded-2xl`}>
     <div className="flex items-start gap-3">
       <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[10px] bg-amber-100 text-amber-700">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -129,17 +135,12 @@ export const RecoveryApprovalPrompt = () => {
           )}>{number}</button>)}
       </div>
     </fieldset>
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor="recovery-approval-password" className="text-sm font-semibold">{t.password}</Label>
-      <Input id="recovery-approval-password" type="password" autoComplete="current-password" className="h-11" value={password}
-        aria-describedby="recovery-approval-password-hint" onChange={event => setPassword(event.target.value)} />
-      <p id="recovery-approval-password-hint" className="text-xs text-slate-500">{t.passwordHint}</p>
-    </div>
+    <p className="text-xs text-slate-500">{t.verifyHint}</p>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     <div className="flex flex-wrap gap-2.5">
       <Button variant="outline" className="h-11 flex-1 border-red-200 font-semibold text-red-700 hover:bg-red-50 hover:text-red-800" disabled={busy}
         onClick={() => { void decide(true); }}>{t.deny}</Button>
-      <Button className="h-11 flex-1 font-semibold" disabled={busy || choice === null || !password}
+      <Button className="h-11 flex-1 font-semibold" disabled={busy || choice === null}
         onClick={() => { void decide(false); }}>{t.approve}</Button>
     </div>
     <p className="text-xs text-slate-500">{t.footnote}</p>

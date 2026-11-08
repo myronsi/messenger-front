@@ -1691,8 +1691,55 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approve a recovery request using number matching, the password and the second factor */
+        /**
+         * Approve a recovery request using number matching, user verification and the second factor
+         * @description Approval does not need the current password, which the user may have forgotten. The checks run in this
+         *     order: the request must belong to the caller and `match_number` must match (a wrong number denies the
+         *     request), then user verification, then the second factor.
+         *
+         *     User verification follows `POST /auth/recovery-requests/{requestId}/approve/options`. When the account
+         *     has passkeys, `passkey` must carry an assertion with user verification for the challenge from that call
+         *     (`403 user_verification_required` without it, `403 invalid_credentials` for a failed assertion,
+         *     `400 invalid_request` for an unknown, used or expired challenge). The challenge is single use, so a
+         *     `401 two_factor_required` answer needs a new challenge before the request is repeated with `code`.
+         *     Without passkeys the approving session must be at least as old as the minimum session age
+         *     (`RECOVERY_APPROVAL_MIN_SESSION_AGE`, 72 hours by default), otherwise `403 session_too_new`.
+         *
+         *     `password` is ignored and only accepted so that older clients keep working.
+         */
         post: operations["approveDeviceRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/recovery-requests/{requestId}/approve/options": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description Approval handle from the recovery_request event. It is different from the requester's capability and cannot poll or complete the request. */
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tell the approving device how to verify its user
+         * @description `method: passkey` when the account has passkeys: `challenge_id` and `public_key` (WebAuthn request
+         *     options with `userVerification: required`) are for `navigator.credentials.get`, and the result goes to
+         *     the approval as `passkey`. The challenge is bound to this session and request, is single use and expires
+         *     after 5 minutes or with the request. `method: session` otherwise; `approvable_from` is set while the
+         *     session is younger than the minimum session age and tells when it may approve.
+         */
+        post: operations["deviceRecoveryApprovalOptions"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2553,7 +2600,7 @@ export interface components {
          *     codes must be treated like `internal_error`.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "internal_error";
+        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "internal_error";
         /** @description RFC 9457 problem details. `426 Upgrade Required` (`client_outdated`) uses the same format. */
         Problem: {
             /**
@@ -3068,8 +3115,28 @@ export interface components {
         };
         DeviceRecoveryApproval: {
             match_number: number;
-            password: string;
+            passkey?: components["schemas"]["PasskeyVerification"];
             code?: string;
+            /**
+             * @deprecated
+             * @description Ignored. Older clients still send it.
+             */
+            password?: string;
+        };
+        DeviceRecoveryApprovalOptions: {
+            /** @enum {string} */
+            method: "passkey" | "session";
+            /** @description Present with `method: passkey`. */
+            challenge_id?: string;
+            /** @description WebAuthn request options, present with `method: passkey`. */
+            public_key?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Format: date-time
+             * @description Present with `method: session` while the session is too new to approve.
+             */
+            approvable_from?: string;
         };
         DeviceRecoveryComplete: {
             new_password: string;
@@ -6365,6 +6432,40 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    deviceRecoveryApprovalOptions: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                /** @description Approval handle from the recovery_request event. It is different from the requester's capability and cannot poll or complete the request. */
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceRecoveryApprovalOptions"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
         };

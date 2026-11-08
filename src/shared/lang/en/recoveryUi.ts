@@ -142,8 +142,10 @@ export const recoveryUi = {
     failed: "Unable to respond. Check your authentication code or try again.",
     noLongerActive: "This recovery request is no longer active.",
     sessionTooOld: "This session signed in too long ago to approve recovery. Sign in again on this device, then try once more.",
-    password: "Your password",
-    passwordHint: "Enter your password to approve the request.",
-    wrongPassword: "The password is not correct.",
+    verifyHint: "You don't need your password. If your account has a passkey, confirm with your fingerprint, face or device PIN.",
+    passkeyCancelled: "The passkey confirmation was cancelled. Choose the number again and approve.",
+    passkeyFailed: "The passkey could not be verified. Try again.",
+    sessionTooNew: "This device signed in less than 3 days ago, so it can't approve yet. It can approve from {date}. Until then, use your recovery key or recovery email.",
+    sessionTooNewSoon: "This device signed in less than 3 days ago, so it can't approve yet. Use your recovery key or recovery email instead.",
   },
 };

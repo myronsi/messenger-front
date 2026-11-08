@@ -47,3 +47,12 @@ export const signInWithPasskey = async (username = '', autofill = false, signal?
   if (!me.data) throw new Error('Signed in. Please reload to open your account.');
   return me.data.username;
 };
+
+export const confirmWithPasskey = async (publicKey: Record<string, unknown>) => {
+  const credential = await startAuthentication({
+    optionsJSON: publicKey as unknown as Parameters<typeof startAuthentication>[0]['optionsJSON'],
+  });
+  return { ...credential };
+};
+
+export const isPasskeyCancelled = (error: unknown) => error instanceof Error && (error.name === 'NotAllowedError' || error.name === 'AbortError');
