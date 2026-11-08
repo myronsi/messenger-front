@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.12](https://github.com/myronsi/messenger-front/compare/v0.6.11...v0.6.12) (2026-11-08)
+
+
+### Features
+
+* **calls:** full-screen call view with a draggable minimized bubble ([#159](https://github.com/myronsi/messenger-front/issues/159)) ([44083fc](https://github.com/myronsi/messenger-front/commit/44083fc98b0343e296ec286618d7f56d8ce4e9b4))
+* **recovery:** approve device recovery with a passkey or an older session ([#158](https://github.com/myronsi/messenger-front/issues/158)) ([0f126b8](https://github.com/myronsi/messenger-front/commit/0f126b87cdff047cf9ba2ea9a23a6b304acc861a))
+* **settings:** desktop settings pane, profile hero and group role history page ([#160](https://github.com/myronsi/messenger-front/issues/160)) ([f65cafa](https://github.com/myronsi/messenger-front/commit/f65cafaa6ee566781b7081a5b35ff5d40af48b62))
+
+
+### Bug Fixes
+
+* **e2e:** run smoke against backend 1.10 and skip call tests before extra sign-ups ([#163](https://github.com/myronsi/messenger-front/issues/163)) ([cd6df06](https://github.com/myronsi/messenger-front/commit/cd6df06f20dd54fbab95e0baac9e36c33b62f9c2))
+
 ## [0.6.11](https://github.com/myronsi/messenger-front/compare/v0.6.10...v0.6.11) (2026-11-07)
 
 
