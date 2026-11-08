@@ -17,11 +17,11 @@ interface Member extends TrackedContext {
 }
 
 const setUpGroup = async (members: Member[], name: string) => {
-  for (const member of members) {
+  for (const [index, member] of members.entries()) {
     await registerUser(member.page, member.user);
     member.id = await myId(member.page);
+    if (index === 0) test.skip(!(await callsEnabled(member.page)), 'Calls are disabled on this backend');
   }
-  test.skip(!(await callsEnabled(members[0].page)), 'Calls are disabled on this backend');
   const created = await apiRequest<{ id: string }>(members[0].page, '/groups', {
     method: 'POST', body: { name, member_ids: members.slice(1).map((member) => member.id) },
   });
