@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useGetGroupDetailsQuery } from '@/entities/chat';
 import { useGetUserByIdQuery } from '@/entities/user';
 import { useAccessToken } from '@/shared/auth/session';
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { getTokenSession, getTokenSubject } from '@/shared/auth/tokenClaims';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { Call } from '../api/callsApi';
@@ -64,3 +66,10 @@ export const noticeText = (translations: Translations, notice: CallNotice) => ({
   moved: translations.callMovedAway,
   'rate-limited': translations.callRateLimited,
 })[notice];
+
+export const useCallAvatar = (call: Call | null | undefined, userId: string | null) => {
+  const peerId = call && call.kind === 'direct' ? peerOf(call, userId) : null;
+  const { data: peer } = useGetUserByIdQuery(peerId ?? '', { skip: !peerId });
+  const { data: group } = useGetGroupDetailsQuery(call?.chat_id ?? '', { skip: !call || call.kind !== 'group' });
+  return call?.kind === 'group' ? resolveMediaUrl(group?.avatar_url, DEFAULT_GROUP_AVATAR) : resolveMediaUrl(peer?.avatar_url, DEFAULT_AVATAR);
+};

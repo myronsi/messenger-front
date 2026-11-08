@@ -16,7 +16,7 @@ import { useJumpRequest } from './model/useJumpRequest';
 import { QrApprovalRoute } from './ui/QrApprovalRoute';
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CallProvider } from '@/features/calls';
+import { CallProvider, CallStage } from '@/features/calls';
 
 interface MessengerAppProps {
   renderAuthPage: (props: { onLoginSuccess: (username: string) => void }) => ReactNode;
@@ -158,7 +158,7 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
       {isLoggedIn && isGoApi() && <RecoverySetupPrompt key={username} />}
       {isLoggedIn && <RecoveryApprovalPrompt key={`approval:${username}`} />}
       {isLoggedIn && <SecurityNoticeHandler key={`security:${username}`} />}
-      {isLoggedIn && <CallProvider key={`calls:${username}`} />}
+      {isLoggedIn && <CallProvider key={`calls:${username}`} openChatId={currentChat ? String(currentChat.id) : null} />}
       {isLoggedIn && qrRequestId && <QrApprovalRoute key={qrRequestId} requestId={qrRequestId} onClose={() => navigate('/', { replace: true })} />}
 
       {!isLoggedIn ? (
@@ -209,13 +209,16 @@ const MessengerApp = ({ renderAuthPage }: MessengerAppProps) => {
                   onChatDeleted={handleChatDeleted}
                 />
               }>
-                {activeChat || (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="bg-gray-100 px-3 py-1 rounded-xl">
-                      <p className="text-gray-500 text-sm">{translations.selectChat}</p>
+                <div className="relative h-full">
+                  {activeChat || (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="bg-gray-100 px-3 py-1 rounded-xl">
+                        <p className="text-gray-500 text-sm">{translations.selectChat}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                  <CallStage />
+                </div>
               </DesktopChatLayout>
 
               {renderUserProfile && (
