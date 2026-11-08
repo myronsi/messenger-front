@@ -13,7 +13,7 @@ export const profile = {
   noBio: "Sin biografía",
   userName: "Nombre de usuario",
   account: "Cuenta",
-  info: "Info.",
+  info: "Info",
   avatarVisibility: "Visibilidad del avatar",
   avatarVisibilityDescription: "Quién puede ver tu avatar.",
   blockedUsers: "Usuarios bloqueados",
