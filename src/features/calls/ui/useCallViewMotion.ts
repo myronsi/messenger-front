@@ -35,6 +35,8 @@ export const useCallViewMotion = (inCall: boolean, mode: CallViewMode, corner: C
   useLayoutEffect(() => {
     const before = previous.current;
     previous.current = shown;
+    const released = drag.current;
+    drag.current = null;
     if (shown === 'full') {
       setFullMounted(true);
       return undefined;
@@ -44,8 +46,7 @@ export const useCallViewMotion = (inCall: boolean, mode: CallViewMode, corner: C
       setFullMounted(false);
       return undefined;
     }
-    const frames = morphFrames(target, cornerRef.current, drag.current);
-    drag.current = null;
+    const frames = morphFrames(target, cornerRef.current, released);
     const animation = target.animate(frames, { duration: CALL_VIEW_MOTION_MS, easing: CALL_VIEW_EASE, fill: 'forwards' });
     animation.onfinish = () => setFullMounted(false);
     return () => animation.cancel();
@@ -54,6 +55,8 @@ export const useCallViewMotion = (inCall: boolean, mode: CallViewMode, corner: C
   const attachFull = useCallback((node: HTMLDivElement | null) => {
     element.current = node;
     setNode(node);
+    const focused = document.activeElement;
+    if (node && (!focused || focused === document.body)) node.querySelector('button')?.focus({ preventScroll: true });
     if (!canAnimate(node)) return;
     const frames = previous.current === 'mini'
       ? morphFrames(node, cornerRef.current).reverse()

@@ -69,7 +69,7 @@ export const cornerPosition = (corner: CallCorner, width: number, height: number
 };
 
 export const shouldMinimizeOnChatChange = (previous: string | null, next: string | null, callChatId: string | null) => (
-  previous !== next && next !== callChatId
+  next !== null && previous !== next && next !== callChatId
 );
 
 export const CALL_VIEW_MOTION_MS = 260;

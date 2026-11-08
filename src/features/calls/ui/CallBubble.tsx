@@ -39,9 +39,19 @@ const keyCorner = (corner: CallCorner, key: string): CallCorner | null => {
 const useViewport = () => {
   const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }));
   useEffect(() => {
-    const resize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    let frame = 0;
+    const resize = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        setViewport({ width: window.innerWidth, height: window.innerHeight });
+      });
+    };
     window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
+    return () => {
+      window.removeEventListener('resize', resize);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, []);
   return viewport;
 };
@@ -57,11 +67,17 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
   const start = useRef<DragStart | null>(null);
   const latest = useRef<{ left: number; top: number } | null>(null);
   const suppressClick = useRef(false);
+  const button = useRef<HTMLButtonElement | null>(null);
   const home = cornerPosition(corner, viewport.width, viewport.height);
   const position = drag ?? home;
   const name = title || translations.callPanelTitle;
   const label = [name, timer ?? phaseText, session.muted ? translations.callMuted : '', warning ? translations.callBubbleWarning : '', translations.callExpand]
     .filter(Boolean).join(' · ');
+
+  useEffect(() => {
+    const focused = document.activeElement;
+    if (!focused || focused === document.body) button.current?.focus({ preventScroll: true });
+  }, []);
 
   const finishDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     const begun = start.current;
@@ -77,6 +93,7 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
 
   return (
     <button
+      ref={button}
       type="button"
       aria-label={label}
       title={label}
@@ -91,6 +108,7 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
       style={{ left: position.left, top: position.top, width: bubbleBox.size, height: bubbleBox.size }}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
+        suppressClick.current = false;
         event.currentTarget.setPointerCapture(event.pointerId);
         start.current = { x: event.clientX, y: event.clientY, left: home.left, top: home.top, moved: false };
       }}
@@ -108,7 +126,12 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
         setDrag(next);
       }}
       onPointerUp={finishDrag}
-      onPointerCancel={(event) => { start.current = null; latest.current = null; setDrag(null); finishDrag(event); }}
+      onPointerCancel={(event) => {
+        start.current = null;
+        latest.current = null;
+        setDrag(null);
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      }}
       onKeyDown={(event) => {
         const next = keyCorner(corner, event.key);
         if (!next) return;

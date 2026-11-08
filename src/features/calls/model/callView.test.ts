@@ -41,7 +41,8 @@ describe('call view', () => {
     expect(shouldMinimizeOnChatChange('5', '6', '5')).toBe(true);
     expect(shouldMinimizeOnChatChange('6', '5', '5')).toBe(false);
     expect(shouldMinimizeOnChatChange('5', '5', '5')).toBe(false);
-    expect(shouldMinimizeOnChatChange('5', null, '5')).toBe(true);
+    expect(shouldMinimizeOnChatChange('5', null, '5')).toBe(false);
+    expect(shouldMinimizeOnChatChange(null, '6', '5')).toBe(true);
   });
 
   it('shrinks the call view towards the centre of the bubble corner', () => {

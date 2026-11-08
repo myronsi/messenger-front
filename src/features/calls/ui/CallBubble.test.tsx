@@ -53,6 +53,24 @@ describe('CallBubble', () => {
     expect(bubble()).toHaveStyle({ left: '16px', top: '80px' });
   });
 
+  it('opens on the next tap after a touch drag that produced no click', () => {
+    render(<CallBubble call={call} session={session} userId="1" />);
+    act(() => {
+      fireEvent.pointerDown(bubble(), { button: 0, pointerId: 1, clientX: 950, clientY: 670 });
+      fireEvent.pointerMove(bubble(), { pointerId: 1, clientX: 120, clientY: 120 });
+      fireEvent.pointerUp(bubble(), { pointerId: 1, clientX: 120, clientY: 120 });
+    });
+    fireEvent.pointerDown(bubble(), { button: 0, pointerId: 2, clientX: 40, clientY: 100 });
+    fireEvent.pointerUp(bubble(), { pointerId: 2, clientX: 40, clientY: 100 });
+    fireEvent.click(bubble());
+    expect(callViewStore.get().mode).toBe('full');
+  });
+
+  it('takes focus when it replaces the full view', () => {
+    render(<CallBubble call={call} session={session} userId="1" />);
+    expect(bubble()).toHaveFocus();
+  });
+
   it('treats a tiny movement as a tap', () => {
     render(<CallBubble call={call} session={session} userId="1" />);
     fireEvent.pointerDown(bubble(), { button: 0, pointerId: 1, clientX: 950, clientY: 670 });
