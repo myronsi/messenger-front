@@ -16,8 +16,8 @@ const SILENT = 0.003;
 
 const setUpDirectChat = async (a: Page, b: Page, caller: SmokeUser, callee: SmokeUser) => {
   await registerUser(a, caller);
-  await registerUser(b, callee);
   test.skip(!(await callsEnabled(a)), 'Calls are disabled on this backend');
+  await registerUser(b, callee);
   await openPreviewChat(a, callee.username);
   await sendMessage(a, 'Ready for a call?');
   await approvePendingRequestIfPresent(b, caller.username);
