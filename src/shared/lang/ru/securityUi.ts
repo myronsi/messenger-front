@@ -162,6 +162,7 @@ export const securityUi: typeof en = {
     },
     notices: {
       password_changed: "Ваш пароль изменён",
+      recovery_request_approved: "Запрос на восстановление подтверждён",
       recovery_key_changed: "Ваш ключ восстановления изменён",
       "2fa_enabled": "Двухфакторная аутентификация включена",
       "2fa_disabled": "Двухфакторная аутентификация отключена",

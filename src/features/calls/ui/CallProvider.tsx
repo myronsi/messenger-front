@@ -4,7 +4,11 @@ import { startCallSync } from '../model/callSync';
 
 const CallOverlay = lazy(() => import('./CallOverlay'));
 
-const CallProvider: React.FC = () => {
+interface CallProviderProps {
+  openChatId?: string | null;
+}
+
+const CallProvider: React.FC<CallProviderProps> = ({ openChatId = null }) => {
   const native = isNativeShell();
   const enabled = useCallsEnabledOnServer();
 
@@ -17,7 +21,7 @@ const CallProvider: React.FC = () => {
   if (native || !enabled) return null;
   return (
     <Suspense fallback={null}>
-      <CallOverlay />
+      <CallOverlay openChatId={openChatId} />
     </Suspense>
   );
 };

@@ -67,6 +67,7 @@ export const calls: typeof en = {
   callPanelTitle: "Аудиозвонок",
   callMinimize: "Свернуть звонок",
   callExpand: "Показать звонок",
+  callBubbleWarning: "Предупреждение безопасности, откройте звонок, чтобы прочитать его",
   privacyCalls: "Звонки",
   callsEnabledSetting: "Разрешить звонки",
   callsEnabledDescription: "Вам могут звонить собеседники из личных чатов и групп.",

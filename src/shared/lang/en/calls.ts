@@ -65,6 +65,7 @@ export const calls = {
   callPanelTitle: "Audio call",
   callMinimize: "Minimize call",
   callExpand: "Show call",
+  callBubbleWarning: "Security warning, open the call to read it",
   privacyCalls: "Calls",
   callsEnabledSetting: "Allow calls",
   callsEnabledDescription: "People from your direct chats and groups can call you.",
