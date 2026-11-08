@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useRef, useState } from 'react';
-import { useDeleteAccountMutation } from '@/features/profile';
+import { useDeleteAccountMutation, useUpdateUserMutation } from '@/features/profile';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { useLogoutMutation } from '@/features/auth';
 import { authFetch, endSession } from '@/shared/auth/session';
@@ -55,8 +55,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const [newBio, setNewBio] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
-  const [isUpdatingBio, setIsUpdatingBio] = useState(false);
-  const [isUpdatingDisplayName, setIsUpdatingDisplayName] = useState(false);
+  const [updateUser, { isLoading: isSavingPersonalInfo }] = useUpdateUserMutation();
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -103,57 +102,31 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     await refetchCurrentUser();
   };
 
-  const saveBio = async (quiet: boolean) => {
-    if (!userData || newBio === bio) return true;
-    setIsUpdatingBio(true);
-    try {
-      const response = await authFetch(`${BASE_URL}/auth/me/bio`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bio: newBio }),
-      });
-      if (!response.ok) throw new Error('Failed to update bio');
-      setBio(newBio);
-      if (!quiet) setModal({ type: 'success', message: 'Bio updated successfully' });
-      return true;
-    } catch (error) {
-      setModal({ type: 'error', message: errorMessage(error, 'Failed to update bio') });
-      return false;
-    } finally {
-      setIsUpdatingBio(false);
-    }
-  };
-  const handleUpdateBio = () => saveBio(false);
-
-  const saveDisplayName = async (quiet: boolean) => {
+  const handleSavePersonalInfo = async () => {
+    if (!userData || isSavingPersonalInfo) return false;
     const normalized = normalizeDisplayName(newDisplayName);
-    if (!userData || normalized === displayName) return true;
-    if (!isValidDisplayName(newDisplayName)) {
-      setModal({ type: 'error', message: 'Display name must be between 3 and 50 characters' });
-      return false;
-    }
-    setIsUpdatingDisplayName(true);
+    if (normalized !== displayName && !isValidDisplayName(normalized)) return false;
+    if (normalized === displayName && newBio === bio) return true;
+
     try {
-      const response = await authFetch(`${BASE_URL}/auth/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ display_name: normalized }),
-      });
-      if (!response.ok) throw new Error('Failed to update display name');
-      setDisplayName(normalized);
-      setNewDisplayName(normalized);
-      if (!quiet) setModal({ type: 'success', message: 'Display name updated successfully' });
+      const saved = await updateUser({
+        id: userData.id,
+        ...(normalized !== displayName ? { display_name: normalized } : {}),
+        ...(newBio !== bio ? { bio: newBio } : {}),
+      }).unwrap();
+      const savedName = saved.display_name || saved.username;
+      const savedBio = saved.bio || '';
+      savedRef.current = { displayName: savedName, bio: savedBio };
+      setDisplayName(savedName);
+      setBio(savedBio);
+      setNewDisplayName(draft => draft === newDisplayName ? savedName : draft);
+      setNewBio(draft => draft === newBio ? savedBio : draft);
       return true;
     } catch (error) {
-      setModal({ type: 'error', message: errorMessage(error, 'Failed to update display name') });
+      setModal({ type: 'error', message: errorMessage(error, translations.profileSaveFailed) });
       return false;
-    } finally {
-      setIsUpdatingDisplayName(false);
     }
   };
-  const handleUpdateDisplayName = () => saveDisplayName(false);
-
-  const handleSavePersonalInfo = async () => (await saveDisplayName(true)) && (await saveBio(true));
   const discardPersonalInfo = () => {
     setNewDisplayName(displayName);
     setNewBio(bio);
@@ -195,12 +168,12 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   return {
     avatarFile, setAvatarFile, avatarCropUrl, setAvatarCropUrl, isUploading,
     bio, newBio, setNewBio, displayName, newDisplayName, setNewDisplayName,
-    isUpdatingBio, isUpdatingDisplayName, isGroupModalOpen, setIsGroupModalOpen,
+    isSavingPersonalInfo, isGroupModalOpen, setIsGroupModalOpen,
     isAvatarViewerOpen, setIsAvatarViewerOpen, isVisible, modal, setModal,
-    isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete, handleUpdateBio,
-    handleUpdateDisplayName, handleSavePersonalInfo, discardPersonalInfo, handleLogout, handleDeleteAccount, handleClose,
+    isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete,
+    handleSavePersonalInfo, discardPersonalInfo, handleLogout, handleDeleteAccount, handleClose,
     displayNameChanged: normalizeDisplayName(newDisplayName) !== displayName,
-    displayNameInvalid: !!newDisplayName && !isValidDisplayName(newDisplayName),
+    displayNameInvalid: normalizeDisplayName(newDisplayName) !== displayName && !isValidDisplayName(newDisplayName),
     bioMaxLength: BIO_MAX_LENGTH,
   };
 };

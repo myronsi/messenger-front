@@ -1,4 +1,5 @@
 export const profile = {
+  profileSaveFailed: "Could not save your profile. Try again.",
   profile: "Profile",
   bio: "Bio",
   saveBio: "Save Description",
@@ -100,6 +101,7 @@ export const profile = {
   selected: "selected",
   userNotFound: "User not found",
   waitApproval: "Wait for my approval",
+  waitApprovalHint: "New senders can send a request. They can continue chatting once you approve it.",
   cropProfilePicture: "Crop profile picture",
   failedToLoadImage: "Failed to load image",
   noPreviousAvatars: "No previous avatars",

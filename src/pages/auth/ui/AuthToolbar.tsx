@@ -20,8 +20,8 @@ export const AuthToolbar: React.FC = () => {
   return (
     <div className="flex items-center gap-2">
       <Select value={language} onValueChange={(value) => { if (isAppLanguage(value)) setLanguage(value); }}>
-        <SelectTrigger aria-label={t.language} className="h-9 w-auto gap-2 border-input px-3 text-sm">
-          <Globe className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <SelectTrigger aria-label={t.language} className="h-9 w-auto gap-1.5 border-input px-2 sm:px-3 text-sm">
+          <Globe className="hidden sm:block h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

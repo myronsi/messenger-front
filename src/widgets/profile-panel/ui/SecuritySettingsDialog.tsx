@@ -22,6 +22,7 @@ import type { CreatedRecoveryKey } from './RecoveryKeySettings';
 
 interface SecuritySettingsPanelProps {
   isActive: boolean;
+  username?: string;
   detail?: SecurityDetail;
   onOpenDetail: (detail: SecurityDetail | null) => void;
   onBack: () => void;
@@ -32,13 +33,14 @@ interface SecuritySettingsPanelProps {
 }
 
 const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
-  isActive, detail, onOpenDetail, onBack, onLoggedOut, onDismissSafetyChange, onDeleteAccount, isDeletingAccount,
+  isActive, username, detail, onOpenDetail, onBack, onLoggedOut, onDismissSafetyChange, onDeleteAccount, isDeletingAccount,
 }) => {
   const settings = useSecuritySettings(isActive, onLoggedOut);
   const pane = useSettingsLayout() === 'pane';
   const { translations, status } = settings;
   const { data: overview } = useGetRecoveryOverviewQuery(undefined, { skip: !isActive });
   const [createdKey, setCreatedKey] = useState<CreatedRecoveryKey | null>(null);
+  const keySavingUnconfirmed = Boolean(username && localStorage.getItem(`recovery_receipt_skipped:${username}`) === 'true');
   const hasCreatedKey = Boolean(createdKey);
   useEffect(() => { if (hasCreatedKey) onDismissSafetyChange(true); }, [hasCreatedKey, onDismissSafetyChange]);
   const finishCreatedKey = () => { setCreatedKey(null); onDismissSafetyChange(false); };
@@ -89,7 +91,7 @@ const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
               ? <SecurityDetailPage detail={detail} settings={settings} overview={overview} onDismissSafetyChange={onDismissSafetyChange}
                 onRecoveryKeyCreated={setCreatedKey} />
               : <>
-                <SecurityListPage settings={settings} overview={overview} onOpen={onOpenDetail} />
+                <SecurityListPage keySavingUnconfirmed={keySavingUnconfirmed} settings={settings} overview={overview} onOpen={onOpenDetail} />
                 <DeleteAccountZone onDelete={onDeleteAccount} isDeleting={isDeletingAccount} />
               </>)}
         </div>

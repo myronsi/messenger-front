@@ -96,6 +96,7 @@ export const securityUi = {
     recoveryDescription: "Cómo vuelves a entrar si olvidas tu contraseña.",
     keyTitle: "Clave de recuperación",
     keyExists: "Tienes una clave de recuperación configurada.",
+    keySavingUnconfirmed: "Clave creada · guardado sin confirmar en este navegador",
     keyCreatedOn: "Creada el {date}.",
     keyReplaceHint: "Si creas una nueva, la anterior deja de funcionar.",
     keyMissing: "Crea una clave de recuperación para poder restablecer una contraseña olvidada. Guárdala en un lugar seguro.",

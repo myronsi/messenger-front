@@ -139,9 +139,9 @@ export const RecoveryKeyReceipt = ({ recoveryKey, username, onContinue, context 
 
     <div className="flex flex-col gap-1">
       <Button className="h-11 w-full text-[15px] font-semibold" disabled={!confirmed} onClick={() => finish(false)}>{t.continue}</Button>
+      <p className="mt-2 text-sm text-muted-foreground">{t.skipWarning}</p>
       {!showSkipWarning ? <Button variant="ghost" className="h-10 text-[13px] font-normal text-subtle-foreground" onClick={() => setShowSkipWarning(true)}>{t.skip}</Button>
-        : <div role="alert" className="mt-2 flex flex-col gap-2">
-          <p className="text-sm text-destructive">{t.skipWarning}</p>
+        : <div className="flex flex-col gap-2">
           <Button variant="outline" className="h-11" onClick={() => finish(true)}>{t.continueWithoutSaving}</Button>
         </div>}
     </div>

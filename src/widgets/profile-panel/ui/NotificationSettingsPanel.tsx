@@ -70,7 +70,7 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
   const deviceDescription = !supported
     ? t.pushUnsupported
     : enabledHere
-      ? t.pushOn
+      ? settings?.preferences.enabled ? t.pushOn : t.pushPaused
       : t.pushHint;
 
   return (

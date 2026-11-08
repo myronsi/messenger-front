@@ -20,8 +20,8 @@ type Props = ComponentProps<typeof PersonalInfoPage>;
 const renderPage = (overrides: Partial<Props> = {}) => {
   const props: Props = {
     avatarUrl: '/a.png', displayName: 'Ann', isUploadingAvatar: false, onPickAvatar: vi.fn(), newDisplayName: 'Ann',
-    displayNameChanged: false, displayNameInvalid: false, isUpdatingDisplayName: false, onDisplayNameChange: vi.fn(),
-    onSaveDisplayName: vi.fn(), bio: '', newBio: '', isUpdatingBio: false, onBioChange: vi.fn(), onSaveBio: vi.fn(),
+    displayNameChanged: false, displayNameInvalid: false, isSaving: false, onDisplayNameChange: vi.fn(),
+    bio: '', newBio: '', onBioChange: vi.fn(),
     onSaveAll: vi.fn(async () => true), onDiscard: vi.fn(), onBack: vi.fn(), ...overrides,
   };
   render(<PersonalInfoPage {...props} />);

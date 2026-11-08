@@ -4,7 +4,7 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { useSettingsLayout } from '../model/settingsLayout';
 import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import React, { useState } from 'react';
-import { Check, Loader2, UserRound } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { ProfileHero } from './ProfileHero';
 import { LeaveUnsavedDialog, UnsavedChangesBar } from './UnsavedChanges';
@@ -18,14 +18,11 @@ interface PersonalInfoPageProps {
   newDisplayName: string;
   displayNameChanged: boolean;
   displayNameInvalid: boolean;
-  isUpdatingDisplayName: boolean;
+  isSaving: boolean;
   onDisplayNameChange: (value: string) => void;
-  onSaveDisplayName: () => void;
   bio: string;
   newBio: string;
-  isUpdatingBio: boolean;
   onBioChange: (value: string) => void;
-  onSaveBio: () => void;
   onSaveAll: () => Promise<boolean>;
   onDiscard: () => void;
   onBack: () => void;
@@ -38,14 +35,13 @@ interface PersonalInfoPageProps {
 const memberSince = (value: string, language: string) => new Date(value).toLocaleDateString(localeOf(language), { month: 'long', year: 'numeric' });
 
 const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
-  avatarUrl, displayName, isUploadingAvatar, onPickAvatar, newDisplayName, displayNameChanged, displayNameInvalid, isUpdatingDisplayName, onDisplayNameChange,
-  onSaveDisplayName, bio, newBio, isUpdatingBio, onBioChange, onSaveBio, onSaveAll, onDiscard, onBack,
+  avatarUrl, displayName, isUploadingAvatar, onPickAvatar, newDisplayName, displayNameChanged, displayNameInvalid, isSaving, onDisplayNameChange,
+  bio, newBio, onBioChange, onSaveAll, onDiscard, onBack,
   username = '', createdAt, hasCustomAvatar = false, onOpenAvatar = () => undefined,
 }) => {
   const { translations, language } = useLanguage();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const hasUnsavedChanges = displayNameChanged || newBio !== bio;
-  const isSaving = isUpdatingDisplayName || isUpdatingBio;
   const requestBack = () => (hasUnsavedChanges ? setConfirmLeave(true) : onBack());
   const pane = useSettingsLayout() === 'pane';
   const saveAll = async () => {
@@ -78,12 +74,7 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">{translations.displayName || 'Display name'}</label>
             <div className="relative">
-              <input type="text" value={newDisplayName} onChange={(event) => onDisplayNameChange(event.target.value)} maxLength={50} className="w-full rounded-md border border-input bg-background px-3 py-2 pr-12 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.displayNameHint || 'Display name (3-50 characters)'} />
-              {displayNameChanged && (
-                <button type="button" onClick={onSaveDisplayName} disabled={isUpdatingDisplayName || displayNameInvalid} className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent" aria-label={translations.saveDisplayName || 'Save display name'} title={translations.saveDisplayName || 'Save display name'}>
-                  {isUpdatingDisplayName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                </button>
-              )}
+              <input type="text" value={newDisplayName} onChange={(event) => onDisplayNameChange(event.target.value)} maxLength={50} className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.displayNameHint || 'Display name (3-50 characters)'} />
             </div>
             {displayNameInvalid && <p className="text-sm text-destructive">{translations.displayNameError || 'Display name must be between 3 and 50 characters'}</p>}
           </div>
@@ -95,12 +86,7 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
               <span className="shrink-0 text-xs text-muted-foreground">{newBio.length}/500</span>
             </div>
             <div className="relative">
-              <textarea value={newBio} onChange={(event) => onBioChange(event.target.value)} maxLength={500} className="h-28 w-full resize-none rounded-md border border-input bg-background px-3 py-2 pr-12 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.bio} />
-              {newBio !== bio && (
-                <button type="button" onClick={onSaveBio} disabled={isUpdatingBio} className="absolute right-1.5 top-1.5 inline-flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent" aria-label={translations.saveBio || 'Save bio'} title={translations.saveBio || 'Save bio'}>
-                  {isUpdatingBio ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                </button>
-              )}
+              <textarea value={newBio} onChange={(event) => onBioChange(event.target.value)} maxLength={500} className="h-28 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.bio} />
             </div>
           </div>
         </section>

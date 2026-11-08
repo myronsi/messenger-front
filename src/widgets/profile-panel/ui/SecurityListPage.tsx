@@ -15,8 +15,8 @@ import { localeOf } from '@/shared/lang/languages';
 
 type Settings = ReturnType<typeof useSecuritySettings>;
 
-export const SecurityListPage = ({ settings, overview, onOpen }: {
-  settings: Settings; overview?: RecoveryOverview; onOpen: (detail: SecurityDetail) => void;
+export const SecurityListPage = ({ settings, overview, keySavingUnconfirmed, onOpen }: {
+  settings: Settings; overview?: RecoveryOverview; keySavingUnconfirmed: boolean; onOpen: (detail: SecurityDetail) => void;
 }) => {
   const { language } = useLanguage();
   const [scanning, setScanning] = useState(false);
@@ -38,13 +38,15 @@ export const SecurityListPage = ({ settings, overview, onOpen }: {
     return method && (method.active ? 'ready' as const : 'missing' as const);
   };
   const row = (detail: SecurityDetail, label: string) => {
-    const status = statusOf(detail);
-    return <SecurityNavRow key={detail} label={label} summary={summary[detail]} status={status}
+    const unconfirmed = detail === 'recovery-key' && overview?.recovery_key.exists && keySavingUnconfirmed;
+    const status = unconfirmed ? undefined : statusOf(detail);
+    return <SecurityNavRow key={detail} label={label} summary={unconfirmed ? t.keySavingUnconfirmed : summary[detail]} status={status}
       statusLabel={status && `${t.recoveryTitle}: ${status === 'ready' ? t.methodReady : t.methodMissing}`} onClick={() => onOpen(detail)} />;
   };
   return <>
     <p className="text-sm text-muted-foreground">{t.pageDescription}</p>
-    <RecoveryOverviewCard canAddPasskey={browserSupportsWebAuthn()} onAction={method => onOpen(recoveryDetails[method])} />
+    <RecoveryOverviewCard keySavingUnconfirmed={keySavingUnconfirmed} canAddPasskey={browserSupportsWebAuthn()}
+      onAction={method => onOpen(recoveryDetails[method])} />
     <SecuritySection id="security-sign-in" title={t.signInTitle}>
       {row('password', t.passwordTitle)}
       {row('two-factor', translations.twoFactorAuthentication)}

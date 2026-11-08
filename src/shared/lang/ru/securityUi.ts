@@ -98,6 +98,7 @@ export const securityUi: typeof en = {
     recoveryDescription: "Как вернуть доступ, если вы забудете пароль.",
     keyTitle: "Ключ восстановления",
     keyExists: "Ключ восстановления настроен.",
+    keySavingUnconfirmed: "Ключ создан · сохранение в этом браузере не подтверждено",
     keyCreatedOn: "Создан {date}.",
     keyReplaceHint: "Новый ключ отключает старый.",
     keyMissing: "Создайте ключ восстановления, чтобы сбросить забытый пароль. Храните его в надёжном месте.",
