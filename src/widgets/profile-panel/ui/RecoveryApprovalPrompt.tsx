@@ -14,7 +14,7 @@ import { DEVICE_RECOVERY_TTL_MS } from '@/features/auth';
 import { isTwoFactorCancelled } from '@/shared/ui/useTwoFactorConfirm';
 import { isPasskeyCancelled } from '@/shared/api/passkeys';
 import { useAccountTwoFactor } from '../model/useAccountTwoFactor';
-import { ApprovalSessionTooNew, approveRecoveryRequest } from '../model/recoveryApproval';
+import { ApprovalSessionTooNew, createRecoveryApproval } from '../model/recoveryApproval';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
 import { ACCOUNT_PROMPT_LAYER } from '@/shared/ui/layers';
 import { Button } from '@/shared/ui/button';
@@ -56,13 +56,16 @@ export const RecoveryApprovalPrompt = () => {
 
   const approvalError = (caught: unknown) => {
     if (caught instanceof ApprovalSessionTooNew) {
-      return fillTemplate(t.sessionTooNew, { date: new Date(caught.approvableFrom).toLocaleString(language === 'ru' ? 'ru-RU' : undefined) });
+      return caught.approvableFrom
+        ? fillTemplate(t.sessionTooNew, { date: new Date(caught.approvableFrom).toLocaleString(language === 'ru' ? 'ru-RU' : undefined) })
+        : t.sessionTooNewSoon;
     }
     if (isPasskeyCancelled(caught)) return t.passkeyCancelled;
     const status = problemStatus(caught), code = problemCode(caught);
     if (status !== 403) return t.failed;
     if (code === 'forbidden') return t.sessionTooOld;
     if (code === 'session_too_new') return t.sessionTooNewSoon;
+    if (code === 'user_verification_required') return t.passkeyRequired;
     if (code === 'invalid_credentials') return t.passkeyFailed;
     return t.failed;
   };
@@ -91,7 +94,7 @@ export const RecoveryApprovalPrompt = () => {
     const params = { path: { requestId } };
     try {
       const response = deny ? await apiClient.POST('/auth/recovery-requests/{requestId}/deny', { params })
-        : await twoFactor.confirm(code => approveRecoveryRequest(requestId, choice!, code));
+        : await twoFactor.confirm(createRecoveryApproval(requestId, choice!));
       if (response.error) throw new ApiProblem(response.response.status, response.error);
       if (current.current?.request_id !== requestId) return;
       const denied = response.data?.status === 'denied';

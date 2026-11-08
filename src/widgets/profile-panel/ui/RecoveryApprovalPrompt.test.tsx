@@ -137,14 +137,38 @@ describe('RecoveryApprovalPrompt', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(t.passkeyFailed);
   });
 
-  it('tells a new session when it may approve instead of sending the approval', async () => {
-    post.mockResolvedValueOnce(sessionOptions('2026-11-10T12:00:00Z'));
+  it('still sends the chosen number from a new session, so a wrong number denies the request', async () => {
+    post.mockResolvedValueOnce(sessionOptions('2026-11-10T12:00:00Z')).mockResolvedValueOnce(failure(403, 'session_too_new'));
     render(<RecoveryApprovalPrompt />);
     emit(request('a'));
     await approveWith(11);
     expect(await screen.findByRole('alert')).toHaveTextContent(new Date('2026-11-10T12:00:00Z').toLocaleString());
-    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenLastCalledWith('/auth/recovery-requests/{requestId}/approve', { params: { path: { requestId: 'a' } }, body: { match_number: 11 } });
     expect(screen.getByRole('heading', { name: t.title })).toBeInTheDocument();
+  });
+
+  it('asks for a passkey when the server needs user verification', async () => {
+    post.mockResolvedValueOnce(sessionOptions()).mockResolvedValueOnce(failure(403, 'user_verification_required'));
+    render(<RecoveryApprovalPrompt />);
+    emit(request('a'));
+    await approveWith(11);
+    expect(await screen.findByRole('alert')).toHaveTextContent(t.passkeyRequired);
+  });
+
+  it('reuses the passkey confirmation when the server then asks for the second factor', async () => {
+    const credential = { id: 'key', response: {} };
+    confirmWithPasskey.mockResolvedValueOnce(credential);
+    post.mockResolvedValueOnce(passkeyOptions).mockResolvedValueOnce(failure(401, 'two_factor_required')).mockResolvedValueOnce(ok({ status: 'approved' }));
+    render(<RecoveryApprovalPrompt />);
+    emit(request('a'));
+    await approveWith(33);
+    fireEvent.change(await screen.findByLabelText('Authenticator or backup code'), { target: { value: '123456' } });
+    fireEvent.submit(screen.getByLabelText('Authenticator or backup code').closest('form')!);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(t.approvedToast, { action: undefined }));
+    expect(confirmWithPasskey).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenLastCalledWith('/auth/recovery-requests/{requestId}/approve', {
+      params: { path: { requestId: 'a' } }, body: { match_number: 33, passkey: { challenge_id: 'c'.repeat(43), credential }, code: '123456' },
+    });
   });
 
   it('explains when the server finds the session too new', async () => {
