@@ -55,7 +55,7 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
     }
   };
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-background">
       <PageBackHeader onBack={requestBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
@@ -68,7 +68,7 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
         <ProfileHero username={username} displayName={displayName} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar}
           isUploadingAvatar={isUploadingAvatar} onPickAvatar={onPickAvatar} onOpenAvatar={onOpenAvatar} className="py-2"
           subtitle={username && (
-            <span className="flex flex-col items-center gap-0.5 text-sm text-gray-600">
+            <span className="flex flex-col items-center gap-0.5 text-sm text-subtle-foreground">
               <CopyableUsername username={username} className="text-sm" />
               {createdAt && <span>{fillTemplate(translations.appShell.memberSince, { date: memberSince(createdAt, language) })}</span>}
             </span>

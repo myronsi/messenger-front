@@ -20,9 +20,9 @@ describe('ReactionList', () => {
   it.each([true, false])('colours your reactions by message ownership (own: %s)', (isMine) => {
     setup(isMine);
     const mine = screen.getByRole('button', { name: /👍\s*2/ });
-    expect(mine).toHaveClass(isMine ? 'bg-white' : 'bg-blue-600');
+    expect(mine).toHaveClass(isMine ? 'bg-background' : 'bg-primary');
     expect(mine).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: '❤️' })).toHaveClass('bg-gray-200');
+    expect(screen.getByRole('button', { name: '❤️' })).toHaveClass('bg-accent-darker');
   });
 
   it('adds or removes exactly the clicked reaction', () => {

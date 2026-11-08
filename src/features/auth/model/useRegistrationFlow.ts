@@ -2,23 +2,22 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { setAccessToken } from '@/shared/auth/session';
+import {
+  normalizeDisplayName, normalizeUsername, registerErrorsFromProblem, validateRegisterField, validateRegisterValues,
+  type AccountField, type RegisterFieldError, type RegisterFieldErrors, type RegisterStep,
+} from './registerForm';
 
 const BASE_URL = getApiBaseUrl();
-
-const normalizeDisplayName = (value: string) => value.trim().replace(/\s+/g, ' ');
-const isValidDisplayName = (value: string) => {
-  const normalized = normalizeDisplayName(value);
-  return normalized.length >= 3 && normalized.length <= 50;
-};
 
 interface RegistrationFlowOptions {
   onLoginSuccess: (username: string) => void;
 }
 
 export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions) => {
-  const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsernameValue] = useState('');
+  const [displayName, setDisplayNameValue] = useState('');
+  const [displayNameError, setDisplayNameError] = useState<RegisterFieldError | undefined>();
+  const [password, setPasswordValue] = useState('');
   const [message, setMessage] = useState('');
   const [recoveryKey, setRecoveryKey] = useState('');
   const [showQr, setShowQr] = useState(false);
@@ -30,7 +29,9 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const [avatarCropPreview, setAvatarCropPreview] = useState('');
   const [profileBio, setProfileBio] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<AccountField, boolean>>>({});
+  const [serverErrors, setServerErrors] = useState<RegisterFieldErrors>({});
   const { translations } = useLanguage();
 
   useEffect(() => () => {
@@ -41,53 +42,57 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
     if (avatarCropPreview) URL.revokeObjectURL(avatarCropPreview);
   }, [avatarCropPreview]);
 
+  const clientErrors = validateRegisterValues({ username, password });
+  const fieldErrors: RegisterFieldErrors = {
+    username: serverErrors.username ?? (touched.username ? clientErrors.username : undefined),
+    password: serverErrors.password ?? (touched.password ? clientErrors.password : undefined),
+  };
+
+  const change = (field: AccountField, setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    setServerErrors((previous) => (previous[field] ? { ...previous, [field]: undefined } : previous));
+  };
+  const markTouched = (field: AccountField) => setTouched((previous) => ({ ...previous, [field]: true }));
+
   const handleRegister = useCallback(async () => {
-    const normalizedUsername = username.toLowerCase();
-    if (normalizedUsername.length < 3) {
-      setMessage(translations.usernameTooShort);
-      return;
-    }
-    if (!/^[a-z0-9_]{3,32}$/.test(normalizedUsername)) {
-      setMessage(translations.usernameInvalid);
-      return;
-    }
-    const normalizedDisplayName = normalizeDisplayName(displayName);
-    if (!isValidDisplayName(displayName)) {
-      setMessage('Display name must be between 3 and 50 characters');
-      return;
-    }
-    if (!password || password.length < 8) {
-      setMessage(translations.passwordTooShort);
-      return;
-    }
+    setTouched({ username: true, password: true });
+    setMessage('');
+    if (Object.keys(validateRegisterValues({ username, password })).length > 0) return;
+    const normalizedUsername = normalizeUsername(username);
+    setIsSubmitting(true);
     try {
       const response = await fetch(`${BASE_URL}/auth/register`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: normalizedUsername, display_name: normalizedDisplayName, password }),
+        body: JSON.stringify({ username: normalizedUsername, display_name: normalizedUsername, password }),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         if (!data.access_token) throw new Error(translations.registerFailed || 'Registration failed');
         setAccessToken(data.access_token);
-        setUsername(normalizedUsername);
-        // Recovery secrets live only in this step's memory, never browser storage.
+        setUsernameValue(normalizedUsername);
+        setDisplayNameValue(normalizedUsername);
         localStorage.removeItem('device_part');
         localStorage.removeItem('device_parts');
-        setPassword('');
+        setPasswordValue('');
         setRecoveryKey(typeof data.recovery_key === 'string' ? data.recovery_key : '');
         setShowQr(Boolean(data.recovery_key));
         setShowProfileSetup(!data.recovery_key);
-        setMessage('');
-      } else {
-        setMessage(response.status === 429 ? 'Too many registration attempts. Please try again later.' : data.detail || translations.registerFailed);
+        return;
+      }
+      const errors = registerErrorsFromProblem(response.status, data);
+      setServerErrors(errors);
+      if (Object.keys(errors).length === 0) {
+        setMessage(response.status === 429 ? translations.authLayout.errors.tooManyAttempts : translations.registerFailed);
       }
     } catch (error) {
       console.error('Registration error:', error);
       setMessage(translations.networkError);
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [username, displayName, password, translations]);
+  }, [username, password, translations]);
 
   const handleContinue = useCallback(() => {
     setShowQr(false);
@@ -147,6 +152,9 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
       setMessage(translations.registerFailed || 'Registration failed');
       return;
     }
+    const nameError = validateRegisterField('displayName', displayName);
+    setDisplayNameError(nameError);
+    if (nameError) return;
     setIsSavingProfile(true);
     setMessage('');
     try {
@@ -165,19 +173,25 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
         }
       }
       const normalizedBio = profileBio.trim();
-      if (normalizedBio) {
-        const bioResponse = await fetch(`${BASE_URL}/auth/me/bio`, {
-          method: 'POST',
+      const normalizedName = normalizeDisplayName(displayName);
+      const patch = {
+        ...(normalizedName !== username ? { display_name: normalizedName } : {}),
+        ...(normalizedBio ? { bio: normalizedBio } : {}),
+      };
+      if (Object.keys(patch).length > 0) {
+        const profileResponse = await fetch(`${BASE_URL}/me`, {
+          method: 'PATCH',
           credentials: 'include',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ bio: normalizedBio }),
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch),
         });
-        if (!bioResponse.ok) {
-          const data = await bioResponse.json().catch(() => ({}));
-          throw new Error(data.detail || translations.bioUpdateFailed || 'Bio update failed.');
+        if (!profileResponse.ok) {
+          const data = await profileResponse.json().catch(() => ({}));
+          if (registerErrorsFromProblem(profileResponse.status, data).displayName) {
+            setDisplayNameError('displayNameLength');
+            return;
+          }
+          throw new Error(data.detail || translations.bioUpdateFailed || 'Profile update failed.');
         }
       }
       finishRegistration();
@@ -186,23 +200,24 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
     } finally {
       setIsSavingProfile(false);
     }
-  }, [finishRegistration, profileAvatarFile, profileBio, translations]);
+  }, [displayName, finishRegistration, profileAvatarFile, profileBio, translations, username]);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     handleRegister();
   };
 
-  const inputsFilled = Boolean(username && normalizeDisplayName(displayName) && password);
+  const step: RegisterStep = showQr ? 'recovery' : showPasskeyOffer ? 'passkey' : showProfileSetup ? 'profile' : 'account';
 
   return {
-    avatarCropFile, avatarCropPreview, cancelAvatarCrop, displayName,
+    avatarCropFile, avatarCropPreview, cancelAvatarCrop, displayName, fieldErrors,
     finishPasskeyOffer, finishRegistration, handleContinue, handleCroppedAvatar,
     handleProfileAvatarChange, handleRegister, handleSaveProfileSetup, handleSubmit,
-    inputsFilled, isDisplayNameValid: isValidDisplayName(displayName),
-    isSavingProfile, message, password, profileAvatarFile,
-    profileAvatarPreview, profileBio, recoveryKey, removeProfileAvatar, setDisplayName,
-    setPassword, setProfileBio, setShowPassword, setUsername, showPassword,
-    showPasskeyOffer, showProfileSetup, showQr, translations, username,
+    isSavingProfile, isSubmitting, markTouched, message, password, profileAvatarFile,
+    profileAvatarPreview, profileBio, recoveryKey, removeProfileAvatar,
+    setDisplayName: (value: string) => { setDisplayNameValue(value); setDisplayNameError(undefined); },
+    setPassword: change('password', setPasswordValue),
+    displayNameChanged: normalizeDisplayName(displayName) !== username, displayNameError,
+    setProfileBio, setUsername: change('username', setUsernameValue), step, translations, username,
   };
 };

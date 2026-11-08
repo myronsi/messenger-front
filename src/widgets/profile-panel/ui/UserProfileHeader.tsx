@@ -30,25 +30,25 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
           {hasCustomAvatar ? (
             <button
               onClick={onAvatarHistory}
-              className="mx-auto block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="mx-auto block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label="View profile picture history"
             >
               <AuthenticatedImage
                 src={avatarUrl}
                 alt={displayName}
-                className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
+                className="h-24 w-24 rounded-full border border-border object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
               />
             </button>
           ) : (
             <AuthenticatedImage
               src={avatarUrl}
               alt={displayName}
-              className="mx-auto h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm md:h-20 md:w-20"
+              className="mx-auto h-24 w-24 rounded-full border border-border object-cover shadow-sm md:h-20 md:w-20"
             />
           )}
           <ContactNameHeading {...props} />
-          <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
-            <span className={`mr-2 h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+          <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-muted px-3 py-1 text-sm text-subtle-foreground">
+            <span className={`mr-2 h-2 w-2 rounded-full ${isOnline ? 'bg-success' : 'bg-muted-foreground'}`} />
             <span className="truncate">{getPresenceLabel(isOnline, lastSeen)}</span>
           </div>
         </div>

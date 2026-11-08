@@ -63,7 +63,7 @@ const LiveWaveform: React.FC<{ stream: MediaStream | null; paused?: boolean }> =
         {bars.map((bar) => (
           <span
             key={bar.id}
-            className={`w-[3px] shrink-0 rounded-full bg-red-400 ${bar.id === newest ? 'motion-wave-bar' : ''}`}
+            className={`w-[3px] shrink-0 rounded-full bg-destructive ${bar.id === newest ? 'motion-wave-bar' : ''}`}
             style={{ height: `${Math.round(bar.level * 100)}%` }}
           />
         ))}

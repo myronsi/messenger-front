@@ -56,7 +56,7 @@ const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
         className={`motion-press relative flex h-14 w-14 touch-none select-none items-center justify-center overflow-hidden rounded-full ${
           holding ? '' : 'transition-[background-color,transform] duration-200'
         } ${
-          mode === 'recording' ? 'motion-presence bg-red-500 text-white hover:bg-red-600' : mode === 'send' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-accent text-accent-foreground hover:bg-accent/90'
+          mode === 'recording' ? 'motion-presence bg-destructive text-destructive-foreground hover:bg-destructive/90' : mode === 'send' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-accent text-accent-foreground hover:bg-accent/90'
         } disabled:opacity-50`}
         style={{ transform: lift ? `translateY(${-lift}px)` : undefined }}
       >

@@ -52,10 +52,10 @@ const ReactionList: React.FC<ReactionListProps> = ({
   const isMineReaction = (group: ReactionGroup) => group.users.some((item) => item.user_id === userId);
   const hiddenHasMine = hidden.some(isMineReaction);
   const reactionColors = (mine: boolean) => !mine
-    ? 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600'
+    ? 'bg-accent-darker text-foreground hover:bg-accent-darker'
     : isMine
-      ? 'bg-white text-gray-900 ring-1 ring-gray-300 hover:bg-gray-100'
-      : 'bg-blue-600 text-white ring-1 ring-blue-700 hover:bg-blue-700';
+      ? 'bg-background text-foreground ring-1 ring-input hover:bg-accent'
+      : 'bg-primary text-primary-foreground ring-1 ring-ring hover:bg-primary-darker';
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {

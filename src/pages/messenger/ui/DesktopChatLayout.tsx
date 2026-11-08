@@ -28,14 +28,14 @@ export function DesktopChatLayout({ chatList, children, resizeLabel }: DesktopCh
       <ResizablePanelGroup direction="horizontal" autoSaveId="messenger-desktop-chat-layout" keyboardResizeBy={2}>
         <ResizablePanel ref={listPanel} id="chat-list" order={1} defaultSize={25}
           minSize={Math.min(45, 240 / Math.max(1, width - 1) * 100)} maxSize={45}
-          className="min-w-0 rounded-lg bg-white shadow-lg">
+          className="min-w-0 rounded-lg bg-background shadow-lg">
           {chatList}
         </ResizablePanel>
         <ResizableHandle aria-label={resizeLabel} title={resizeLabel}
           onDoubleClick={() => listPanel.current?.resize(25)}
           className="z-10 cursor-col-resize transition-colors hover:bg-primary/50 data-[resize-handle-state=drag]:bg-primary" />
         <ResizablePanel id="active-chat" order={2} defaultSize={75} minSize={55}
-          className="min-w-0 overflow-hidden rounded-lg bg-white shadow-lg">
+          className="min-w-0 overflow-hidden rounded-lg bg-background shadow-lg">
           {children}
         </ResizablePanel>
       </ResizablePanelGroup>

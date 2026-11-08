@@ -27,7 +27,7 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
   const { translations } = useLanguage();
   const pane = useSettingsLayout() === 'pane';
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-background">
       <PageBackHeader onBack={onBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
@@ -61,7 +61,7 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
                 ? getMediaUrl(requester?.avatar_url)
                 : getMediaUrl(request.group?.avatar_url, DEFAULT_GROUP_AVATAR);
               return (
-                <div key={request.id} className="rounded-lg border border-border bg-white p-3 shadow-sm">
+                <div key={request.id} className="rounded-lg border border-border bg-card p-3 shadow-sm">
                   <div className="flex gap-3">
                     <AuthenticatedImage src={avatar} alt={subject} className="h-11 w-11 rounded-full object-cover" />
                     <div className="min-w-0 flex-1">

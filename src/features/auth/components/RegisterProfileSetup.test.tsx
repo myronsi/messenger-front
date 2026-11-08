@@ -8,6 +8,7 @@ vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: {
 const setup = (overrides: Partial<React.ComponentProps<typeof RegisterProfileSetup>> = {}) => {
   const props = {
     profileAvatarFile: null, profileAvatarPreview: '', avatarCropFile: null, avatarCropPreview: '', profileBio: '',
+    displayName: 'alex_m', displayNameChanged: false, onDisplayNameChange: vi.fn(),
     isSavingProfile: false, translations: en, onAvatarChange: vi.fn(), onRemoveAvatar: vi.fn(), onBioChange: vi.fn(),
     onSave: vi.fn(), onSkip: vi.fn(), onCancelCrop: vi.fn(), onConfirmCrop: vi.fn(), ...overrides,
   };
@@ -16,6 +17,20 @@ const setup = (overrides: Partial<React.ComponentProps<typeof RegisterProfileSet
 };
 
 describe('RegisterProfileSetup', () => {
+  it('starts with the username as display name and offers Finish once it changes', () => {
+    const props = setup();
+    expect(screen.getByLabelText('Display name')).toHaveValue('alex_m');
+    fireEvent.change(screen.getByLabelText('Display name'), { target: { value: 'Alex Miller' } });
+    expect(props.onDisplayNameChange).toHaveBeenCalledWith('Alex Miller');
+  });
+
+  it('saves a changed display name and shows its error', () => {
+    setup({ displayName: 'Al', displayNameChanged: true, displayNameError: 'Use 3 to 50 characters.' });
+    expect(screen.getByRole('button', { name: en.finish })).toBeDisabled();
+    expect(screen.getByText('Use 3 to 50 characters.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Display name')).toHaveAttribute('aria-invalid', 'true');
+  });
+
   it('offers only skipping while nothing is filled in', () => {
     const props = setup();
     expect(screen.queryByRole('button', { name: en.finish })).not.toBeInTheDocument();

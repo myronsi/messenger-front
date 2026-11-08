@@ -13,7 +13,7 @@ export const SecurityActivity = ({ onSignOutOthers, signingOutOthers, signOutLab
   const t = translations.securityPage;
   const labels = t.events as Record<string, string>;
   const { data, isLoading, error, refetch } = useGetSecurityActivityQuery(undefined, { refetchOnMountOrArgChange: true });
-  const action = onSignOutOthers && <Button variant="outline" className="h-11 border-red-200 px-3.5 text-[13px] font-semibold text-red-700 hover:bg-red-50 hover:text-red-800"
+  const action = onSignOutOthers && <Button variant="outline" className="h-11 border-destructive/30 px-3.5 text-[13px] font-semibold text-destructive hover:bg-destructive-soft hover:text-destructive"
     disabled={signingOutOthers} onClick={onSignOutOthers}>{signOutLabel}</Button>;
   return <>
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -28,9 +28,9 @@ export const SecurityActivity = ({ onSignOutOthers, signingOutOthers, signOutLab
           <ol aria-label={t.activityTitle} className="flex flex-col">{data.map(event => {
             const warning = isWarningEvent(event.type);
             return <li key={event.id} className="flex gap-3 border-b border-border py-3 last:border-0">
-              <span aria-hidden="true" className={cn('mt-1.5 h-2 w-2 flex-none rounded-full', warning ? 'bg-amber-600' : 'bg-primary')} />
+              <span aria-hidden="true" className={cn('mt-1.5 h-2 w-2 flex-none rounded-full', warning ? 'bg-warning' : 'bg-primary')} />
               <div className="min-w-0 flex-1">
-                <p className={cn('text-sm text-foreground', warning && 'font-medium text-amber-800')}>
+                <p className={cn('text-sm text-foreground', warning && 'font-medium text-warning')}>
                   {labels[event.type] || t.eventFallback}{warning && <span className="sr-only"> ({t.needsAttention})</span>}
                 </p>
                 <p className="text-xs text-muted-foreground">{deviceLabel(event.user_agent)} · {locationLabel(event.location, language) ?? t.locationUnknown} · <time dateTime={event.created_at}>

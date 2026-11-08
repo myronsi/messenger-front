@@ -37,7 +37,7 @@ export const SecurityNavRow = ({ label, summary, status, statusLabel, onClick }:
 }) => <button type="button" onClick={onClick} className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50">
   <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{label}</span>
   {status && <span data-status={status} className={cn('flex h-5 w-5 flex-none items-center justify-center rounded-full',
-    status === 'ready' ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground')}>
+    status === 'ready' ? 'bg-success-soft text-success' : 'bg-muted text-muted-foreground')}>
     {status === 'ready' ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" /> : <Plus className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
     <span className="sr-only">{statusLabel}</span>
   </span>}

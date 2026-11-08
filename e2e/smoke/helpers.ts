@@ -22,7 +22,7 @@ export const createSmokeUser = (label: string): SmokeUser => {
   return {
     username,
     displayName: `Smoke ${label} ${suffix}`.slice(0, 50),
-    password: `SmokePass!${suffix}`,
+    password: `SmokePass1!${suffix}`,
   };
 };
 
@@ -46,8 +46,12 @@ export const waitForLoginPage = async (page: Page) => {
 };
 
 export const confirmRecoveryReceipt = async (scope: Page | Locator) => {
-  const key = await scope.getByTestId('recovery-key').innerText();
-  await scope.getByLabel('To confirm, type the last group').fill(key.trim().split('-').at(-1)!);
+  const page = 'page' in scope ? scope.page() : scope;
+  const download = page.waitForEvent('download');
+  await scope.getByRole('button', { name: /^(Download recovery key|Downloaded)$/ }).click();
+  await download;
+  await scope.getByRole('checkbox', { name: /I saved my recovery key somewhere safe/ }).check();
+  await scope.getByRole('button', { name: 'Continue', exact: true }).click();
 };
 
 export const skipRegistrationExtras = async (page: Page) => {
@@ -58,23 +62,29 @@ export const skipRegistrationExtras = async (page: Page) => {
   await profileSkip.click();
 };
 
+export const finishProfileStep = async (page: Page, user: SmokeUser) => {
+  const displayName = page.getByLabel('Display name', { exact: true });
+  const passkeyNotNow = page.getByRole('button', { name: 'Not now', exact: true });
+  await expect(displayName.or(passkeyNotNow).first()).toBeVisible();
+  if (await passkeyNotNow.isVisible()) await passkeyNotNow.click();
+  await displayName.fill(user.displayName);
+  await page.getByRole('button', { name: 'Finish', exact: true }).click();
+};
+
 export const registerUser = async (page: Page, user: SmokeUser) => {
   await page.goto('/register');
 
   await page.getByLabel('Username').fill(user.username);
-  await page.getByLabel('Display Name').fill(user.displayName);
   await page.getByLabel('Password', { exact: true }).fill(user.password);
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/auth/register') && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Register' }).click();
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
   const response = await responsePromise;
   expect(response.ok(), `Registration returned HTTP ${response.status()}`).toBe(true);
-  const continueButton = page.getByRole('button', { name: 'I saved it, continue', exact: true });
-  const skipButton = page.getByRole('button', { name: 'Skip for now', exact: true });
-  await expect(continueButton.or(skipButton).first()).toBeVisible();
-  const savedKey = page.getByLabel('To confirm, type the last group');
+  const savedKey = page.getByTestId('recovery-key');
+  const nextStep = page.getByRole('button', { name: 'Not now', exact: true }).or(page.getByLabel('Display name', { exact: true }));
+  await expect(savedKey.or(nextStep).first()).toBeVisible();
   if (await savedKey.isVisible()) await confirmRecoveryReceipt(page);
-  if (await continueButton.isVisible()) await continueButton.click();
-  await skipRegistrationExtras(page);
+  await finishProfileStep(page, user);
 
   await waitForMessenger(page);
 };

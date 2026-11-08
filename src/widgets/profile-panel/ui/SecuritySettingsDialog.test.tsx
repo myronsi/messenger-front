@@ -117,7 +117,10 @@ it('keeps a new recovery key on screen when the security page changes until it i
   rerender(<SecuritySettingsPanel {...props} detail={undefined} />);
   expect(screen.getByTestId('recovery-key')).toHaveTextContent(key);
   expect(onDismissSafetyChange).toHaveBeenLastCalledWith(true);
-  fireEvent.change(screen.getByLabelText(en.recoveryReceipt.confirmLabel), { target: { value: 'NPQR' } });
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:receipt');
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  fireEvent.click(screen.getByRole('button', { name: en.recoveryReceipt.download }));
+  fireEvent.click(screen.getByRole('checkbox', { name: new RegExp(en.recoveryReceipt.savedCheck) }));
   fireEvent.click(screen.getByRole('button', { name: en.recoveryReceipt.continue }));
   await waitFor(() => expect(screen.queryByTestId('recovery-key')).not.toBeInTheDocument());
   expect(onDismissSafetyChange).toHaveBeenLastCalledWith(false);

@@ -40,7 +40,6 @@ export const securityUi = {
     noOtherDevices: "No other devices",
     lockedNotice: "Recovery settings are locked for 24 hours after a password reset, until {date}.",
     signInTitle: "Sign-in",
-    signInDescription: "Password, two-factor authentication and passkeys.",
     passwordTitle: "Password",
     passwordHint: "Use at least 8 characters that you don't use anywhere else.",
     twoFactorOn: "On",

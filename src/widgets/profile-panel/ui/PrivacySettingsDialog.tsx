@@ -152,7 +152,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
   const headerBack = showingExceptions && definition ? () => onOpenDetail(definition.key) : definition ? () => onOpenDetail(null) : requestBack;
 
   return (
-    <div className="relative flex h-full flex-col bg-white">
+    <div className="relative flex h-full flex-col bg-background">
       <PageBackHeader onBack={headerBack} hideBack={pane && !definition}>
         <Breadcrumb>
           <BreadcrumbList>
@@ -240,7 +240,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
         <div
           aria-live="polite"
           className={`pointer-events-none absolute right-4 top-[58px] z-10 inline-flex max-w-[min(18rem,calc(100%-2rem))] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm ${
-            status.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-destructive/20 bg-destructive/10 text-destructive'
+            status.type === 'success' ? 'border-success/30 bg-success-soft text-success' : 'border-destructive/20 bg-destructive/10 text-destructive'
           }`}
         >
           {status.type === 'success' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}

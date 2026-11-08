@@ -5,6 +5,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui/drawer';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useCanScanQr } from '@/shared/hooks/useCanScanQr';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 
 interface ChatsListHeaderProps {
@@ -25,6 +26,8 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
 }) => {
   const t = translations.appShell;
   const isMobile = useIsMobile();
+  const canScanQr = useCanScanQr();
+  const newMenuLabel = canScanQr ? t.newMenuLabel : t.newMenuLabelNoQr;
   const searchButton = useRef<HTMLButtonElement | null>(null);
   const newButton = useRef<HTMLButtonElement | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -34,9 +37,9 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
     : profileIndicatorCount > 0 ? fillTemplate(t.openSettingsWithRequests, { count }) : t.openSettings;
   const actions: NewAction[] = [
     { key: 'chat', icon: <MessageSquarePlus className="h-5 w-5 text-primary" />, label: t.newChat, hint: t.newChatHint, run: () => onOpenSearch(rectOf(newButton.current)) },
-    { key: 'group', icon: <UsersRound className="h-5 w-5 text-emerald-700" />, label: t.newGroup, hint: t.newGroupHint, run: onNewGroup },
-    { key: 'qr', icon: <QrCode className="h-5 w-5 text-slate-600" />, label: t.scanQr, hint: t.scanQrHint, run: onScanQr },
-  ];
+    { key: 'group', icon: <UsersRound className="h-5 w-5 text-success" />, label: t.newGroup, hint: t.newGroupHint, run: onNewGroup },
+    { key: 'qr', icon: <QrCode className="h-5 w-5 text-subtle-foreground" />, label: t.scanQr, hint: t.scanQrHint, run: onScanQr },
+  ].filter((action) => canScanQr || action.key !== 'qr');
 
   return (
     <div className="flex h-[72px] shrink-0 items-center gap-2 border-b border-border px-4">
@@ -47,7 +50,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
         title={t.openSettings}
         className="relative h-10 w-10 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
-        <AuthenticatedImage src={avatarUrl} initialsFrom={displayName || '?'} alt="" className="h-10 w-10 rounded-full border border-gray-200 object-cover" />
+        <AuthenticatedImage src={avatarUrl} initialsFrom={displayName || '?'} alt="" className="h-10 w-10 rounded-full border border-border object-cover" />
         {profileIndicatorCount > 0 && (
           <span aria-hidden="true"
             className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
@@ -62,7 +65,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
       </button>
       {isMobile ? (
         <>
-          <button ref={newButton} type="button" onClick={() => setSheetOpen(true)} aria-label={t.newMenuLabel}
+          <button ref={newButton} type="button" onClick={() => setSheetOpen(true)} aria-label={newMenuLabel}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
             <PenSquare className="h-5 w-5" />
           </button>
@@ -85,7 +88,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
       ) : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button ref={newButton} type="button" aria-label={t.newMenuLabel}
+            <button ref={newButton} type="button" aria-label={newMenuLabel}
               className="flex h-10 items-center gap-1.5 rounded-full bg-primary pl-3 pr-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
               <PenSquare className="h-4 w-4" />
               {t.newAction}

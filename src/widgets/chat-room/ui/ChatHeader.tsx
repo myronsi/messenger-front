@@ -37,7 +37,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             <ArrowLeft className="w-5 h-5" />
           </button>
           <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 md:space-x-0">
-            <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-gray-200 object-cover md:hidden" />
+            <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-border object-cover md:hidden" />
             <span className="flex min-w-0 flex-col items-start">
               <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>
               {!interlocutorDeleted && (

@@ -102,7 +102,7 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
         'pointer-events-auto fixed z-[1040] flex touch-none select-none items-center justify-center rounded-full bg-background shadow-2xl',
         'animate-in fade-in-0 zoom-in-50 duration-200',
         'ring-4 focus-visible:outline-none focus-visible:ring-primary',
-        session.phase === 'rejoin' ? 'ring-red-500' : session.phase === 'connected' ? 'ring-emerald-500' : 'ring-amber-400',
+        session.phase === 'rejoin' ? 'ring-destructive' : session.phase === 'connected' ? 'ring-success' : 'ring-warning',
         drag ? 'cursor-grabbing' : 'cursor-grab transition-[left,top] duration-200 ease-out motion-reduce:transition-none',
       )}
       style={{ left: position.left, top: position.top, width: bubbleBox.size, height: bubbleBox.size }}
@@ -147,17 +147,17 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
         className="pointer-events-none h-full w-full rounded-full object-cover" />
       {timer && (
         <span aria-hidden="true"
-          className="pointer-events-none absolute -bottom-2 rounded-full bg-emerald-600 px-1.5 text-[11px] font-semibold tabular-nums leading-4 text-white">
+          className="pointer-events-none absolute -bottom-2 rounded-full bg-success px-1.5 text-[11px] font-semibold tabular-nums leading-4 text-success-foreground">
           {timer}
         </span>
       )}
       {session.muted && (
-        <span aria-hidden="true" className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-slate-700 p-1 text-white">
+        <span aria-hidden="true" className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-foreground p-1 text-background">
           <MicOff className="h-3 w-3" />
         </span>
       )}
       {warning && (
-        <span aria-hidden="true" className="pointer-events-none absolute -left-1 -top-1 rounded-full bg-amber-500 p-1 text-white">
+        <span aria-hidden="true" className="pointer-events-none absolute -left-1 -top-1 rounded-full bg-warning p-1 text-warning-foreground">
           <AlertTriangle className="h-3 w-3" />
         </span>
       )}

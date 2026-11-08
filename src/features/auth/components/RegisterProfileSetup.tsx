@@ -8,6 +8,8 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
+import { AuthField } from './AuthFormParts';
+import { authInputClass, fieldMessageId } from './authFieldStyles';
 
 interface RegisterProfileSetupProps {
   profileAvatarFile: File | null;
@@ -15,6 +17,10 @@ interface RegisterProfileSetupProps {
   avatarCropFile: File | null;
   avatarCropPreview: string;
   profileBio: string;
+  displayName: string;
+  displayNameChanged: boolean;
+  displayNameError?: string;
+  onDisplayNameChange: (value: string) => void;
   isSavingProfile: boolean;
   translations: typeof en;
   onAvatarChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -32,6 +38,10 @@ export const RegisterProfileSetup = ({
   avatarCropFile,
   avatarCropPreview,
   profileBio,
+  displayName,
+  displayNameChanged,
+  displayNameError,
+  onDisplayNameChange,
   isSavingProfile,
   translations,
   onAvatarChange,
@@ -42,15 +52,16 @@ export const RegisterProfileSetup = ({
   onCancelCrop,
   onConfirmCrop,
 }: RegisterProfileSetupProps) => {
-  const hasProfile = !!profileAvatarFile || !!profileBio.trim();
+  const hasProfile = !!profileAvatarFile || !!profileBio.trim() || displayNameChanged;
+  const t = translations.authLayout;
   return (
     <>
       <div className="flex flex-col gap-5">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
             {translations.setupProfile || 'Set up your profile'}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          </h2>
+          <p className="text-sm text-subtle-foreground">
             {translations.setupProfileDescription || 'Add an avatar and bio now, or skip this step.'}
           </p>
         </div>
@@ -59,21 +70,21 @@ export const RegisterProfileSetup = ({
             <AuthenticatedImage
               src={profileAvatarPreview || DEFAULT_AVATAR}
               alt="Profile avatar preview"
-              className="h-24 w-24 rounded-full border border-gray-200 object-cover"
+              className="h-24 w-24 rounded-full border border-border object-cover"
             />
             {profileAvatarFile && (
               <button
                 type="button"
                 onClick={onRemoveAvatar}
                 disabled={isSavingProfile}
-                className="absolute -right-1 -top-1 rounded-full bg-gray-900 p-1 text-white shadow-sm hover:bg-gray-700 disabled:opacity-50"
+                className="absolute -right-1 -top-1 rounded-full bg-foreground p-1 text-background shadow-sm hover:bg-foreground/80 disabled:opacity-50"
                 aria-label="Remove selected avatar"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
-          <Label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <Label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-2 text-sm font-medium text-subtle-foreground hover:bg-accent/60">
             <Camera className="h-4 w-4" />
             {profileAvatarFile ? (translations.changeAvatar || 'Change avatar') : (translations.addAvatar || 'Add avatar')}
             <Input
@@ -85,6 +96,11 @@ export const RegisterProfileSetup = ({
             />
           </Label>
         </div>
+        <AuthField id="register-display-name" label={t.displayName} hint={t.displayNameHint} error={displayNameError}>
+          <Input id="register-display-name" name="name" type="text" autoComplete="name" maxLength={50} value={displayName}
+            disabled={isSavingProfile} aria-invalid={displayNameError ? true : undefined} aria-describedby={fieldMessageId('register-display-name')}
+            onChange={(event) => onDisplayNameChange(event.target.value)} className={authInputClass(Boolean(displayNameError))} />
+        </AuthField>
         <div className="grid gap-2">
           <Label htmlFor="profileBio">{translations.bio || 'Bio'}</Label>
           <Textarea
@@ -99,7 +115,7 @@ export const RegisterProfileSetup = ({
         </div>
         <div className="grid gap-2">
           {hasProfile && (
-            <Button onClick={onSave} disabled={isSavingProfile} className="w-full">
+            <Button onClick={onSave} disabled={isSavingProfile || Boolean(displayNameError)} className="w-full">
               {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {translations.finish || 'Finish'}
             </Button>

@@ -32,7 +32,7 @@ const OngoingCallBanner: React.FC<OngoingCallBannerProps> = ({ chatId }) => {
   const count = joinedParticipants(call).length;
   const blocked = !!session.callId || session.otherTab;
   return (
-    <div role="status" className="flex shrink-0 items-center gap-3 border-b border-border bg-emerald-50 px-4 py-2 text-sm text-emerald-900 sm:px-6">
+    <div role="status" className="flex shrink-0 items-center gap-3 border-b border-border bg-success-soft px-4 py-2 text-sm text-success sm:px-6">
       <PhoneCall className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="min-w-0 flex-1 truncate">
         {call.kind === 'group' ? translations.callOngoingGroup : translations.callOngoing}

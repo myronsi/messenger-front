@@ -39,7 +39,7 @@ const ChatMuteAction: React.FC<ChatMuteActionProps> = ({ chatId, className }) =>
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" disabled={busy} title={title} className={`${className} ${failed ? 'text-destructive' : 'text-gray-700'}`}>
+        <button type="button" disabled={busy} title={title} className={`${className} ${failed ? 'text-destructive' : 'text-subtle-foreground'}`}>
           <BellOff className="h-5 w-5" />
           <span className="text-xs font-medium">{translations.muteChat}</span>
         </button>

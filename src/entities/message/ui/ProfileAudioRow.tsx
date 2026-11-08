@@ -23,7 +23,7 @@ const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, isMine, isPlay
 
   return (
     <div data-testid="profile-audio" className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-      <div className={`w-fit max-w-full rounded-2xl px-3 py-1.5 ${isMine ? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground'}`}>
+      <div className={`w-fit max-w-full rounded-bubble px-3 py-1.5 ${isMine ? 'bubble-out bg-primary text-primary-foreground' : 'bubble-in bg-accent text-accent-foreground'}`}>
         {audio.kind === 'file' && <div className="mb-0.5 max-w-[260px] truncate text-xs font-medium opacity-90">{audio.name}</div>}
         <AudioMessage
           fileUrl={audio.url}
@@ -35,7 +35,7 @@ const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, isMine, isPlay
           setPlayingMessageId={setPlayingMessageId}
         />
       </div>
-      <div className="mt-1 flex max-w-full items-center gap-2 px-1 text-[11px] text-gray-500">
+      <div className="mt-1 flex max-w-full items-center gap-2 px-1 text-[11px] text-muted-foreground">
         <span className="min-w-0 truncate">{[sender, when].filter(Boolean).join(' · ')}</span>
         {onShowInChat && (
           <button type="button" onClick={onShowInChat} className="shrink-0 font-medium text-primary hover:underline">{translations.showInChat}</button>

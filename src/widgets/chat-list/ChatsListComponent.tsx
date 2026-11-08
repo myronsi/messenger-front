@@ -52,7 +52,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
       {header}
       {pendingRequests > 0 && onOpenRequests && (
         <button type="button" onClick={onOpenRequests}
-          className="mx-3 mb-1 mt-2.5 flex items-center gap-3 rounded-xl bg-blue-50 px-3.5 py-3 text-left text-blue-900 transition-colors hover:bg-blue-100 md:hidden">
+          className="mx-3 mb-1 mt-2.5 flex items-center gap-3 rounded-xl bg-primary/10 px-3.5 py-3 text-left text-primary transition-colors hover:bg-primary/15 md:hidden">
           <Inbox className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1 text-[15px] font-medium">{pendingRequests === 1 ? model.translations.appShell.messageRequestsRowOne
             : fillTemplate(model.translations.appShell.messageRequestsRow, { count: String(pendingRequests) })}</span>

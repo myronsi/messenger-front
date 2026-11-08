@@ -66,7 +66,7 @@ export const supplemental = {
   sessionDuration: "Выходить на неиспользуемых устройствах через",
   settings: "Настройки",
   setupProfile: "Настройте профиль",
-  setupProfileDescription: "Добавьте аватар и описание сейчас или пропустите этот шаг.",
+  setupProfileDescription: "Выберите, как ваше имя видят другие, и добавьте аватар и описание. Этот шаг можно пропустить.",
   signOutOtherDevices: "Выйти на других устройствах",
   skipForNow: "Пропустить",
   twoFactorAuthentication: "Двухфакторная аутентификация",

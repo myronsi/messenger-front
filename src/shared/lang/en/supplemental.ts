@@ -66,7 +66,7 @@ export const supplemental = {
   sessionDuration: "Sign out unused devices after",
   settings: "Settings",
   setupProfile: "Set up your profile",
-  setupProfileDescription: "Add an avatar and bio now, or skip this step.",
+  setupProfileDescription: "Choose how your name looks to others, and add an avatar and bio. You can skip this.",
   signOutOtherDevices: "Sign out other devices",
   skipForNow: "Skip for now",
   twoFactorAuthentication: "Two-factor authentication",

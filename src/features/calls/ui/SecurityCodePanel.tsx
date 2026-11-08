@@ -26,7 +26,7 @@ const SecurityCodePanel: React.FC<SecurityCodePanelProps> = ({ session }) => {
       </div>
       <div className="flex items-center gap-3">
         <label htmlFor={switchId} className="flex min-w-0 flex-1 items-center gap-2 font-medium">
-          {session.verified && <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />}
+          {session.verified && <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" />}
           {session.verified ? translations.callVerified : translations.callMarkVerified}
         </label>
         <Switch id={switchId} checked={session.verified} disabled={!session.code} onCheckedChange={setCodeVerified} />

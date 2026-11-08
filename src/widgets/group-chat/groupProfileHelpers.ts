@@ -9,8 +9,8 @@ export const roleLabel = (role: GroupRole, translations: GroupTranslations) => {
 };
 
 export const roleTone = (role: GroupRole) => {
-  if (role === 'owner') return 'bg-amber-100 text-amber-900';
-  if (role === 'admin') return 'bg-blue-100 text-blue-900';
-  if (role === 'moderator') return 'bg-emerald-100 text-emerald-900';
-  return 'bg-gray-100 text-gray-600';
+  if (role === 'owner') return 'bg-warning-soft text-warning';
+  if (role === 'admin') return 'bg-primary/15 text-primary';
+  if (role === 'moderator') return 'bg-success-soft text-success';
+  return 'bg-muted text-subtle-foreground';
 };

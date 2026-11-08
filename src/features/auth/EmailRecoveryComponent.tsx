@@ -8,7 +8,6 @@ import { RecoveryKeyReceipt } from '@/shared/ui/RecoveryKeyReceipt';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { Card } from '@/shared/ui/card';
 import { ApiProblem } from '@/shared/api/problem';
 import { isTwoFactorCancelled, useTwoFactorConfirm } from '@/shared/ui/useTwoFactorConfirm';
 import { EmailSentNotice } from './components/EmailSentNotice';
@@ -69,22 +68,22 @@ export const EmailRecoveryComponent = ({ mode, onBack, onLoginSuccess, onTryAnot
   };
 
   const title = mode === 'request' ? t.emailTitle : mode === 'verify' ? t.verifyTitle : t.resetTitle;
-  const label = 'text-[13px] font-medium text-slate-700';
-  const field = 'h-11 border-slate-300';
-  return <Card className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl p-6 shadow-sm sm:p-8">
+  const label = 'text-[13px] font-medium text-subtle-foreground';
+  const field = 'h-11 border-input';
+  return <div className="flex w-full flex-col gap-5">
     {result?.recovery_key ? <>
-      <p className="text-sm text-slate-700">{t.passkeysRemoved}</p>
+      <p className="text-sm text-subtle-foreground">{t.passkeysRemoved}</p>
       <RecoveryKeyReceipt recoveryKey={result.recovery_key} username={result.username!} onContinue={() => {
         setAccessToken(result.access_token); const username = result.username!; setResult(null); onLoginSuccess(username);
       }} />
     </> : sent ? <EmailSentNotice identifier={identifier.trim()} resendIn={resendIn} busy={busy} message={message}
       onResend={() => { void submit(); }} onTryAnotherWay={onTryAnotherWay ?? onBack} /> : <>
-      <button type="button" onClick={onBack} className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-[13px] text-slate-600 hover:underline">
+      <button type="button" onClick={onBack} className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-[13px] text-subtle-foreground hover:underline">
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />{t.backToSignIn}
       </button>
       <div className="flex flex-col gap-1.5">
         <h1 className="text-[22px] font-bold leading-tight text-foreground">{title}</h1>
-        {mode === 'request' && <p className="text-sm text-slate-600">{t.emailIntro}</p>}
+        {mode === 'request' && <p className="text-sm text-subtle-foreground">{t.emailIntro}</p>}
       </div>
       <form className="flex flex-col gap-3.5" onSubmit={event => { event.preventDefault(); void submit(); }}>
         {mode === 'request' ? <div className="flex flex-col gap-1.5">
@@ -102,15 +101,15 @@ export const EmailRecoveryComponent = ({ mode, onBack, onLoginSuccess, onTryAnot
             <Input id="email-confirm-password" type="password" autoComplete="new-password" required value={confirm} className={field}
               onChange={event => setConfirm(event.target.value)} />
           </div>
-        </> : <p className="text-sm text-slate-700">{t.verifyBody}</p>}
+        </> : <p className="text-sm text-subtle-foreground">{t.verifyBody}</p>}
         {!verified && <Button className="h-11 w-full font-semibold" disabled={busy || (mode !== 'request' && !token)}>
           {busy ? t.pleaseWait : mode === 'request' ? t.sendEmail : mode === 'verify' ? t.verifyEmail : t.resetPassword}
         </Button>}
       </form>
-      {mode !== 'request' && !token && !verified && <p role="alert" className="text-sm text-red-700">{t.linkMissingToken}</p>}
-      {message && <p role="status" className="text-sm text-slate-700">{message}</p>}
+      {mode !== 'request' && !token && !verified && <p role="alert" className="text-sm text-destructive">{t.linkMissingToken}</p>}
+      {message && <p role="status" className="text-sm text-subtle-foreground">{message}</p>}
       {onTryAnotherWay && <Button variant="link" className="h-11" onClick={onTryAnotherWay}>{t.tryAnotherWay}</Button>}
     </>}
     {twoFactor.dialog}
-  </Card>;
+  </div>;
 };

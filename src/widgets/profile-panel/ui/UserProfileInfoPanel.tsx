@@ -28,33 +28,33 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
   const { translations } = useLanguage();
   return (
     <div className="min-h-full space-y-3 px-5 py-4 md:py-3">
-      {actionError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</div>}
+      {actionError && <div className="rounded-md border border-destructive/30 bg-destructive-soft px-3 py-2 text-sm text-destructive">{actionError}</div>}
       {bio && (
-        <section className="rounded-lg border border-gray-200 bg-white p-3">
-          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Info className="h-4 w-4 text-gray-500" />
+        <section className="rounded-lg border border-border bg-card p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-subtle-foreground">
+            <Info className="h-4 w-4 text-muted-foreground" />
             <span>{translations.bio}</span>
           </div>
-          <p className="whitespace-pre-wrap break-words text-sm leading-5 text-gray-900">{bio}</p>
+          <p className="whitespace-pre-wrap break-words text-sm leading-5 text-foreground">{bio}</p>
         </section>
       )}
-      <section className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{translations.account || 'Account'}</p>
+      <section className="rounded-lg border border-border bg-muted/50 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{translations.account || 'Account'}</p>
         <div className="mt-2 space-y-1.5 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-gray-500">{translations.userName || 'Username'}</span>
+            <span className="text-muted-foreground">{translations.userName || 'Username'}</span>
             <CopyableUsername username={username} />
           </div>
           {canShowCreatedAt && createdAt && (
             <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-500">{translations.created || 'Created'}</span>
-              <span className="min-w-0 truncate font-medium text-gray-900">{formatDateOnly(createdAt, language)}</span>
+              <span className="text-muted-foreground">{translations.created || 'Created'}</span>
+              <span className="min-w-0 truncate font-medium text-foreground">{formatDateOnly(createdAt, language)}</span>
             </div>
           )}
         </div>
       </section>
       {canDeleteChat && (
-        <button onClick={onDeleteChat} className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50">
+        <button onClick={onDeleteChat} className="flex w-full items-center justify-center gap-2 rounded-lg border border-destructive/30 px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive-soft">
           <Trash2 className="h-4 w-4" />{translations.deleteChat}
         </button>
       )}
@@ -63,7 +63,7 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
           onClick={isBlocked ? onBlockToggle : onConfirmBlock}
           disabled={isBlockActionLoading}
           className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
-            isBlocked ? 'border-gray-200 text-primary hover:bg-gray-50 disabled:text-gray-400' : 'border-red-200 text-red-600 hover:bg-red-50 disabled:text-gray-400'
+            isBlocked ? 'border-border text-primary hover:bg-accent/60 disabled:text-muted-foreground' : 'border-destructive/30 text-destructive hover:bg-destructive-soft disabled:text-muted-foreground'
           }`}
         >
           {isBlockActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}

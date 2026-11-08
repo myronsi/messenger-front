@@ -75,7 +75,7 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
       : ru ? 'Получайте уведомления, даже когда вкладка закрыта.' : 'Get alerts even when this tab is closed.';
 
   return (
-    <section className="relative flex h-full flex-col bg-white" aria-label={ru ? 'Уведомления' : 'Notifications'}>
+    <section className="relative flex h-full flex-col bg-background" aria-label={ru ? 'Уведомления' : 'Notifications'}>
       <PageBackHeader onBack={onBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>
@@ -95,7 +95,7 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
           aria-live="polite"
           className={`pointer-events-none absolute right-4 top-[58px] z-10 inline-flex max-w-[min(18rem,calc(100%-2rem))] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm ${
             status.type === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              ? 'border-success/30 bg-success-soft text-success'
               : 'border-destructive/20 bg-destructive/10 text-destructive'
           }`}
         >

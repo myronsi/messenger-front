@@ -42,7 +42,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
 
           {debouncedSearch && searchData?.users && searchData.users.length > 0 && (
             <div className="mt-3">
-              <div className="bg-white border border-border rounded-md max-h-72 overflow-auto">
+              <div className="bg-card border border-border rounded-md max-h-72 overflow-auto">
                 {searchData.users.map((u) => {
                   const isSelf = u.username?.toLowerCase() === currentUsername?.toLowerCase();
                   return (

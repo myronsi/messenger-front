@@ -27,7 +27,7 @@ const ParticipantRow: React.FC<{ participant: CallParticipant; isMe: boolean }> 
   return (
     <li className="flex items-center justify-between gap-2 py-1.5 text-sm">
       <span className="truncate">{isMe ? translations.callYou : name || '…'}</span>
-      <span className={participant.state === 'joined' ? 'text-emerald-700' : 'text-muted-foreground'}>
+      <span className={participant.state === 'joined' ? 'text-success' : 'text-muted-foreground'}>
         {participant.state === 'joined' ? translations.callStateJoined : translations.callStateRinging}
       </span>
     </li>
@@ -46,7 +46,7 @@ const ActiveCallPanel: React.FC<ActiveCallPanelProps> = ({ call, session, userId
   const name = title || translations.callPanelTitle;
 
   return (
-    <section aria-label={translations.callPanelTitle} className="flex h-full w-full flex-col bg-gradient-to-b from-slate-50 to-white">
+    <section aria-label={translations.callPanelTitle} className="flex h-full w-full flex-col bg-gradient-to-b from-muted/50 to-background">
       <header className="flex items-center gap-2 border-b border-border bg-background px-4 py-3">
         <h2 className="min-w-0 flex-1 truncate font-semibold">{translations.callPanelTitle}</h2>
         <Button variant="ghost" size="icon" aria-label={translations.callMinimize} title={translations.callMinimize} onClick={minimizeCall}>
@@ -82,7 +82,7 @@ const ActiveCallPanel: React.FC<ActiveCallPanelProps> = ({ call, session, userId
             ))}
           </ul>
           {session.audioBlocked && (
-            <div className="flex w-full items-center gap-2 rounded-lg bg-amber-50 p-2 text-sm text-amber-900">
+            <div className="flex w-full items-center gap-2 rounded-lg bg-warning-soft p-2 text-sm text-warning">
               <span className="flex-1">{translations.callAudioBlocked}</span>
               <Button size="sm" onClick={() => { void enableCallAudio(); }}><Volume2 aria-hidden="true" />{translations.callEnableAudio}</Button>
             </div>

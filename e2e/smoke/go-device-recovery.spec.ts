@@ -32,7 +32,6 @@ test('a signed-in device approves the matching number and is revoked after recov
     await recovery.getByRole('button', { name: 'Reset password', exact: true }).click();
     await expect(trusted).toHaveURL(/\/login$/);
     await confirmRecoveryReceipt(recovery);
-    await recovery.getByRole('button', { name: 'I saved it, continue', exact: true }).click();
     await waitForMessenger(recovery);
     expect(sockets).toHaveLength(1);
   } finally { await trustedContext.close(); await recoveryContext.close(); }

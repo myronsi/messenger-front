@@ -40,7 +40,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const unreadCount = chat.unread_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
   const unreadBadgeClass = isMuted
-    ? isActive ? 'bg-gray-400 text-white md:bg-primary-foreground/60 md:text-primary' : 'bg-gray-400 text-white'
+    ? isActive ? 'bg-muted-foreground text-background md:bg-primary-foreground/60 md:text-primary' : 'bg-muted-foreground text-background'
     : isActive ? 'bg-primary text-primary-foreground md:bg-primary-foreground md:text-primary' : 'bg-primary text-primary-foreground';
   const lastContent = chat.last_message?.content;
   const lastThumbnail = typeof lastContent === 'object' && lastContent.thumbnail_url ? resolveMediaUrl(lastContent.thumbnail_url) : undefined;
@@ -60,7 +60,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       {...preloadHandlers}
       onContextMenu={(event) => onContextMenu(event, chat)}
       className={`motion-list-item motion-press flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer ${
-        isContextSelected ? 'bg-gray-100 text-foreground' : isActive ? 'md:bg-primary md:text-primary-foreground'
+        isContextSelected ? 'bg-muted text-foreground' : isActive ? 'md:bg-primary md:text-primary-foreground'
           : '[@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground'
       }`}
     >
@@ -72,7 +72,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           className={`motion-avatar h-12 w-12 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}
         />
         {chat.type === 'one-on-one' && !chat.interlocutor_deleted && chat.is_online && (
-          <span data-testid="chat-online-dot" className="motion-presence absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-green-500" />
+          <span data-testid="chat-online-dot" className="motion-presence absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-success" />
         )}
       </div>
 

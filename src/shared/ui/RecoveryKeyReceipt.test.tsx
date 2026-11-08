@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecoveryKeyReceipt } from './RecoveryKeyReceipt';
 
@@ -7,67 +7,103 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
   return { useLanguage: () => ({ language: 'en', translations }) };
 });
 
-const key = 'K7QM-2XRV-ABCD';
+const key = 'K7QM-2XRV-ABCD-EFGH-JKLM-NPQR-STUV-WXYZ';
 const readBlob = (blob: Blob) => new Promise<string>(resolve => {
   const reader = new FileReader();
   reader.onload = () => resolve(String(reader.result));
   reader.readAsText(blob);
 });
 
+const captureDownloads = () => {
+  const blobs: Blob[] = [];
+  vi.spyOn(URL, 'createObjectURL').mockImplementation(blob => { blobs.push(blob as Blob); return 'blob:receipt'; });
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  return { blobs, click };
+};
+
 describe('RecoveryKeyReceipt', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-  it('shows the key as one chip per group and keeps the full key for assistive tech', () => {
+  it('explains the key and shows one chip per group with the full key for assistive tech', () => {
     render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
+    expect(screen.getAllByRole('button', { name: 'Copy recovery key' })).toHaveLength(1);
+    expect(screen.getByRole('heading', { name: 'Save your spare key' })).toBeInTheDocument();
     expect(screen.getByTestId('recovery-key')).toHaveTextContent(key);
     expect(screen.getByText('K7QM')).toBeInTheDocument();
-    expect(screen.getByText('2XRV')).toBeInTheDocument();
-    expect(screen.getByText('ABCD')).toBeInTheDocument();
+    expect(screen.getByText('WXYZ')).toBeInTheDocument();
+    expect(screen.getByText("Upper or lower case doesn't matter.")).toBeInTheDocument();
   });
 
-  it('requires the correct last group before clearing the receipt', () => {
+  it('unlocks the checkbox only after the key is downloaded, then continue after ticking it', () => {
+    captureDownloads();
     const done = vi.fn();
     render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={done} />);
-    const button = screen.getByRole('button', { name: 'I saved it, continue' });
-    fireEvent.change(screen.getByLabelText('To confirm, type the last group'), { target: { value: 'wrong' } });
+    const checkbox = screen.getByRole('checkbox', { name: /I saved my recovery key somewhere safe/ });
+    const button = screen.getByRole('button', { name: 'Continue' });
+    expect(checkbox).toBeDisabled();
+    expect(screen.getByText('Download or copy it first.')).toBeInTheDocument();
     expect(button).toBeDisabled();
-    expect(screen.queryByText('Matches')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('To confirm, type the last group'), { target: { value: 'abcd' } });
-    expect(screen.getByText('Matches')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Download recovery key' }));
+    expect(screen.getByRole('button', { name: 'Downloaded' })).toBeInTheDocument();
+    expect(checkbox).toBeEnabled();
+    expect(button).toBeDisabled();
+    fireEvent.click(checkbox);
+    expect(button).toBeEnabled();
     fireEvent.click(button);
     expect(done).toHaveBeenCalledOnce();
     expect(JSON.stringify(localStorage)).not.toContain(key);
     expect(JSON.stringify(sessionStorage)).not.toContain(key);
   });
 
-  it('shows registration progress only when asked', () => {
-    const { rerender } = render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
-    expect(screen.queryByRole('img', { name: /Step/ })).not.toBeInTheDocument();
-    rerender(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} progress={{ current: 2, total: 3 }} />);
-    expect(screen.getByRole('img', { name: 'Step 2 of 3' })).toBeInTheDocument();
+  it('also unlocks the checkbox after copying the key', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy recovery key' })); });
+    expect(writeText).toHaveBeenCalledWith(key);
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toBeEnabled();
   });
 
-  it('downloads a private text receipt with username, key and instructions', async () => {
-    const blobs: Blob[] = [];
-    vi.spyOn(URL, 'createObjectURL').mockImplementation(blob => { blobs.push(blob as Blob); return 'blob:receipt'; });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  it('keeps the checkbox locked when copying fails', async () => {
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: () => Promise.reject(new Error('denied')) } });
     render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Download .txt' }));
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy recovery key' })); });
+    expect(screen.getByRole('status')).toHaveTextContent('Select the key and copy it manually.');
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+  });
+
+  it('downloads a private file with the account, the key and how to use it', async () => {
+    const { blobs, click } = captureDownloads();
+    render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Download recovery key' }));
     const text = await readBlob(blobs[0]);
-    expect(text).toContain('Username: alice');
-    expect(text).toContain(`Recovery key: ${key}`);
-    expect(text).toContain('single use');
-    expect(click).toHaveBeenCalledOnce();
+    expect(text).toContain('MESSENGER RECOVERY KEY');
+    expect(text).toContain('Account: alice');
+    expect(text).toContain('K7QM-2XRV-ABCD-EFGH\nJKLM-NPQR-STUV-WXYZ');
+    expect(text).toContain('1. On the sign-in page, choose "Forgot password?".');
+    expect(text).toContain('2. Choose "Use my recovery key".');
+    expect(text).toContain('two-factor authentication');
+    expect(text).toContain('The key works once.');
     expect(click.mock.instances[0]).toHaveAttribute('download', 'messenger-recovery-alice.txt');
   });
 
-  it('shows and downloads the QR as a standalone SVG', async () => {
-    const blobs: Blob[] = [];
-    vi.spyOn(URL, 'createObjectURL').mockImplementation(blob => { blobs.push(blob as Blob); return 'blob:receipt'; });
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  it('leaves out the two-factor note during sign-up', async () => {
+    const { blobs } = captureDownloads();
+    render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} context="signup" />);
+    expect(screen.queryByText(/two-factor authentication/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Download recovery key' }));
+    expect(await readBlob(blobs[0])).not.toContain('two-factor');
+  });
+
+  it('shows the QR code under more ways to save and downloads it as SVG', async () => {
+    const { blobs } = captureDownloads();
     render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Show QR code' }));
+    const more = screen.getByRole('button', { name: 'More ways to save' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(more);
+    expect(more).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Download QR' }));
     expect(blobs[0].type).toBe('image/svg+xml');
     expect(await readBlob(blobs[0])).toContain('<svg');
@@ -77,7 +113,7 @@ describe('RecoveryKeyReceipt', () => {
   it('warns before skipping and stores only a reminder flag', () => {
     const done = vi.fn();
     render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={done} />);
-    fireEvent.click(screen.getByRole('button', { name: "Skip for now (we'll remind you)" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Do this later' }));
     expect(done).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('you may lose your account');
     fireEvent.click(screen.getByRole('button', { name: 'Continue without saving' }));

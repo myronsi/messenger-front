@@ -10,7 +10,7 @@ const AboutPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { translations } = useLanguage();
   const pane = useSettingsLayout() === 'pane';
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-background">
       <PageBackHeader onBack={onBack} hideBack={pane}>
         <Breadcrumb>
           <BreadcrumbList>

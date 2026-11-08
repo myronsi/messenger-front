@@ -106,13 +106,13 @@ export const ProfileSearchPanel: React.FC<{
   }, [autoFocus]);
 
   return (
-    <section className="border-b border-gray-200 px-5 py-4">
-      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
-        <Search className="h-4 w-4 text-gray-500" />
+    <section className="border-b border-border px-5 py-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+        <Search className="h-4 w-4 text-muted-foreground" />
         <span>{translations.chatSearch || translations.searchMessages || 'Chat search'}</span>
       </div>
-      <div className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2">
-        <Search className="h-4 w-4 text-gray-400" />
+      <div className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
         <input
           ref={inputRef}
           value={query}
@@ -120,15 +120,15 @@ export const ProfileSearchPanel: React.FC<{
           placeholder={translations.searchInChat || 'Search in chat'}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
-        {isFetching && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
       </div>
-      <div className="mt-3 max-h-72 overflow-y-auto rounded-md border border-gray-200">
+      <div className="mt-3 max-h-72 overflow-y-auto rounded-md border border-border">
         {!normalizedQuery ? (
-          <div className="px-3 py-4 text-sm text-gray-500">{translations.searchQueryRequired || 'Type to search messages.'}</div>
+          <div className="px-3 py-4 text-sm text-muted-foreground">{translations.searchQueryRequired || 'Type to search messages.'}</div>
         ) : error ? (
-          <div className="px-3 py-4 text-sm text-red-600">{translations.errorLoadingMessages || 'Error loading messages.'}</div>
+          <div className="px-3 py-4 text-sm text-destructive">{translations.errorLoadingMessages || 'Error loading messages.'}</div>
         ) : results.length === 0 && !isFetching ? (
-          <div className="px-3 py-4 text-sm text-gray-500">{translations.noSearchResults || 'No results'}</div>
+          <div className="px-3 py-4 text-sm text-muted-foreground">{translations.noSearchResults || 'No results'}</div>
         ) : (
           results.map((result) => {
             const text = getSearchText(result);
@@ -137,13 +137,13 @@ export const ProfileSearchPanel: React.FC<{
                 key={result.id}
                 type="button"
                 onClick={() => onJumpToMessage(result.id)}
-                className="flex w-full flex-col gap-1 border-b border-gray-200 px-3 py-3 text-left last:border-b-0 hover:bg-gray-50"
+                className="flex w-full flex-col gap-1 border-b border-border px-3 py-3 text-left last:border-b-0 hover:bg-accent/60"
               >
                 <div className="flex max-w-full items-center justify-between gap-3">
-                  <span className="truncate text-sm font-medium text-gray-900">{result.sender}</span>
-                  <span className="shrink-0 text-xs text-gray-500">{formatTime(result.timestamp, language)}</span>
+                  <span className="truncate text-sm font-medium text-foreground">{result.sender}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formatTime(result.timestamp, language)}</span>
                 </div>
-                <span className="line-clamp-2 text-sm text-gray-500">{text}</span>
+                <span className="line-clamp-2 text-sm text-muted-foreground">{text}</span>
               </button>
             );
           })
@@ -161,7 +161,7 @@ const ProfilePhotoThumb: React.FC<{ photo: ProfilePhotoItem; onOpen: () => void 
       type="button"
       onClick={onOpen}
       {...preloadHandlers}
-      className={`group block aspect-square overflow-hidden rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isLoaded ? '' : 'animate-pulse'}`}
+      className={`group block aspect-square overflow-hidden rounded-md bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${isLoaded ? '' : 'animate-pulse'}`}
       title={photo.name}
     >
       <AuthenticatedImage
@@ -196,20 +196,20 @@ export const ProfilePhotosPanel: React.FC<{
   }), [currentUsername, onJumpToMessage, photos, translations.replyFromYou]);
 
   return (
-    <section className="border-b border-gray-200 px-5 py-4">
+    <section className="border-b border-border px-5 py-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-gray-800">
-          <ImageIcon className="h-4 w-4 shrink-0 text-gray-500" />
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+          <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="truncate">{translations.dmPhotos || 'Photos in this chat'}</span>
         </div>
-        {isLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
       </div>
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="rounded-md border border-destructive/30 bg-destructive-soft px-3 py-2 text-sm text-destructive">{error}</div>
       ) : isLoading && photos.length === 0 ? (
         <div className="grid grid-cols-3 gap-2">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="aspect-square animate-pulse rounded-md bg-gray-100" />
+            <div key={index} className="aspect-square animate-pulse rounded-md bg-muted" />
           ))}
         </div>
       ) : photos.length > 0 ? (
@@ -221,7 +221,7 @@ export const ProfilePhotosPanel: React.FC<{
           </div>
         </div>
       ) : (
-        <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">
+        <div className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
           {translations.noDmPhotos || 'No photos in this chat yet.'}
         </div>
       )}
@@ -247,20 +247,20 @@ export const ProfileAudiosPanel: React.FC<{
   };
 
   return (
-    <section className="border-b border-gray-200 px-5 py-4">
+    <section className="border-b border-border px-5 py-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-gray-800">
-          <Music className="h-4 w-4 shrink-0 text-gray-500" />
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+          <Music className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="truncate">{translations.chatAudios || 'Audios in this chat'}</span>
         </div>
-        {isLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
       </div>
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="rounded-md border border-destructive/30 bg-destructive-soft px-3 py-2 text-sm text-destructive">{error}</div>
       ) : isLoading && audios.length === 0 ? (
         <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-14 animate-pulse rounded-md bg-gray-100" />
+            <div key={index} className="h-14 animate-pulse rounded-md bg-muted" />
           ))}
         </div>
       ) : audios.length > 0 ? (
@@ -274,7 +274,7 @@ export const ProfileAudiosPanel: React.FC<{
           ))}
         </div>
       ) : (
-        <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">
+        <div className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
           {translations.noChatAudios || 'No audios in this chat yet.'}
         </div>
       )}

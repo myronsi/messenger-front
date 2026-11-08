@@ -41,7 +41,7 @@ export const TwoFactorRow = ({ settings }: { settings: Settings }) => {
   } = settings;
   const enabled = Boolean(securitySettings?.two_factor_enabled);
   const badge = !isLoadingSecurity && securitySettings && <Badge className={enabled
-    ? 'border-transparent bg-green-100 px-2 py-0.5 text-[11px] text-green-800 hover:bg-green-100'
+    ? 'border-transparent bg-success-soft px-2 py-0.5 text-[11px] text-success hover:bg-success-soft'
     : 'border-transparent bg-muted px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted'}>{enabled ? t.twoFactorOn : t.twoFactorOff}</Badge>;
   return <SecurityRow id="two-factor-settings" region title={translations.twoFactorAuthentication} badge={badge}
     description={enabled ? t.twoFactorOnHint : t.twoFactorOffHint}>
@@ -50,11 +50,11 @@ export const TwoFactorRow = ({ settings }: { settings: Settings }) => {
       <Input type="password" aria-label={translations.password} value={disableForm.password} className={securityInput} placeholder={translations.password}
         onChange={(event) => setDisableForm((form) => ({ ...form, password: event.target.value }))} />
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" className="h-11 border-red-200 font-semibold text-red-700 hover:bg-red-50 hover:text-red-800"
+        <Button variant="outline" className="h-11 border-destructive/30 font-semibold text-destructive hover:bg-destructive-soft hover:text-destructive"
           disabled={isDisabling2fa || !disableForm.password} onClick={handleDisableTwoFactor}>{translations.disable}</Button>
       </div>
     </div> : twoFactorSetup ? <div className="flex flex-col gap-3">
-      <div className="flex justify-center rounded-md bg-white p-4"><QRCodeSVG value={twoFactorSetup.otpauth_uri} size={180} /></div>
+      <div className="flex justify-center rounded-md qr-surface p-4"><QRCodeSVG value={twoFactorSetup.otpauth_uri} size={180} /></div>
       <div className="break-all rounded-md bg-muted px-3 py-2 font-mono text-xs">{twoFactorSetup.secret}</div>
       <Button className="h-11 font-semibold" onClick={handleConfirmTwoFactor} disabled={isConfirming2fa}>{translations.enable}</Button>
     </div> : <div className="flex flex-col gap-2">
@@ -66,9 +66,9 @@ export const TwoFactorRow = ({ settings }: { settings: Settings }) => {
         </Button>
       </div>
     </div>}
-    {recoveryCodes.length > 0 && <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
-      <div className="mb-2 text-sm font-medium text-amber-900">{translations.saveRecoveryCodes}</div>
-      <div className="grid gap-1 font-mono text-xs text-amber-950">{recoveryCodes.map((code) => <span key={code}>{code}</span>)}</div>
+    {recoveryCodes.length > 0 && <div className="rounded-md border border-warning/30 bg-warning-soft p-3">
+      <div className="mb-2 text-sm font-medium text-warning">{translations.saveRecoveryCodes}</div>
+      <div className="grid gap-1 font-mono text-xs text-warning">{recoveryCodes.map((code) => <span key={code}>{code}</span>)}</div>
     </div>}
   </SecurityRow>;
 };

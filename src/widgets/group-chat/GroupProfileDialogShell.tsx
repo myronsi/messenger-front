@@ -56,7 +56,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
       data-profile-tab={view}
       onClick={() => onSelectView(view)}
       className={`relative isolate flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-        activeView === view ? 'text-primary' : 'text-gray-700 [@media(hover:hover)]:hover:bg-gray-100'
+        activeView === view ? 'text-primary' : 'text-subtle-foreground [@media(hover:hover)]:hover:bg-accent'
       }`}
     >
 
@@ -77,20 +77,20 @@ const GroupProfileDialogShell: React.FC<Props> = ({
       onMouseDown={requestClose}
     >
       <div
-        className={`relative h-full w-full max-w-full overflow-hidden bg-white shadow-2xl sm:h-[min(780px,calc(100vh-3rem))] sm:w-[420px] sm:rounded-lg sm:transition-all sm:duration-200 sm:ease-out ${
+        className={`relative h-full w-full max-w-full overflow-hidden bg-background shadow-2xl sm:h-[min(780px,calc(100vh-3rem))] sm:w-[420px] sm:rounded-lg sm:transition-all sm:duration-200 sm:ease-out ${
           mobileWindowSlide(!isClosing)} ${isClosing ? 'sm:translate-y-3 sm:scale-95 sm:opacity-0' : 'sm:translate-y-0 sm:scale-100 sm:opacity-100'
         }`}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div data-profile-swipe className="flex h-full min-h-0 w-full flex-col bg-white text-gray-950" inert={!!subPage}>
-          <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 px-4">
+        <div data-profile-swipe className="flex h-full min-h-0 w-full flex-col bg-background text-foreground" inert={!!subPage}>
+          <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-gray-500" />
+              <Users className="h-5 w-5 text-muted-foreground" />
               <h2 className="text-base font-semibold">{translations.groupProfile || 'Group profile'}</h2>
             </div>
             <button
               onClick={requestClose}
-              className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -104,27 +104,27 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => setIsAvatarViewerOpen(true)}
-                    className="mx-auto block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    className="mx-auto block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label="View group picture"
                   >
                     <AuthenticatedImage
                       src={currentGroupAvatar}
                       alt={currentGroupName}
-                      className="h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
+                      className="h-24 w-24 rounded-full border border-border object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
                     />
                   </button>
                 ) : (
                   <AuthenticatedImage
                     src={currentGroupAvatar}
                     alt={currentGroupName}
-                    className="mx-auto h-24 w-24 rounded-full border border-gray-200 object-cover shadow-sm md:h-20 md:w-20"
+                    className="mx-auto h-24 w-24 rounded-full border border-border object-cover shadow-sm md:h-20 md:w-20"
                   />
                 )}
-                <h3 className="mt-3 break-words text-xl font-semibold leading-tight text-gray-950">{currentGroupName}</h3>
+                <h3 className="mt-3 break-words text-xl font-semibold leading-tight text-foreground">{currentGroupName}</h3>
               </div>
 
               <div
-                className="relative isolate grid gap-2 border-y border-gray-200 px-4 py-3"
+                className="relative isolate grid gap-2 border-y border-border px-4 py-3"
                 style={{ gridTemplateColumns: `repeat(${actionColumns}, minmax(0, 1fr))` }}
               >
                 <ProfileTabHighlight active={activeView} layoutKey={`${actionColumns}:${visibleViews.join(',')}:${canMute}`} />
@@ -135,7 +135,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                 {canMute && (
                   <ChatMuteAction
                     chatId={chatId}
-                    className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors hover:bg-gray-100 disabled:opacity-50"
+                    className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors hover:bg-accent disabled:opacity-50"
                   />
                 )}
               </div>

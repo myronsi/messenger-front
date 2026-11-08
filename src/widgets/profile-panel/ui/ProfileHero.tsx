@@ -41,7 +41,7 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
   const shown = earlier.slice(0, STRIP_SIZE);
   const more = earlier.length - shown.length;
   const avatar = <AuthenticatedImage src={avatarUrl} alt={displayName} initialsFrom={displayName}
-    className="h-28 w-28 rounded-full border border-gray-200 object-cover ring-4 ring-white" />;
+    className="h-28 w-28 rounded-full border border-border object-cover ring-4 ring-background" />;
   const pickLabel = hasCustomAvatar ? translations.changeAvatar : t.addPhoto;
 
   return (
@@ -64,7 +64,7 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
           if (file) onPickAvatar(file);
         }} />
         <label htmlFor={inputId} title={pickLabel}
-          className="absolute -bottom-0.5 -right-0.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-[3px] border-white bg-primary text-primary-foreground transition-colors hover:bg-primary/90 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2">
+          className="absolute -bottom-0.5 -right-0.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-[3px] border-background bg-primary text-primary-foreground transition-colors hover:bg-primary/90 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2">
           <Camera className="h-4 w-4" aria-hidden="true" />
         </label>
       </div>
@@ -76,21 +76,21 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
           {shown.map(({ item, index }) => (
             <button key={`${item.id}:${index}`} type="button" onClick={() => onOpenAvatar(index)}
               aria-label={fillTemplate(t.earlierPhoto, { index: String(index + 1), total: String(total) })}
-              className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-white ring-1 ring-gray-200 transition-transform hover:scale-105">
+              className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-background ring-1 ring-border transition-transform hover:scale-105">
               <AuthenticatedImage src={item.fullUrl} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
           {more > 0 && (
             <button type="button" onClick={() => onOpenAvatar(earlier[STRIP_SIZE].index)} aria-label={fillTemplate(t.morePhotos, { count: String(more) })}
-              className="flex h-10 min-w-10 items-center justify-center rounded-full bg-gray-100 px-2 text-[13px] font-semibold text-gray-700 transition-colors hover:bg-gray-200">
+              className="flex h-10 min-w-10 items-center justify-center rounded-full bg-muted px-2 text-[13px] font-semibold text-subtle-foreground transition-colors hover:bg-accent-darker">
               +{more}
             </button>
           )}
-          <span className="pl-0.5 text-xs text-gray-600">{t.earlierPhotos}</span>
+          <span className="pl-0.5 text-xs text-subtle-foreground">{t.earlierPhotos}</span>
         </div>
       )}
       <div className="flex min-w-0 max-w-full flex-col items-center gap-0.5">
-        <span className="max-w-full truncate text-[22px] font-semibold text-gray-950">{displayName}</span>
+        <span className="max-w-full truncate text-[22px] font-semibold text-foreground">{displayName}</span>
         {subtitle}
       </div>
       {children}

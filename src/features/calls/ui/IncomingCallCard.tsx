@@ -51,7 +51,7 @@ const IncomingCallCard: React.FC<IncomingCallCardProps> = ({ call, userId }) => 
           {translations.callDecline}
         </Button>
         {supported && (
-          <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={() => { void joinCall(call.id); }}>
+          <Button className="flex-1 bg-success hover:bg-success/90" disabled={busy} onClick={() => { void joinCall(call.id); }}>
             <Phone aria-hidden="true" />
             {translations.callAccept}
           </Button>

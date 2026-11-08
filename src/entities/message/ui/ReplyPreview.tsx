@@ -44,7 +44,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isRep
       }}
       className={`flex min-w-0 items-center gap-2 overflow-hidden border-l-[3px] py-1 pl-2 pr-2.5 text-left transition-colors ${
         isImage ? 'mx-1.5 mb-1.5 mt-1.5 w-[calc(100%-0.75rem)] max-w-[calc(100%-0.75rem)] rounded-lg' : '-mx-2 mb-1.5 w-[calc(100%+1rem)] max-w-[calc(100%+1rem)] rounded-xl'
-      } ${isMine ? 'border-white/80 bg-white/15 hover:bg-white/20' : 'border-primary bg-primary/10 hover:bg-primary/15'}`}
+      } ${isMine ? 'border-primary-foreground/80 bg-primary-foreground/15 hover:bg-primary-foreground/20' : 'border-primary bg-primary/10 hover:bg-primary/15'}`}
     >
       {content.imageUrl && (
         <AuthenticatedImage src={content.imageUrl} alt="" className="h-9 w-9 shrink-0 rounded object-cover" draggable={false} />
