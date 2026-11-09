@@ -1,14 +1,10 @@
 export * from './model/types';
 export { DEVICE_RECOVERY_TTL_MS } from './model/requestLifetimes';
-export { RecoveryKeyComponent } from './RecoveryKeyComponent';
-export { DeviceRecoveryComponent } from './DeviceRecoveryComponent';
-export { EmailRecoveryComponent } from './EmailRecoveryComponent';
 export { RecoveryChooser, type RecoveryMethod } from './RecoveryChooser';
 export { usernameFromIdentifier } from './model/recoveryIdentifier';
 export * from './api/authApi';
 export { default as LoginComponent } from './LoginComponent';
-export { default as RegisterComponent } from './RegisterComponent';
-export { QrApprovalPage } from './QrApprovalPage';
 export { QrScannerDialog } from './components/QrScannerDialog';
 export { RegisterStepList, RegisterProgress } from './components/RegisterSteps';
 export { REGISTER_STEPS, type RegisterStep } from './model/registerForm';
+export { DeviceRecoveryComponent, EmailRecoveryComponent, QrApprovalPage, RecoveryKeyComponent, RegisterComponent } from './lazyScreens';

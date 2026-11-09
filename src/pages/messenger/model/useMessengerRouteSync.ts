@@ -5,6 +5,8 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, type NavigateFunction } from 'react-router-dom';
 import { CurrentChat, directChatPath, parseDmIdentifier } from './messengerRoutes';
 import { joinOverlayPath, splitOverlayPath } from '@/shared/lib/urlOverlay';
+import { chatApi } from '@/entities/chat';
+import { useAppDispatch } from '@/shared/hooks/redux';
 import { authFetch } from '@/shared/auth/session';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { resolveNotificationChat } from './resolveNotificationChat';
@@ -27,17 +29,6 @@ interface MessengerRouteState {
   pendingApprovalMessage?: string;
 }
 
-interface DirectChatSummary {
-  id: EntityId;
-  interlocutor_name: string;
-  interlocutor_display_name?: string;
-  interlocutor_is_online?: boolean;
-  interlocutor_last_seen?: string | null;
-  avatar_url?: string;
-  interlocutor_deleted: boolean;
-  first_unread_message_id?: EntityId | null;
-}
-
 interface DirectUserProfile {
   direct_chat_id?: EntityId;
   username?: string;
@@ -47,10 +38,6 @@ interface DirectUserProfile {
   avatar_url?: string;
   can_message?: boolean;
   direct_message_reason?: CurrentChat['directDraftReason'];
-}
-
-interface DirectChatListResponse {
-  chats?: DirectChatSummary[];
 }
 
 interface MessengerRouteSyncOptions {
@@ -68,6 +55,7 @@ export const useMessengerRouteSync = ({
   username,
   setCurrentChat,
 }: MessengerRouteSyncOptions) => {
+  const dispatch = useAppDispatch();
   const routeBase = splitOverlayPath(location.pathname).base;
   const pathnameRef = useLatestRef(location.pathname);
   useEffect(() => routeNotificationChats((path) => navigate(path)), [navigate]);
@@ -135,21 +123,22 @@ export const useMessengerRouteSync = ({
         setCurrentChat(null);
       }
 
-      if (directIdentifier.type === 'chatId') {
-        const targetChatId = directIdentifier.value;
-        if (!targetChatId) {
-          navigate('/', { replace: true });
-          return;
-        }
-
-        authFetch(`${BASE_URL}/chats/list/${encodeURIComponent(username)}`)
-          .then(async (response): Promise<DirectChatListResponse> => {
-            if (!response.ok) throw new Error(await response.text());
-            return response.json();
-          })
-          .then((data) => {
+      const targetChatId = directIdentifier.type === 'chatId'
+        ? directIdentifier.value
+        : state.chatName === directIdentifier.value && isPersistedId(state.chatId ?? 0) ? String(state.chatId) : null;
+      if (targetChatId) {
+        const lookupChat = async () => {
+          const load = (forceRefetch = false) => dispatch(chatApi.endpoints.getOneOnOneChats.initiate(username, {
+            subscribe: false,
+            forceRefetch,
+          })).unwrap();
+          const find = (data: Awaited<ReturnType<typeof load>>) => data.chats.find(item => String(item.id) === targetChatId);
+          const existing = find(await load());
+          return existing ?? (isCancelled ? undefined : find(await load(true)));
+        };
+        lookupChat()
+          .then((chat) => {
             if (isCancelled) return;
-            const chat = (data.chats || []).find((item) => String(item.id) === targetChatId);
             if (!chat) {
               navigate('/', { replace: true });
               return;
@@ -165,7 +154,7 @@ export const useMessengerRouteSync = ({
                   isOnline: chat.interlocutor_is_online,
                   lastSeen: chat.interlocutor_last_seen,
                   avatarUrl: chat.avatar_url,
-                  interlocutorDeleted: chat.interlocutor_deleted,
+                  interlocutorDeleted: !!chat.interlocutor_deleted,
                   type: 'one-on-one',
                   firstUnreadMessageId: chat.first_unread_message_id ?? null,
                 },
@@ -178,7 +167,7 @@ export const useMessengerRouteSync = ({
               isOnline: chat.interlocutor_is_online,
               lastSeen: chat.interlocutor_last_seen ?? null,
               avatarUrl: chat.avatar_url,
-              interlocutorDeleted: chat.interlocutor_deleted,
+              interlocutorDeleted: !!chat.interlocutor_deleted,
               type: 'one-on-one',
               firstUnreadMessageId: chat.first_unread_message_id ?? null,
             });
@@ -252,5 +241,5 @@ export const useMessengerRouteSync = ({
 
     if (currentChat) setCurrentChat(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeBase, location.search, username, pathnameRef]);
+  }, [routeBase, location.search, username, pathnameRef, dispatch]);
 };

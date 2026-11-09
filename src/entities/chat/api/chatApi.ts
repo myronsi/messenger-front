@@ -1,20 +1,45 @@
+import { directChatsSnapshot, groupChatsSnapshot, rememberChatSnapshot } from '@/shared/api/chatSnapshots';
 import { apiClient } from '@/shared/api/client';
 import { apiTask, collectPages, contractData } from '@/shared/api/tasks';
+import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
+import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { listChats, resolveUsername } from '@/shared/api/users';
 import { directChatModel, groupChatModel, groupModel, userModel } from '@/shared/api/goModels';
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, GroupRoleLog, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
 
+// Both list endpoints project the same paginated server response. Share only
+// concurrent reads so invalidation and reconnect still fetch fresh data.
+let inFlight: { token: string | null; promise: ReturnType<typeof listChats> } | undefined;
+function loadChatList() {
+  const token = getAccessToken();
+  if (inFlight?.token === token) return inFlight.promise;
+  const controller = new AbortController();
+  const unsubscribe = subscribeToAccessToken(next => {
+    if (!next || (token && hasSessionChanged(token, next))) {
+      controller.abort();
+    }
+  });
+  const promise = listChats(controller.signal).finally(() => {
+    unsubscribe();
+    if (inFlight?.promise === promise) inFlight = undefined;
+  });
+  inFlight = { token, promise };
+  return promise;
+}
+
 export const chatApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
     getOneOnOneChats: builder.query<OneOnOneChatResponse, string>({
-      queryFn: (_, { signal }) => apiTask(async () => ({ chats: (await listChats(signal)).filter(chat => chat.type === 'direct').map(directChatModel) })),
+      queryFn: () => apiTask(async () => ({ chats: (await loadChatList()).filter(chat => chat.type === 'direct').map(directChatModel) })),
+      onQueryStarted: (_, { queryFulfilled }) => rememberChatSnapshot(directChatsSnapshot, queryFulfilled),
       providesTags: ['Chat'],
     }),
 
     getGroupChats: builder.query<GroupChatResponse, string>({
-      queryFn: (_, { signal }) => apiTask(async () => ({ groups: (await listChats(signal)).filter(chat => chat.type === 'group').map(groupChatModel) })),
+      queryFn: () => apiTask(async () => ({ groups: (await loadChatList()).filter(chat => chat.type === 'group').map(groupChatModel) })),
+      onQueryStarted: (_, { queryFulfilled }) => rememberChatSnapshot(groupChatsSnapshot, queryFulfilled),
       providesTags: ['Chat'],
     }),
 

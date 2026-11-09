@@ -1,4 +1,3 @@
-import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useRef, useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import ChatHeader from './ui/ChatHeader';
 import { MessageList } from '@/features/message-list';
 import { MessageInput } from '@/features/message-composer';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { authFetch, useAccessToken } from '@/shared/auth/session';
+import { useAccessToken } from '@/shared/auth/session';
 import { usePreviewChat } from './model/usePreviewChat';
 import { useChatRoomState } from './model/useChatRoomState';
 import { useChatInteractions } from './model/useChatInteractions';
@@ -17,16 +16,16 @@ import { useMessageSelection, useReplyAction } from '@/features/message-actions'
 import { useBackToClose } from '@/shared/lib/useBackToClose';
 import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
+import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetBlockedUsersQuery } from '@/entities/user';
-
-const BASE_URL = getApiBaseUrl();
 
 export type { ChatProps } from './model/types';
 
 const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interlocutorIsOnline, interlocutorLastSeen, interlocutorAvatarUrl, username, interlocutorDeleted, firstUnreadMessageId, onBack, setIsUserProfileOpen, onOpenUserProfile, searchRequestKey = 0, messageJumpRequest = null, directDraftDisabled = false, directDraftReason = null, initialPendingApprovalRequest = false, initialPendingApprovalMessage = '', onChatCreated }) => {
   const token = useAccessToken() || '';
   const { translations } = useLanguage();
-  const [userId, setUserId] = useState<EntityId | null>(null);
+  const { data: me } = useGetCurrentUserQuery(undefined, { skip: !token });
+  const userId = me?.id ?? null;
   const [tempHighlightedMessageId, setTempHighlightedMessageId] = useState<EntityId | null>(null);
   const [presence, setPresence] = useState({
     is_online: !!interlocutorIsOnline,
@@ -117,26 +116,6 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
       last_seen: interlocutorLastSeen || null,
     });
   }, [interlocutorIsOnline, interlocutorLastSeen, chatName]);
-
-  useEffect(() => {
-    const fetchUserId = async () => {
-      try {
-        const response = await authFetch(`${BASE_URL}/auth/me`);
-        if (response.ok) {
-          const data = await response.json();
-          setUserId(data.id);
-        } else {
-          console.error('Failed to fetch user ID');
-        }
-      } catch (err) {
-        console.error('Error fetching user ID:', err);
-      }
-    };
-
-    if (token) {
-      fetchUserId();
-    }
-  }, [token]);
 
   const closeMenus = () => {
     setContextMenu(null);

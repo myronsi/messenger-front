@@ -40,6 +40,7 @@ export const useChat = (
   const { wsRef } = transport;
 
   const {
+    preview,
     isLoadingInitialMessages,
     isLoadingOlderMessages,
     isLoadingNewerMessages,
@@ -118,7 +119,7 @@ export const useChat = (
   };
 
   return {
-    messages,
+    messages: preview ?? messages,
     messageInput,
     setMessageInput,
     contextMenu,
@@ -141,7 +142,7 @@ export const useChat = (
     loadOlderMessages,
     loadNewerMessages,
     loadLatestMessages,
-    markMessagesRead,
+    markMessagesRead: preview ? undefined : markMessagesRead,
     handleSendMessage,
     handleResendMessage,
     handleFileUpload,

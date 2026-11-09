@@ -15,7 +15,7 @@ export const getTokenExpiresAt = (token: string) => {
   return typeof exp === 'number' ? exp * 1000 : null;
 };
 
-// The account an access token belongs to (the `sub` claim), or null for a missing or unreadable token.
+// The server session survives access token refreshes.
 export const getTokenSession = (token: string | null | undefined) => {
   if (!token) return null;
   const sid = readClaims(token)?.sid;
@@ -27,3 +27,5 @@ export const getTokenSubject = (token: string | null | undefined) => {
   const sub = readClaims(token)?.sub;
   return typeof sub === 'string' || typeof sub === 'number' ? String(sub) : null;
 };
+export const hasSessionChanged = (before: string | null, after: string | null) =>
+  getTokenSubject(before) !== getTokenSubject(after) || getTokenSession(before) !== getTokenSession(after);

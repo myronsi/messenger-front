@@ -1,10 +1,10 @@
-import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useRef, useState } from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import { useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
+import { useGetCurrentUserQuery } from '@/features/profile';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { useDraftState } from '@/shared/hooks/useDraftState';
 import { chatDraftKey } from '@/shared/lib/drafts';
@@ -34,7 +34,8 @@ export const useGroupChatScreen = ({
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [readStatusMessage, setReadStatusMessage] = useState<Message | null>(null);
   const [reactionDetails, setReactionDetails] = useState<{ message: Message; reaction: string; reactions: ReactionInfo[] } | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<EntityId>(0);
+  const { data: me } = useGetCurrentUserQuery(undefined, { skip: !token });
+  const currentUserId = me?.id ?? 0;
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [groupForm, setGroupForm] = useState({ name: groupName, description: '' });
   const [participantInput, setParticipantInput] = useState('');
@@ -57,7 +58,6 @@ export const useGroupChatScreen = ({
 
   const { getAvatarSrc, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({
     chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
-    setCurrentUserId,
   });
 
   const sender = useMessageSender({
@@ -100,7 +100,7 @@ export const useGroupChatScreen = ({
   return {
     chatId, username, token, translations, onBack, firstUnreadMessageId,
     currentUserId, groupDetails, currentGroupAvatar, currentGroupName, getAvatarSrc,
-    messages, wsRef: transport.wsRef, isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime,
+    messages: history.preview ?? messages, wsRef: transport.wsRef, isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime,
     loadOlderMessages: history.loadOlderMessages,
     hasMoreMessages: history.hasMoreMessages,
     isLoadingOlderMessages: history.isLoadingOlderMessages,
@@ -109,7 +109,7 @@ export const useGroupChatScreen = ({
     loadLatestMessages: history.loadLatestMessages,
     hasMoreNewerMessages: history.hasMoreNewerMessages,
     isLoadingNewerMessages: history.isLoadingNewerMessages,
-    markMessagesRead: history.markMessagesRead,
+    markMessagesRead: history.preview ? undefined : history.markMessagesRead,
     ...menus,
     ...profilePanel,
     handleOpenUserProfile,

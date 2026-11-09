@@ -4,6 +4,7 @@ import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { GroupCreateModal, useCreateGroup } from '@/features/groups';
 import { QrScannerDialog } from '@/features/auth';
+import { useAppWorkerRegistration } from '@/shared/lib/useAppWorkerRegistration';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
 import ChatsListHeader from './ChatsListHeader';
@@ -16,6 +17,7 @@ import { getMediaSrc, type ChatsListComponentProps } from './model/types';
 const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const { setIsProfileOpen, onOpenRequests } = props;
   const model = useChatListModel(props);
+  useAppWorkerRegistration(!model.isLoading);
   const { data: me } = useGetCurrentUserQuery();
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [scanning, setScanning] = useState(false);

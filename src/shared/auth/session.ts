@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useState } from 'react';
 import { clearDrafts } from '@/shared/lib/drafts';
-import { getTokenExpiresAt, getTokenSubject } from '@/shared/auth/tokenClaims';
+import { getTokenExpiresAt, getTokenSession, getTokenSubject, hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { getUpdateStatus } from '@/shared/api/updateGate';
 
 const BASE_URL = getApiBaseUrl();
@@ -84,9 +84,11 @@ const withRefreshLock = async <T>(task: () => Promise<T>): Promise<T> => {
 
 const requestRefresh = async (startedWith: string | null) => {
   const startedAs = getTokenSubject(startedWith);
+  const startedSession = getTokenSession(startedWith);
   const sameAccount = (token: string) => {
     const subject = getTokenSubject(token);
-    return !startedAs || !subject || subject === startedAs;
+    return (!startedAs || !subject || subject === startedAs) &&
+      (!startedSession || getTokenSession(token) === startedSession);
   };
   const sessionEnded = () => {
     const current = getAccessToken();
@@ -112,7 +114,13 @@ const requestRefresh = async (startedWith: string | null) => {
   }
   if (!response.ok) return null;
   const refreshed = await response.json();
-  if (!refreshed.access_token) return null;
+  if (!refreshed.access_token || sessionEnded()) return null;
+  const current = getAccessToken();
+  if (current && current !== startedWith && hasSessionChanged(current, refreshed.access_token)) return null;
+  if (!sameAccount(refreshed.access_token)) {
+    dropInvalidSession();
+    return null;
+  }
   setAccessToken(refreshed.access_token);
   return refreshed.access_token as string;
 };
@@ -158,16 +166,26 @@ export const sessionFetch = async (fetcher: typeof fetch, input: RequestInfo | U
   const response = await fetcher(input, { ...init, headers });
   if (response.status !== 401 || await asksForSecondFactor(response)) return response;
 
-  const refreshedToken = await refreshAccessToken();
+  const current = getAccessToken();
+  if (!token) {
+    if (current) throw new Error('The session could not be refreshed right now');
+    return response;
+  }
+  if (!current || hasSessionChanged(token, current)) throw new Error('The session changed during the request');
+
+  const refreshedToken = current !== token && !isTokenExpired(current) ? current : await refreshAccessToken();
   if (!refreshedToken) {
     if (getAccessToken()) throw new Error('The session could not be refreshed right now');
     return response;
   }
 
+  if (hasSessionChanged(token, refreshedToken) || getAccessToken() !== refreshedToken) {
+    throw new Error('The session changed during the request');
+  }
   const retryHeaders = new Headers(headers);
   retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
   const retry = await fetcher(retryInput, { ...init, headers: retryHeaders });
-  if (retry.status === 401 && !(await asksForSecondFactor(retry))) dropInvalidSession();
+  if (retry.status === 401 && !(await asksForSecondFactor(retry)) && getAccessToken() === refreshedToken) dropInvalidSession();
   return retry;
 };
 

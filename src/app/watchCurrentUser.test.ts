@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setAccessToken, getAccessToken } from '@/shared/auth/session';
 import { watchCurrentUser } from './watchCurrentUser';
 
-const ok = () => new Response(JSON.stringify({ username: 'mai' }), { status: 200 });
+const ok = () => ({ user: { username: 'mai' } });
 const flush = () => vi.advanceTimersByTimeAsync(0);
 
 describe('watchCurrentUser', () => {
@@ -33,7 +33,7 @@ describe('watchCurrentUser', () => {
     vi.useFakeTimers();
     setAccessToken('saved');
     const onSignedOut = vi.fn();
-    watchCurrentUser({ fetchMe: async () => new Response('{}', { status: 401 }), onUser: vi.fn(), onSignedOut });
+    watchCurrentUser({ fetchMe: async () => ({ status: 401 }), onUser: vi.fn(), onSignedOut });
     await flush();
     expect(onSignedOut).toHaveBeenCalledTimes(1);
     expect(getAccessToken()).toBeNull();
@@ -41,9 +41,9 @@ describe('watchCurrentUser', () => {
 
   const jwt = (sub: string) => `header.${btoa(JSON.stringify({ sub, exp: Math.floor(Date.now() / 1000) + 3600 }))}.signature`;
   const pendingMe = () => {
-    let respond: (response: Response) => void = () => undefined;
-    const fetchMe = vi.fn(() => new Promise<Response>((resolve) => { respond = resolve; }));
-    return { fetchMe, respond: (response: Response) => respond(response) };
+    let respond: (response: ReturnType<typeof ok>) => void = () => undefined;
+    const fetchMe = vi.fn(() => new Promise<ReturnType<typeof ok>>((resolve) => { respond = resolve; }));
+    return { fetchMe, respond: (response: ReturnType<typeof ok>) => respond(response) };
   };
 
   it('ignores a late user response when another tab signed out meanwhile', async () => {

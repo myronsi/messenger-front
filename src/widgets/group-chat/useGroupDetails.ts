@@ -17,11 +17,9 @@ interface Args {
   groupForm: { name: string; description: string };
   setGroupDetails: React.Dispatch<React.SetStateAction<GroupDetails | null>>;
   setGroupForm: React.Dispatch<React.SetStateAction<{ name: string; description: string }>>;
-  setCurrentUserId: React.Dispatch<React.SetStateAction<EntityId>>;
 }
 export const useGroupDetails = ({
   chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,
-  setCurrentUserId,
 }: Args) => {
   const normalizeGroupDetails = useCallback((raw: RawGroupDetails): GroupDetails => {
     const participants: GroupParticipant[] = (raw?.participants || []).map((participant) => {
@@ -108,24 +106,6 @@ export const useGroupDetails = ({
 
     console.error(`Error loading group details for ${chatId}:`, groupDetailsError);
   }, [chatId, groupDetailsError]);
-
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      if (!token) return;
-      try {
-        const response = await authFetch(`${BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentUserId(data.id);
-        }
-      } catch (error) {
-        console.error('Error fetching current user for group:', error);
-      }
-    };
-    fetchCurrentUser();
-  }, [token, setCurrentUserId]);
 
   return { getAvatarSrc, normalizeGroupDetails, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails };
 };

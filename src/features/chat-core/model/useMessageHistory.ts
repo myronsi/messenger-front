@@ -1,9 +1,11 @@
+import { historySnapshot, useChatSnapshot } from '@/shared/api/chatSnapshots';
+import type { MessageHistoryResponse } from '@/entities/message';
 import { isPersistedId, compareIds } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
+import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Message, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages,
+  Message, MESSAGE_HISTORY_FRESH_SECONDS, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages,
 } from '@/entities/message';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
@@ -57,8 +59,15 @@ export const useMessageHistory = ({
     error: latestHistoryError,
   } = useGetMessageHistoryQuery(
     { chatId, limit: MESSAGE_PAGE_SIZE, aroundId: firstUnreadMessageId || undefined },
-    { skip: !token || !isPersistedId(chatId), refetchOnMountOrArgChange: true }
+    { skip: !token || !isPersistedId(chatId), refetchOnMountOrArgChange: MESSAGE_HISTORY_FRESH_SECONDS, refetchOnFocus: true, refetchOnReconnect: true }
   );
+
+  // A disk page is a preview. Keep it out of the live message store and out of pagination cursors.
+  const historyStatus = asApiError(latestHistoryError).status;
+  const canPreview = token && isPersistedId(chatId) && !latestHistory && !messages.length &&
+    historyStatus !== 401 && historyStatus !== 403 && historyStatus !== 404;
+  const savedPage = useChatSnapshot<MessageHistoryResponse>(canPreview ? historySnapshot(chatId, firstUnreadMessageId) : null);
+  const preview = useMemo(() => canPreview && savedPage ? normalizeHistoryMessages(savedPage.history) : undefined, [canPreview, savedPage]);
 
   useEffect(() => () => {
     isLoadingOlderMessagesRef.current = false;
@@ -90,7 +99,7 @@ export const useMessageHistory = ({
       setTimeout(() => onBackRef.current(), 2000);
       return;
     }
-    if (status === 403) {
+    if (status === 403 || status === 404) {
       onBackRef.current();
       return;
     }
@@ -115,9 +124,11 @@ export const useMessageHistory = ({
 
   useEffect(() => {
     if (!latestHistoryError) return;
-    handleHistoryError(latestHistoryError);
+    if (historyStatus === 401 || historyStatus === 403 || historyStatus === 404 || (!preview && !messages.length)) {
+      handleHistoryError(latestHistoryError);
+    }
     setIsLoadingInitialMessages(false);
-  }, [latestHistoryError, handleHistoryError]);
+  }, [latestHistoryError, handleHistoryError, historyStatus, preview, messages.length]);
 
   const loadOlderMessages = useCallback(async () => {
     if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;
@@ -253,7 +264,8 @@ export const useMessageHistory = ({
   }, [applyReadReceiptBatch, chatId, currentUserIdRef, markChatRead, username]);
 
   return {
-    isLoadingInitialMessages,
+    preview,
+    isLoadingInitialMessages: isLoadingInitialMessages && !preview,
     isLoadingOlderMessages,
     isLoadingNewerMessages,
     hasMoreMessages,
