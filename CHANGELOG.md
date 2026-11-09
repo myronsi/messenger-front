@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.14](https://github.com/myronsi/messenger-front/compare/v0.6.13...v0.6.14) (2026-11-09)
+
+
+### Features
+
+* **media:** treat videos like photos in chats, albums and the viewer ([#174](https://github.com/myronsi/messenger-front/issues/174)) ([cb068a7](https://github.com/myronsi/messenger-front/commit/cb068a727b77acf7f24957917010b5ff3ea18476))
+
 ## [0.6.13](https://github.com/myronsi/messenger-front/compare/v0.6.12...v0.6.13) (2026-11-09)
 
 
