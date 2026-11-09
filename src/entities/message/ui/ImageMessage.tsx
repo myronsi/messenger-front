@@ -7,6 +7,7 @@ import { ImageViewer, type ViewerImageInfo } from '@/shared/ui/image-viewer';
 import { useMediaPreload } from '@/shared/api/useMediaPreload';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { MediaVisual } from './MediaVisual';
+import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
 
 const MAX_HEIGHT = 300;
 const MAX_WIDTH = 300;
@@ -24,9 +25,13 @@ interface ImageMessageProps {
   onBroken?: () => void;
   onReply?: () => void;
   viewerInfo?: ViewerImageInfo;
+  drawing?: Drawing | null;
+  onDraw?: (onSent?: () => void) => void;
 }
 
-const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, width, height, fileName, isVideo = false, onBroken, onReply, viewerInfo }) => {
+const ImageMessage: React.FC<ImageMessageProps> = ({
+  fileUrl, thumbnailUrl, width, height, fileName, isVideo = false, onBroken, onReply, viewerInfo, drawing, onDraw,
+}) => {
   const { translations } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -100,6 +105,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
             draggable={false}
           />
         )}
+        {!isVideo && isLoaded && <DrawingOverlay drawing={drawing} aspect={box.width / box.height} />}
         {onReply && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-black/30 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:hidden">
             <button
@@ -118,7 +124,10 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ fileUrl, thumbnailUrl, widt
 
       {isExpanded && (
         <ImageViewer
-          images={[{ url: fileUrl, name: fileName, isVideo, previewUrl: thumbnailFailed ? undefined : thumbnailUrl, info: viewerInfo }]}
+          images={[{
+            url: fileUrl, name: fileName, isVideo, previewUrl: thumbnailFailed ? undefined : thumbnailUrl, info: viewerInfo,
+            drawing, aspect: box.width / box.height, onDraw: onDraw && (() => onDraw(() => setIsExpanded(false))),
+          }]}
           onClose={closeViewer}
         />
       )}

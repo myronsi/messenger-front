@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ChatHeaderSearch, Message } from '@/entities/message';
 import ChatHeader from './ui/ChatHeader';
 import { MessageList } from '@/features/message-list';
+import { ImageDrawingProvider } from '@/features/image-drawing';
 import { MessageInput } from '@/features/message-composer';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
@@ -158,6 +159,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         onOpenSearch={!isPreview && !interlocutorDeleted ? () => setIsSearchOpen(true) : undefined}
         interlocutorAvatar={interlocutorAvatar}
       />)}
+      <ImageDrawingProvider chatId={chatId} enabled={!isPreview} onSent={settleOptimisticUpload}>
       <MessageList
           ref={chatWindowRef}
           messages={displayedMessages}
@@ -201,6 +203,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           selection={isPreview ? undefined : selection}
           onSwipeReply={isPreview ? undefined : startReply}
         />
+      </ImageDrawingProvider>
       {!interlocutorDeleted && !isBlockedByMe && (
         <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
           <MessageInput

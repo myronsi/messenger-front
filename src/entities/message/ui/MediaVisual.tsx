@@ -9,9 +9,10 @@ interface MediaVisualProps {
   className?: string;
   onReady?: () => void;
   onVideoSize?: (width: number, height: number) => void;
+  onImageSize?: (width: number, height: number) => void;
 }
 
-export function MediaVisual({ url, poster, isVideo, className = '', onReady, onVideoSize }: MediaVisualProps) {
+export function MediaVisual({ url, poster, isVideo, className = '', onReady, onVideoSize, onImageSize }: MediaVisualProps) {
   const [posterFailed, setPosterFailed] = useState(false);
   const [imageFailures, setImageFailures] = useState(0);
   const isPlaceholder = isVideo && !(poster && !posterFailed) && !url.startsWith('blob:');
@@ -28,7 +29,8 @@ export function MediaVisual({ url, poster, isVideo, className = '', onReady, onV
   if (!isVideo) {
     return (
       <AuthenticatedImage src={poster || url} fallbackSrc={poster ? url : undefined} alt="" loading="lazy" decoding="async"
-        draggable={false} className={className} onLoad={onReady} onError={() => { setImageFailures(count => count + 1); onReady?.(); }} />
+        draggable={false} className={className} onError={() => { setImageFailures(count => count + 1); onReady?.(); }}
+        onLoad={(event) => { onImageSize?.(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight); onReady?.(); }} />
     );
   }
   if (poster && !posterFailed) {

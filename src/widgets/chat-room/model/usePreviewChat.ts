@@ -6,6 +6,7 @@ import { useDraftState } from '@/shared/hooks/useDraftState';
 import { Message, ModalState } from '@/entities/message';
 import { useCreateChatMutation } from '@/entities/chat';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import type { Drawing } from '@/shared/ui/drawing';
 import { appendMessageFiles, createLocalFileContent } from '@/features/chat-core';
 
 const BASE_URL = getApiBaseUrl();
@@ -166,8 +167,8 @@ export const usePreviewChat = ({
     }
   };
 
-  const handleFileUploadPreview = async (selection: File | File[], caption = '') => {
-    const files = (Array.isArray(selection) ? selection : [selection]).map(file => ({ file, fileName: file.name }));
+  const handleFileUploadPreview = async (selection: File | File[], caption = '', drawings: (Drawing | undefined)[] = []) => {
+    const files = (Array.isArray(selection) ? selection : [selection]).map((file, index) => ({ file, fileName: file.name, drawing: drawings[index] }));
     if (files.length === 0 || isCreatingPreviewChat || hasPendingApprovalRequest) return;
     if (directDraftDisabled) {
       addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${files.map(file => file.fileName).join(', ')}`);

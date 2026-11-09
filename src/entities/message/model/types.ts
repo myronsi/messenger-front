@@ -1,4 +1,5 @@
 import type { EntityId } from '@/shared/api/entityId';
+import type { Drawing } from '@/shared/ui/drawing';
 
 export interface AudioMetadata {
   duration?: number;
@@ -6,6 +7,8 @@ export interface AudioMetadata {
 }
 
 export interface MessageAttachment {
+  attachment_id?: string;
+  drawing?: Drawing | null;
   file_url: string;
   file_name: string;
   file_type: string;
@@ -122,6 +125,7 @@ export interface ChatPhoto {
   image_width?: number;
   image_height?: number;
   thumbnail_url?: string;
+  drawing?: Drawing | null;
   sender?: string;
   sender_username?: string | null;
   avatar_url?: string;

@@ -5,6 +5,7 @@ import { ChatHeaderSearch, type Message } from '@/entities/message';
 import { unescapeCurlyBraces } from '@/features/chat-core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { MessageList } from '@/features/message-list';
+import { ImageDrawingProvider } from '@/features/image-drawing';
 import { MessageInput } from '@/features/message-composer';
 import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog, SelectionBar, useMessageSelection, useReplyAction } from '@/features/message-actions';
 import { useBackToClose } from '@/shared/lib/useBackToClose';
@@ -52,6 +53,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         onOpenSearch={isPersistedId(chatId) ? () => setIsSearchOpen(true) : undefined} />
       )}
 
+      <ImageDrawingProvider chatId={chatId} enabled={isPersistedId(chatId)} onSent={settleOptimisticUpload}>
       <MessageList
         messages={messages}
         username={username}
@@ -95,6 +97,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           closeMenus();
         }}
       />
+      </ImageDrawingProvider>
 
       <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
         <MessageInput
