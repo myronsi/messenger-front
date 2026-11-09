@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.15](https://github.com/myronsi/messenger-front/compare/v0.6.14...v0.6.15) (2026-11-09)
+
+
+### Bug Fixes
+
+* **api:** pin released contract 2.1.0-alpha.17 ([#176](https://github.com/myronsi/messenger-front/issues/176)) ([eb28819](https://github.com/myronsi/messenger-front/commit/eb28819fa0ae15e271e18c61bceca6371ddf385b))
+
 ## [0.6.14](https://github.com/myronsi/messenger-front/compare/v0.6.13...v0.6.14) (2026-11-09)
 
 
