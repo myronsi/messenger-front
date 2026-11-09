@@ -1,4 +1,4 @@
-import type { CSSProperties, SyntheticEvent } from 'react';
+import type { CSSProperties } from 'react';
 import { Pause, Play, RotateCcw, RotateCw, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { VideoSpeedMenu } from './VideoSpeedMenu';
@@ -6,7 +6,6 @@ import { formatVideoTime, seekBy, setVolume, SKIP_SECONDS, toggleMute, togglePla
 
 export interface Playback { playing: boolean; time: number; duration: number; volume: number; muted: boolean; rate: number }
 
-const stop = (event: SyntheticEvent) => event.stopPropagation();
 const iconButton = 'grid shrink-0 place-items-center rounded-full transition-colors hover:bg-white/15 active:scale-95 disabled:opacity-40';
 const rangeClass = 'min-w-0 cursor-pointer appearance-none rounded-full bg-transparent text-white disabled:cursor-default '
   + '[&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-transparent '
@@ -34,8 +33,8 @@ export function VideoControls({ video, playback, visible }: VideoControlsProps) 
   return (
     <div
       data-testid="viewer-video-controls"
+      data-viewer-controls
       className={`absolute inset-x-3 bottom-3 z-[10000] mx-auto max-w-2xl transition-[opacity,transform] duration-300 ease-out sm:bottom-6 ${visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
-      onPointerDown={stop} onPointerMove={stop} onPointerUp={stop} onPointerCancel={stop} onClick={stop} onDoubleClick={stop}
     >
       <div className="rounded-2xl bg-black/60 px-2 pb-1.5 pt-2 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-xl sm:px-3">
         <input

@@ -39,7 +39,7 @@ export function MediaVisual({ url, poster, isVideo, className = '', onReady, onV
   }
   if (url.startsWith('blob:')) {
     return (
-      <video src={`${url}#t=0.1`} muted playsInline preload="metadata" aria-hidden="true" className={className}
+      <video src={`${url}#t=0.1`} muted playsInline preload="metadata" aria-hidden="true" tabIndex={-1} className={className}
         onLoadedData={onReady} onError={onReady}
         onLoadedMetadata={(event) => onVideoSize?.(event.currentTarget.videoWidth, event.currentTarget.videoHeight)} />
     );

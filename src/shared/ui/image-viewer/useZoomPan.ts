@@ -98,6 +98,7 @@ export const useZoomPan = (
     const stage = stageRef.current;
     if (!enabled || !stage) return;
     const onWheel = (event: WheelEvent) => {
+      if (event.target instanceof Element && event.target.closest('[data-viewer-controls]')) return;
       event.preventDefault();
       update((current, m) => zoomAt(
         current, current.scale * wheelZoomFactor(event.deltaY, event.deltaMode),
@@ -136,6 +137,7 @@ export const useZoomPan = (
 
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.target instanceof Element && event.target.closest('[data-viewer-controls]')) return;
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId);
     } catch (error) {

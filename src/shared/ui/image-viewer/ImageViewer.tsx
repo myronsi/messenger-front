@@ -129,7 +129,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const previewRef = useRef<HTMLImageElement>(null);
   const videoTapRef = useRef<VideoTap | null>(null);
   const handleStageClick = useCallback((event: React.MouseEvent) => {
-    if (movedRef.current || view.scale > 1) return;
+    if (movedRef.current || view.scale > 1 || (event.target instanceof Element && event.target.closest('[data-viewer-controls]'))) return;
     const media = imageRef.current;
     const touch = (event.nativeEvent as PointerEvent).pointerType === 'touch' || window.innerWidth < 640;
     if (media instanceof HTMLVideoElement && touch) { videoTapRef.current?.(event.clientX, event.clientY, true); return; }

@@ -17,7 +17,7 @@ function SelectedMediaTile({ file, removeLabel, onRemove }: { file: File; remove
   return (
     <div className="motion-reply-in group relative size-16 shrink-0 overflow-hidden rounded-xl bg-muted shadow-md ring-1 ring-border/60" title={file.name}>
       {url && (isVideo
-        ? <video src={`${url}#t=0.1`} muted playsInline preload="metadata" aria-hidden="true" className="h-full w-full object-cover" />
+        ? <video src={`${url}#t=0.1`} muted playsInline preload="metadata" aria-hidden="true" tabIndex={-1} className="h-full w-full object-cover" />
         : <img src={url} alt={file.name} className="h-full w-full object-cover" draggable={false} />)}
       {isVideo && <VideoPlayBadge size="sm" className="absolute inset-0 m-auto scale-75" />}
       <button type="button" onClick={onRemove} aria-label={`${removeLabel} ${file.name}`}
