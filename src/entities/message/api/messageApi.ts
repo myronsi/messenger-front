@@ -1,3 +1,4 @@
+import { historySnapshot, rememberChatSnapshot } from '@/shared/api/chatSnapshots';
 import { apiClient } from '@/shared/api/client';
 import { contractQuery } from '@/shared/api/queryResult';
 import { messageModel } from '@/shared/api/goModels';
@@ -75,6 +76,9 @@ export const messageApi = messengerApi.injectEndpoints({
           next_after_id: (afterId ? page.next_cursor : page.prev_cursor) ?? null,
         } : undefined };
       }),
+      onQueryStarted: ({ chatId, limit = 50, beforeId, afterId, aroundId }, { queryFulfilled }) => {
+        if (limit === 50 && !beforeId && !afterId) return rememberChatSnapshot(historySnapshot(chatId, aroundId), queryFulfilled);
+      },
       keepUnusedDataFor: 300,
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: chatId }],
     }),

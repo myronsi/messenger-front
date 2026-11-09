@@ -3,6 +3,7 @@ import { MessageSquare, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DocsLink } from '@/shared/ui/DocsLink';
 import { cn } from '@/shared/lib/utils';
+import { useAppWorkerRegistration } from '@/shared/lib/useAppWorkerRegistration';
 import { AuthToolbar } from './AuthToolbar';
 
 export const BrandMark: React.FC<{ className?: string }> = ({ className }) => {
@@ -46,6 +47,7 @@ export const RecoveryNote: React.FC = () => {
 
 export const AuthShell: React.FC<{ aside?: React.ReactNode; children: React.ReactNode }> = ({ aside, children }) => {
   const { translations } = useLanguage();
+  useAppWorkerRegistration();
   return (
     <div className="flex min-h-[100dvh] bg-background sm:items-center sm:justify-center sm:bg-muted/50 sm:p-6">
       <div data-testid="auth-shell" className="flex w-full flex-col bg-background sm:max-w-[480px] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-border sm:bg-card sm:shadow-sm lg:grid lg:min-h-[640px] lg:max-w-[1000px] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">

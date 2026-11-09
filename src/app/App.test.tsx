@@ -8,8 +8,7 @@ import { DocsLink } from '@/shared/ui/DocsLink';
 import { en } from '@/shared/lang/en';
 import { AppRoutes } from './App';
 
-vi.mock('@/pages/messenger', () => ({ MessengerApp: () => <PreviousPage /> }));
-vi.mock('@/pages/auth', () => ({ AuthFlowPage: () => null, RecoveryEmailLinkPage: () => null }));
+vi.mock('./SessionEntry', () => ({ SessionEntry: () => <PreviousPage /> }));
 
 function PreviousPage() {
   const [count, setCount] = useState(0);

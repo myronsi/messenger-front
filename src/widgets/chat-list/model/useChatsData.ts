@@ -1,3 +1,4 @@
+import { directChatsSnapshot, groupChatsSnapshot, useChatSnapshot } from '@/shared/api/chatSnapshots';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -15,22 +16,29 @@ import type { ChatOverrideMap, PresenceMap } from './types';
 // (kept fresh by the WebSocket hook) into the final sorted chat list.
 export function useChatsData(username: string) {
   const {
-    data: oneOnOneChatsData,
+    currentData: liveDirectChats,
     startedTimeStamp: oneOnOneStartedAt,
     fulfilledTimeStamp: oneOnOneFulfilledAt,
     error: oneOnOneError,
     isLoading: isLoadingOneOnOne,
     refetch: refetchOneOnOne,
-  } = useGetOneOnOneChatsQuery(username);
+  } = useGetOneOnOneChatsQuery(username, { refetchOnMountOrArgChange: 10, refetchOnFocus: true, refetchOnReconnect: true });
 
   const {
-    data: groupChatsData,
+    currentData: liveGroupChats,
     startedTimeStamp: groupStartedAt,
     fulfilledTimeStamp: groupFulfilledAt,
     error: groupError,
     isLoading: isLoadingGroups,
     refetch: refetchGroups,
-  } = useGetGroupChatsQuery(username);
+  } = useGetGroupChatsQuery(username, { refetchOnMountOrArgChange: 10, refetchOnFocus: true, refetchOnReconnect: true });
+
+  const cachedDirect = useChatSnapshot<typeof liveDirectChats>(liveDirectChats ? null : directChatsSnapshot);
+  const cachedGroups = useChatSnapshot<typeof liveGroupChats>(liveGroupChats ? null : groupChatsSnapshot);
+  const denied = [oneOnOneError, groupError].some(error =>
+    error && 'status' in error && (error.status === 401 || error.status === 403));
+  const oneOnOneChatsData = liveDirectChats ?? (denied ? undefined : cachedDirect);
+  const groupChatsData = liveGroupChats ?? (denied ? undefined : cachedGroups);
 
   const [createChat, { isLoading: isCreatingChat }] = useCreateChatMutation();
   const [setChatPinned] = useSetChatPinnedMutation();
@@ -40,8 +48,8 @@ export function useChatsData(username: string) {
   });
   const { data: currentUserData } = useGetCurrentUserQuery();
 
-  const isLoading = isLoadingOneOnOne || isLoadingGroups;
-  const error = oneOnOneError || groupError;
+  const isLoading = !oneOnOneChatsData && !groupChatsData && (isLoadingOneOnOne || isLoadingGroups);
+  const error = denied || (!oneOnOneChatsData && !groupChatsData) ? oneOnOneError || groupError : undefined;
 
   // Use useCallback to stabilize the refetch function reference
   const refetch = useCallback(() => Promise.all([refetchOneOnOne(), refetchGroups()]), [refetchOneOnOne, refetchGroups]);

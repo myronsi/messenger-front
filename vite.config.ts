@@ -94,8 +94,8 @@ export default defineConfig(({ command, mode }) => {
         // The native shell already bundles the assets, a service worker would only serve stale builds there.
         disable: isMobile || Boolean(process.env.VITEST),
         registerType: "autoUpdate",
-        injectRegister: "auto",
-        includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png"],
+        injectRegister: false,
+        includeAssets: ["apple-touch-icon-180x180.png"],
         manifest: {
           id: "/",
           name: "Messenger",
@@ -116,10 +116,12 @@ export default defineConfig(({ command, mode }) => {
           ],
         },
         workbox: {
+          skipWaiting: true,
+          clientsClaim: true,
           importScripts: ['/notification-worker.js'],
           // Only the app shell is precached; API, WebSocket and media requests always go to the network.
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-          globIgnores: ["static/**"],
+          globIgnores: ["static/**", "favicon.ico"],
           navigateFallback: "/index.html",
           navigateFallbackDenylist: [/^\/api(\/|$)/, /^\/static\//],
           cleanupOutdatedCaches: true,

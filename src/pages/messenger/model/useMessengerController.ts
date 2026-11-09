@@ -1,27 +1,23 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CurrentChat, directChatPath, dmPath, parseDmIdentifier } from './messengerRoutes';
 import { currentEntryMarks, useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { MESSAGE_HISTORY_FRESH_SECONDS, messageApi } from '@/entities/message';
+import { useAppDispatch } from '@/shared/hooks/redux';
 import { authFetch } from '@/shared/auth/session';
-import { watchCurrentUser } from './watchCurrentUser';
-import { watchSessionChanges } from './watchSessionChanges';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
-import { notificationReturnPath } from './resolveNotificationChat';
 
 const BASE_URL = getApiBaseUrl();
 
-export const useMessengerController = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
+export const useMessengerController = (username: string) => {
+  const dispatch = useAppDispatch();
   const [currentChat, setCurrentChat] = useState<CurrentChat | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const hasFetchedUser = useRef(false);
   const isMobile = useIsMobile();
   const { translations } = useLanguage();
   const navigate = useNavigate();
@@ -57,48 +53,12 @@ export const useMessengerController = () => {
     setCurrentChat,
   });
 
-  useEffect(() => {
-    if (hasFetchedUser.current) return;
-    hasFetchedUser.current = true;
-
-    const stop = watchCurrentUser({
-      fetchMe: () => authFetch(`${BASE_URL}/auth/me`),
-      onUser: (user) => {
-        setIsLoggedIn(true);
-        setUsername(user.username);
-        setIsLoading(false);
-      },
-      onSignedOut: () => {
-        setIsLoggedIn(false);
-        setUsername('');
-        setIsLoading(false);
-      },
-    });
-    return () => {
-      stop();
-      hasFetchedUser.current = false;
-    };
-  }, []);
-
-  useEffect(() => watchSessionChanges({
-    onSignedOut: () => {
-      setCurrentChat(null);
-      setIsLoggedIn(false);
-      setUsername('');
-      setIsLoading(false);
-    },
-    onAccountChanged: () => window.location.reload(),
-  }), []);
-
-  const handleLoginSuccess = (user: string) => {
-    setCurrentChat(null);
-    setIsLoggedIn(true);
-    setUsername(user);
-    setIsLoading(false);
-    navigate(notificationReturnPath(location.pathname, location.search, location.state));
-  };
-
   const openChat = (chatId: EntityId, chatName: string, interlocutorDeleted: boolean, type: 'one-on-one' | 'group', chatDisplayName?: string, isOnline?: boolean, lastSeen?: string | null, firstUnreadMessageId?: EntityId | null, avatarUrl?: string, pendingApprovalRequest?: boolean, pendingApprovalMessage?: string) => {
+    if (isPersistedId(chatId)) {
+      dispatch(messageApi.util.prefetch('getMessageHistory', {
+        chatId, limit: 50, aroundId: firstUnreadMessageId || undefined,
+      }, { ifOlderThan: MESSAGE_HISTORY_FRESH_SECONDS }));
+    }
     prepareChatNavigation();
     if (type === 'one-on-one' || isPersistedId(chatId)) {
       try {
@@ -248,9 +208,6 @@ export const useMessengerController = () => {
   };
 
   return {
-    isLoggedIn,
-    setIsLoggedIn,
-    username,
     currentChat,
     isProfileOpen,
     setIsProfileOpen,
@@ -258,10 +215,8 @@ export const useMessengerController = () => {
     isUserProfileOpen,
     setIsUserProfileOpen,
     profileUsername,
-    isLoading,
     isMobile,
     translations,
-    handleLoginSuccess,
     openChat,
     updateActiveChatFromList,
     openUserProfile,

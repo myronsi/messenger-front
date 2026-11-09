@@ -21,11 +21,6 @@ import type {
 
 export const profileApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
-    getCurrentUser: builder.query<User, void>({
-      queryFn: (_, { signal }) => apiTask(async () => userModel(contractData(await apiClient.GET('/me', { signal })))),
-      providesTags: ['Auth'],
-    }),
-
     updateUser: builder.mutation<User, Partial<User> & { id: EntityId }>({
       queryFn: ({ display_name, bio }, { signal }) => apiTask(async () => userModel(contractData(await apiClient.PATCH('/me', { body: { display_name, bio }, signal })))),
       invalidatesTags: (result, error, { id }) => [{ type: 'User', id }, 'Auth'],
@@ -124,7 +119,6 @@ export const profileApi = messengerApi.injectEndpoints({
 });
 
 export const {
-  useGetCurrentUserQuery,
   useUpdateUserMutation,
   useUpdateUserBioMutation,
   useUploadAvatarMutation,

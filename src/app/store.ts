@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { closeAllWebSockets } from '@/shared/api/socketRegistry';
 import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
+import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { RootState as SharedRootState } from '@/shared/hooks/redux';
 
@@ -21,14 +22,11 @@ export const store = configureStore({
 setupListeners(store.dispatch);
 
 // When the session ends, nothing of the previous user may stay in the cache or on an open socket.
-let hadSession = Boolean(getAccessToken());
+let previousToken = getAccessToken();
 subscribeToAccessToken((token) => {
-  if (token) {
-    hadSession = true;
-    return;
-  }
-  if (!hadSession) return;
-  hadSession = false;
+  const shouldReset = previousToken && (!token || hasSessionChanged(previousToken, token));
+  previousToken = token;
+  if (!shouldReset) return;
   closeAllWebSockets();
   store.dispatch(messengerApi.util.resetApiState());
 });

@@ -1,6 +1,5 @@
-import { getApiBaseUrl } from '@/shared/api/config';
+import { useGetCurrentUserQuery } from '@/features/profile';
 import { useCallback, useEffect, useState } from 'react';
-import { authFetch } from '@/shared/auth/session';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
 import { ACCOUNT_PROMPT_LAYER } from '@/shared/ui/layers';
 import { RecoveryKeySettings } from './RecoveryKeySettings';
@@ -9,13 +8,9 @@ export const RecoverySetupPrompt = () => {
   const [open, setOpen] = useState(false);
   const [dismissBlocked, setDismissBlocked] = useState(false);
   const onDismissSafetyChange = useCallback((blocked: boolean) => setDismissBlocked(blocked), []);
-  useEffect(() => {
-    let active = true;
-    void authFetch(`${getApiBaseUrl()}/me`).then(async r => {
-      if (r.ok) { const me = await r.json(); if (active) setOpen(me.recovery_setup_required === true); }
-    }).catch(() => {});
-    return () => { active = false; };
-  }, []);
+  const { data: me } = useGetCurrentUserQuery();
+  const setupRequired = me?.recovery_setup_required === true;
+  useEffect(() => { setOpen(setupRequired); }, [setupRequired]);
   return (
     <Dialog open={open} onOpenChange={next => { if (next || !dismissBlocked) setOpen(next); }}>
       <DialogContent

@@ -128,6 +128,13 @@ describe('refreshAccessToken', () => {
     expect(getAccessToken()).toBe('expired');
   });
 
+  it('tries the refresh cookie only once on a signed-out request', async () => {
+    const fetcher = vi.fn(async () => new Response('{}', { status: 401 }));
+    vi.stubGlobal('fetch', fetcher);
+    expect((await authFetch('https://api.test/me')).status).toBe(401);
+    expect(fetcher.mock.calls).toHaveLength(2);
+  });
+
   it('keeps the session and skips the refresh when the server asks for a second factor', async () => {
     setAccessToken(jwt(600));
     const problem = new Response(JSON.stringify({ code: 'two_factor_required', status: 401 }), {

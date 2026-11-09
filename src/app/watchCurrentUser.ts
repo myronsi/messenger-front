@@ -1,27 +1,26 @@
 import { dropInvalidSession, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
-import { getTokenSubject } from '@/shared/auth/tokenClaims';
+import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 
 export const CURRENT_USER_RETRY_DELAYS_MS = [1000, 3000, 10000];
 
-interface WatchCurrentUserOptions {
-  fetchMe: () => Promise<Response>;
-  onUser: (user: { username: string }) => void;
+interface WatchCurrentUserOptions<User> {
+  fetchMe: () => Promise<{ user?: User; status?: number }>;
+  onUser: (user: User) => void;
   onSignedOut: () => void;
 }
 
-export const watchCurrentUser = ({ fetchMe, onUser, onSignedOut }: WatchCurrentUserOptions) => {
+export const watchCurrentUser = <User,>({ fetchMe, onUser, onSignedOut }: WatchCurrentUserOptions<User>) => {
   let timer = 0;
   let attempt = 0;
   let inFlight = false;
   let stopped = false;
-  let account = getTokenSubject(getAccessToken());
+  let previousToken = getAccessToken();
   const unsubscribe = subscribeToAccessToken((token) => {
-    const next = getTokenSubject(token);
-    if (!token || (account && next !== account)) {
+    if (!token || (previousToken && hasSessionChanged(previousToken, token))) {
       stop();
       return;
     }
-    account = account ?? next;
+    previousToken = token;
   });
   function stop() {
     stopped = true;
@@ -34,7 +33,7 @@ export const watchCurrentUser = ({ fetchMe, onUser, onSignedOut }: WatchCurrentU
     inFlight = true;
     window.clearTimeout(timer);
     const response = await fetchMe().catch(() => null);
-    const user = response?.ok ? await response.json().catch(() => null) : null;
+    const user = response?.user;
     inFlight = false;
     if (stopped) return;
     if (user && getAccessToken()) {

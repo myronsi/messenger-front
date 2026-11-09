@@ -9,3 +9,5 @@ export interface MessageHistoryResponse {
   next_before_id: EntityId | null;
   next_after_id?: EntityId | null;
 }
+
+export const MESSAGE_HISTORY_FRESH_SECONDS = 10;
