@@ -98,4 +98,5 @@ export interface ChatListModal {
   type: 'error' | 'success' | 'validation' | 'deletedUser';
   message: string;
   onConfirm?: () => void;
+  confirmText?: string;
 }

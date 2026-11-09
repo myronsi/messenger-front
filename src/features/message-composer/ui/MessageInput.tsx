@@ -284,6 +284,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
           <ComposerActionButton
             mode={isRecording ? 'recording' : isUnchangedEdit ? 'cancel' : canSend ? 'send' : 'voice'}
             disabled={isRecording || isUnchangedEdit ? false : isStarting || (canSend ? isDisabled : disableVoice || isDisabled)}
+            editLabel={isEditing ? translations.saveMessageEdit : undefined}
             cancelLabel={translations.cancel || 'Cancel'}
             onClick={handleActionClick}
             holding={hold.holding}
@@ -295,5 +296,4 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     </div>
   );
 });
-
 export default MessageInput;

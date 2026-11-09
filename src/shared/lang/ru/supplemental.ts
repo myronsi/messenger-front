@@ -19,6 +19,7 @@ export const supplemental = {
   searchMessages: "Поиск сообщений",
   searchInChat: "Поиск в чате",
   noSearchResults: "Нет результатов",
+  openCreatedGroup: "Открыть группу",
   groupCreated: "Группа создана успешно!",
   errorWhileCreatingGroup: "Ошибка при создании группы",
   groupCreationFailed: "Не удалось создать группу. Пожалуйста, попробуйте снова.",

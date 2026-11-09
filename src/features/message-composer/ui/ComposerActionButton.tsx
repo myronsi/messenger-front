@@ -8,6 +8,7 @@ interface ComposerActionButtonProps {
   mode: Mode;
   disabled: boolean;
   cancelLabel: string;
+  editLabel?: string;
   onClick: () => void;
   holding?: boolean;
   lift?: number;
@@ -25,7 +26,7 @@ const icon = (visible: boolean, from: 'above' | 'below') => `absolute inset-0 fl
 }`;
 
 const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
-  mode, disabled, cancelLabel, onClick, holding = false, lift = 0, holdHandlers,
+  mode, disabled, cancelLabel, editLabel, onClick, holding = false, lift = 0, holdHandlers,
 }) => {
   const progress = Math.min(1, lift / LOCK_DISTANCE);
   return (
@@ -52,7 +53,7 @@ const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
         onContextMenu={(event) => event.preventDefault()}
         onClick={onClick}
         disabled={disabled}
-        aria-label={mode === 'cancel' ? cancelLabel : LABELS[mode]}
+        aria-label={mode === 'cancel' ? cancelLabel : mode === 'send' && editLabel ? editLabel : LABELS[mode]}
         className={`motion-press relative flex h-14 w-14 touch-none select-none items-center justify-center overflow-hidden rounded-full ${
           holding ? '' : 'transition-[background-color,transform] duration-200'
         } ${

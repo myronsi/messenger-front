@@ -21,8 +21,7 @@ export const RecoveryOverviewCard = ({ canAddPasskey, keySavingUnconfirmed, onAc
   if (error || !data) return <div role="alert" className="flex flex-wrap items-center gap-2 text-sm">{t.loadMethodsFailed}
     <Button variant="outline" className="h-11" onClick={() => { void refetch(); }}>{t.retry}</Button></div>;
   const unconfirmed = data.recovery_key.exists && keySavingUnconfirmed;
-  const readiness = unconfirmed ? { ...data, recovery_key: { ...data.recovery_key, exists: false } } : data;
-  const health = recoveryHealth(readiness, canAddPasskey, t);
+  const health = recoveryHealth(data, canAddPasskey, t);
   const locked = data.recovery_key.locked_until && Date.parse(data.recovery_key.locked_until) > Date.now();
   return <section aria-labelledby="security-health-title" className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card p-4">
     <ProgressRing progress={health.total ? health.count / health.total : 0} size={72} stroke={7} label={health.ringLabel} className={ringColors[health.level]}>
@@ -30,9 +29,10 @@ export const RecoveryOverviewCard = ({ canAddPasskey, keySavingUnconfirmed, onAc
     </ProgressRing>
     <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1">
       <h3 id="security-health-title" className="text-sm font-semibold leading-snug text-foreground">{health.headline}</h3>
-      <p className="text-xs text-muted-foreground">{unconfirmed ? fillTemplate(t.summary, { count: String(health.count), total: String(health.total) }) : health.sentence}</p>
+      <p className="text-xs text-muted-foreground">{health.sentence}</p>
+      {unconfirmed && <p className="text-xs text-warning">{t.keySavingUnconfirmed}</p>}
     </div>
-    {health.next && health.actionLabel && <Button className="h-11 font-semibold" onClick={() => onAction(health.next!)}>{unconfirmed ? t.keyReplace : health.actionLabel}</Button>}
+    {health.next && health.actionLabel && <Button className="h-11 font-semibold" onClick={() => onAction(health.next!)}>{health.actionLabel}</Button>}
     {locked && <p role="status" className="w-full text-sm text-warning">
       {fillTemplate(t.lockedNotice, { date: new Date(data.recovery_key.locked_until!).toLocaleString(localeOf(language, undefined)) })}</p>}
   </section>;

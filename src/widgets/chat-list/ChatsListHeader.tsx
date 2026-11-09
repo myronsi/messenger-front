@@ -69,8 +69,8 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
             className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
             <PenSquare className="h-5 w-5" />
           </button>
-          <Drawer open={sheetOpen} onOpenChange={setSheetOpen}>
-            <DrawerContent aria-describedby={undefined} className="px-4 pb-6">
+          {sheetOpen && <Drawer open onOpenChange={setSheetOpen} shouldScaleBackground={false} autoFocus>
+            <DrawerContent aria-describedby={undefined} className="px-4 pb-6" style={{ animation: 'none' }}>
               <DrawerTitle className="px-1 pb-2 pt-3 text-lg font-semibold">{t.newAction}</DrawerTitle>
               <div className="flex flex-col gap-1">
                 {actions.map((action) => (
@@ -83,7 +83,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
                 ))}
               </div>
             </DrawerContent>
-          </Drawer>
+          </Drawer>}
         </>
       ) : (
         <DropdownMenu>

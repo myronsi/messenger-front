@@ -11,7 +11,7 @@ interface CreateGroupResponse {
   detail?: string;
 }
 
-export const useCreateGroup = (onCreated: (message: string) => void) => {
+export const useCreateGroup = (onCreated: (message: string, groupName: string, chatId?: EntityId) => void) => {
   const { translations } = useLanguage();
 
   return async ({ groupName, description, participants, avatarFile, setRejectedParticipants }: GroupCreatePayload) => {
@@ -33,9 +33,9 @@ export const useCreateGroup = (onCreated: (message: string) => void) => {
     if (avatarFile && createdGroup.chat_id) {
       const formData = new FormData();
       formData.append('file', avatarFile);
-      const avatarResponse = await authFetch(`${BASE_URL}/groups/${createdGroup.chat_id}/avatar`, { method: 'POST', body: formData });
-      if (!avatarResponse.ok) avatarWarning = ` ${translations.avatarUploadFailed || 'Avatar upload failed.'}`;
+      const avatarResponse = await authFetch(`${BASE_URL}/groups/${createdGroup.chat_id}/avatar`, { method: 'POST', body: formData }).catch(() => undefined);
+      if (!avatarResponse?.ok) avatarWarning = ` ${translations.avatarUploadFailed || 'Avatar upload failed.'}`;
     }
-    onCreated(`${translations.groupCreated}${avatarWarning}`);
+    onCreated(`${translations.groupCreated}${avatarWarning}`, groupName, createdGroup.chat_id);
   };
 };

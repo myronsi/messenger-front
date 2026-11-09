@@ -19,9 +19,14 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const { data: me } = useGetCurrentUserQuery();
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const createGroup = useCreateGroup((message) => {
+  const createGroup = useCreateGroup((message, groupName, chatId) => {
     setCreatingGroup(false);
-    model.setModal({ type: 'success', message });
+    model.setModal({
+      type: 'success',
+      message,
+      confirmText: chatId ? model.translations.openCreatedGroup : model.translations.close,
+      onConfirm: chatId ? () => model.onChatOpen(chatId, groupName, false, 'group') : undefined,
+    });
     void model.refetch();
   });
   const pendingRequests = model.requestInbox?.unread_count || 0;
@@ -108,9 +113,13 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         <ConfirmModal
           title={model.modal.type === 'success' ? model.translations.success : model.translations.error}
           message={model.modal.message}
-          onConfirm={model.modal.onConfirm || (() => model.setModal(null))}
+          onConfirm={() => {
+            model.setModal(null);
+            model.modal?.onConfirm?.();
+          }}
           onCancel={() => model.setModal(null)}
-          confirmText="OK"
+          confirmText={model.modal.confirmText ?? "OK"}
+          hideCancel={model.modal.type === 'success'}
           isError={model.modal.type !== 'success'}
         />
       )}
