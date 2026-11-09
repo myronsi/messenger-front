@@ -13,9 +13,6 @@ export const userModel = (user: Schema['User']) => ({
   can_message: !user.is_deleted,
 });
 
-// Additive field supported by the album API while the released contract is still pinned.
-type AlbumMessage = Schema['Message'] & { attachments?: Schema['Attachment'][] };
-
 const attachmentModel = (attachment: Schema['Attachment']) => ({
   file_url: attachment.url,
   file_name: attachment.filename,
@@ -30,7 +27,7 @@ const attachmentModel = (attachment: Schema['Attachment']) => ({
   },
 });
 
-const contentModel = ({ attachment, attachments, content }: Pick<AlbumMessage, 'attachment' | 'attachments' | 'content'>) => {
+const contentModel = ({ attachment, attachments, content }: Pick<Schema['Message'], 'attachment' | 'attachments' | 'content'>) => {
   const first = attachments?.[0] ?? attachment;
   if (!first) return content || '';
   return { ...attachmentModel(first), caption: content || undefined, album: attachments?.map(attachmentModel) };
@@ -48,7 +45,7 @@ export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
   read_by: [],
 });
 
-export const messageModel = (message: AlbumMessage) => ({
+export const messageModel = (message: Schema['Message']) => ({
   ...message,
   sender_id: message.sender?.id,
   sender: message.sender?.display_name || 'System',

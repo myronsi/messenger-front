@@ -72,11 +72,13 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
       });
       attachmentIds.push(attachment.id);
     }
-    const attachments = attachmentIds.length > 1 ? { attachment_ids: attachmentIds } : { attachment_id: attachmentIds[0] };
+    const message: components['schemas']['SendMessageRequest'] = {
+      client_temp_id: String(options.formData.get('client_temp_id') || crypto.randomUUID()), type: voice ? 'voice' : 'file',
+      ...(attachmentIds.length > 1 ? { attachment_ids: attachmentIds } : { attachment_id: attachmentIds[0] }),
+      content: (options.formData.get('caption') as string | null) || null, reply_to: (options.formData.get('reply_to') as string | null) || null,
+    };
     const response = await authFetch(`${base}/chats/${options.formData.get('chat_id')}/messages`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_temp_id: String(options.formData.get('client_temp_id') || crypto.randomUUID()), type: voice ? 'voice' : 'file',
-        ...attachments, content: options.formData.get('caption') || null, reply_to: options.formData.get('reply_to') || null }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(message),
     });
     if (!response.ok) throw { status: response.status, body: await response.json() };
     options.onProgress?.(100);

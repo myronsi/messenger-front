@@ -995,7 +995,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Photos or audio of a chat
+         * Photos, videos or audio of a chat
          * @description Replaces `GET /messages/photos/{chat_id}` and `GET /messages/audios/{chat_id}`.
          */
         get: operations["listChatMedia"];
@@ -2875,7 +2875,7 @@ export interface components {
             waveform?: number[] | null;
         };
         /** @enum {string} */
-        MediaKind: "image" | "audio";
+        MediaKind: "image" | "audio" | "visual";
         /** @enum {string} */
         MessageType: "text" | "file" | "voice" | "system";
         Reaction: {
@@ -2917,6 +2917,8 @@ export interface components {
             reply_to: components["schemas"]["Id"] | null;
             reply_preview?: components["schemas"]["ReplyPreview"];
             forwarded_from: components["schemas"]["ForwardedFrom"] | null;
+            /** @description Ordered images and videos of an album. The first item is also returned as attachment for older clients. */
+            attachments?: components["schemas"]["Attachment"][];
             reactions: components["schemas"]["Reaction"][];
             read_by: components["schemas"]["ReadReceipt"][];
             created_at: components["schemas"]["Timestamp"];
@@ -2985,8 +2987,10 @@ export interface components {
             /** @enum {string} */
             type: "text" | "file" | "voice";
             content?: string | null;
-            /** @description Required and not null for `file` and `voice`; never a URL. */
+            /** @description Single upload ID for a file or voice message. Omit for albums. */
             attachment_id?: components["schemas"]["AttachmentRef"] | null;
+            /** @description Ordered IDs of two to ten image or video uploads for one file message. */
+            attachment_ids?: components["schemas"]["AttachmentRef"][];
             reply_to?: components["schemas"]["Id"] | null;
         };
         EditMessageRequest: {
