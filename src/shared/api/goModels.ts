@@ -13,12 +13,11 @@ export const userModel = (user: Schema['User']) => ({
   can_message: !user.is_deleted,
 });
 
-const contentModel = ({ attachment, content }: Pick<Schema['Message'], 'attachment' | 'content'>) => attachment ? {
+const attachmentModel = (attachment: Schema['Attachment']) => ({
   file_url: attachment.url,
   file_name: attachment.filename,
   file_type: attachment.kind === 'voice' ? 'voice' : attachment.content_type,
   file_size: attachment.size,
-  caption: content || undefined,
   image_width: attachment.width || undefined,
   image_height: attachment.height || undefined,
   thumbnail_url: attachment.thumbnail_url || undefined,
@@ -26,7 +25,13 @@ const contentModel = ({ attachment, content }: Pick<Schema['Message'], 'attachme
     duration: (attachment.duration_ms || 0) / 1000,
     waveform: attachment.waveform || undefined,
   },
-} : content || '';
+});
+
+const contentModel = ({ attachment, attachments, content }: Pick<Schema['Message'], 'attachment' | 'attachments' | 'content'>) => {
+  const first = attachments?.[0] ?? attachment;
+  if (!first) return content || '';
+  return { ...attachmentModel(first), caption: content || undefined, album: attachments?.map(attachmentModel) };
+};
 
 export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
   id: preview.id,

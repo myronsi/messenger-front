@@ -3,13 +3,13 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useRef, type MutableRefObject } from 'react';
-import type { FileMessageContent, Message } from '@/entities/message';
+import type { Message } from '@/entities/message';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { applyMessageEdit, editableText, mergeIncomingMessage } from './messageUpdates';
 import { createdMessage, unconfirmedSends, useUnsentMessageRelease } from './unsentMessages';
-import { getLocalUploadFileType } from './uploadFileType';
+import { appendMessageFiles, createLocalFileContent } from './uploadFileType';
 import { createOptimisticMessage } from './optimisticMessage';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
@@ -78,31 +78,23 @@ export const useMessageSender = ({
   const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
   const sentRef = useRef(new Map<string, OutgoingPayload>());
 
-  const createOptimisticUploadMessage = (
-    file: Blob,
-    fileName: string,
-    fileType = getLocalUploadFileType(fileName, file.type),
-    caption = ''
-  ) => {
+  const createOptimisticFileMessage = (files: { file: Blob; fileName: string }[], caption: string, fileType?: string) => {
     const tempId = createTempMessageId();
     const reply = replyToRef.current;
     if (reply) setReplyTo(null);
-    const objectUrl = URL.createObjectURL(file);
-    const content: FileMessageContent = {
-      file_url: objectUrl,
-      file_name: fileName,
-      file_type: fileType,
-      file_size: file.size,
-      ...(caption.trim() ? { caption: caption.trim() } : {}),
-    };
+    const content = createLocalFileContent(files, caption, fileType);
+    const objectUrls = (content.album ?? [content]).map(item => item.file_url);
     const optimisticMessage = createOptimisticMessage(tempId, username, currentUserIdRef.current || currentUserId || undefined, {
-      type: 'file', content, reply_to: reply?.id || null, local_object_url: objectUrl, upload_status: 'uploading', upload_progress: 1,
+      type: 'file', content, reply_to: reply?.id || null, local_object_url: objectUrls[0], upload_status: 'uploading', upload_progress: 1,
     });
     setMessages((previous) => [...previous, optimisticMessage]);
-    uploadSourcesRef.current.set(String(tempId), { file, fileName, objectUrl });
+    uploadSourcesRef.current.set(String(tempId), { files, objectUrls });
     uploadingRef.current.add(String(tempId));
     return tempId;
   };
+
+  const createOptimisticUploadMessage = (file: Blob, fileName: string, fileType?: string) =>
+    createOptimisticFileMessage([{ file, fileName }], '', fileType);
 
   const updateOptimisticUploadProgress = (messageId: EntityId, percent: number) => {
     setMessages((previous) => previous.map((message) => message.id === messageId
@@ -125,15 +117,16 @@ export const useMessageSender = ({
 
   const settleOptimisticUpload = (messageId: EntityId, created?: unknown) => {
     uploadingRef.current.delete(String(messageId));
-    uploadSourcesRef.current.delete(String(messageId));
+    // The socket echo may have replaced the draft before this HTTP response.
+    setTimeout(() => releaseSource(String(messageId)), 1000);
     updateOptimisticUploadProgress(messageId, 99);
     const saved = createdMessage(created);
     if (saved) setMessages((previous) => mergeIncomingMessage(previous, saved));
   };
 
-  const uploadOptimisticMessage = async (messageId: EntityId, file: Blob, fileName: string, voice: boolean, replyToId?: EntityId | null, caption = '') => {
+  const uploadOptimisticMessage = async (messageId: EntityId, files: { file: Blob; fileName: string }[], voice: boolean, replyToId?: EntityId | null, caption = '') => {
     const formData = new FormData();
-    formData.append('file', file, fileName);
+    appendMessageFiles(formData, files);
     formData.append('chat_id', chatId.toString());
     formData.append('client_temp_id', String(messageId));
     if (replyToId != null) formData.append('reply_to', String(replyToId));
@@ -238,7 +231,7 @@ export const useMessageSender = ({
       const content = message.content;
       const tempId = retryUnsavedMessage(message, { upload_status: 'uploading', upload_progress: 1 });
       uploadingRef.current.add(String(message.id));
-      void uploadOptimisticMessage(tempId, source.file, source.fileName, content.file_type === 'voice', message.reply_to, content.caption ?? '');
+      void uploadOptimisticMessage(tempId, source.files, content.file_type === 'voice', message.reply_to, content.caption ?? '');
       return;
     }
     if (typeof message.content !== 'string') return;
@@ -264,11 +257,12 @@ export const useMessageSender = ({
     wsRef.current.send(JSON.stringify({ type: 'resend', message_id: message.id }));
   };
 
-  const handleFileUpload = async (file: File, caption = '') => {
-    if (!file) return;
+  const handleFileUpload = async (selection: File | File[], caption = '') => {
+    const files = (Array.isArray(selection) ? selection : [selection]).map(file => ({ file, fileName: file.name }));
+    if (files.length === 0) return;
     const replyToId = replyToRef.current?.id;
-    const optimisticMessageId = createOptimisticUploadMessage(file, file.name, undefined, caption);
-    await uploadOptimisticMessage(optimisticMessageId, file, file.name, false, replyToId, caption);
+    const optimisticMessageId = createOptimisticFileMessage(files, caption);
+    await uploadOptimisticMessage(optimisticMessageId, files, false, replyToId, caption);
   };
 
   const resendUnconfirmed = () => {

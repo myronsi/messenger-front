@@ -3,10 +3,10 @@ import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { useDraftState } from '@/shared/hooks/useDraftState';
-import { FileMessageContent, Message, ModalState } from '@/entities/message';
+import { Message, ModalState } from '@/entities/message';
 import { useCreateChatMutation } from '@/entities/chat';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
-import { getLocalUploadFileType } from '@/features/chat-core';
+import { appendMessageFiles, createLocalFileContent } from '@/features/chat-core';
 
 const BASE_URL = getApiBaseUrl();
 
@@ -92,20 +92,13 @@ export const usePreviewChat = ({
     setPreviewFailedMessages((current) => [...current, createPendingApprovalPreviewMessage(content)]);
   };
 
-  const createPreviewUploadMessage = (file: File, caption = '') => {
+  const createPreviewUploadMessage = (files: { file: Blob; fileName: string }[], caption: string) => {
     const tempId = -Date.now();
-    const objectUrl = URL.createObjectURL(file);
-    const content: FileMessageContent = {
-      file_url: objectUrl,
-      file_name: file.name,
-      file_type: getLocalUploadFileType(file.name, file.type),
-      file_size: file.size,
-      ...(caption.trim() ? { caption: caption.trim() } : {}),
-    };
+    const content = createLocalFileContent(files, caption);
     const optimisticMessage: Message = {
       id: tempId,
       client_temp_id: tempId,
-      local_object_url: objectUrl,
+      local_object_url: content.file_url,
       upload_status: 'uploading',
       upload_progress: 1,
       sender_id: userId || undefined,
@@ -173,10 +166,11 @@ export const usePreviewChat = ({
     }
   };
 
-  const handleFileUploadPreview = async (file: File, caption = '') => {
-    if (!file || isCreatingPreviewChat || hasPendingApprovalRequest) return;
+  const handleFileUploadPreview = async (selection: File | File[], caption = '') => {
+    const files = (Array.isArray(selection) ? selection : [selection]).map(file => ({ file, fileName: file.name }));
+    if (files.length === 0 || isCreatingPreviewChat || hasPendingApprovalRequest) return;
     if (directDraftDisabled) {
-      addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${file.name}`);
+      addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${files.map(file => file.fileName).join(', ')}`);
       return;
     }
     setIsCreatingPreviewChat(true);
@@ -186,9 +180,9 @@ export const usePreviewChat = ({
       if (response.approval_required || !response.chat_id) {
         throw new Error(translations.waitingForApproval || 'Waiting for user approval');
       }
-      optimisticMessageId = createPreviewUploadMessage(file, caption);
+      optimisticMessageId = createPreviewUploadMessage(files, caption);
       const formData = new FormData();
-      formData.append('file', file);
+      appendMessageFiles(formData, files);
       formData.append('chat_id', response.chat_id.toString());
       formData.append('client_temp_id', String(optimisticMessageId));
       if (caption.trim()) formData.append('caption', caption.trim());
@@ -204,7 +198,7 @@ export const usePreviewChat = ({
       if (optimisticMessageId !== null) {
         markPreviewUploadFailed(optimisticMessageId, translations.errorLoading || 'Upload failed');
       } else {
-        addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${file.name}`);
+        addFailedPreviewMessage(`${translations.fileMessagePreview || 'File'}: ${files.map(file => file.fileName).join(', ')}`);
       }
     } finally {
       setIsCreatingPreviewChat(false);

@@ -8,7 +8,7 @@ import { isIgnoredTap } from '../model/tapFilter';
 import { nextVoiceMessageId } from '../model/nextVoiceMessage';
 import { MessageItem } from '@/entities/message';
 import ScrollToBottomButton from './ScrollToBottomButton';
-import { Message, ReactionInfo, type MessageSelection } from '@/entities/message';
+import { isVisualMediaMessage, Message, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useStableCallback } from '@/shared/lib/useStableCallback';
@@ -238,7 +238,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               replyMessage={message.reply_to ? messagesById.get(message.reply_to) ?? message.reply_preview : undefined}
               userId={userId}
               isGroup={isGroup}
-              isImage={fileConfig?.replyText === translations.image}
+              isImage={fileConfig?.replyText === translations.image || isVisualMediaMessage(message)}
               isMobile={isMobile}
               showNewMessagesMarker={visibleUnreadBoundaryId === message.id && !isOwnMessage(message)}
               nextShowsNewMessagesMarker={!!nextMessage && visibleUnreadBoundaryId === nextMessage.id && !isOwnMessage(nextMessage)}

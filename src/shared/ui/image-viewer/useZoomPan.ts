@@ -1,6 +1,7 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { mobileImageDirection } from './mobileImageDirection';
+import { naturalSize } from './pictureRect';
 import { IDENTITY, panBy, pinchTo, wheelZoomFactor, zoomAt, clampZoomPan, type Size, type ZoomPan } from './zoomPan';
 
 interface Point { x: number; y: number }
@@ -19,18 +20,22 @@ const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 // The viewer frame is letterboxed by object-contain, so pan bounds follow the rendered picture rather than the frame.
 const fittedSize = (element: HTMLElement): Size => {
   const frame = { width: element.offsetWidth, height: element.offsetHeight };
-  if (!(element instanceof HTMLImageElement) || !element.naturalWidth || !element.naturalHeight || !frame.width || !frame.height) return frame;
-  const fit = Math.min(frame.width / element.naturalWidth, frame.height / element.naturalHeight);
-  return { width: element.naturalWidth * fit, height: element.naturalHeight * fit };
+  if (!(element instanceof HTMLImageElement || element instanceof HTMLVideoElement)) return frame;
+  const natural = naturalSize(element);
+  if (!natural.width || !natural.height || !frame.width || !frame.height) return frame;
+  const fit = Math.min(frame.width / natural.width, frame.height / natural.height);
+  return { width: natural.width * fit, height: natural.height * fit };
 };
 
 interface ZoomPanOptions {
   onSwipe?: (direction: -1 | 1, displacement: number) => void;
   onDismiss?: (displacement: number) => void;
+  tapZoom?: boolean;
 }
 
 export const useZoomPan = (
-  stageRef: RefObject<HTMLElement | null>, imageRef: RefObject<HTMLElement | null>, enabled: boolean, { onSwipe, onDismiss }: ZoomPanOptions = {},
+  stageRef: RefObject<HTMLElement | null>, imageRef: RefObject<HTMLElement | null>, enabled: boolean,
+  { onSwipe, onDismiss, tapZoom = true }: ZoomPanOptions = {},
 ) => {
   const [view, setView] = useState<ZoomPan>(IDENTITY);
   const [swipeX, setSwipeX] = useState(0);
@@ -93,6 +98,7 @@ export const useZoomPan = (
     const stage = stageRef.current;
     if (!enabled || !stage) return;
     const onWheel = (event: WheelEvent) => {
+      if (event.target instanceof Element && event.target.closest('[data-viewer-controls]')) return;
       event.preventDefault();
       update((current, m) => zoomAt(
         current, current.scale * wheelZoomFactor(event.deltaY, event.deltaMode),
@@ -131,6 +137,7 @@ export const useZoomPan = (
 
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.target instanceof Element && event.target.closest('[data-viewer-controls]')) return;
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId);
     } catch (error) {
@@ -207,7 +214,7 @@ export const useZoomPan = (
       onSwipe(swipe.x < 0 ? 1 : -1, swipe.x);
       return;
     }
-    if (movedRef.current) return;
+    if (movedRef.current || !tapZoom) return;
     if (onSwipe && viewRef.current.scale === 1 && mobileImageDirection(event.clientX, stageRef.current)) { lastTapRef.current = null; return; }
     const point = { x: event.clientX, y: event.clientY };
     const lastTap = lastTapRef.current;

@@ -4,6 +4,7 @@ export * from './model/historyNormalizers';
 export * from './model/reactions';
 export * from './model/useConversationMessages';
 export * from './model/systemEvents';
+export { isVisualMediaMessage } from './model/videoAttachment';
 export * from './api/messageApi';
 export * from './model/messageDeletion';
 export * from './model/messageListScrollUtils';

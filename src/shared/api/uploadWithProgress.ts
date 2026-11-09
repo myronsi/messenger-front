@@ -58,18 +58,27 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
   if (isGoApi() && /\/messages\/(upload|vm)$/.test(options.url)) {
     const voice = options.url.endsWith('/vm');
     const base = String(getApiBaseUrl()).replace(/\/$/, '');
-    const form = new FormData();
-    form.set('file', options.formData.get('file')!);
-    form.set('purpose', 'message');
-    if (voice) form.set('kind', 'voice');
-    const attachment = await uploadWithProgress<components['schemas']['Attachment']>({
-      ...options, url: `${base}/attachments`, formData: form,
-      onProgress: percent => options.onProgress?.(Math.min(percent, 95)),
-    });
+    const files = options.formData.getAll('file');
+    const attachmentIds: string[] = [];
+    for (const file of files) {
+      const form = new FormData();
+      form.set('file', file);
+      form.set('purpose', 'message');
+      if (voice) form.set('kind', 'voice');
+      const uploaded = attachmentIds.length;
+      const attachment = await uploadWithProgress<components['schemas']['Attachment']>({
+        ...options, url: `${base}/attachments`, formData: form,
+        onProgress: percent => options.onProgress?.(((uploaded + percent / 100) / files.length) * 95),
+      });
+      attachmentIds.push(attachment.id);
+    }
+    const message: components['schemas']['SendMessageRequest'] = {
+      client_temp_id: String(options.formData.get('client_temp_id') || crypto.randomUUID()), type: voice ? 'voice' : 'file',
+      ...(attachmentIds.length > 1 ? { attachment_ids: attachmentIds } : { attachment_id: attachmentIds[0] }),
+      content: (options.formData.get('caption') as string | null) || null, reply_to: (options.formData.get('reply_to') as string | null) || null,
+    };
     const response = await authFetch(`${base}/chats/${options.formData.get('chat_id')}/messages`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_temp_id: String(options.formData.get('client_temp_id') || crypto.randomUUID()), type: voice ? 'voice' : 'file',
-        attachment_id: attachment.id, content: options.formData.get('caption') || null, reply_to: options.formData.get('reply_to') || null }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(message),
     });
     if (!response.ok) throw { status: response.status, body: await response.json() };
     options.onProgress?.(100);

@@ -5,16 +5,20 @@ export interface AudioMetadata {
   waveform?: number[];
 }
 
-export interface FileMessageContent {
+export interface MessageAttachment {
   file_url: string;
   file_name: string;
   file_type: string;
   file_size: number;
-  caption?: string;
   audio_metadata?: AudioMetadata;
   image_width?: number;
   image_height?: number;
   thumbnail_url?: string;
+}
+
+export interface FileMessageContent extends MessageAttachment {
+  caption?: string;
+  album?: MessageAttachment[];
 }
 
 export interface ForwardedFrom {

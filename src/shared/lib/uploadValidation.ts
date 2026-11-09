@@ -1,12 +1,14 @@
 const MB = 1024 * 1024;
-const VIDEO_EXTENSIONS = ['mp4', 'mov'];
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm'];
+export const MAX_ALBUM_ITEMS = 10;
+const ALBUM_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', ...VIDEO_EXTENSIONS];
 const VIDEO_LIMIT_BYTES = 100 * MB;
 const FILE_LIMIT_BYTES = 10 * MB;
 
 // Mirrors the extensions the backend accepts for the file picker (messenger-back /messages/upload).
 const ALLOWED_EXTENSIONS = [
   'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif',
-  'mp4', 'mov', 'ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac',
+  'mp4', 'mov', 'webm', 'ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac',
   'pdf', 'doc', 'docx', 'txt', 'pptx', 'zip',
   'js', 'ts', 'py', 'java', 'cpp', 'html', 'css',
 ] as const;
@@ -19,6 +21,8 @@ const getExtension = (fileName: string) => {
   const dot = fileName.lastIndexOf('.');
   return dot < 0 ? '' : fileName.slice(dot + 1).toLowerCase();
 };
+
+export const isAlbumFile = (file: Pick<File, 'name'>) => ALBUM_EXTENSIONS.includes(getExtension(file.name));
 
 export const uploadLimitBytes = (fileName: string) => {
   return VIDEO_EXTENSIONS.includes(getExtension(fileName)) ? VIDEO_LIMIT_BYTES : FILE_LIMIT_BYTES;

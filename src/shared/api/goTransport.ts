@@ -162,7 +162,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     const media = path.match(/^\/messages\/(photos|audios|search)\/(\d+)$/);
     if (media) {
       path = `/chats/${media[2]}/${media[1] === 'search' ? 'messages/search' : 'media'}`;
-      if (media[1] !== 'search') url.searchParams.set('kind', media[1] === 'photos' ? 'image' : 'audio');
+      if (media[1] !== 'search') url.searchParams.set('kind', media[1] === 'photos' ? 'visual' : 'audio');
       const items = await allPages<S['Message'] | S['SearchHit']>(path + url.search);
       return jsonResponse(mediaScreenModel(items, media[1]));
     }

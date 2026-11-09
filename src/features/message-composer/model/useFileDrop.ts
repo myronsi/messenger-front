@@ -2,12 +2,12 @@ import { RefObject, useEffect, useRef, useState } from 'react';
 
 const hasFiles = (event: DragEvent) => !!event.dataTransfer && Array.from(event.dataTransfer.types).includes('Files');
 
-export const useFileDrop = (anchorRef: RefObject<HTMLElement | null>, onFile: (file: File) => void) => {
+export const useFileDrop = (anchorRef: RefObject<HTMLElement | null>, onFiles: (files: File[]) => void) => {
   const [zone, setZone] = useState<HTMLElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const depthRef = useRef(0);
-  const onFileRef = useRef(onFile);
-  onFileRef.current = onFile;
+  const onFilesRef = useRef(onFiles);
+  onFilesRef.current = onFiles;
 
   useEffect(() => {
     const target = anchorRef.current?.closest<HTMLElement>('[data-chat-drop-zone]') || null;
@@ -37,8 +37,8 @@ export const useFileDrop = (anchorRef: RefObject<HTMLElement | null>, onFile: (f
       if (!hasFiles(event)) return;
       event.preventDefault();
       reset();
-      const file = event.dataTransfer?.files?.[0];
-      if (file) onFileRef.current(file);
+      const files = Array.from(event.dataTransfer?.files ?? []);
+      if (files.length) onFilesRef.current(files);
     };
     target.addEventListener('dragenter', onDragEnter);
     target.addEventListener('dragover', onDragOver);

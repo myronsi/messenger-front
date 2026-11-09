@@ -74,6 +74,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     error: dmPhotosQueryError,
   } = useGetChatPhotosQuery(directChatId || 0, {
     skip: !directChatId || !isPersistedId(directChatId),
+    refetchOnMountOrArgChange: true,
   });
   const {
     data: chatAudiosData,
