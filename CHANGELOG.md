@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.16](https://github.com/myronsi/messenger-front/compare/v0.6.15...v0.6.16) (2026-11-09)
+
+
+### Features
+
+* **media:** draw on images and pre-listen voice messages ([#178](https://github.com/myronsi/messenger-front/issues/178)) ([472c259](https://github.com/myronsi/messenger-front/commit/472c259020b42f7cc18ad5dcac3b40640f4ebb66))
+
 ## [0.6.15](https://github.com/myronsi/messenger-front/compare/v0.6.14...v0.6.15) (2026-11-09)
 
 
