@@ -23,7 +23,7 @@ test('a signed-in device approves a QR code and the other device is signed in', 
 
     await trusted.bringToFront();
     await trusted.goto(new URL(url, newDevice.url()).pathname);
-    await expect(trusted.getByRole('heading', { name: 'Sign in on another device?' })).toBeVisible();
+    await expect(trusted.getByRole('heading', { name: 'Sign in on another device?', level: 1 })).toBeVisible();
     await expect(trusted.getByText(/Never scan a code someone sent you/)).toBeVisible();
     await newDevice.bringToFront();
     await newDevice.waitForResponse(async response => response.url().endsWith(`/auth/qr-login/${requestId}/poll`)
