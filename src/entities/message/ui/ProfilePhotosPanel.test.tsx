@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ProfilePhotosPanel, type ProfilePhotoItem } from './ProfileChatPanels';
 
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: {}, language: 'en' }) }));
+vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { playVideo: "Play video", close: "Close", seekVideo: "Seek through video" }, language: 'en' }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', async () => {
   const { forwardRef } = await import('react');
   return { AuthenticatedImage: forwardRef<HTMLImageElement, React.ImgHTMLAttributes<HTMLImageElement>>((props, ref) => <img ref={ref} {...props} />) };
@@ -14,6 +14,19 @@ const photos: ProfilePhotoItem[] = ['one', 'two', 'three'].map((name, index) => 
 }));
 
 describe('ProfilePhotosPanel', () => {
+  it('opens video controls only after selecting a shared video', () => {
+    const clip: ProfilePhotoItem = {
+      ...photos[0], isVideo: true, name: 'clip.webm', url: 'https://example.test/clip.webm',
+    };
+    render(<ProfilePhotosPanel photos={[clip]} />);
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Play video clip.webm' }));
+    expect(screen.getByRole('dialog')).toHaveAccessibleName('clip.webm');
+    expect(screen.getByRole('slider', { name: 'Seek through video' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('opens the clicked photo full screen as part of a gallery', () => {
     render(<ProfilePhotosPanel photos={photos} />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

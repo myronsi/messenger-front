@@ -37,6 +37,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     error: photosQueryError,
   } = useGetChatPhotosQuery(chatId, {
     skip: !open || !isPersistedId(chatId),
+    refetchOnMountOrArgChange: true,
   });
   const {
     data: chatAudiosData,

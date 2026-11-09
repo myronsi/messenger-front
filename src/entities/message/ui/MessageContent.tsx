@@ -6,6 +6,9 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
+import AlbumMessage from './AlbumMessage';
+import { isVideoAttachment } from '../model/videoAttachment';
+import VideoMessage from './VideoMessage';
 import FileMessage from './FileMessage';
 import { LinkedMessageText } from './LinkedMessageText';
 import { MessageTextBody } from './MessageTextBody';
@@ -65,6 +68,20 @@ const MessageContent: React.FC<MessageContentProps> = ({
       )}
     </>
   );
+  const viewerInfo = {
+    sender: isOwnMessage(message) ? translations.replyFromYou : message.sender,
+    avatarName: message.sender, avatarUrl: message.avatar_url, sentAt: message.timestamp,
+  };
+  if (message.content.album?.length) {
+    return withCaption(<AlbumMessage items={message.content.album} viewerInfo={viewerInfo} />, true);
+  }
+  if (fileUrl && isVideoAttachment(message.content)) {
+    const { image_width: width, image_height: height, thumbnail_url: poster } = message.content;
+    return withCaption(<VideoMessage key={fullFileUrl}
+      preview={{ url: fullFileUrl, name: fileName, poster: poster ? resolveMediaUrl(poster) : undefined }}
+      aspectRatio={width && height ? Math.max(0.9, Math.min(2.3, width / height)) : undefined} />);
+  }
+
   const audioPlayer = (
     <AudioMessage
       fileUrl={fullFileUrl}
@@ -87,10 +104,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
         height={message.content.image_height}
         fileName={fileName}
         isMine={isOwnMessage(message)}
-        viewerInfo={{
-          sender: isOwnMessage(message) ? translations.replyFromYou : message.sender,
-          avatarName: message.sender, avatarUrl: message.avatar_url, sentAt: message.timestamp,
-        }}
+        viewerInfo={viewerInfo}
       />,
       true
     );

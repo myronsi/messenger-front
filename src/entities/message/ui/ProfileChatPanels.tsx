@@ -1,4 +1,7 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { isVideoAttachment } from '../model/videoAttachment';
+import VideoThumbnail from './VideoThumbnail';
+import { VideoViewer } from './VideoMessage';
 import ProfileAudioRow from './ProfileAudioRow';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { isPersistedId } from '@/shared/api/entityId';
@@ -24,6 +27,7 @@ export interface ProfilePhotoItem {
   id: EntityId;
   url: string;
   thumbnailUrl: string;
+  isVideo?: boolean;
   name: string;
   timestamp: string;
   sender?: string;
@@ -47,11 +51,14 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
   photos
     .map((photo) => {
       const url = photo.file_url || photo.url || '';
+      const name = photo.file_name || photo.name || fallbackName;
+      const isVideo = isVideoAttachment({ file_name: name, file_type: photo.file_type || '', file_url: url, file_size: photo.file_size ?? 0 });
       return {
         id: photo.id,
         url: url ? normalizeProfileMediaUrl(url) : '',
-        thumbnailUrl: photo.thumbnail_url ? normalizeProfileMediaUrl(photo.thumbnail_url) : (url ? normalizeProfileMediaUrl(url) : ''),
-        name: photo.file_name || photo.name || fallbackName,
+        thumbnailUrl: photo.thumbnail_url ? normalizeProfileMediaUrl(photo.thumbnail_url) : (url && !isVideo ? normalizeProfileMediaUrl(url) : ''),
+        isVideo,
+        name,
         timestamp: photo.timestamp,
         sender: photo.sender,
         senderUsername: photo.sender_username,
@@ -186,21 +193,23 @@ export const ProfilePhotosPanel: React.FC<{
 }> = ({ photos, isLoading, error, currentUsername, onJumpToMessage }) => {
   const { translations } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const viewerImages = useMemo(() => photos.map((photo) => {
+  const [video, setVideo] = useState<ProfilePhotoItem | null>(null);
+  const images = useMemo(() => photos.filter(photo => !photo.isVideo), [photos]);
+  const viewerImages = useMemo(() => images.map((photo) => {
     const isMine = !!currentUsername && photo.senderUsername?.toLowerCase() === currentUsername.toLowerCase();
     const info = photo.sender
       ? { sender: isMine ? translations.replyFromYou : photo.sender, avatarName: photo.sender, avatarUrl: photo.avatarUrl, sentAt: photo.timestamp }
       : undefined;
     const onShowInChat = onJumpToMessage && isPersistedId(photo.id) ? () => onJumpToMessage(photo.id) : undefined;
     return { url: photo.url, name: photo.name, previewUrl: photo.thumbnailUrl, info, onShowInChat };
-  }), [currentUsername, onJumpToMessage, photos, translations.replyFromYou]);
+  }), [currentUsername, onJumpToMessage, images, translations.replyFromYou]);
 
   return (
     <section className="border-b border-border px-5 py-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
           <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="truncate">{translations.dmPhotos || 'Photos in this chat'}</span>
+          <span className="truncate">{translations.dmPhotos || 'Photos and videos in this chat'}</span>
         </div>
         {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
       </div>
@@ -215,16 +224,23 @@ export const ProfilePhotosPanel: React.FC<{
       ) : photos.length > 0 ? (
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-2">
-            {photos.map((photo, index) => (
-              <ProfilePhotoThumb key={photo.id} photo={photo} onOpen={() => setOpenIndex(index)} />
-            ))}
+            {photos.map(photo => {
+              const key = String(photo.id) + photo.url;
+              return photo.isVideo
+                ? <VideoThumbnail key={key} url={photo.url} name={photo.name} poster={photo.thumbnailUrl || undefined}
+                    className="aspect-square rounded-md" onOpen={() => setVideo(photo)} />
+                : <ProfilePhotoThumb key={key} photo={photo} onOpen={() => setOpenIndex(images.indexOf(photo))} />;
+            })}
           </div>
         </div>
       ) : (
         <div className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-          {translations.noDmPhotos || 'No photos in this chat yet.'}
+          {translations.noDmPhotos || 'No photos or videos in this chat yet.'}
         </div>
       )}
+      {video && <VideoViewer preview={{ url: video.url, name: video.name, poster: video.thumbnailUrl || undefined }}
+        onClose={() => setVideo(null)}
+        onShowInChat={onJumpToMessage && isPersistedId(video.id) ? () => onJumpToMessage(video.id) : undefined} />}
       {openIndex !== null && viewerImages.length > 0 && (
         <ImageViewer images={viewerImages} initialIndex={openIndex} onClose={() => setOpenIndex(null)} />
       )}

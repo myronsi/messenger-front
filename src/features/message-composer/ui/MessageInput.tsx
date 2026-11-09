@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { Paperclip, Upload } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { UPLOAD_ACCEPT, uploadLimitMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
+import { isAlbumFile, MAX_ALBUM_ITEMS, UPLOAD_ACCEPT, uploadLimitMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
+import { isGoApi } from '@/shared/api/goSocket';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { useHoldToRecord } from '../model/useHoldToRecord';
@@ -22,7 +23,7 @@ interface MessageInputProps {
   replyTo: Message | null;
   editingMessage: Message | null;
   onSendMessage: () => void;
-  onFileUpload: (file: File, caption?: string) => void;
+  onFileUpload: (file: File | File[], caption?: string) => void;
   onCancelReplyOrEdit: () => void;
   chatId: EntityId;
   token: string;
@@ -61,11 +62,11 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const replyToRef = useLatestRef(replyTo);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedFilePreviewUrl, setSelectedFilePreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const albumsEnabled = isGoApi();
   const isDisabled = disabled || isSending;
   const isEditing = !!editingMessage;
-  const hasSelectedFile = !!selectedFile && !isEditing;
+  const hasSelectedFile = selectedFiles.length > 0 && !isEditing;
   const hasDraft = messageInput.trim().length > 0 || hasSelectedFile;
   const isUnchangedEdit = isEditing && messageInput.trim() === editableCaption(editingMessage).trim();
   const canSend = (hasDraft || isEditing) && !isUnchangedEdit;
@@ -112,9 +113,9 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
       setErrorMessage((translations.messageTooLong || 'Message is too long: {count} of {max} characters.').replace('{count}', String(length)).replace('{max}', String(MAX_MESSAGE_LENGTH)));
       return;
     }
-    if (selectedFile && !isEditing) {
-      onFileUpload(selectedFile, messageInput);
-      setSelectedFile(null);
+    if (hasSelectedFile) {
+      onFileUpload(selectedFiles.length === 1 ? selectedFiles[0] : selectedFiles, messageInput);
+      setSelectedFiles([]);
       setMessageInput('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     } else {
@@ -123,54 +124,47 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   };
 
-  const selectFile = (file: File | null) => {
-    const validationError = file ? validateUploadFile(file) : null;
-    if (file && validationError) {
-      setErrorMessage(validationError === 'tooLarge'
-        ? (translations.uploadFileTooLarge || 'File is too large. The maximum size for this type is {size} MB.').replace('{size}', String(uploadLimitMegabytes(file.name)))
-        : translations.uploadUnsupportedType || 'This file type is not supported.');
-      setSelectedFile(null);
-      return false;
+  const selectFiles = (files: File[]) => {
+    if (!files.length) return;
+    const next = [...selectedFiles, ...files];
+    for (const file of files) {
+      const error = validateUploadFile(file);
+      if (!error) continue;
+      setErrorMessage(error === 'tooLarge'
+        ? translations.uploadFileTooLarge.replace('{size}', String(uploadLimitMegabytes(file.name)))
+        : translations.uploadUnsupportedType);
+      return;
+    }
+    if (albumsEnabled && next.length > MAX_ALBUM_ITEMS) {
+      setErrorMessage(translations.albumLimit.replace('{max}', String(MAX_ALBUM_ITEMS)));
+      return;
+    }
+    if (albumsEnabled && next.length > 1 && !next.every(isAlbumFile)) {
+      setErrorMessage(translations.albumMediaOnly);
+      return;
     }
     setErrorMessage(null);
-    setSelectedFile(file);
-    return true;
+    setSelectedFiles(albumsEnabled ? next : files.slice(0, 1));
   };
 
   const handleSelectedFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectFile(event.target.files?.[0] || null)) event.target.value = '';
+    selectFiles(Array.from(event.target.files ?? []));
+    event.target.value = '';
   };
 
-  const { zone: dropZone, isDragging } = useFileDrop(rootRef, (file) => {
+  const { zone: dropZone, isDragging } = useFileDrop(rootRef, (files) => {
     if (isEditing) {
       setErrorMessage(translations.attachDisabledWhileEditing);
       return;
     }
     if (isDisabled || isRecording || isStarting) return;
-    selectFile(file);
+    selectFiles(files);
     requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   });
 
-  const clearSelectedFile = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   useEffect(() => {
-    if (!isEditing) return;
-    setSelectedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (isEditing) setSelectedFiles([]);
   }, [isEditing]);
-
-  useEffect(() => {
-    if (!selectedFile || !selectedFile.type.startsWith('image/')) {
-      setSelectedFilePreviewUrl(null);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(selectedFile);
-    setSelectedFilePreviewUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedFile]);
 
   const dismissError = useCallback(() => setErrorMessage(null), [setErrorMessage]);
 
@@ -230,8 +224,13 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
         {errorMessage && (
           <ComposerNotice key={errorMessage} message={errorMessage} closeLabel={translations.close || 'Close'} onDismiss={dismissError} />
         )}
-        {selectedFile && (
-          <SelectedFileChip file={selectedFile} previewUrl={selectedFilePreviewUrl} removeLabel={translations.removeFile || 'Remove file'} onRemove={clearSelectedFile} />
+        {hasSelectedFile && (
+          <div className="flex gap-2 overflow-x-auto">
+            {selectedFiles.map((file, index) => (
+              <SelectedFileChip key={`${file.name}-${index}`} file={file} removeLabel={translations.removeFile}
+                onRemove={() => setSelectedFiles(current => current.filter((_, item) => item !== index))} />
+            ))}
+          </div>
         )}
         <div className="flex items-end gap-2">
           <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">
@@ -250,6 +249,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             <input
               type="file"
               ref={fileInputRef}
+              multiple={albumsEnabled}
               data-testid="message-file-input"
               onChange={handleSelectedFileChange}
               accept={UPLOAD_ACCEPT}
@@ -273,7 +273,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 data-testid="message-input-field"
                 value={messageInput}
                 onChange={(event) => setMessageInput(event.target.value)}
-                placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : selectedFile ? (translations.addCaption || 'Add a caption')
+                placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : hasSelectedFile ? (translations.addCaption || 'Add a caption')
                   : editingMessage?.type === 'file' ? translations.writeCaption : translations.writeMessage}
                 className="block max-h-[min(10rem,35vh)] min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 leading-6 text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none"
                 onKeyDown={handleFieldKeyDown}

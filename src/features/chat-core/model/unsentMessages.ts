@@ -9,9 +9,8 @@ import { abandonUnsentMessages } from './messageUpdates';
 import type { OutgoingPayload, SetMessages } from './types';
 
 export interface UploadSource {
-  file: Blob;
-  fileName: string;
-  objectUrl: string;
+  files: { file: Blob; fileName: string }[];
+  objectUrls: string[];
 }
 
 export const createdMessage = (created: unknown): Message | null => {
@@ -26,7 +25,7 @@ export const useUnsentMessageRelease = (chatId: EntityId, setMessages: SetMessag
 
   const releaseSource = (id: string) => {
     const source = uploadSourcesRef.current.get(id);
-    if (source) URL.revokeObjectURL(source.objectUrl);
+    source?.objectUrls.forEach(url => URL.revokeObjectURL(url));
     uploadSourcesRef.current.delete(id);
   };
 
@@ -40,7 +39,7 @@ export const useUnsentMessageRelease = (chatId: EntityId, setMessages: SetMessag
       const released = new Set<string>();
       sources.forEach((source, id) => {
         if (uploading.has(id)) return;
-        URL.revokeObjectURL(source.objectUrl);
+        source.objectUrls.forEach(url => URL.revokeObjectURL(url));
         sources.delete(id);
         released.add(id);
       });

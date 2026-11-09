@@ -40,7 +40,7 @@ export const useFileTypes = () => {
       replyText: translations.music,
     },
     {
-      extensions: ['.mp4', '.mov', '.avi', '.mkv'],
+      extensions: ['.mp4', '.mov', '.webm', '.avi', '.mkv'],
       icon: FileVideo2,
       onHover: ArrowDownToLine,
       replyText: translations.video,

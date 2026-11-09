@@ -7,6 +7,7 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ tran
   saveMessageEdit: 'Save edit',
   writeMessage: 'Write a message', writeCaption: 'Write a caption...', attachFile: 'Attach file', dropFileToAttach: 'Drop a file to attach it', attachDisabledWhileEditing: 'Not while editing',
 } }) }));
+vi.mock('@/shared/api/goSocket', () => ({ isGoApi: () => true }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 const setErrorMessage = vi.fn();
 vi.mock('../model/useVoiceRecorder', () => ({
@@ -143,6 +144,20 @@ describe('MessageInput', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(onCancel).toHaveBeenCalledTimes(2);
     expect(onSendMessage).not.toHaveBeenCalled();
+  });
+
+  it('sends selected photos and videos as one album with one caption', () => {
+    const { onFileUpload, field } = renderInput('Trip');
+    const photo = new File(['image'], 'photo.png', { type: 'image/png' });
+    const video = new File(['video'], 'clip.webm', { type: 'video/webm' });
+    const picker = screen.getByTestId('message-file-input');
+    expect(picker).toHaveAttribute('multiple');
+    fireEvent.change(picker, { target: { files: [photo] } });
+    fireEvent.change(picker, { target: { files: [video] } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(onFileUpload).toHaveBeenCalledExactlyOnceWith([photo, video], 'Trip');
+    expect(screen.queryByText('photo.png')).not.toBeInTheDocument();
+    expect(screen.queryByText('clip.webm')).not.toBeInTheDocument();
   });
 
   it('takes a file dropped anywhere on the chat', () => {
