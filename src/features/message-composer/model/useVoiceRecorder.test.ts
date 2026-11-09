@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { trimAudio } from './trimAudio';
 import { recordedMs, useVoiceRecorder } from './useVoiceRecorder';
 
 vi.mock('@/shared/api/uploadWithProgress', () => ({ uploadWithProgress: vi.fn() }));
@@ -93,6 +94,20 @@ describe('useVoiceRecorder', () => {
     expect(result.current.preview?.trim).toEqual({ start: 1, end: 3 });
     await act(async () => { await result.current.sendPreview(); });
     expect(onVoiceUploadStart).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio/wav' }), 'voice_message.wav', 'voice');
+  });
+
+  it('does not send a recording deleted while it is being cut', async () => {
+    const { result, onVoiceUploadStart } = await startRecorder();
+    await act(async () => { result.current.stopRecording({ preview: true }); });
+    act(() => result.current.setPreviewTrim({ start: 1, end: 3 }));
+    let finishCut!: (blob: Blob) => void;
+    vi.mocked(trimAudio).mockReturnValueOnce(new Promise((resolve) => { finishCut = resolve; }));
+    let sending!: Promise<void>;
+    act(() => { sending = result.current.sendPreview(); });
+    act(() => result.current.discardPreview());
+    await act(async () => { finishCut(new Blob(['cut'], { type: 'audio/wav' })); await sending; });
+    expect(onVoiceUploadStart).not.toHaveBeenCalled();
+    expect(uploadWithProgress).not.toHaveBeenCalled();
   });
 
   it('throws a recording away without sending it', async () => {

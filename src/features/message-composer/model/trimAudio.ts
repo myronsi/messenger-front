@@ -1,3 +1,5 @@
+import { createAudioContext } from '@/entities/message';
+
 const TARGET_RATE = 24000;
 export const MIN_TRIM_SECONDS = 1;
 
@@ -35,7 +37,7 @@ export const encodeWav = (samples: Float32Array, sampleRate: number) => {
 };
 
 export const trimAudio = async (audio: Blob, range: TrimRange): Promise<Blob> => {
-  const context = new AudioContext();
+  const context = createAudioContext();
   let decoded: AudioBuffer;
   try {
     decoded = await context.decodeAudioData(await audio.arrayBuffer());

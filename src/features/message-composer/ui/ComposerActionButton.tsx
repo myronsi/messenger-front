@@ -21,6 +21,8 @@ const LABELS: Record<Exclude<Mode, 'cancel'>, string> = {
   recording: 'Stop recording and listen',
 };
 
+const HOLDING_LABEL = 'Release to send, slide up to lock';
+
 const icon = (visible: boolean, from: 'above' | 'below') => `absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${
   visible ? 'translate-y-0 scale-100 opacity-100' : `${from === 'above' ? '-translate-y-2' : 'translate-y-2'} scale-75 opacity-0`
 }`;
@@ -55,7 +57,7 @@ const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
         onContextMenu={(event) => event.preventDefault()}
         onClick={onClick}
         disabled={disabled}
-        aria-label={mode === 'cancel' ? cancelLabel : mode === 'send' && editLabel ? editLabel : LABELS[mode]}
+        aria-label={mode === 'cancel' ? cancelLabel : mode === 'send' && editLabel ? editLabel : mode === 'recording' && holding ? HOLDING_LABEL : LABELS[mode]}
         className={`motion-press relative flex h-14 w-14 touch-none select-none items-center justify-center overflow-hidden rounded-full ${
           holding ? '' : 'transition-[background-color,transform] duration-200'
         } ${

@@ -17,7 +17,7 @@ declare global {
   }
 }
 
-const createAudioContext = () => new (window.AudioContext || window.webkitAudioContext!)();
+export const createAudioContext = () => new (window.AudioContext || window.webkitAudioContext!)();
 
 export const analyzeAudio = async (url: string): Promise<{ duration: number; waveform: number[] }> => {
   const audioContext = createAudioContext();

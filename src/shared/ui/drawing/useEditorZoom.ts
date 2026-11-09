@@ -66,6 +66,19 @@ export function useEditorZoom(stage: HTMLElement | null, box: Box | null, panToo
 
   useEffect(() => { setView((current) => clamp(current)); }, [clamp]);
 
+  useEffect(() => {
+    const forget = (event: PointerEvent) => {
+      pointers.current.delete(event.pointerId);
+      if (pointers.current.size < 2) pinch.current = null;
+    };
+    window.addEventListener('pointerup', forget, true);
+    window.addEventListener('pointercancel', forget, true);
+    return () => {
+      window.removeEventListener('pointerup', forget, true);
+      window.removeEventListener('pointercancel', forget, true);
+    };
+  }, []);
+
   const onPointerDownCapture = (event: ReactPointerEvent) => {
     if (event.pointerType === 'touch') pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     const touches = [...pointers.current.values()];

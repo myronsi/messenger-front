@@ -38,6 +38,7 @@ export function useVoicePreview(upload: (audio: Blob) => Promise<void>, showErro
     sendingRef.current = true;
     try {
       const audio = current.trim ? await trimAudio(current.blob, current.trim) : current.blob;
+      if (previewRef.current !== current) return;
       discardPreview();
       void upload(audio);
     } catch (error) {

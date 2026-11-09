@@ -45,8 +45,8 @@ export function useDrawingPointer({ surfaceRef, tool, color, width, aspect, zoom
       onLimit();
       return;
     }
-    pointsRef.current = [...points, roundCoordinate(x), roundCoordinate(y)];
-    setDraft({ type: 'stroke', color, width, points: pointsRef.current });
+    points.push(roundCoordinate(x), roundCoordinate(y));
+    setDraft({ type: 'stroke', color, width, points });
   };
 
   const onPointerDown = (event: ReactPointerEvent<Element>) => {

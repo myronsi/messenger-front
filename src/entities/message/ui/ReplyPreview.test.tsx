@@ -22,6 +22,16 @@ describe('ReplyPreview', () => {
     expect(parent).not.toHaveBeenCalled();
   });
 
+  it('shows the drawing on the quoted image', () => {
+    const drawing = { version: 1, items: [{ type: 'stroke' as const, color: '#ff0000', width: 0.01, points: [0, 0, 1, 1] }] };
+    const photo: Message = {
+      ...original, type: 'file',
+      content: { file_url: '/a.png', file_name: 'a.png', file_type: 'image/png', file_size: 5, image_width: 400, image_height: 200, drawing },
+    };
+    render(<ReplyPreview replyMessage={photo} isMine={false} />);
+    expect(screen.getByTestId('drawing-overlay')).toHaveAttribute('viewBox', '0 0 1000 500');
+  });
+
   it('shows only the thumbnail and sender for an image without a caption', () => {
     const photo: Message = { ...original, type: 'file', content: { file_url: '/a.png', file_name: 'a.png', file_type: 'image/png', file_size: 5 } };
     render(<ReplyPreview replyMessage={photo} isMine={false} />);

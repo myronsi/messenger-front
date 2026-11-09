@@ -124,6 +124,19 @@ describe('DrawingEditor', () => {
     expect(box()).toContain('scale(1)');
   });
 
+  it('keeps drawing after a pinch whose finger is lifted outside the image', () => {
+    const onConfirm = vi.fn();
+    render(editor({ onConfirm }));
+    const stage = screen.getByTestId('drawing-stage');
+    fireEvent.pointerDown(stage, { pointerId: 11, pointerType: 'touch', clientX: 10, clientY: 10 });
+    fireEvent.pointerDown(stage, { pointerId: 12, pointerType: 'touch', clientX: 60, clientY: 60 });
+    fireEvent.pointerUp(document.body, { pointerId: 11, pointerType: 'touch' });
+    fireEvent.pointerUp(document.body, { pointerId: 12, pointerType: 'touch' });
+    drag(surface(), [[20, 10], [180, 90]]);
+    fireEvent.click(screen.getByTestId('drawing-confirm'));
+    expect(onConfirm.mock.calls[0][0].items).toHaveLength(1);
+  });
+
   it('starts from an earlier drawing and adds to it', () => {
     const onConfirm = vi.fn();
     const initial = { version: 1, items: [{ type: 'stroke' as const, color: '#ff0000', width: 0.01, points: [0, 0] }] };

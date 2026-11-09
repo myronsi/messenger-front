@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Loader2, Redo2, Trash2, Undo2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { BackToClose } from '@/shared/ui/BackToClose';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DrawingItems } from './DrawingOverlay';
 import { DrawingToolbar } from './DrawingToolbar';
@@ -135,10 +136,11 @@ export function DrawingEditor({
   return (
     <DialogPrimitive.Root open onOpenChange={(open) => { if (!open && !busy) onCancel(); }}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Content data-drawing-editor aria-describedby={undefined} onKeyDown={onKeyDown}
+        <DialogPrimitive.Content aria-describedby={undefined} onKeyDown={onKeyDown}
           onEscapeKeyDown={(event) => { if (textDraftRef.current) { event.preventDefault(); setTextDraft(null); } }}
           onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}
           className="fixed inset-0 z-[10001] flex flex-col bg-black text-white outline-none">
+          <BackToClose onClose={() => { if (!busy) onCancel(); }} flag="drawingEditor" />
           <DialogPrimitive.Title className="sr-only">{t.drawingTitle}</DialogPrimitive.Title>
           <div className="flex items-center gap-2 px-3 pb-2 pt-[calc(0.75rem+env(safe-area-inset-top))]">
             <button type="button" onClick={onCancel} disabled={busy} aria-label={t.cancel} title={t.cancel} className={iconButton}><X className="size-5" /></button>

@@ -37,6 +37,7 @@ const preloadSource = (item?: ViewerImage) => (item?.isVideo ? item.previewUrl :
 const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onClose }) => {
   const { translations } = useLanguage();
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const [isStageMounted, setIsStageMounted] = useState(false);
   const openerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   const setStage = useCallback((node: HTMLDivElement | null) => {
@@ -100,7 +101,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   useEffect(() => {
     const zoomed = view.scale > 1;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof Element && event.target.closest('[data-drawing-editor]')) return;
+      if (event.target instanceof Element && event.target.closest('[role="dialog"]') && !rootRef.current?.contains(event.target)) return;
       if (confirmingRef.current) {
         if (event.key === 'Escape') {
           event.preventDefault();
@@ -190,6 +191,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
           onEscapeKeyDown={(event) => event.preventDefault()}
         >
           <div
+            ref={rootRef}
             aria-label={image.name}
             className="motion-image-viewer-backdrop fixed inset-0 z-[9999] bg-black flex flex-col outline-none [-webkit-tap-highlight-color:transparent]"
             style={{ isolation: 'isolate', backgroundColor: `rgba(0, 0, 0, ${Math.max(0, 1 - swipeY / Math.max(1, window.innerHeight * 0.65))})`, transition: isGesturing ? 'none' : 'background-color 240ms ease-out' }}
