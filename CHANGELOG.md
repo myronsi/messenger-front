@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.6.13](https://github.com/myronsi/messenger-front/compare/v0.6.12...v0.6.13) (2026-11-09)
+
+
+### Features
+
+* **appearance:** dark theme, appearance settings and reworked sign-in pages ([#164](https://github.com/myronsi/messenger-front/issues/164)) ([c4c1ca2](https://github.com/myronsi/messenger-front/commit/c4c1ca2ea4c79f269694c6791f6ffe21a23e4246))
+* **i18n:** add Spanish and plan the community translation platform ([#166](https://github.com/myronsi/messenger-front/issues/166)) ([1813018](https://github.com/myronsi/messenger-front/commit/18130183f0462892a03d741aa1973e0ec00936c6))
+
+
+### Bug Fixes
+
+* address staging usability audit findings ([#170](https://github.com/myronsi/messenger-front/issues/170)) ([1cf9034](https://github.com/myronsi/messenger-front/commit/1cf903480efcdf180f9633973244f76c4cd3bf6b))
+* **i18n:** correct "Info" label ([#168](https://github.com/myronsi/messenger-front/issues/168)) ([b87e81d](https://github.com/myronsi/messenger-front/commit/b87e81d34cb1d89c6fb554121b371f4f568ac7f6))
+* improve onboarding, search, and settings usability ([#169](https://github.com/myronsi/messenger-front/issues/169)) ([07183b6](https://github.com/myronsi/messenger-front/commit/07183b6d1074456cbe36b8e75e1a592b210adff4))
+* responsive update reload button and translated last seen ([#167](https://github.com/myronsi/messenger-front/issues/167)) ([6f76287](https://github.com/myronsi/messenger-front/commit/6f7628737b4dc3c3c4f0ae582d76153886333760))
+
+
+### Performance Improvements
+
+* speed up Messenger startup and chat loading ([#171](https://github.com/myronsi/messenger-front/issues/171)) ([8766e3b](https://github.com/myronsi/messenger-front/commit/8766e3b43f9ec4ada2eb08fb70c40419fe22d240))
+
 ## [0.6.12](https://github.com/myronsi/messenger-front/compare/v0.6.11...v0.6.12) (2026-11-08)
 
 
