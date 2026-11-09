@@ -2,6 +2,7 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import { useEffect, useRef, useState } from 'react';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { useVoicePreview } from './useVoicePreview';
 
 const BASE_URL = getApiBaseUrl();
 const OPUS_AUDIO_BITS_PER_SECOND = 48_000;
@@ -20,7 +21,10 @@ interface RecordingSession {
   pausedMs: number;
   pausedAt: number | null;
   discard: boolean;
+  preview: boolean;
 }
+
+export type { VoicePreview } from './useVoicePreview';
 
 export const recordedMs = (session: Pick<RecordingSession, 'startedAt' | 'pausedMs' | 'pausedAt'>, now: number) => (
   now - session.startedAt - session.pausedMs - (session.pausedAt === null ? 0 : now - session.pausedAt)
@@ -42,9 +46,10 @@ const getSupportedOpusMimeType = () => {
   return OPUS_MIME_TYPES.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || '';
 };
 
-const getVoiceMessageFileName = (mimeType: string) => (
-  mimeType.includes('webm') ? 'voice_message.webm' : 'voice_message.opus'
-);
+const getVoiceMessageFileName = (mimeType: string) => {
+  if (mimeType.includes('wav')) return 'voice_message.wav';
+  return mimeType.includes('webm') ? 'voice_message.webm' : 'voice_message.opus';
+};
 
 export const useVoiceRecorder = ({
   chatId,
@@ -67,6 +72,34 @@ export const useVoiceRecorder = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recordingIntentRef = useRef(false);
+  const uploadVoice = async (audioBlob: Blob) => {
+    const formData = new FormData();
+    const voiceFileName = getVoiceMessageFileName(audioBlob.type);
+    const replyToId = getReplyToId?.() ?? null;
+    const optimisticMessageId = onVoiceUploadStart?.(audioBlob, voiceFileName, 'voice') ?? null;
+    formData.append('file', audioBlob, voiceFileName);
+    formData.append('chat_id', chatId.toString());
+    if (replyToId != null) formData.append('reply_to', String(replyToId));
+    if (optimisticMessageId !== null) formData.append('client_temp_id', String(optimisticMessageId));
+    try {
+      const created = await uploadWithProgress({
+        url: `${BASE_URL}/messages/vm`,
+        formData,
+        onProgress: (percent) => {
+          if (optimisticMessageId !== null) onVoiceUploadProgress?.(optimisticMessageId, percent);
+        },
+      });
+      if (optimisticMessageId !== null) onVoiceUploadComplete?.(optimisticMessageId, created);
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      if (optimisticMessageId !== null) {
+        onVoiceUploadError?.(optimisticMessageId, 'Failed to send voice message. Please try again.');
+      }
+      setErrorMessage('Failed to send voice message. Please try again.');
+    }
+  };
+
+  const { preview, showPreview, sendPreview, discardPreview, setPreviewTrim } = useVoicePreview(uploadVoice, setErrorMessage);
 
   const startRecording = async () => {
     if (disableVoice || isDisabled) return;
@@ -88,7 +121,7 @@ export const useVoiceRecorder = ({
       }
       streamRef.current = stream;
       setLiveStream(stream);
-      const session: RecordingSession = { chunks: [], startedAt: 0, pausedMs: 0, pausedAt: null, discard: false };
+      const session: RecordingSession = { chunks: [], startedAt: 0, pausedMs: 0, pausedAt: null, discard: false, preview: false };
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: opusMimeType,
         audioBitsPerSecond: OPUS_AUDIO_BITS_PER_SECOND,
@@ -124,30 +157,13 @@ export const useVoiceRecorder = ({
           releaseRecorder();
           return;
         }
-
-        const formData = new FormData();
-        const voiceFileName = getVoiceMessageFileName(audioBlob.type);
-        const replyToId = getReplyToId?.() ?? null;
-        const optimisticMessageId = onVoiceUploadStart?.(audioBlob, voiceFileName, 'voice') ?? null;
-        formData.append('file', audioBlob, voiceFileName);
-        formData.append('chat_id', chatId.toString());
-        if (replyToId != null) formData.append('reply_to', String(replyToId));
-        if (optimisticMessageId !== null) formData.append('client_temp_id', String(optimisticMessageId));
+        if (session.preview) {
+          releaseRecorder();
+          showPreview(audioBlob, recordedMs(session, session.pausedAt ?? performance.now()) / 1000);
+          return;
+        }
         try {
-          const created = await uploadWithProgress({
-            url: `${BASE_URL}/messages/vm`,
-            formData,
-            onProgress: (percent) => {
-              if (optimisticMessageId !== null) onVoiceUploadProgress?.(optimisticMessageId, percent);
-            },
-          });
-          if (optimisticMessageId !== null) onVoiceUploadComplete?.(optimisticMessageId, created);
-        } catch (error) {
-          console.error('Error sending voice message:', error);
-          if (optimisticMessageId !== null) {
-            onVoiceUploadError?.(optimisticMessageId, 'Failed to send voice message. Please try again.');
-          }
-          setErrorMessage('Failed to send voice message. Please try again.');
+          await uploadVoice(audioBlob);
         } finally {
           releaseRecorder();
         }
@@ -173,11 +189,13 @@ export const useVoiceRecorder = ({
     }
   };
 
-  const stopRecording = ({ discard = false }: { discard?: boolean } = {}) => {
+  const stopRecording = ({ discard = false, preview: toPreview = false }: { discard?: boolean; preview?: boolean } = {}) => {
     recordingIntentRef.current = false;
     const session = recordingSessionRef.current;
     const recorder = mediaRecorderRef.current;
     if (session && recorder && recorder.state !== 'inactive') {
+      session.preview = toPreview;
+      if (session.pausedAt === null && toPreview) session.pausedAt = performance.now();
       if (discard) {
         session.discard = true;
       } else if (recordedMs(session, performance.now()) < MIN_RECORDING_MS) {
@@ -220,11 +238,12 @@ export const useVoiceRecorder = ({
 
   useEffect(() => () => {
     stopRecording({ discard: true });
+    discardPreview();
     if (streamRef.current && !mediaRecorderRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-  }, [chatId]);
+  }, [chatId, discardPreview]);
 
   const handleStartRecording = async () => {
     if (disableVoice || isDisabled) return;
@@ -249,5 +268,9 @@ export const useVoiceRecorder = ({
     setErrorMessage,
     stopRecording,
     handleStartRecording,
+    preview,
+    sendPreview,
+    discardPreview,
+    setPreviewTrim,
   };
 };

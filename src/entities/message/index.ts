@@ -11,4 +11,4 @@ export * from './model/messageListScrollUtils';
 export { default as MessageItem } from './ui/MessageItem';
 export * from './ui/ProfileChatPanels';
 export { default as ChatHeaderSearch } from './ui/ChatHeaderSearch';
-export { formatAudioTime } from './model/audioMessageHelpers';
+export { analyzeAudio, formatAudioTime } from './model/audioMessageHelpers';

@@ -156,7 +156,7 @@ describe('MessageInput', () => {
     fireEvent.change(picker, { target: { files: [video] } });
     expect(screen.getByTestId('selected-media')).toContainElement(screen.getByTitle('clip.webm'));
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(onFileUpload).toHaveBeenCalledExactlyOnceWith([photo, video], 'Trip');
+    expect(onFileUpload).toHaveBeenCalledExactlyOnceWith([photo, video], 'Trip', [undefined, undefined]);
     expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument();
     expect(screen.queryByTitle('clip.webm')).not.toBeInTheDocument();
   });
