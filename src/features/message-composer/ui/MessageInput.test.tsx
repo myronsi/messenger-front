@@ -114,9 +114,9 @@ describe('MessageInput', () => {
   it('cannot attach a file while editing and drops one picked before', () => {
     const { onSendMessage, onFileUpload, field, startEditing } = renderInput('New text');
     fireEvent.change(screen.getByTestId('message-file-input'), { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } });
-    expect(screen.getByText('photo.png')).toBeInTheDocument();
+    expect(screen.getByTitle('photo.png')).toBeInTheDocument();
     startEditing();
-    expect(screen.queryByText('photo.png')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Attach file' })).toBeDisabled();
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(onFileUpload).not.toHaveBeenCalled();
@@ -154,10 +154,11 @@ describe('MessageInput', () => {
     expect(picker).toHaveAttribute('multiple');
     fireEvent.change(picker, { target: { files: [photo] } });
     fireEvent.change(picker, { target: { files: [video] } });
+    expect(screen.getByTestId('selected-media')).toContainElement(screen.getByTitle('clip.webm'));
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(onFileUpload).toHaveBeenCalledExactlyOnceWith([photo, video], 'Trip');
-    expect(screen.queryByText('photo.png')).not.toBeInTheDocument();
-    expect(screen.queryByText('clip.webm')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('clip.webm')).not.toBeInTheDocument();
   });
 
   it('takes a file dropped anywhere on the chat', () => {
@@ -176,7 +177,7 @@ describe('MessageInput', () => {
     expect(screen.getByTestId('file-drop-overlay')).toHaveTextContent('Drop a file to attach it');
     fireEvent.drop(zone, { dataTransfer });
     expect(screen.queryByTestId('file-drop-overlay')).not.toBeInTheDocument();
-    expect(screen.getByText('dropped.png')).toBeInTheDocument();
+    expect(screen.getByTitle('dropped.png')).toBeInTheDocument();
   });
 
   it('refuses a dropped file while editing', () => {
@@ -189,7 +190,7 @@ describe('MessageInput', () => {
       </div>,
     );
     fireEvent.drop(screen.getByTestId('zone'), { dataTransfer: { types: ['Files'], files: [new File(['x'], 'dropped.png', { type: 'image/png' })] } });
-    expect(screen.queryByText('dropped.png')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('dropped.png')).not.toBeInTheDocument();
     expect(setErrorMessage).toHaveBeenCalledWith('Not while editing');
   });
 });

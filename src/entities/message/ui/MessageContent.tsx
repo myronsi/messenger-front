@@ -8,7 +8,6 @@ import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
 import AlbumMessage from './AlbumMessage';
 import { isVideoAttachment } from '../model/videoAttachment';
-import VideoMessage from './VideoMessage';
 import FileMessage from './FileMessage';
 import { LinkedMessageText } from './LinkedMessageText';
 import { MessageTextBody } from './MessageTextBody';
@@ -27,6 +26,8 @@ interface MessageContentProps {
   isAudioPlaying: boolean;
   setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
   trailing?: React.ReactNode;
+  mediaBroken?: boolean;
+  onMediaBroken?: () => void;
 }
 
 const MessageContent: React.FC<MessageContentProps> = ({
@@ -39,6 +40,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
   isAudioPlaying,
   setPlayingMessageId,
   trailing,
+  mediaBroken = false,
+  onMediaBroken,
 }) => {
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
@@ -75,12 +78,6 @@ const MessageContent: React.FC<MessageContentProps> = ({
   if (message.content.album?.length) {
     return withCaption(<AlbumMessage items={message.content.album} viewerInfo={viewerInfo} />, true);
   }
-  if (fileUrl && isVideoAttachment(message.content)) {
-    const { image_width: width, image_height: height, thumbnail_url: poster } = message.content;
-    return withCaption(<VideoMessage key={fullFileUrl}
-      preview={{ url: fullFileUrl, name: fileName, poster: poster ? resolveMediaUrl(poster) : undefined }}
-      aspectRatio={width && height ? Math.max(0.9, Math.min(2.3, width / height)) : undefined} />);
-  }
 
   const audioPlayer = (
     <AudioMessage
@@ -95,7 +92,10 @@ const MessageContent: React.FC<MessageContentProps> = ({
   );
 
   if (message.content.file_type === 'voice') return withCaption(audioPlayer);
-  if (config?.isSpecial && config.replyText === translations.image) {
+  const isVideo = !!fileUrl && isVideoAttachment(message.content);
+  const isPicture = !isVideo && config?.isSpecial && config.replyText === translations.image;
+  if (mediaBroken && isPicture) return withCaption(<FileMessage config={config} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile} />);
+  if (isVideo || isPicture) {
     return withCaption(
       <ImageMessage
         fileUrl={fullFileUrl}
@@ -104,6 +104,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
         height={message.content.image_height}
         fileName={fileName}
         isMine={isOwnMessage(message)}
+        isVideo={isVideo}
+        onBroken={onMediaBroken}
         viewerInfo={viewerInfo}
       />,
       true

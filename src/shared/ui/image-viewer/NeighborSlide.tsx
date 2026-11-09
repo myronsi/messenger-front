@@ -1,5 +1,6 @@
-import { ImageOff } from 'lucide-react';
+import { Film, ImageOff } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import type { ViewerImage } from './ImageViewer';
 
 interface Props {
@@ -12,7 +13,23 @@ interface Props {
   onError: () => void;
 }
 
+const slideClass = 'h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw] select-none rounded-lg object-contain';
+
 export function NeighborSlide({ image, direction, offset, gesturing, broken, onLoad, onError }: Props) {
+  const content = () => {
+    if (broken) return <ImageOff className="h-10 w-10 text-white/70" />;
+    if (!image.isVideo) {
+      return <AuthenticatedImage src={image.url} loading="eager" alt="" className={slideClass} draggable={false} onLoad={onLoad} onError={onError} />;
+    }
+    return (
+      <>
+        {image.previewUrl
+          ? <AuthenticatedImage src={image.previewUrl} loading="eager" alt="" className={slideClass} draggable={false} />
+          : <Film className="h-12 w-12 text-white/30" />}
+        <VideoPlayBadge size="lg" className="absolute inset-0 m-auto" />
+      </>
+    );
+  };
   return (
     <div
       aria-hidden="true"
@@ -24,17 +41,7 @@ export function NeighborSlide({ image, direction, offset, gesturing, broken, onL
         willChange: gesturing ? 'transform' : undefined,
       }}
     >
-      {broken ? <ImageOff className="h-10 w-10 text-white/70" /> : (
-        <AuthenticatedImage
-          src={image.url}
-          loading="eager"
-          alt=""
-          className="h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw] select-none rounded-lg object-contain"
-          draggable={false}
-          onLoad={onLoad}
-          onError={onError}
-        />
-      )}
+      {content()}
     </div>
   );
 }

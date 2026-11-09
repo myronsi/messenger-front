@@ -14,7 +14,7 @@ import ReplyEditBar from './ReplyEditBar';
 import ComposerActionButton from './ComposerActionButton';
 import ComposerNotice from './ComposerNotice';
 import RecordingBar from './RecordingBar';
-import SelectedFileChip from './SelectedFileChip';
+import SelectedFiles from './SelectedFiles';
 import { useFileDrop } from '../model/useFileDrop';
 
 interface MessageInputProps {
@@ -225,12 +225,10 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
           <ComposerNotice key={errorMessage} message={errorMessage} closeLabel={translations.close || 'Close'} onDismiss={dismissError} />
         )}
         {hasSelectedFile && (
-          <div className="flex gap-2 overflow-x-auto">
-            {selectedFiles.map((file, index) => (
-              <SelectedFileChip key={`${file.name}-${index}`} file={file} removeLabel={translations.removeFile}
-                onRemove={() => setSelectedFiles(current => current.filter((_, item) => item !== index))} />
-            ))}
-          </div>
+          <SelectedFiles files={selectedFiles} removeLabel={translations.removeFile} addLabel={translations.attachFile}
+            canAdd={albumsEnabled && selectedFiles.length < MAX_ALBUM_ITEMS && !isDisabled}
+            onAdd={() => fileInputRef.current?.click()}
+            onRemove={(index) => setSelectedFiles(current => current.filter((_, item) => item !== index))} />
         )}
         <div className="flex items-end gap-2">
           <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">

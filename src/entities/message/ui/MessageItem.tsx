@@ -3,7 +3,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import React, { MutableRefObject, memo } from 'react';
+import React, { MutableRefObject, memo, useState } from 'react';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import { combineTouchHandlers, useSwipeAction } from '@/shared/lib/useSwipeAction';
 import SwipeReplyIcon from './SwipeReplyIcon';
@@ -94,7 +94,7 @@ interface MessageItemProps {
   onSwipeReply?: (message: Message) => void;
 }
 const MessageItem: React.FC<MessageItemProps> = ({
-  message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage, isMobile, showNewMessagesMarker,
+  message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage: isImageMessage, isMobile, showNewMessagesMarker,
   nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
   observerRef, firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
   renderMessageContent, isAudioPlaying, setPlayingMessageId,
@@ -103,6 +103,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const longPress = useLongPress(onLongPress && !onToggleSelect ? () => onLongPress(message) : undefined);
   const isMine = isOwnMessage(message);
+  const [mediaBroken, setMediaBroken] = useState(false), isImage = isImageMessage && !mediaBroken;
   const canSwipe = !!onSwipeReply && !onToggleSelect && isPersistedId(message.id) && !message.is_deleted && !interlocutorDeleted;
   const swipe = useSwipeAction(isMine ? -1 : 1, canSwipe ? () => onSwipeReply?.(message) : undefined);
   const reducedMotion = prefersReducedMotion();
@@ -245,8 +246,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 {message.is_deleting && !reducedMotion && <DissolveParticles />}
                 <MessageContent
                   message={message}
-                  isMobile={isMobile}
-                  translations={translations}
+                  isMobile={isMobile} mediaBroken={mediaBroken} onMediaBroken={() => setMediaBroken(true)} translations={translations}
                   getFileTypeConfig={getFileTypeConfig}
                   isOwnMessage={isOwnMessage}
                   renderMessageContent={renderMessageContent}

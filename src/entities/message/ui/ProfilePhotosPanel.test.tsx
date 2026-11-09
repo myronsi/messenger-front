@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ProfilePhotosPanel, type ProfilePhotoItem } from './ProfileChatPanels';
 
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { playVideo: "Play video", close: "Close", seekVideo: "Seek through video" }, language: 'en' }) }));
+vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { playVideo: "Play video", close: "Close", seekVideo: "Seek through video", videoRewind: 'Back {count} seconds', videoForward: 'Forward {count} seconds', videoSeconds: '{count} s' }, language: 'en' }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', async () => {
   const { forwardRef } = await import('react');
   return { AuthenticatedImage: forwardRef<HTMLImageElement, React.ImgHTMLAttributes<HTMLImageElement>>((props, ref) => <img ref={ref} {...props} />) };
@@ -14,16 +14,20 @@ const photos: ProfilePhotoItem[] = ['one', 'two', 'three'].map((name, index) => 
 }));
 
 describe('ProfilePhotosPanel', () => {
-  it('opens video controls only after selecting a shared video', () => {
+  it('opens a shared video in the same gallery as the photos, with video controls', () => {
     const clip: ProfilePhotoItem = {
-      ...photos[0], isVideo: true, name: 'clip.webm', url: 'https://example.test/clip.webm',
+      ...photos[1], id: 'clip', isVideo: true, name: 'clip.webm', url: 'https://example.test/clip.webm',
     };
-    render(<ProfilePhotosPanel photos={[clip]} />);
+    render(<ProfilePhotosPanel photos={[photos[0], clip, photos[2]]} />);
     expect(screen.queryByRole('slider')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Play video clip.webm' }));
-    expect(screen.getByRole('dialog')).toHaveAccessibleName('clip.webm');
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'clip.webm');
+    expect(screen.getByText('2 / 3')).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: 'Seek through video' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'three.png');
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
