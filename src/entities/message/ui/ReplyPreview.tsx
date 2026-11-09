@@ -4,6 +4,8 @@ import { Message } from '../model/types';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
+import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
+import { attachmentAspect } from '../model/drawAction';
 
 interface ReplyPreviewProps {
   replyMessage: Message | undefined;
@@ -19,13 +21,15 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isRep
   const { translations } = useLanguage();
   const { getFileTypeConfig } = useFileTypes();
 
-  const describe = (message: Message | undefined): { text: string; imageUrl?: string; muted?: boolean } => {
+  const describe = (message: Message | undefined): { text: string; imageUrl?: string; drawing?: Drawing | null; aspect?: number; muted?: boolean } => {
     if (!message) return { text: translations.replyUnavailable, muted: true };
     if (message.is_deleted) return { text: translations.messageDeleted, muted: true };
     if (message.type === 'file' && typeof message.content !== 'string') {
       const { file_name: fileName = '', file_type: fileType, caption, thumbnail_url: thumbnail, file_url: url } = message.content;
       if (fileType === 'voice') return { text: translations.voiceMessage };
-      if (url && IMAGE_NAME.test(fileName)) return { text: caption || '', imageUrl: resolveMediaUrl(thumbnail || url) };
+      if (url && IMAGE_NAME.test(fileName)) {
+        return { text: caption || '', imageUrl: resolveMediaUrl(thumbnail || url), drawing: message.content.drawing, aspect: attachmentAspect(message.content) };
+      }
       return { text: caption || getFileTypeConfig(fileName)?.replyText || fileName || 'File' };
     }
     return { text: typeof message.content === 'string' ? message.content : message.content.file_name || 'File' };
@@ -47,7 +51,10 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isRep
       } ${isMine ? 'border-primary-foreground/80 bg-primary-foreground/15 hover:bg-primary-foreground/20' : 'border-primary bg-primary/10 hover:bg-primary/15'}`}
     >
       {content.imageUrl && (
-        <AuthenticatedImage src={content.imageUrl} alt="" className="h-9 w-9 shrink-0 rounded object-cover" draggable={false} />
+        <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded">
+          <AuthenticatedImage src={content.imageUrl} alt="" className="h-full w-full object-cover" draggable={false} />
+          <DrawingOverlay drawing={content.drawing} aspect={content.aspect} />
+        </span>
       )}
       <span className="min-w-0 flex-1">
         {sender && (

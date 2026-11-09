@@ -3,6 +3,9 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { ImageViewer, type ViewerImage, type ViewerImageInfo } from '@/shared/ui/image-viewer';
 import type { MessageAttachment } from '../model/types';
 import { isVideoAttachment } from '../model/videoAttachment';
+import { attachmentAspect, drawActionFor } from '../model/drawAction';
+import { useImageDrawing } from '@/shared/ui/drawing';
+import type { EntityId } from '@/shared/api/entityId';
 import MediaTile from './MediaTile';
 
 const ROW_SIZES: Record<number, number[]> = {
@@ -27,22 +30,27 @@ const rowAspect = (ratios: number[]) => {
 };
 
 interface AlbumMessageProps {
+  messageId: EntityId;
   items: MessageAttachment[];
   viewerInfo: ViewerImageInfo;
 }
 
-export default function AlbumMessage({ items, viewerInfo }: AlbumMessageProps) {
+export default function AlbumMessage({ messageId, items, viewerInfo }: AlbumMessageProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const media = useMemo(() => items.map((item, index) => ({
-    index,
-    ratio: ratioOf(item),
-    isVideo: isVideoAttachment(item),
-    url: resolveMediaUrl(item.file_url),
-    poster: item.thumbnail_url ? resolveMediaUrl(item.thumbnail_url) : undefined,
-    name: item.file_name,
-  })), [items]);
+  const drawing = useImageDrawing();
+  const media = useMemo(() => items.map((item, index) => {
+    const isVideo = isVideoAttachment(item);
+    const url = resolveMediaUrl(item.file_url);
+    const draw = isVideo ? undefined : drawActionFor(drawing, messageId, item, url);
+    return {
+      index, ratio: ratioOf(item), isVideo, url, name: item.file_name, drawing: item.drawing, aspect: attachmentAspect(item),
+      poster: item.thumbnail_url ? resolveMediaUrl(item.thumbnail_url) : undefined,
+      onDraw: draw && (() => draw(() => setOpenIndex(null))),
+    };
+  }), [drawing, items, messageId]);
   const viewerItems = useMemo<ViewerImage[]>(() => media.map((item) => ({
     url: item.url, name: item.name, previewUrl: item.poster, isVideo: item.isVideo, info: viewerInfo,
+    drawing: item.drawing, aspect: item.aspect, onDraw: item.onDraw,
   })), [media, viewerInfo]);
 
   return (
@@ -51,7 +59,7 @@ export default function AlbumMessage({ items, viewerInfo }: AlbumMessageProps) {
         <div key={row[0].index} className="flex gap-0.5" style={{ aspectRatio: rowAspect(row.map((item) => item.ratio)) }}>
           {row.map((item) => (
             <MediaTile key={`${item.url}-${item.index}`} url={item.url} poster={item.poster} name={item.name} isVideo={item.isVideo}
-              badge={row.length > 2 ? 'sm' : 'md'} className="h-full" style={{ flex: `${item.ratio} 1 0%` }}
+              badge={row.length > 2 ? 'sm' : 'md'} className="h-full" style={{ flex: `${item.ratio} 1 0%` }} drawing={item.drawing} aspect={item.aspect}
               onOpen={() => setOpenIndex(item.index)} />
           ))}
         </div>

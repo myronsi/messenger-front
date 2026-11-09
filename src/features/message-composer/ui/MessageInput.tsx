@@ -14,8 +14,11 @@ import ReplyEditBar from './ReplyEditBar';
 import ComposerActionButton from './ComposerActionButton';
 import ComposerNotice from './ComposerNotice';
 import RecordingBar from './RecordingBar';
+import VoicePreviewBar from './VoicePreviewBar';
 import SelectedFiles from './SelectedFiles';
 import { useFileDrop } from '../model/useFileDrop';
+import { useFileDrawings } from '../model/useFileDrawings';
+import type { Drawing } from '@/shared/ui/drawing';
 
 interface MessageInputProps {
   messageInput: string;
@@ -23,7 +26,7 @@ interface MessageInputProps {
   replyTo: Message | null;
   editingMessage: Message | null;
   onSendMessage: () => void;
-  onFileUpload: (file: File | File[], caption?: string) => void;
+  onFileUpload: (file: File | File[], caption?: string, drawings?: (Drawing | undefined)[]) => void;
   onCancelReplyOrEdit: () => void;
   chatId: EntityId;
   token: string;
@@ -63,20 +66,21 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const rootRef = useRef<HTMLDivElement>(null);
   const replyToRef = useLatestRef(replyTo);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileDrawings = useFileDrawings(selectedFiles);
   const albumsEnabled = isGoApi();
   const isDisabled = disabled || isSending;
   const isEditing = !!editingMessage;
   const hasSelectedFile = selectedFiles.length > 0 && !isEditing;
   const hasDraft = messageInput.trim().length > 0 || hasSelectedFile;
   const isUnchangedEdit = isEditing && messageInput.trim() === editableCaption(editingMessage).trim();
-  const canSend = (hasDraft || isEditing) && !isUnchangedEdit;
   const {
     isRecording, isStarting, recordingDuration, liveStream, isPaused, togglePause,
-    errorMessage, setErrorMessage, stopRecording, handleStartRecording,
+    errorMessage, setErrorMessage, stopRecording, handleStartRecording, preview: voicePreview, sendPreview, discardPreview, setPreviewTrim,
   } = useVoiceRecorder({
     chatId, isDisabled, disableVoice, onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete,
     getReplyToId: () => replyToRef.current?.id ?? null,
   });
+  const canSend = ((hasDraft || isEditing) && !isUnchangedEdit) || !!voicePreview;
 
   useLayoutEffect(() => {
     const field = inputRef.current;
@@ -114,7 +118,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
       return;
     }
     if (hasSelectedFile) {
-      onFileUpload(selectedFiles.length === 1 ? selectedFiles[0] : selectedFiles, messageInput);
+      onFileUpload(selectedFiles.length === 1 ? selectedFiles[0] : selectedFiles, messageInput, fileDrawings.drawingsOf(selectedFiles));
       setSelectedFiles([]);
       setMessageInput('');
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -191,8 +195,10 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
       cancelKeepingFocus();
       return;
     }
-    if (isRecording) {
-      stopRecording();
+    if (voicePreview) {
+      void sendPreview();
+    } else if (isRecording) {
+      stopRecording({ preview: true });
     } else if (!isStarting && canSend) {
       sendAndKeepFocus();
     } else if (!isStarting) {
@@ -228,11 +234,12 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
           <SelectedFiles files={selectedFiles} removeLabel={translations.removeFile} addLabel={translations.attachFile}
             canAdd={albumsEnabled && selectedFiles.length < MAX_ALBUM_ITEMS && !isDisabled}
             onAdd={() => fileInputRef.current?.click()}
-            onRemove={(index) => setSelectedFiles(current => current.filter((_, item) => item !== index))} />
+            onRemove={(index) => setSelectedFiles(current => current.filter((_, item) => item !== index))}
+            drawings={fileDrawings.drawings} onDrawingChange={isGoApi() ? fileDrawings.setDrawing : undefined} />
         )}
         <div className="flex items-end gap-2">
           <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">
-            {!isRecording && (
+            {!isRecording && !voicePreview && (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -244,26 +251,14 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 <Paperclip className="w-5 h-5" />
               </button>
             )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              multiple={albumsEnabled}
-              data-testid="message-file-input"
-              onChange={handleSelectedFileChange}
-              accept={UPLOAD_ACCEPT}
-              className="hidden"
-            />
+            <input type="file" ref={fileInputRef} multiple={albumsEnabled} data-testid="message-file-input"
+              onChange={handleSelectedFileChange} accept={UPLOAD_ACCEPT} className="hidden" />
             {isRecording ? (
-              <RecordingBar
-                seconds={recordingDuration}
-                stream={liveStream}
-                locked={hold.locked}
-                paused={isPaused}
-                pauseLabel={translations.pauseRecording}
-                resumeLabel={translations.resumeRecording}
-                onTogglePause={togglePause}
-                onDiscard={() => stopRecording({ discard: true })}
-              />
+              <RecordingBar seconds={recordingDuration} stream={liveStream} locked={hold.locked} paused={isPaused}
+                pauseLabel={translations.pauseRecording} resumeLabel={translations.resumeRecording} onTogglePause={togglePause}
+                cancelLabel={translations.voicePreviewDelete} onDiscard={() => stopRecording({ discard: true })} />
+            ) : voicePreview ? (
+              <VoicePreviewBar preview={voicePreview} onDiscard={discardPreview} onTrim={setPreviewTrim} />
             ) : (
               <textarea
                 rows={1}

@@ -19,29 +19,25 @@ import { useFadeClose } from './useFadeClose';
 import { BackToClose } from '@/shared/ui/BackToClose';
 import { mobileImageDirection } from './mobileImageDirection';
 import { MobileGalleryEdges } from './MobileGalleryEdges';
-import ImageViewerHeader, { type ViewerImageInfo } from './ImageViewerHeader';
+import ImageViewerHeader from './ImageViewerHeader';
+import { DrawingOverlay } from '@/shared/ui/drawing';
+import type { ViewerImage } from './viewerTypes';
+export type { ViewerImage } from './viewerTypes';
 const KEY_PAN_STEP = 80;
-export interface ViewerImage {
-  url: string;
-  name: string;
-  downloadName?: string;
-  previewUrl?: string;
-  isVideo?: boolean;
-  thumbnailSource?: string;
-  info?: ViewerImageInfo;
-  onShowInChat?: () => void;
-  onDelete?: () => Promise<void>;
-}
 interface ImageViewerProps {
   images: ViewerImage[];
   initialIndex?: number;
   onClose: () => void;
 }
 const stopPropagation = (event: React.SyntheticEvent) => event.stopPropagation();
+const naturalAspect = (media: ViewerMedia | null) => (
+  media instanceof HTMLImageElement && media.naturalHeight ? media.naturalWidth / media.naturalHeight : undefined
+);
 const preloadSource = (item?: ViewerImage) => (item?.isVideo ? item.previewUrl : item?.url);
 const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onClose }) => {
   const { translations } = useLanguage();
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const [isStageMounted, setIsStageMounted] = useState(false);
   const openerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   const setStage = useCallback((node: HTMLDivElement | null) => {
@@ -105,6 +101,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   useEffect(() => {
     const zoomed = view.scale > 1;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof Element && event.target.closest('[role="dialog"]') && !rootRef.current?.contains(event.target)) return;
       if (confirmingRef.current) {
         if (event.key === 'Escape') {
           event.preventDefault();
@@ -148,7 +145,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadImage(image.url, image.downloadName || image.name);
+      await downloadImage(image.url, image.downloadName || image.name, image.drawing);
     } finally {
       setIsDownloading(false);
     }
@@ -194,6 +191,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
           onEscapeKeyDown={(event) => event.preventDefault()}
         >
           <div
+            ref={rootRef}
             aria-label={image.name}
             className="motion-image-viewer-backdrop fixed inset-0 z-[9999] bg-black flex flex-col outline-none [-webkit-tap-highlight-color:transparent]"
             style={{ isolation: 'isolate', backgroundColor: `rgba(0, 0, 0, ${Math.max(0, 1 - swipeY / Math.max(1, window.innerHeight * 0.65))})`, transition: isGesturing ? 'none' : 'background-color 240ms ease-out' }}
@@ -213,7 +211,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             <ImageViewerHeader info={image.info} index={index} total={images.length} onShowInChat={image.onShowInChat} onClose={onClose} />
             <ViewerToolbar
               canDownload={!isBroken || isVideo} isDownloading={isDownloading} deleteButtonRef={deleteButtonRef}
-              onZoom={zoomBy} onDownload={() => void handleDownload()} onClose={fadeClose}
+              onZoom={zoomBy} onDownload={() => void handleDownload()} onClose={fadeClose} onDraw={!isBroken && !isVideo ? image.onDraw : undefined}
               onDelete={image.onDelete ? () => setDeleting({ url: image.url, busy: false, failed: false }) : undefined}
             />
             {deleteState && (
@@ -286,6 +284,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                       onLoad={markCurrentLoaded} onError={markCurrentBroken}
                     />
                   )}
+                  {isLoaded && !isVideo && <DrawingOverlay drawing={image.drawing} aspect={image.aspect ?? naturalAspect(imageRef.current)} fit="contain"
+                    className="pointer-events-none absolute inset-0 m-auto h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw]" style={mediaStyle} />}
                 </>
               )}
             </div>

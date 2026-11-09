@@ -9,7 +9,8 @@ import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { applyMessageEdit, editableText, mergeIncomingMessage } from './messageUpdates';
 import { createdMessage, unconfirmedSends, useUnsentMessageRelease } from './unsentMessages';
-import { appendMessageFiles, createLocalFileContent } from './uploadFileType';
+import { appendMessageFiles, createLocalFileContent, type UploadFile } from './uploadFileType';
+import type { Drawing } from '@/shared/ui/drawing';
 import { createOptimisticMessage } from './optimisticMessage';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
@@ -78,7 +79,7 @@ export const useMessageSender = ({
   const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
   const sentRef = useRef(new Map<string, OutgoingPayload>());
 
-  const createOptimisticFileMessage = (files: { file: Blob; fileName: string }[], caption: string, fileType?: string) => {
+  const createOptimisticFileMessage = (files: UploadFile[], caption: string, fileType?: string) => {
     const tempId = createTempMessageId();
     const reply = replyToRef.current;
     if (reply) setReplyTo(null);
@@ -124,7 +125,7 @@ export const useMessageSender = ({
     if (saved) setMessages((previous) => mergeIncomingMessage(previous, saved));
   };
 
-  const uploadOptimisticMessage = async (messageId: EntityId, files: { file: Blob; fileName: string }[], voice: boolean, replyToId?: EntityId | null, caption = '') => {
+  const uploadOptimisticMessage = async (messageId: EntityId, files: UploadFile[], voice: boolean, replyToId?: EntityId | null, caption = '') => {
     const formData = new FormData();
     appendMessageFiles(formData, files);
     formData.append('chat_id', chatId.toString());
@@ -257,8 +258,8 @@ export const useMessageSender = ({
     wsRef.current.send(JSON.stringify({ type: 'resend', message_id: message.id }));
   };
 
-  const handleFileUpload = async (selection: File | File[], caption = '') => {
-    const files = (Array.isArray(selection) ? selection : [selection]).map(file => ({ file, fileName: file.name }));
+  const handleFileUpload = async (selection: File | File[], caption = '', drawings: (Drawing | undefined)[] = []) => {
+    const files = (Array.isArray(selection) ? selection : [selection]).map((file, index) => ({ file, fileName: file.name, drawing: drawings[index] }));
     if (files.length === 0) return;
     const replyToId = replyToRef.current?.id;
     const optimisticMessageId = createOptimisticFileMessage(files, caption);

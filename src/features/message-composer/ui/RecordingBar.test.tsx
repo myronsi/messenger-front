@@ -7,7 +7,7 @@ vi.mock('./LiveWaveform', () => ({ default: () => <div data-testid="live-wavefor
 const renderBar = (locked: boolean, paused = false) => {
   const onTogglePause = vi.fn();
   const onDiscard = vi.fn();
-  render(<RecordingBar seconds={4} stream={null} locked={locked} paused={paused} pauseLabel="Pause" resumeLabel="Resume" onTogglePause={onTogglePause} onDiscard={onDiscard} />);
+  render(<RecordingBar seconds={4} stream={null} locked={locked} paused={paused} pauseLabel="Pause" resumeLabel="Resume" cancelLabel="Delete" onTogglePause={onTogglePause} onDiscard={onDiscard} />);
   return { onTogglePause, onDiscard };
 };
 
@@ -15,13 +15,19 @@ describe('RecordingBar', () => {
   it('offers pause only once the recording is locked', () => {
     renderBar(false);
     expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument();
-    expect(screen.getByText('4s')).toBeInTheDocument();
+    expect(screen.getByText('0:04')).toBeInTheDocument();
   });
 
   it('pauses and resumes a locked recording', () => {
     const { onTogglePause } = renderBar(true);
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     expect(onTogglePause).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes the recording', () => {
+    const { onDiscard } = renderBar(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onDiscard).toHaveBeenCalledTimes(1);
   });
 
   it('shows resume while paused', () => {

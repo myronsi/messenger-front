@@ -14,6 +14,8 @@ export const userModel = (user: Schema['User']) => ({
 });
 
 const attachmentModel = (attachment: Schema['Attachment']) => ({
+  attachment_id: attachment.id,
+  drawing: attachment.drawing,
   file_url: attachment.url,
   file_name: attachment.filename,
   file_type: attachment.kind === 'voice' ? 'voice' : attachment.content_type,

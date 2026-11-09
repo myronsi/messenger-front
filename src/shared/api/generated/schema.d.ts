@@ -2873,6 +2873,54 @@ export interface components {
             readonly display_url?: string | null;
             duration_ms?: number | null;
             waveform?: number[] | null;
+            /**
+             * @description What the sender drew on this image of this message. Clients show the image with the drawing on top
+             *     and never without it. Absent when the image has no drawing. The same image can carry another drawing
+             *     in another message.
+             */
+            drawing?: components["schemas"]["Drawing"];
+        };
+        /**
+         * @description Strokes and text labels on an image. Coordinates, widths and sizes are fractions of the image as it is
+         *     shown (0 is the left or top edge, 1 the right or bottom edge), so the drawing fits any display size.
+         *     Items are drawn in order. The server rounds numbers to four decimals.
+         */
+        Drawing: {
+            version: number;
+            items: components["schemas"]["DrawingItem"][];
+        };
+        DrawingItem: {
+            /** @enum {string} */
+            type: "stroke" | "text";
+            color: string;
+            /**
+             * Format: double
+             * @description Stroke only. Line width as a fraction of the image width.
+             */
+            width?: number;
+            /** @description Stroke only. Flat list of x, y pairs. A drawing has at most 10000 numbers in all its strokes. */
+            points?: number[];
+            /**
+             * Format: double
+             * @description Text only. Left edge of the label.
+             */
+            x?: number;
+            /**
+             * Format: double
+             * @description Text only. Top edge of the label.
+             */
+            y?: number;
+            /**
+             * Format: double
+             * @description Text only. Font height as a fraction of the image height.
+             */
+            size?: number;
+            /** @description Text only. */
+            text?: string;
+        };
+        AttachmentDrawing: {
+            attachment_id: components["schemas"]["AttachmentRef"];
+            drawing: components["schemas"]["Drawing"];
         };
         /** @enum {string} */
         MediaKind: "image" | "audio" | "visual";
@@ -2992,6 +3040,12 @@ export interface components {
             /** @description Ordered IDs of two to ten image or video uploads for one file message. */
             attachment_ids?: components["schemas"]["AttachmentRef"][];
             reply_to?: components["schemas"]["Id"] | null;
+            /**
+             * @description Drawings on images of a `file` message, at most one per image. Each `attachment_id` must be one of the
+             *     message's attachments. An image with a drawing may also be an image of the message in `reply_to`
+             *     instead of the sender's own upload: that is how a member draws on an image someone sent.
+             */
+            drawings?: components["schemas"]["AttachmentDrawing"][];
         };
         EditMessageRequest: {
             /** @description New text, or the new caption of a file. Empty removes a file's caption; a text message rejects it. */

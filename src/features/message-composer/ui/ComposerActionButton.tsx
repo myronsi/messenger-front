@@ -18,8 +18,10 @@ interface ComposerActionButtonProps {
 const LABELS: Record<Exclude<Mode, 'cancel'>, string> = {
   send: 'Send message',
   voice: 'Hold to record a voice message',
-  recording: 'Stop recording and send',
+  recording: 'Stop recording and listen',
 };
+
+const HOLDING_LABEL = 'Release to send, slide up to lock';
 
 const icon = (visible: boolean, from: 'above' | 'below') => `absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${
   visible ? 'translate-y-0 scale-100 opacity-100' : `${from === 'above' ? '-translate-y-2' : 'translate-y-2'} scale-75 opacity-0`
@@ -29,6 +31,8 @@ const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
   mode, disabled, cancelLabel, editLabel, onClick, holding = false, lift = 0, holdHandlers,
 }) => {
   const progress = Math.min(1, lift / LOCK_DISTANCE);
+  const live = mode === 'recording' && !holding;
+  const calm = mode === 'send' || (mode === 'recording' && holding);
   return (
     <div className="relative shrink-0">
       <div
@@ -53,11 +57,11 @@ const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
         onContextMenu={(event) => event.preventDefault()}
         onClick={onClick}
         disabled={disabled}
-        aria-label={mode === 'cancel' ? cancelLabel : mode === 'send' && editLabel ? editLabel : LABELS[mode]}
+        aria-label={mode === 'cancel' ? cancelLabel : mode === 'send' && editLabel ? editLabel : mode === 'recording' && holding ? HOLDING_LABEL : LABELS[mode]}
         className={`motion-press relative flex h-14 w-14 touch-none select-none items-center justify-center overflow-hidden rounded-full ${
           holding ? '' : 'transition-[background-color,transform] duration-200'
         } ${
-          mode === 'recording' ? 'motion-presence bg-destructive text-destructive-foreground hover:bg-destructive/90' : mode === 'send' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-accent text-accent-foreground hover:bg-accent/90'
+          live ? 'motion-presence bg-destructive text-destructive-foreground hover:bg-destructive/90' : calm ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-accent text-accent-foreground hover:bg-accent/90'
         } disabled:opacity-50`}
         style={{ transform: lift ? `translateY(${-lift}px)` : undefined }}
       >
@@ -67,10 +71,10 @@ const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
         <span className={icon(mode === 'cancel', 'below')}>
           <X className="h-6 w-6" />
         </span>
-        <span className={icon(mode === 'voice', 'above')}>
+        <span className={icon(mode === 'voice' || (mode === 'recording' && holding), 'above')}>
           <Mic className="h-6 w-6" />
         </span>
-        <span className={icon(mode === 'recording', 'below')}>
+        <span className={icon(live, 'below')}>
           <Square className="h-5 w-5 fill-current" />
         </span>
       </button>

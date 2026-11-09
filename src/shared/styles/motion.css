@@ -361,3 +361,14 @@
     animation: videoSkipArrow 720ms ease-in-out infinite;
   }
 }
+
+@layer base {
+  @keyframes drawingCaretBlink {
+    0%, 45% { opacity: 1; }
+    55%, 100% { opacity: 0; }
+  }
+
+  .motion-drawing-caret {
+    animation: drawingCaretBlink 1.06s step-end infinite;
+  }
+}

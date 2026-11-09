@@ -13,6 +13,8 @@ import { LinkedMessageText } from './LinkedMessageText';
 import { MessageTextBody } from './MessageTextBody';
 import LinkPreviewCard from './LinkPreviewCard';
 import { messageLinks } from '@/shared/lib/messageLinks';
+import { useImageDrawing } from '@/shared/ui/drawing';
+import { drawActionFor } from '../model/drawAction';
 
 
 
@@ -43,6 +45,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   mediaBroken = false,
   onMediaBroken,
 }) => {
+  const imageDrawing = useImageDrawing();
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
     if (typeof content !== 'string') return <>{content}{trailing}</>;
@@ -76,7 +79,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
     avatarName: message.sender, avatarUrl: message.avatar_url, sentAt: message.timestamp,
   };
   if (message.content.album?.length) {
-    return withCaption(<AlbumMessage items={message.content.album} viewerInfo={viewerInfo} />, true);
+    return withCaption(<AlbumMessage messageId={message.id} items={message.content.album} viewerInfo={viewerInfo} />, true);
   }
 
   const audioPlayer = (
@@ -107,6 +110,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
         isVideo={isVideo}
         onBroken={onMediaBroken}
         viewerInfo={viewerInfo}
+        drawing={message.content.drawing}
+        onDraw={isVideo ? undefined : drawActionFor(imageDrawing, message.id, message.content, fullFileUrl)}
       />,
       true
     );

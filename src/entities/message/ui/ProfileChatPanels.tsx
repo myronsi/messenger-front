@@ -12,6 +12,7 @@ import { getSearchText } from '../model/searchText';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 import { ImageViewer } from '@/shared/ui/image-viewer';
+import type { Drawing } from '@/shared/ui/drawing';
 
 
 
@@ -25,6 +26,8 @@ export interface ProfilePhotoItem {
   url: string;
   thumbnailUrl: string;
   isVideo?: boolean;
+  drawing?: Drawing | null;
+  aspect?: number;
   name: string;
   timestamp: string;
   sender?: string;
@@ -55,6 +58,8 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
         url: url ? normalizeProfileMediaUrl(url) : '',
         thumbnailUrl: photo.thumbnail_url ? normalizeProfileMediaUrl(photo.thumbnail_url) : (url && !isVideo ? normalizeProfileMediaUrl(url) : ''),
         isVideo,
+        drawing: photo.drawing,
+        aspect: photo.image_width && photo.image_height ? photo.image_width / photo.image_height : undefined,
         name,
         timestamp: photo.timestamp,
         sender: photo.sender,
@@ -172,7 +177,10 @@ export const ProfilePhotosPanel: React.FC<{
       ? { sender: isMine ? translations.replyFromYou : photo.sender, avatarName: photo.sender, avatarUrl: photo.avatarUrl, sentAt: photo.timestamp }
       : undefined;
     const onShowInChat = onJumpToMessage && isPersistedId(photo.id) ? () => onJumpToMessage(photo.id) : undefined;
-    return { url: photo.url, name: photo.name, previewUrl: photo.thumbnailUrl || undefined, isVideo: !!photo.isVideo, info, onShowInChat };
+    return {
+      url: photo.url, name: photo.name, previewUrl: photo.thumbnailUrl || undefined, isVideo: !!photo.isVideo, info, onShowInChat,
+      drawing: photo.drawing, aspect: photo.aspect,
+    };
   }), [currentUsername, onJumpToMessage, photos, translations.replyFromYou]);
 
   return (
@@ -197,7 +205,7 @@ export const ProfilePhotosPanel: React.FC<{
           <div className="grid grid-cols-3 gap-2">
             {photos.map((photo, index) => (
               <MediaTile key={String(photo.id) + photo.url} url={photo.url} poster={photo.thumbnailUrl || undefined} name={photo.name}
-                isVideo={!!photo.isVideo} badge="sm" className="aspect-square rounded-md" onOpen={() => setOpenIndex(index)} />
+                isVideo={!!photo.isVideo} badge="sm" className="aspect-square rounded-md" drawing={photo.drawing} aspect={photo.aspect} onOpen={() => setOpenIndex(index)} />
             ))}
           </div>
         </div>

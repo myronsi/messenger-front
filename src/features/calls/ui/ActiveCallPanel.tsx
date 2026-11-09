@@ -46,7 +46,7 @@ const ActiveCallPanel: React.FC<ActiveCallPanelProps> = ({ call, session, userId
   const name = title || translations.callPanelTitle;
 
   return (
-    <section aria-label={translations.callPanelTitle} className="flex h-full w-full flex-col bg-gradient-to-b from-muted/50 to-background">
+    <section aria-label={translations.callPanelTitle} className="flex h-full w-full flex-col bg-background bg-gradient-to-b from-muted/50 to-background">
       <header className="flex items-center gap-2 border-b border-border bg-background px-4 py-3">
         <h2 className="min-w-0 flex-1 truncate font-semibold">{translations.callPanelTitle}</h2>
         <Button variant="ghost" size="icon" aria-label={translations.callMinimize} title={translations.callMinimize} onClick={minimizeCall}>

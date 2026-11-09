@@ -1,4 +1,11 @@
 import type { FileMessageContent } from '@/entities/message';
+import type { Drawing } from '@/shared/ui/drawing';
+
+export interface UploadFile {
+  file: Blob;
+  fileName: string;
+  drawing?: Drawing;
+}
 
 export const getLocalUploadFileType = (fileName: string, mimeType = '') => {
   const extension = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
@@ -11,8 +18,9 @@ export const getLocalUploadFileType = (fileName: string, mimeType = '') => {
   if (['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css'].includes(extension)) return 'code';
   return 'none';
 };
-export const createLocalFileContent = (files: readonly { file: Blob; fileName: string }[], caption: string, firstType?: string): FileMessageContent => {
-  const items = files.map(({ file, fileName }) => ({
+export const createLocalFileContent = (files: readonly UploadFile[], caption: string, firstType?: string): FileMessageContent => {
+  const items = files.map(({ file, fileName, drawing }) => ({
+    drawing,
     file_url: URL.createObjectURL(file),
     file_name: fileName,
     file_type: getLocalUploadFileType(fileName, file.type),
@@ -26,6 +34,7 @@ export const createLocalFileContent = (files: readonly { file: Blob; fileName: s
   };
 };
 
-export const appendMessageFiles = (form: FormData, files: readonly { file: Blob; fileName: string }[]) => {
+export const appendMessageFiles = (form: FormData, files: readonly UploadFile[]) => {
   for (const { file, fileName } of files) form.append('file', file, fileName);
+  if (files.some((item) => item.drawing)) form.append('drawings', JSON.stringify(files.map((item) => item.drawing ?? null)));
 };

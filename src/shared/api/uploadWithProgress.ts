@@ -72,10 +72,13 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
       });
       attachmentIds.push(attachment.id);
     }
+    const drawn = JSON.parse(String(options.formData.get('drawings') || '[]')) as (components['schemas']['Drawing'] | null)[];
+    const drawings = attachmentIds.flatMap((id, index) => (drawn[index] ? [{ attachment_id: id, drawing: drawn[index] }] : []));
     const message: components['schemas']['SendMessageRequest'] = {
       client_temp_id: String(options.formData.get('client_temp_id') || crypto.randomUUID()), type: voice ? 'voice' : 'file',
       ...(attachmentIds.length > 1 ? { attachment_ids: attachmentIds } : { attachment_id: attachmentIds[0] }),
       content: (options.formData.get('caption') as string | null) || null, reply_to: (options.formData.get('reply_to') as string | null) || null,
+      ...(drawings.length ? { drawings } : {}),
     };
     const response = await authFetch(`${base}/chats/${options.formData.get('chat_id')}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(message),
