@@ -1432,6 +1432,283 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stickers/packs": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The user's sticker packs
+         * @description The packs of the sticker panel: packs the user added, most recently added first, then the built-in default
+         *     packs the user has not removed. Each pack lists its stickers in order. At most 200 packs. With
+         *     `owned=true`, the packs the user made instead, newest first, whether in the panel or not.
+         */
+        get: operations["listStickerPacks"];
+        put?: never;
+        /**
+         * Create a sticker pack
+         * @description A new, empty pack owned by the user, added to the top of their panel. Its `slug` is the share link
+         *     (`/stickers/links/{slug}`). At most 50 packs per user (`409 limit_reached`).
+         */
+        post: operations["createStickerPack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stickers/packs/{pack_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * A sticker pack
+         * @description A built-in pack, the user's own pack, or a user pack the user opened by its link before (`404` otherwise,
+         *     so packs cannot be found by guessing IDs). To preview the pack of a sticker someone sent, open
+         *     `Sticker.pack_slug` with `GET /stickers/links/{slug}` instead. `is_installed` tells whether it is in the
+         *     user's panel. A hidden pack is found only by its owner.
+         */
+        get: operations["getStickerPack"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a sticker pack
+         * @description Only the owner. The pack leaves every panel and its link stops working; stickers already sent from it keep
+         *     showing in chats.
+         */
+        delete: operations["deleteStickerPack"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a sticker pack
+         * @description Only the owner of the pack (`403` otherwise). Built-in packs cannot be changed.
+         */
+        patch: operations["updateStickerPack"];
+        trace?: never;
+    };
+    "/stickers/packs/{pack_id}/installation": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add a sticker pack to the user's panel
+         * @description Adding a pack the user has moves it to the top of the panel. User packs can be added only after opening
+         *     them by their link (`404` otherwise).
+         */
+        put: operations["addStickerPack"];
+        post?: never;
+        /**
+         * Remove a sticker pack from the user's panel
+         * @description Built-in default packs can be removed too and come back only when added again. Stickers already sent from
+         *     the pack keep showing in chats.
+         */
+        delete: operations["removeStickerPack"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stickers/packs/{pack_id}/stickers": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a sticker to a pack
+         * @description Only the owner. Upload the image with `POST /attachments` (`purpose: sticker`) first; the server has already
+         *     fitted it into 512 x 512 px. The sticker goes to the end of the pack. At most 120 stickers per pack
+         *     (`409 limit_reached`). `422` when the image is not a sticker upload of the caller.
+         */
+        post: operations["addSticker"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stickers/packs/{pack_id}/stickers/{sticker_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+                sticker_id: components["parameters"]["StickerId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a sticker from a pack
+         * @description Only the owner of the pack. Messages that sent the sticker keep showing it.
+         */
+        delete: operations["deleteSticker"];
+        options?: never;
+        head?: never;
+        /**
+         * Change the emoji of a sticker
+         * @description Only the owner of the pack.
+         */
+        patch: operations["updateSticker"];
+        trace?: never;
+    };
+    "/stickers/packs/{pack_id}/order": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder the stickers of a pack
+         * @description Only the owner of the pack. `sticker_ids` lists every sticker of the pack exactly once, in the new order
+         *     (`422` otherwise).
+         */
+        put: operations["reorderStickers"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stickers/packs/{pack_id}/report": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a sticker pack
+         * @description One report per user and pack; reporting again changes nothing. After 5 reports from different users the
+         *     pack is hidden until a moderator restores it: it leaves every panel, cannot be added or sent from, and only
+         *     its owner still sees it (`is_hidden`). Stickers already sent keep showing. Built-in packs and the user's own
+         *     packs cannot be reported (`403`). User packs can be reported only after opening them by their link (`404`
+         *     otherwise). At most 20 new reports per user a day (`429`); reporting a pack again changes nothing.
+         */
+        post: operations["reportStickerPack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stickers/links/{slug}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                slug: components["parameters"]["StickerPackSlug"];
+            };
+            cookie?: never;
+        };
+        /**
+         * A sticker pack by its share link
+         * @description The same as `GET /stickers/packs/{pack_id}`, found by the pack's `slug`. Opening a link lets the user use
+         *     the pack by its ID from then on: add it, report it and send its stickers.
+         */
+        get: operations["getStickerPackByLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stickers/recent": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stickers the user sent recently
+         * @description The last 20 different stickers the user sent, newest first, on every device of the user.
+         */
+        get: operations["listRecentStickers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/link-preview": {
         parameters: {
             query?: never;
@@ -2601,7 +2878,7 @@ export interface components {
          *     codes must be treated like `internal_error`.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "internal_error";
+        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "limit_reached" | "internal_error";
         /** @description RFC 9457 problem details. `426 Upgrade Required` (`client_outdated`) uses the same format. */
         Problem: {
             /**
@@ -2639,7 +2916,8 @@ export interface components {
         };
         RegisterRequest: {
             username: components["schemas"]["Username"];
-            display_name: string;
+            /** @description Defaults to the username when it is missing, empty or only whitespace. */
+            display_name?: string;
             password: string;
             bio?: string | null;
         };
@@ -2847,8 +3125,13 @@ export interface components {
         };
         /** @enum {string} */
         AttachmentKind: "image" | "audio" | "voice" | "video" | "file";
-        /** @enum {string} */
-        UploadPurpose: "message" | "avatar";
+        /**
+         * @description `sticker`: a PNG, JPEG or still WebP of at most 5 MB. The server fits it into 512 x 512 px with a transparent
+         *     border and stores a WebP (`413` when that is still over 512 KB). Only its uploader can load it until it is
+         *     added to a pack.
+         * @enum {string}
+         */
+        UploadPurpose: "message" | "avatar" | "sticker";
         UploadAttachmentRequest: {
             /** Format: binary */
             file: string;
@@ -2928,7 +3211,68 @@ export interface components {
         /** @enum {string} */
         MediaKind: "image" | "audio" | "visual";
         /** @enum {string} */
-        MessageType: "text" | "file" | "voice" | "system";
+        MessageType: "text" | "file" | "voice" | "system" | "sticker";
+        /**
+         * @description One sticker of a pack. `image` is a WebP or PNG of at most 512 x 512 px with transparency, animated when
+         *     `is_animated` is true; any signed-in user can load it. Clients show it without a bubble.
+         */
+        Sticker: {
+            id: components["schemas"]["Id"];
+            pack_id: components["schemas"]["Id"];
+            /**
+             * @description The share link of the sticker's pack when a user made it; missing for built-in packs. A client that
+             *     shows the pack of a sticker someone sent opens it with `GET /stickers/links/{slug}`.
+             */
+            pack_slug?: components["schemas"]["StickerPackSlug"];
+            /** @description The emoji the sticker stands for, for previews, notifications and search. */
+            emoji: string;
+            is_animated: boolean;
+            image: components["schemas"]["Attachment"];
+        };
+        StickerPackSlug: string;
+        StickerPack: {
+            id: components["schemas"]["Id"];
+            title: string;
+            /** @description A built-in pack of the messenger, not made by a user. */
+            is_official: boolean;
+            /** @description The pack is in the user's sticker panel. */
+            is_installed: boolean;
+            /** @description The user made the pack and may change it. */
+            is_mine: boolean;
+            /** @description Hidden after reports; only the owner sees such a pack, and nobody can send from it. */
+            is_hidden: boolean;
+            owner_id?: components["schemas"]["Id"];
+            /** @description The share link of a pack a user made; missing for built-in packs. */
+            slug?: components["schemas"]["StickerPackSlug"];
+            stickers: components["schemas"]["Sticker"][];
+        };
+        StickerPackList: {
+            items: components["schemas"]["StickerPack"][];
+        };
+        CreateStickerPackRequest: {
+            title: string;
+        };
+        UpdateStickerPackRequest: {
+            title: string;
+        };
+        AddStickerRequest: {
+            attachment_id: components["schemas"]["AttachmentRef"];
+            emoji: string;
+        };
+        UpdateStickerRequest: {
+            emoji: string;
+        };
+        ReorderStickersRequest: {
+            sticker_ids: components["schemas"]["Id"][];
+        };
+        /** @enum {string} */
+        StickerPackReportReason: "spam" | "violence" | "sexual" | "hate" | "copyright" | "other";
+        ReportStickerPackRequest: {
+            reason: components["schemas"]["StickerPackReportReason"];
+        };
+        StickerList: {
+            items: components["schemas"]["Sticker"][];
+        };
         Reaction: {
             emoji: string;
             user_id: components["schemas"]["Id"];
@@ -2962,12 +3306,17 @@ export interface components {
             type: components["schemas"]["MessageType"];
             /** @description `null` for system messages. */
             sender: components["schemas"]["User"] | null;
-            /** @description Text, or the caption of a file; `null` when deleted. */
+            /** @description Text, the caption of a file, or the emoji of a sticker; `null` when deleted. */
             content: string | null;
             attachment: components["schemas"]["Attachment"] | null;
             reply_to: components["schemas"]["Id"] | null;
             reply_preview?: components["schemas"]["ReplyPreview"];
             forwarded_from: components["schemas"]["ForwardedFrom"] | null;
+            /**
+             * @description The sticker of a `sticker` message; absent for other types and when deleted. `attachment` carries the
+             *     same image, so older clients show a sticker as a picture.
+             */
+            sticker?: components["schemas"]["Sticker"];
             /** @description Ordered images and videos of an album. The first item is also returned as attachment for older clients. */
             attachments?: components["schemas"]["Attachment"][];
             reactions: components["schemas"]["Reaction"][];
@@ -3036,8 +3385,14 @@ export interface components {
         SendMessageRequest: {
             client_temp_id: components["schemas"]["ClientTempId"];
             /** @enum {string} */
-            type: "text" | "file" | "voice";
+            type: "text" | "file" | "voice" | "sticker";
             content?: string | null;
+            /**
+             * @description The sticker of a `sticker` message, from any pack that is not deleted. Sticker messages have no content,
+             *     attachment or drawings; the server sets `content` to the sticker's emoji. Send stickers with this
+             *     operation; the WebSocket `message` event does not take them.
+             */
+            sticker_id?: components["schemas"]["Id"];
             /** @description Single upload ID for a file or voice message. Omit for albums. */
             attachment_id?: components["schemas"]["AttachmentRef"] | null;
             /** @description Ordered IDs of two to ten image or video uploads for one file message. */
@@ -3100,6 +3455,14 @@ export interface components {
             peer: components["schemas"]["User"] | null;
             is_pinned: boolean;
             unread_count: number;
+            /**
+             * @description The oldest message the caller has not read (the same messages `unread_count` counts: not their own,
+             *     not system messages, not deleted); `null` when nothing is unread. Clients open the chat around it and
+             *     show the "new messages" divider above it.
+             */
+            first_unread_message_id: components["schemas"]["Id"] | null;
+            /** @description The caller's read marker (`POST /chats/{chat_id}/read`); `null` before their first read. */
+            last_read_message_id: components["schemas"]["Id"] | null;
             last_message: components["schemas"]["Message"] | null;
             /** @description Only for groups. */
             my_role?: components["schemas"]["GroupRole"] | null;
@@ -3581,6 +3944,9 @@ export interface components {
         UserId: components["schemas"]["Id"];
         RequestId: components["schemas"]["Id"];
         AttachmentId: components["schemas"]["AttachmentRef"];
+        StickerPackId: components["schemas"]["Id"];
+        StickerId: components["schemas"]["Id"];
+        StickerPackSlug: components["schemas"]["StickerPackSlug"];
         SessionId: string;
         CallId: components["schemas"]["Id"];
         /** @description Version of the client app, for logs and the per-client metric. */
@@ -5541,7 +5907,7 @@ export interface operations {
                 chat_id?: components["schemas"]["Id"];
                 /** @description Only messages of this user */
                 sender_id?: components["schemas"]["Id"];
-                type?: "text" | "file" | "voice";
+                type?: "text" | "file" | "voice" | "sticker";
                 /** @description Messages created at or after this time */
                 from?: components["schemas"]["Timestamp"];
                 /** @description Messages created before this time */
@@ -6083,6 +6449,463 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listStickerPacks: {
+        parameters: {
+            query?: {
+                owned?: boolean;
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The packs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StickerPackList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    createStickerPack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStickerPackRequest"];
+            };
+        };
+        responses: {
+            /** @description The new pack */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StickerPack"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getStickerPack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pack */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StickerPack"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteStickerPack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    updateStickerPack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStickerPackRequest"];
+            };
+        };
+        responses: {
+            /** @description The pack */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StickerPack"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    addStickerPack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Added */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    removeStickerPack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    addSticker: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddStickerRequest"];
+            };
+        };
+        responses: {
+            /** @description The new sticker */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sticker"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteSticker: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+                sticker_id: components["parameters"]["StickerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    updateSticker: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+                sticker_id: components["parameters"]["StickerId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStickerRequest"];
+            };
+        };
+        responses: {
+            /** @description The sticker */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sticker"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    reorderStickers: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderStickersRequest"];
+            };
+        };
+        responses: {
+            /** @description Reordered */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    reportStickerPack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                pack_id: components["parameters"]["StickerPackId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportStickerPackRequest"];
+            };
+        };
+        responses: {
+            /** @description Reported */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getStickerPackByLink: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                slug: components["parameters"]["StickerPackSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pack */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StickerPack"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listRecentStickers: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The stickers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StickerList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
             426: components["responses"]["ClientOutdated"];
         };
     };

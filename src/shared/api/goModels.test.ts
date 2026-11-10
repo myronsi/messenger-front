@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupModel, messageModel } from './goModels';
+import { directChatModel, groupChatModel, groupModel, messageModel } from './goModels';
 
 const user = (id: string, username: string) => ({
   id, username, display_name: username.toUpperCase(), contact_name: null, avatar_url: null, bio: null,
@@ -61,5 +61,31 @@ describe('messageModel system messages', () => {
     } as Parameters<typeof messageModel>[0];
     expect(messageModel({ ...base, type: 'system', sender: null } as Parameters<typeof messageModel>[0]).is_system).toBe(true);
     expect(messageModel(base).is_system).toBe(false);
+  });
+});
+
+describe('chat unread anchor', () => {
+  const chat = (extra: Partial<Parameters<typeof directChatModel>[0]>) => ({
+    id: '7', type: 'direct', name: 'Bob', avatar_url: null, peer: user('1', 'bob'), is_pinned: false, unread_count: 3,
+    first_unread_message_id: '7217400317439950001', last_read_message_id: '7217400317439949999', last_message: null,
+    created_at: '2026-11-03T10:00:00Z',
+    ...extra,
+  } as Parameters<typeof directChatModel>[0]);
+
+  it('keeps the first unread message and the read marker as string IDs', () => {
+    expect(directChatModel(chat({}))).toMatchObject({
+      first_unread_message_id: '7217400317439950001', last_read_message_id: '7217400317439949999',
+    });
+    expect(groupChatModel(chat({ type: 'group', peer: null }))).toMatchObject({
+      chat_id: '7', first_unread_message_id: '7217400317439950001',
+    });
+  });
+
+  it('is null when nothing is unread or an older server leaves the fields out', () => {
+    expect(directChatModel(chat({ unread_count: 0, first_unread_message_id: null })).first_unread_message_id).toBeNull();
+    const { first_unread_message_id: _first, last_read_message_id: _read, ...older } = chat({});
+    const mapped = directChatModel(older as Parameters<typeof directChatModel>[0]);
+    expect(mapped.first_unread_message_id).toBeNull();
+    expect(mapped.last_read_message_id).toBeNull();
   });
 });
