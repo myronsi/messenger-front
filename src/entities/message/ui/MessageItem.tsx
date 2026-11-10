@@ -3,7 +3,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import React, { MutableRefObject, memo, useState } from 'react';
+import React, { MutableRefObject, memo, useCallback, useMemo, useState } from 'react';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import { combineTouchHandlers, useSwipeAction } from '@/shared/lib/useSwipeAction';
 import SwipeReplyIcon from './SwipeReplyIcon';
@@ -51,7 +51,6 @@ const DissolveParticles: React.FC = () => {
   );
 };
 
-
 // Only primitives, the message itself and stable callbacks are passed so React.memo can skip
 // every item that did not change when a new message, reaction or typing event arrives.
 interface MessageItemProps {
@@ -70,7 +69,6 @@ interface MessageItemProps {
   isHighlighted: boolean;
   isContextHighlighted: boolean;
   messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
-  observerRef: MutableRefObject<IntersectionObserver | null>;
   firstUnreadMarkerRef: MutableRefObject<HTMLDivElement | null>;
   getFormattedDateLabel: (timestamp: string) => string;
   getMessageTime: (timestamp: string) => string;
@@ -96,11 +94,13 @@ interface MessageItemProps {
 const MessageItem: React.FC<MessageItemProps> = ({
   message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage: isImageMessage, isMobile, showNewMessagesMarker,
   nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
-  observerRef, firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
+  firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
   renderMessageContent, isAudioPlaying, setPlayingMessageId,
   onMessageClick, onClick, onAvatarClick, onReplyClick,
   setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage, isSelected = false, onToggleSelect, onLongPress, onSwipeReply,
 }) => {
+  const messageId = message.id;
+  const setRowRef = useCallback((element: HTMLDivElement | null) => { messageRefs.current[messageId] = element; }, [messageRefs, messageId]);
   const longPress = useLongPress(onLongPress && !onToggleSelect ? () => onLongPress(message) : undefined);
   const isMine = isOwnMessage(message);
   const [mediaBroken, setMediaBroken] = useState(false), isImage = isImageMessage && !mediaBroken;
@@ -130,12 +130,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const hasImageCaption = isImage && typeof message.content !== 'string' && !!message.content?.caption?.trim();
   const isText = message.type !== 'file' && typeof message.content === 'string';
   const hasTime = isValidTimestamp(message.timestamp);
+  const timeLabel = hasTime ? getMessageTime(message.timestamp) : '';
   const time = (interactive = true) => (
     <MessageTime
-      message={message} time={getMessageTime(message.timestamp)} isMine={isMine} isGroup={isGroup} isUploading={isUploadingMessage}
+      message={message} time={timeLabel} isMine={isMine} isGroup={isGroup} isUploading={isUploadingMessage}
       userId={userId} translations={translations} onOpenReadStatus={onOpenReadStatus} interactive={interactive}
     />
   );
+  const trailing = useMemo(() => isText && hasTime ? (
+    <span data-message-time-spacer aria-hidden="true" className="invisible ml-2 inline-block text-[10px]"><MessageTime message={message} time={timeLabel} isMine={isMine}
+      isGroup={isGroup} isUploading={isUploadingMessage} userId={userId} translations={translations} onOpenReadStatus={onOpenReadStatus}
+      interactive={false} /></span>
+  ) : undefined, [isText, hasTime, message, timeLabel, isMine, isGroup, isUploadingMessage, userId, translations, onOpenReadStatus]);
 
   const dateSeparator = showDateSeparator && isValidTimestamp(message.timestamp) && <DateSeparator label={getFormattedDateLabel(message.timestamp)} />;
   if (message.system_event) {
@@ -156,26 +162,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <React.Fragment key={message.client_temp_id ?? message.id}>
-      {!isMine && (
-        <div
-          ref={showNewMessagesMarker ? firstUnreadMarkerRef : null}
-          aria-hidden={!showNewMessagesMarker}
-          className={`motion-unread-separator scroll-mt-2 flex justify-center ${showNewMessagesMarker ? 'is-visible' : ''}`}
-          style={{ marginTop: 0 }}
-        >
+      {!isMine && showNewMessagesMarker && (
+        <div ref={firstUnreadMarkerRef} className="motion-unread-separator is-visible scroll-mt-2 flex justify-center" style={{ marginTop: 0 }}>
           <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">{translations.newMessages}</div>
         </div>
       )}
       {dateSeparator}
       <div
         data-image-message={isImage || undefined}
-        ref={(element) => {
-          messageRefs.current[message.id] = element;
-          if (element && observerRef.current) {
-            element.setAttribute('data-message-id', message.id.toString());
-            observerRef.current.observe(element);
-          }
-        }}
+        data-message-id={String(message.id)}
+        ref={setRowRef}
         className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} ${onToggleSelect || swipe.offset ? 'relative' : ''} ${canSwipe ? 'touch-pan-y' : ''} flex ${isMine ? 'justify-end' : 'justify-start'} ${
           isHighlighted ? 'highlight' : ''
         } ${isContextHighlighted ? 'context-menu-highlight' : ''} ${
@@ -252,8 +248,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   renderMessageContent={renderMessageContent}
                   isAudioPlaying={isAudioPlaying}
                   setPlayingMessageId={setPlayingMessageId}
-                  trailing={isText && hasTime
-                    ? <span data-message-time-spacer aria-hidden="true" className="invisible ml-2 inline-block text-[10px]">{time(false)}</span> : undefined}
+                  trailing={trailing}
                 />
                 {isText && hasTime && (
                   <div data-testid="message-time" className={`absolute bottom-0 right-0 translate-y-1 select-none text-[10px] opacity-80 ${isMine ? 'text-primary-foreground' : 'text-muted-foreground'}`}>

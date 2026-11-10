@@ -1,7 +1,7 @@
 import type { SocketSender } from '@/shared/api/realtime';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
-import React, { forwardRef, useCallback, useState, useEffect, useMemo, useRef } from 'react';
+import React, { forwardRef, memo, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
 import { isIgnoredTap } from '../model/tapFilter';
@@ -56,7 +56,7 @@ interface MessageListProps {
 const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
 const COMPOSER_GAP = 16;
 
-const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) => {
+const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, ref) => {
   const {
     messages: allMessages,
     username,
@@ -145,8 +145,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     else if (ref) ref.current = node;
   }, [ref, contentRef]);
 
-  const observerRef = useMessageReadReceipts({
-    messages, username, userId, messageRefs, chatContainerRef, isOwnMessage,
+  useMessageReadReceipts({
+    messages, userId, messageRefs, chatContainerRef, isOwnMessage,
     onMarkMessagesRead, enabled: isPositioned,
   });
 
@@ -246,7 +246,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
               isHighlighted={highlightedMessageId === message.id}
               isContextHighlighted={contextMenuMessageId === message.id || tempHighlightedMessageId === message.id || composerTargetMessageId === message.id}
               messageRefs={messageRefs}
-              observerRef={observerRef}
               firstUnreadMarkerRef={firstUnreadMarkerRef}
               getFormattedDateLabel={stableGetFormattedDateLabel}
               getMessageTime={stableGetMessageTime}
@@ -294,6 +293,6 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     </div>
     </div>
   );
-});
+}));
 
 export default MessageList;

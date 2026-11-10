@@ -28,7 +28,7 @@ interface MessageSenderOptions {
   transport: ChatTransport;
   setMessages: SetMessages;
   setModal: ShowError;
-  messageInput: string;
+  getMessageInput: () => string;
   setMessageInput: (value: string) => void;
   editingMessage: Message | null;
   setEditingMessage: (message: Message | null) => void;
@@ -39,7 +39,7 @@ interface MessageSenderOptions {
 // Sending, optimistic rendering, delivery failures and uploads shared by one-to-one and group chats.
 export const useMessageSender = ({
   chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport, setMessages, setModal,
-  messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
+  getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
 }: MessageSenderOptions) => {
   const { wsRef, messageQueueRef, pendingMessageIdsRef, requestReconnect } = transport;
 
@@ -180,7 +180,7 @@ export const useMessageSender = ({
   };
 
   const handleSendMessage = () => {
-    const contentToSend = messageInput.trim();
+    const contentToSend = getMessageInput().trim();
     if (editingMessage && editableText(editingMessage).trim() === contentToSend) {
       setMessageInput('');
       setEditingMessage(null);

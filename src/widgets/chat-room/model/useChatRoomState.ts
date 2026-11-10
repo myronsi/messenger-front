@@ -37,7 +37,6 @@ export const useChatRoomState = ({
   return {
     ...chatState,
     messages: [] as Message[],
-    messageInput: '',
     setMessageInput: (_input: string) => {},
     contextMenu: null,
     setContextMenu: (_menu: typeof chatState.contextMenu) => {},

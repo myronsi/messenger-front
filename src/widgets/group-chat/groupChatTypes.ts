@@ -3,6 +3,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import type * as React from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import type { GroupRole } from '@/entities/chat';
+import type { ComposerDraftHandle } from '@/features/message-composer';
 import type { GroupDetails, GroupParticipant, GroupProfileConfirmState } from './GroupProfileTypes';
 
 export type { RawGroupDetails, RawGroupParticipant, RawGroupPendingInvite } from '@/entities/chat';
@@ -67,7 +68,7 @@ export interface GroupChatViewModel {
   closeMenus: () => void;
   reactionMenu: ReactionMenuState;
   messageInputRef: React.RefObject<HTMLTextAreaElement | null>;
-  messageInput: string;
+  composerDraftRef: React.RefObject<ComposerDraftHandle | null>;
   setMessageInput: Setter<string>;
   replyTo: Message | null;
   editingMessage: Message | null;
