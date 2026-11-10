@@ -15,6 +15,7 @@ export const userModel = (user: Schema['User']) => ({
 
 const attachmentModel = (attachment: Schema['Attachment']) => ({
   attachment_id: attachment.id,
+  kind: attachment.kind,
   drawing: attachment.drawing,
   file_url: attachment.url,
   file_name: attachment.filename,

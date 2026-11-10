@@ -8,6 +8,7 @@ import { useMediaPreload } from '@/shared/api/useMediaPreload';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { MediaVisual } from './MediaVisual';
 import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
+import { UploadProgressRing } from './UploadProgress';
 
 const MAX_HEIGHT = 300;
 const MAX_WIDTH = 300;
@@ -27,10 +28,11 @@ interface ImageMessageProps {
   viewerInfo?: ViewerImageInfo;
   drawing?: Drawing | null;
   onDraw?: (onSent?: () => void) => void;
+  uploadProgress?: number;
 }
 
 const ImageMessage: React.FC<ImageMessageProps> = ({
-  fileUrl, thumbnailUrl, width, height, fileName, isVideo = false, onBroken, onReply, viewerInfo, drawing, onDraw,
+  fileUrl, thumbnailUrl, width, height, fileName, isVideo = false, onBroken, onReply, viewerInfo, drawing, onDraw, uploadProgress,
 }) => {
   const { translations } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -109,6 +111,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
           />
         )}
         {!isVideo && isLoaded && <DrawingOverlay drawing={drawing} aspect={aspect} />}
+        {uploadProgress !== undefined && <UploadProgressRing progress={uploadProgress} />}
         {onReply && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-black/30 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:hidden">
             <button

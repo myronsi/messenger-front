@@ -6,8 +6,11 @@ export interface AudioMetadata {
   waveform?: number[];
 }
 
+export type AttachmentKind = 'image' | 'audio' | 'voice' | 'video' | 'file';
+
 export interface MessageAttachment {
   attachment_id?: string;
+  kind?: AttachmentKind;
   drawing?: Drawing | null;
   file_url: string;
   file_name: string;

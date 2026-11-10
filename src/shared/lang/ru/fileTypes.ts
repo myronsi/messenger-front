@@ -11,4 +11,13 @@ export const fileTypes = {
   sourceCode: "Исходный Код",
   database: "База Данных",
   music: "Музыка",
+  genericFile: "Файл",
+  sizeBytes: "{size} Б",
+  sizeKilobytes: "{size} КБ",
+  sizeMegabytes: "{size} МБ",
+  sizeGigabytes: "{size} ГБ",
+  selectedAlbumGroup: "Альбом · {count}",
+  selectedSeparateFiles: "Отдельными файлами · {count}",
+  separateFilesLimit: "Можно прикрепить до {max} отдельных файлов за раз.",
+  uploadProgress: "Загрузка: {percent}%",
 };
