@@ -3,11 +3,11 @@ import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { getTokenSession } from '@/shared/auth/tokenClaims';
 import { callsApi } from '../api/callsApi';
 import { forgetIdentities } from '../crypto/identity';
-import { loadCallConfig, stopCallConfigLoading } from './availability';
+import { callConfigReady, callsEnabledOnServer, loadCallConfig, stopCallConfigLoading } from './availability';
 import { catchUpCallKeys, deliverCallKeys, followCalls, hangUpLocally, ownsCallMedia } from './callController';
 import { isCallOver, pruneEndedCalls } from './callState';
 import { isMediaOwnedElsewhere, onMediaOwnershipChange, waitForMediaRelease } from './tabOwnership';
-import { callsStore, patchSession, receiveCall, receiveCalls, resetCallStores, sessionStore } from './stores';
+import { callsStore, configStore, patchSession, receiveCall, receiveCalls, resetCallStores, sessionStore } from './stores';
 
 export const refreshCalls = async () => {
   const calls = await callsApi.list();
@@ -64,10 +64,17 @@ export const startCallSync = () => {
   void loadCallConfig();
   otherTabs.check();
   const stopFollowing = callsStore.subscribe(followCalls);
+  const refreshIfEnabled = () => { if (callsEnabledOnServer()) void refreshCalls().catch(() => undefined); };
+  let wasEnabled = callsEnabledOnServer();
+  const stopConfig = configStore.subscribe(() => {
+    const enabled = callsEnabledOnServer();
+    if (enabled && !wasEnabled) refreshIfEnabled();
+    wasEnabled = enabled;
+  });
   const stopRealtime = realtime.subscribe({
-    onOpen: () => {
-      void loadCallConfig();
-      void refreshCalls().catch(() => undefined);
+    onOpen: ({ reconnected }) => {
+      const ready = reconnected ? loadCallConfig() : callConfigReady();
+      void ready.then(refreshIfEnabled);
       catchUpCallKeys();
     },
     onEvent: (event) => {
@@ -91,6 +98,7 @@ export const startCallSync = () => {
     otherTabs.stop();
     stopToken();
     stopTabs();
+    stopConfig();
     stopRealtime();
     stopFollowing();
     void hangUpLocally(null);

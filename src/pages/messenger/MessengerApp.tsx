@@ -7,6 +7,7 @@ import ChatsListComponentRTK from '@/widgets/chat-list';
 import ProfileComponentRTK from '@/widgets/profile-panel';
 import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-panel';
 import { useMessengerController } from './model/useMessengerController';
+import { chatPanelKey } from './model/messengerRoutes';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
 import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
@@ -128,7 +129,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
       )
       : (
         <Chat
-          key={`${mobilePanelChat.type}-${mobilePanelChat.id}-${mobilePanelChat.name}`}
+          key={chatPanelKey(mobilePanelChat)}
           chatId={mobilePanelChat.id}
           chatName={mobilePanelChat.name}
           chatDisplayName={mobilePanelChat.displayName}
@@ -152,7 +153,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     : null;
 
   const activeChat = mobilePanelChat && (
-    <ChunkErrorBoundary key={mobilePanelChat.id} fallback={(
+    <ChunkErrorBoundary key={mobilePanelChat.previewKey ?? String(mobilePanelChat.id)} fallback={(
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <p role="status">{translations.errorLoading}</p>
         <Button variant="outline" onClick={() => window.location.reload()}>{translations.securityPage.retry}</Button>
