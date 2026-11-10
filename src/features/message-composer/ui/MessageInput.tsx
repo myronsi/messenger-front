@@ -6,7 +6,8 @@ import { Paperclip, Upload } from 'lucide-react';
 import { Message } from '@/entities/message';
 import { useTypingStatus } from '@/entities/typing';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { isAlbumFile, MAX_ALBUM_ITEMS, UPLOAD_ACCEPT, uploadLimitMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
+import { UPLOAD_ACCEPT } from '@/shared/lib/uploadValidation';
+import { canCompressImage, compressImagesForUpload } from '@/shared/lib/compressImage';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useVoiceRecorder } from '../model/useVoiceRecorder';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
@@ -19,6 +20,7 @@ import VoicePreviewBar from './VoicePreviewBar';
 import SelectedFiles from './SelectedFiles';
 import { useFileDrop } from '../model/useFileDrop';
 import { useFileDrawings } from '../model/useFileDrawings';
+import { addToSelection, canAddToSelection, planUploads } from '../model/fileSelection';
 import type { Drawing } from '@/shared/ui/drawing';
 
 interface MessageInputProps {
@@ -67,6 +69,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const rootRef = useRef<HTMLDivElement>(null);
   const replyToRef = useLatestRef(replyTo);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const selectedFilesRef = useLatestRef(selectedFiles);
   const fileDrawings = useFileDrawings(selectedFiles);
   const albumsEnabled = isGoApi();
   const isDisabled = disabled || isSending;
@@ -120,7 +123,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
       return;
     }
     if (hasSelectedFile) {
-      onFileUpload(selectedFiles.length === 1 ? selectedFiles[0] : selectedFiles, messageInput, fileDrawings.drawingsOf(selectedFiles));
+      planUploads(selectedFiles, messageInput, fileDrawings.drawingsOf).forEach((upload) => onFileUpload(upload.file, upload.caption, upload.drawings));
       setSelectedFiles([]);
       setMessageInput('');
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -130,27 +133,20 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   };
 
-  const selectFiles = (files: File[]) => {
-    if (!files.length) return;
-    const next = [...selectedFiles, ...files];
-    for (const file of files) {
-      const error = validateUploadFile(file);
-      if (!error) continue;
-      setErrorMessage(error === 'tooLarge'
-        ? translations.uploadFileTooLarge.replace('{size}', String(uploadLimitMegabytes(file.name)))
-        : translations.uploadUnsupportedType);
-      return;
-    }
-    if (albumsEnabled && next.length > MAX_ALBUM_ITEMS) {
-      setErrorMessage(translations.albumLimit.replace('{max}', String(MAX_ALBUM_ITEMS)));
-      return;
-    }
-    if (albumsEnabled && next.length > 1 && !next.every(isAlbumFile)) {
-      setErrorMessage(translations.albumMediaOnly);
+  const addFiles = (files: File[]) => {
+    const result = addToSelection(selectedFilesRef.current, files, albumsEnabled, translations);
+    if (result.error !== undefined) {
+      setErrorMessage(result.error);
       return;
     }
     setErrorMessage(null);
-    setSelectedFiles(albumsEnabled ? next : files.slice(0, 1));
+    setSelectedFiles(result.files);
+  };
+
+  const selectFiles = (files: File[]) => {
+    if (!files.length) return;
+    if (files.some(canCompressImage)) void compressImagesForUpload(files).then(addFiles);
+    else addFiles(files);
   };
 
   const handleSelectedFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,7 +230,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
         )}
         {hasSelectedFile && (
           <SelectedFiles files={selectedFiles} removeLabel={translations.removeFile} addLabel={translations.attachFile}
-            canAdd={albumsEnabled && selectedFiles.length < MAX_ALBUM_ITEMS && !isDisabled}
+            canAdd={albumsEnabled && canAddToSelection(selectedFiles) && !isDisabled}
             onAdd={() => fileInputRef.current?.click()}
             onRemove={(index) => setSelectedFiles(current => current.filter((_, item) => item !== index))}
             drawings={fileDrawings.drawings} onDrawingChange={isGoApi() ? fileDrawings.setDrawing : undefined} />

@@ -1,4 +1,4 @@
-import { FileText, FileImage, FileVideo2, FileAudio2, FileArchive, Table, Presentation, FileCode2, Database, FileType2, ArrowDownToLine, LucideProps } from 'lucide-react';
+import { File as FileIcon, FileText, FileImage, FileVideo2, FileAudio2, FileArchive, Table, Presentation, FileCode2, Database, FileType2, ArrowDownToLine, LucideProps } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 export interface FileTypeConfig {
@@ -15,6 +15,13 @@ export interface FileTypeConfig {
   isSpecial?: boolean;
 }
 
+export const genericFileType = (replyText: string): FileTypeConfig => ({
+  extensions: [],
+  icon: FileIcon,
+  onHover: ArrowDownToLine,
+  replyText,
+});
+
 export const useFileTypes = () => {
   const { translations } = useLanguage();
   
@@ -27,6 +34,12 @@ export const useFileTypes = () => {
       isSpecial: true,
     },
     {
+      extensions: ['.heic', '.heif', '.svg'],
+      icon: FileImage,
+      onHover: ArrowDownToLine,
+      replyText: translations.image,
+    },
+    {
       extensions: ['.opus'],
       icon: FileAudio2,
       onHover: ArrowDownToLine,
@@ -34,7 +47,7 @@ export const useFileTypes = () => {
       isSpecial: true,
     },
     {
-      extensions: ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'],
+      extensions: ['.mp3', '.wav', '.ogg', '.oga', '.weba', '.m4a', '.aac', '.flac'],
       icon: FileAudio2,
       onHover: ArrowDownToLine,
       replyText: translations.music,
@@ -58,7 +71,7 @@ export const useFileTypes = () => {
       replyText: translations.wordDocument,
     },
     {
-      extensions: ['.txt', '.rtf'],
+      extensions: ['.txt', '.rtf', '.md'],
       icon: FileType2,
       onHover: ArrowDownToLine,
       replyText: translations.textFile,
@@ -82,7 +95,7 @@ export const useFileTypes = () => {
       replyText: translations.powerpointPresentation,
     },
     {
-      extensions: ['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css'],
+      extensions: ['.js', '.ts', '.py', '.java', '.cpp', '.html', '.css', '.json'],
       icon: FileCode2,
       onHover: ArrowDownToLine,
       replyText: translations.sourceCode,

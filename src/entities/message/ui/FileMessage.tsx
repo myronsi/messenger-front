@@ -2,16 +2,20 @@ import { fetchMedia as authFetch } from '@/shared/api/fetchMedia';
 import React, { useState } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
+import { formatFileSize } from '@/shared/lib/formatFileSize';
+import { UploadProgressBar } from './UploadProgress';
 
 interface FileMessageProps {
   config: FileTypeConfig;
   fileName: string;
   fileUrl: string;
   isMobile: boolean;
+  fileSize?: number;
+  uploadProgress?: number;
 }
 
-const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, isMobile }) => {
-  const { translations } = useLanguage();
+const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, isMobile, fileSize, uploadProgress }) => {
+  const { translations, language } = useLanguage();
   const [isHovered, setIsHovered] = useState(false);
 
   const handleDownload = async () => {
@@ -58,9 +62,11 @@ const FileMessage: React.FC<FileMessageProps> = ({ config, fileName, fileUrl, is
       <button onClick={handleDownload} aria-label={`${translations.download || 'Download'}: ${fileName}`} className="focus:outline-none">
         <IconComponent size={20} className="cursor-pointer" />
       </button>
-      <span className="truncate max-w-[calc(100%-28px)]" title={fileName}>
-        {fileName}
-      </span>
+      <div className="min-w-0 max-w-[calc(100%-28px)] flex-1">
+        <div className="truncate" title={fileName}>{fileName}</div>
+        {fileSize ? <div data-testid="file-size" className="text-xs opacity-70">{formatFileSize(fileSize, language, translations)}</div> : null}
+        {uploadProgress !== undefined && <UploadProgressBar progress={uploadProgress} />}
+      </div>
     </div>
   );
 };
