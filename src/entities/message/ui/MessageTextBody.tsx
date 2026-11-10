@@ -4,6 +4,6 @@ import { useCompactMessageWidth } from './useCompactMessageWidth';
 
 export function MessageTextBody({ text, trailing }: { text: string; trailing?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
-  useCompactMessageWidth(ref, text, trailing);
+  useCompactMessageWidth(ref, text, trailing != null && trailing !== false);
   return <div ref={ref} data-message-text-body className="whitespace-pre-wrap"><LinkedMessageText text={text} />{trailing}</div>;
 }

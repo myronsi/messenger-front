@@ -13,6 +13,7 @@ interface ChatSocketOptions {
   onEvent: (event: ServerEvent, socket: SocketSender) => void;
   onConnectionFailed: () => void;
   onReconnected?: () => void;
+  onOpened?: () => void;
 }
 
 // A conversation subscribes to the user's shared stream and owns only its sender.
@@ -25,13 +26,13 @@ export const useChatSocket = (options: ChatSocketOptions) => {
   useEffect(() => {
     if (!isSignedIn || !isPersistedId(chatId)) return;
     const release = realtime.subscribe({
-      onOpen: () => {
+      onOpen: ({ reconnected }) => {
         while (messageQueueRef.current.length && sender.readyState === WebSocket.OPEN) {
           const queued = messageQueueRef.current[0];
           try { sender.send(JSON.stringify(queued)); messageQueueRef.current.shift(); } catch { break; }
         }
-        // Includes the gap between the initial history snapshot and subscription.
-        latest.current.onReconnected?.();
+        if (reconnected) latest.current.onReconnected?.();
+        else latest.current.onOpened?.();
       },
       onEvent: frame => {
         const raw = goServerEvent(frame, chatId);

@@ -24,13 +24,14 @@ interface UseGroupChatSocketArgs {
   markMessageFailed: (messageId: EntityId, message?: string) => boolean;
   markLatestPendingMessageFailed: (message?: string) => boolean;
   onReconnected: () => void;
+  onOpened: () => void;
 }
 
 // Group chats reuse the shared message socket and only add the group-membership events on top.
 export const useGroupChatSocket = ({
   token, chatId, username, translations, transport, currentUserIdRef, translationsRef, onBackRef,
   applyGroupDetails, refreshGroupDetails, setMessages, setModal, markMessageFailed, markLatestPendingMessageFailed,
-  onReconnected,
+  onReconnected, onOpened,
 }: UseGroupChatSocketArgs) => {
   const handleGroupEvent = useCallback((event: ServerEvent, socket: SocketSender) => {
     if (event.type === 'group_updated' && event.group?.chat_id === chatId) {
@@ -59,5 +60,6 @@ export const useGroupChatSocket = ({
       // Membership or settings may have changed while disconnected.
       void refreshGroupDetails();
     },
+    onOpened,
   });
 };

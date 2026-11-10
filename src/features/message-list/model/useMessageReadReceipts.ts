@@ -1,13 +1,15 @@
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
-import { MutableRefObject, useEffect, useRef } from 'react';
+import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
 import { Message } from '@/entities/message';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
+import { useStableCallback } from '@/shared/lib/useStableCallback';
+import { isUnreadByMe, syncObservedRows, unreadVisibleMessageIds, type RowRefs } from './rowObservation';
 
 interface MessageReadReceiptOptions {
   messages: Message[];
-  username: string;
   userId: EntityId;
-  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
+  messageRefs: MutableRefObject<RowRefs>;
   chatContainerRef: MutableRefObject<HTMLDivElement | null>;
   isOwnMessage: (message: Message) => boolean;
   onMarkMessagesRead?: (messageIds: EntityId[]) => Promise<void>;
@@ -16,7 +18,6 @@ interface MessageReadReceiptOptions {
 
 export const useMessageReadReceipts = ({
   messages,
-  username,
   userId,
   messageRefs,
   chatContainerRef,
@@ -25,16 +26,15 @@ export const useMessageReadReceipts = ({
   enabled = true,
 }: MessageReadReceiptOptions) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const rowsRef = useRef(new Map<Element, string>());
+  const visibleRef = useRef(new Set<Element>());
   const sentReadReceiptsRef = useRef<Set<EntityId>>(new Set());
   const queuedReadReceiptsRef = useRef<Set<EntityId>>(new Set());
   const readFlushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onMarkMessagesReadRef = useRef(onMarkMessagesRead);
+  const onMarkMessagesReadRef = useLatestRef(onMarkMessagesRead);
+  const messagesById = useMemo(() => new Map(messages.map((message) => [String(message.id), message])), [messages]);
 
-  useEffect(() => {
-    onMarkMessagesReadRef.current = onMarkMessagesRead;
-  }, [onMarkMessagesRead]);
-
-  const flushReadReceipts = async () => {
+  const flushReadReceipts = useStableCallback(async () => {
     if (!onMarkMessagesReadRef.current || queuedReadReceiptsRef.current.size === 0) return;
     const messageIds = Array.from(queuedReadReceiptsRef.current);
     queuedReadReceiptsRef.current.clear();
@@ -43,62 +43,62 @@ export const useMessageReadReceipts = ({
     } catch {
       messageIds.forEach((messageId) => sentReadReceiptsRef.current.delete(messageId));
     }
-  };
+  });
 
-  const queueReadReceipt = (messageId: EntityId) => {
-    if (!onMarkMessagesReadRef.current || !isPersistedId(userId) || sentReadReceiptsRef.current.has(messageId)) return;
-    sentReadReceiptsRef.current.add(messageId);
-    queuedReadReceiptsRef.current.add(messageId);
+  const queueVisible = useStableCallback((elements: Iterable<Element>) => {
+    if (!onMarkMessagesReadRef.current || !isPersistedId(userId)) return;
+    const ids = unreadVisibleMessageIds(elements, rowsRef.current, messagesById, (message) => isUnreadByMe(message, userId, isOwnMessage))
+      .filter((messageId) => !sentReadReceiptsRef.current.has(messageId));
+    if (ids.length === 0) return;
+    ids.forEach((messageId) => {
+      sentReadReceiptsRef.current.add(messageId);
+      queuedReadReceiptsRef.current.add(messageId);
+    });
     if (readFlushTimeoutRef.current) clearTimeout(readFlushTimeoutRef.current);
     readFlushTimeoutRef.current = setTimeout(() => {
       readFlushTimeoutRef.current = null;
       void flushReadReceipts();
     }, 500);
-  };
-
-  const isElementInViewport = (element: HTMLElement, container: HTMLElement | null) => {
-    if (!container) return false;
-    const rect = element.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    return rect.top >= containerRect.top && rect.bottom <= containerRect.bottom &&
-      rect.left >= containerRect.left && rect.right <= containerRect.right;
-  };
-
-  const markVisibleMessagesAsRead = () => {
-    messages.forEach((message) => {
-      if (isOwnMessage(message) || message.read_by?.some((reader) => reader.user_id === userId)) return;
-      const element = messageRefs.current[message.id];
-      if (element && isElementInViewport(element, chatContainerRef.current)) queueReadReceipt(message.id);
-    });
-  };
+  });
 
   useEffect(() => {
-    observerRef.current?.disconnect();
-    if (!enabled) return;
-    observerRef.current = new IntersectionObserver((entries) => {
+    if (!enabled || typeof IntersectionObserver === 'undefined') return;
+    const rows = rowsRef.current;
+    const visible = visibleRef.current;
+    const observer = new IntersectionObserver((entries) => {
+      const entered: Element[] = [];
       entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const messageId = entry.target.getAttribute('data-message-id') || '0';
-        const message = messages.find((item) => String(item.id) === messageId);
-        if (message && !isOwnMessage(message) && !message.read_by?.some((reader) => reader.user_id === userId)) {
-		  queueReadReceipt(message.id);
+        if (!entry.isIntersecting) {
+          visible.delete(entry.target);
+          return;
         }
+        visible.add(entry.target);
+        entered.push(entry.target);
       });
+      if (entered.length) queueVisible(entered);
     }, { threshold: 0.5, root: chatContainerRef.current });
-    Object.values(messageRefs.current).forEach((element) => {
-      if (element) {
-        element.setAttribute('data-message-id', element.getAttribute('data-message-id') || '');
-        observerRef.current?.observe(element);
-      }
+    observerRef.current = observer;
+    return () => {
+      observer.disconnect();
+      observerRef.current = null;
+      rows.clear();
+      visible.clear();
+    };
+  }, [enabled, chatContainerRef, queueVisible]);
+
+  useEffect(() => {
+    const observer = observerRef.current;
+    if (!observer) return;
+    const visible = visibleRef.current;
+    syncObservedRows(messageRefs.current, rowsRef.current, (element) => observer.observe(element), (element) => {
+      observer.unobserve(element);
+      visible.delete(element);
     });
-    requestAnimationFrame(markVisibleMessagesAsRead);
-    return () => observerRef.current?.disconnect();
-  }, [messages, username, userId, messageRefs, enabled]);
+    queueVisible(visible);
+  }, [messagesById, messageRefs, enabled, userId, onMarkMessagesRead, queueVisible]);
 
   useEffect(() => () => {
     if (readFlushTimeoutRef.current) clearTimeout(readFlushTimeoutRef.current);
     void flushReadReceipts();
-  }, []);
-
-  return observerRef;
+  }, [flushReadReceipts]);
 };

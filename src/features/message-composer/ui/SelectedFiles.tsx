@@ -3,6 +3,7 @@ import { Brush, Plus, X } from 'lucide-react';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { isAlbumFile } from '@/shared/lib/uploadValidation';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { DrawingEditor, DrawingOverlay } from '@/shared/ui/drawing';
 import type { FileDrawing, FileDrawings } from '../model/useFileDrawings';
 import SelectedFileChip from './SelectedFileChip';
@@ -92,23 +93,50 @@ function SelectedMediaStrip({ files, removeLabel, addLabel, canAdd, onAdd, onRem
         <FileDrawingEditor file={editing} value={drawings?.get(editing)} onCancel={() => setEditing(null)}
           onDone={(value) => { onDrawingChange(editing, value); setEditing(null); }} />
       )}
-      {canAdd && (
-        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel}
-          className="motion-press grid size-16 shrink-0 place-items-center rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground">
-          <Plus className="size-5" />
-        </button>
-      )}
+      {canAdd && <AddTile label={addLabel} onAdd={onAdd} className="size-16" />}
     </div>
   );
 }
 
-export default function SelectedFiles(props: SelectedMediaStripProps) {
-  if (props.files.every(isAlbumFile)) return <SelectedMediaStrip {...props} />;
+interface AddTileProps {
+  label: string;
+  onAdd: () => void;
+  className: string;
+}
+
+function AddTile({ label, onAdd, className }: AddTileProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto">
-      {props.files.map((file, index) => (
-        <SelectedFileChip key={`${file.name}-${index}`} file={file} removeLabel={props.removeLabel} onRemove={() => props.onRemove(index)} />
-      ))}
+    <button type="button" onClick={onAdd} aria-label={label} title={label}
+      className={`motion-press grid shrink-0 place-items-center rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground ${className}`}>
+      <Plus className="size-5" />
+    </button>
+  );
+}
+
+const GroupLabel = ({ text }: { text: string }) => <div className="px-2 text-xs font-medium text-muted-foreground">{text}</div>;
+
+export default function SelectedFiles(props: SelectedMediaStripProps) {
+  const { translations: t } = useLanguage();
+  const indexed = props.files.map((file, index) => ({ file, index }));
+  const media = indexed.filter(({ file }) => isAlbumFile(file));
+  const others = indexed.filter(({ file }) => !isAlbumFile(file));
+  const grouped = media.length > 0 && others.length > 0;
+  return (
+    <div data-testid="selected-files" className="flex flex-col gap-1.5">
+      {grouped && media.length > 1 && <GroupLabel text={fillTemplate(t.selectedAlbumGroup, { count: String(media.length) })} />}
+      {media.length > 0 && (
+        <SelectedMediaStrip {...props} files={media.map(({ file }) => file)} onRemove={(index) => props.onRemove(media[index].index)} />
+      )}
+      {grouped && <GroupLabel text={fillTemplate(t.selectedSeparateFiles, { count: String(others.length) })} />}
+      {others.length > 0 && (
+        <div data-testid="selected-separate-files" className="flex items-center gap-2 overflow-x-auto">
+          {others.map(({ file, index }) => (
+            <SelectedFileChip key={`${file.name}-${file.size}-${file.lastModified}-${index}`} file={file} removeLabel={props.removeLabel}
+              onRemove={() => props.onRemove(index)} />
+          ))}
+          {!media.length && props.canAdd && <AddTile label={props.addLabel} onAdd={props.onAdd} className="size-[3.75rem]" />}
+        </div>
+      )}
     </div>
   );
 }

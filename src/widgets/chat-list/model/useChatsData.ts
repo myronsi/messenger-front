@@ -43,9 +43,7 @@ export function useChatsData(username: string) {
   const [createChat, { isLoading: isCreatingChat }] = useCreateChatMutation();
   const [setChatPinned] = useSetChatPinnedMutation();
   const [markChatRead] = useMarkChatReadMutation();
-  const { data: requestInbox, refetch: refetchRequestInbox } = useGetApprovalRequestInboxQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
+  const { data: requestInbox, refetch: refetchRequestInbox } = useGetApprovalRequestInboxQuery();
   const { data: currentUserData } = useGetCurrentUserQuery();
 
   const isLoading = !oneOnOneChatsData && !groupChatsData && (isLoadingOneOnOne || isLoadingGroups);

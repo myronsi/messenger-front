@@ -1,9 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportClientOutdated, resetUpdateStatusForTests } from '@/shared/api/updateGate';
 import { clearAuthTokens, dropInvalidSession } from '@/shared/auth/session';
 import { draftId, readDraft } from '@/shared/lib/drafts';
-import { useDraftState } from './useDraftState';
+import { DRAFT_WRITE_DELAY_MS, useDraftState } from './useDraftState';
 
 const signIn = (sub: string) => localStorage.setItem('access_token', `h.${btoa(JSON.stringify({ sub }))}.s`);
 
@@ -15,14 +15,41 @@ describe('useDraftState', () => {
     signIn('1');
   });
 
+  afterEach(() => vi.useRealTimers());
+
   it('persists the text per chat and restores it after a reload', () => {
+    vi.useFakeTimers();
     const first = renderHook(() => useDraftState('chat:5'));
     act(() => first.result.current[1]('unsent'));
+    act(() => { vi.advanceTimersByTime(DRAFT_WRITE_DELAY_MS); });
     expect(readDraft(draftId('1', 'chat:5'))).toBe('unsent');
     first.unmount();
 
     const afterReload = renderHook(() => useDraftState('chat:5'));
     expect(afterReload.result.current[0]).toBe('unsent');
+  });
+
+  it('writes the draft once typing pauses and flushes a pending write on unmount', () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useDraftState('chat:5'));
+    act(() => result.current[1]('h'));
+    act(() => result.current[1]('he'));
+    act(() => { vi.advanceTimersByTime(DRAFT_WRITE_DELAY_MS - 1); });
+    expect(readDraft(draftId('1', 'chat:5'))).toBe('');
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(readDraft(draftId('1', 'chat:5'))).toBe('he');
+
+    act(() => result.current[1]('hello'));
+    unmount();
+    expect(readDraft(draftId('1', 'chat:5'))).toBe('hello');
+  });
+
+  it('does not bring a pending draft back after the tokens are cleared', () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useDraftState('chat:5'));
+    act(() => result.current[1]('private'));
+    act(() => { clearAuthTokens(); vi.advanceTimersByTime(DRAFT_WRITE_DELAY_MS); });
+    expect(sessionStorage.length).toBe(0);
   });
 
   it('removes the draft when the input is cleared, for example after sending', () => {

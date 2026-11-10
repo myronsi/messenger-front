@@ -11,4 +11,13 @@ export const fileTypes = {
   sourceCode: "Source Code",
   database: "Database",
   music: "Music",
+  genericFile: "File",
+  sizeBytes: "{size} B",
+  sizeKilobytes: "{size} KB",
+  sizeMegabytes: "{size} MB",
+  sizeGigabytes: "{size} GB",
+  selectedAlbumGroup: "Album · {count}",
+  selectedSeparateFiles: "Sent as separate files · {count}",
+  separateFilesLimit: "You can attach up to {max} separate files at once.",
+  uploadProgress: "Uploading: {percent}%",
 };
