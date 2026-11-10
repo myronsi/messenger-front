@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.17](https://github.com/myronsi/messenger-front/compare/v0.6.16...v0.6.17) (2026-11-10)
+
+
+### Features
+
+* **chat:** typing status with a three-dot bubble, chat list status and a privacy switch ([#180](https://github.com/myronsi/messenger-front/issues/180)) ([d488d72](https://github.com/myronsi/messenger-front/commit/d488d7214351d932b4aead5be0a07969bd769753))
+
 ## [0.6.16](https://github.com/myronsi/messenger-front/compare/v0.6.15...v0.6.16) (2026-11-09)
 
 
