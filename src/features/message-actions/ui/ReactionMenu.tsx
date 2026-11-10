@@ -2,6 +2,7 @@ import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Message, ContextMenuState } from '@/entities/message';
+import { reactionBarPosition } from '../model/menuAnchor';
 
 interface ReactionMenuProps {
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean };
@@ -49,14 +50,33 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
 
     const openLeft = !!contextMenu?.openLeft;
     useEffect(() => {
-      if (ref && 'current' in ref && ref.current) {
-        const menu = ref.current;
-        const left = openLeft ? reactionMenu.x - menu.offsetWidth : reactionMenu.x;
-        const top = reactionMenu.y + menu.offsetHeight > window.innerHeight - EDGE ? reactionMenu.y - menu.offsetHeight : reactionMenu.y;
-        setAdjustedX(Math.max(EDGE, Math.min(left, window.innerWidth - menu.offsetWidth - EDGE)));
-        setAdjustedY(Math.max(EDGE, top));
-      }
-    }, [reactionMenu.x, reactionMenu.y, openLeft, ref]);
+      const bar = ref && 'current' in ref ? ref.current : null;
+      if (!bar) return undefined;
+      const place = () => {
+        const anchor = contextMenuRef?.current;
+        if (anchor) {
+          const box = { top: anchor.offsetTop, left: anchor.offsetLeft, right: anchor.offsetLeft + anchor.offsetWidth, width: anchor.offsetWidth };
+          const position = reactionBarPosition(box, { width: bar.offsetWidth, height: bar.offsetHeight }, openLeft);
+          setAdjustedX(position.x);
+          setAdjustedY(position.y);
+          return;
+        }
+        const left = openLeft ? reactionMenu.x - bar.offsetWidth : reactionMenu.x;
+        setAdjustedX(Math.max(EDGE, Math.min(left, window.innerWidth - bar.offsetWidth - EDGE)));
+        setAdjustedY(Math.max(EDGE, reactionMenu.y));
+      };
+      place();
+      const frame = requestAnimationFrame(place);
+      const anchor = contextMenuRef?.current;
+      const observer = anchor && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(place) : null;
+      if (anchor) observer?.observe(anchor);
+      anchor?.addEventListener('transitionend', place);
+      return () => {
+        cancelAnimationFrame(frame);
+        observer?.disconnect();
+        anchor?.removeEventListener('transitionend', place);
+      };
+    }, [reactionMenu.x, reactionMenu.y, openLeft, ref, contextMenuRef]);
 
     useEffect(() => {
       if (!reactionMenu.isClosing) {

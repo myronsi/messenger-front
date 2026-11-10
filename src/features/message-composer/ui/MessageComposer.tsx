@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef, type SetStateAction } from 'react';
+import React, { forwardRef, useImperativeHandle, useLayoutEffect, useRef, type SetStateAction } from 'react';
 import { useDraftState } from '@/shared/hooks/useDraftState';
 import { chatDraftKey } from '@/shared/lib/drafts';
 import MessageInput from './MessageInput';
@@ -19,16 +19,35 @@ interface MessageComposerProps extends Omit<MessageInputProps, 'messageInput' | 
 const MessageComposer = forwardRef<HTMLTextAreaElement, MessageComposerProps>(({
   draftRef, messageInput, setMessageInput, ...inputProps
 }, ref) => {
-  const [draft, setDraft] = useDraftState(chatDraftKey(inputProps.chatId), inputProps.editingMessage === null);
+  const editing = inputProps.editingMessage !== null;
+  const [draft, setDraft] = useDraftState(chatDraftKey(inputProps.chatId), !editing);
   const latestRef = useRef(draft);
   latestRef.current = draft;
+  const editingRef = useRef(editing);
+  const beforeEditRef = useRef(draft);
+  const savedDraftRef = useRef<{ chatId: unknown; value: string } | null>(null);
   useImperativeHandle(draftRef, () => ({
     get: () => latestRef.current,
     set: (value) => {
+      if (!editingRef.current) beforeEditRef.current = latestRef.current;
       latestRef.current = typeof value === 'function' ? value(latestRef.current) : value;
       setDraft(latestRef.current);
     },
   }), [setDraft]);
+  const { chatId } = inputProps;
+  useLayoutEffect(() => {
+    editingRef.current = editing;
+    if (editing) {
+      savedDraftRef.current ??= { chatId, value: beforeEditRef.current };
+      return;
+    }
+    const saved = savedDraftRef.current;
+    savedDraftRef.current = null;
+    if (saved && saved.chatId === chatId) {
+      latestRef.current = saved.value;
+      setDraft(saved.value);
+    }
+  }, [editing, chatId, setDraft]);
   const controlled = setMessageInput !== undefined;
   return (
     <MessageInput
