@@ -14,6 +14,9 @@ export function compactMessageWidth(max: number, min: number, heightAt: (width: 
   return Math.min(max, Math.ceil(high));
 }
 
+const FRAME_BUDGET_MS = 8;
+const MAX_SEARCHED_LINES = 6;
+
 interface TimeLayout { width: number; below: boolean; metadataHeight: number }
 
 interface Row {
@@ -70,7 +73,8 @@ const probeLayout = (element: HTMLDivElement, font: CSSStyleDeclaration, availab
   probeSpacer.style.display = 'inline-block';
   getProbeHost().append(probe);
   try {
-    const max = Math.min(available, probe.getBoundingClientRect().width);
+    const natural = probe.getBoundingClientRect();
+    const max = Math.min(available, natural.width);
     const metadataWidth = probeSpacer.offsetWidth + parseFloat(getComputedStyle(probeSpacer).marginLeft);
     const walker = document.createTreeWalker(probe, NodeFilter.SHOW_TEXT);
     const ranges: Range[] = [];
@@ -105,6 +109,15 @@ const probeLayout = (element: HTMLDivElement, font: CSSStyleDeclaration, availab
       layouts.set(width, layout);
       return layout;
     };
+    if (natural.width <= available) {
+      const { below, metadataHeight } = layoutAt(max);
+      return { width: max, below, metadataHeight };
+    }
+    const lines = Math.max(1, Math.round(layoutAt(max).height / Math.max(1, natural.height)));
+    if (lines > MAX_SEARCHED_LINES) {
+      const { below, metadataHeight } = layoutAt(max);
+      return { width: max, below, metadataHeight };
+    }
     const width = compactMessageWidth(max, metadataWidth, (candidate) => layoutAt(candidate).height);
     const { below, metadataHeight } = layoutAt(width);
     return { width, below, metadataHeight };
@@ -137,16 +150,26 @@ const apply = (row: Row, signature: string, { width, below, metadataHeight }: Ti
 
 const flush = () => {
   frame = 0;
+  const started = performance.now();
   const batch = [...pending].filter((row) => rows.get(row.element) === row);
   pending.clear();
   const bottom = window.innerHeight + MARGIN;
+  const middle = window.innerHeight / 2;
+  const distance = new Map<Row, number>();
   for (const row of batch) {
-    if (row.visible !== null) continue;
+    if (row.visible === false) continue;
     const rect = row.element.getBoundingClientRect();
-    row.visible = rect.bottom > -MARGIN && rect.top < bottom;
+    if (row.visible === null) row.visible = rect.bottom > -MARGIN && rect.top < bottom;
+    if (row.visible) distance.set(row, Math.abs(rect.top + rect.height / 2 - middle));
   }
-  const results = batch.filter((row) => row.visible).map((row) => [row, measure(row)] as const);
+  const queue = [...distance.keys()].sort((a, b) => distance.get(a)! - distance.get(b)!);
+  const results: (readonly [Row, ReturnType<typeof measure>])[] = [];
+  for (const row of queue) {
+    if (results.length > 0 && performance.now() - started > FRAME_BUDGET_MS) pending.add(row);
+    else results.push([row, measure(row)] as const);
+  }
   for (const [row, result] of results) if (result) apply(row, result.signature, result.layout);
+  if (pending.size && !frame) frame = requestAnimationFrame(flush);
 };
 
 const schedule = (row: Row) => {
