@@ -7,7 +7,7 @@ export const TYPING_REPEAT_MS = 3000;
 export const TYPING_IDLE_MS = 5000;
 
 export const sendTyping = (chatId: EntityId, isTyping: boolean, action: TypingAction) =>
-  realtime.sendIfOpen({ type: 'typing', chat_id: String(chatId), data: { is_typing: isTyping, action } });
+  realtime.sendIfOpen({ type: 'typing', chat_id: String(chatId), data: action === 'typing' ? { is_typing: isTyping } : { is_typing: isTyping, action } });
 
 interface TypingStatusOptions {
   chatId: EntityId;

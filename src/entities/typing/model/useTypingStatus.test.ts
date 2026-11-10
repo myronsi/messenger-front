@@ -9,8 +9,9 @@ vi.mock('@/shared/api/realtime', () => ({ realtime: { sendIfOpen } }));
 interface Props { chatId: string; text: string; canType: boolean; isRecording: boolean }
 const start: Props = { chatId: '5', text: '', canType: true, isRecording: false };
 const sent = () => sendIfOpen.mock.calls.map(([event]) => {
-  const { chat_id: chat, data } = event as { chat_id: string; data: { is_typing: boolean; action: string } };
-  return `${chat}:${data.is_typing ? data.action : `stop ${data.action}`}`;
+  const { chat_id: chat, data } = event as { chat_id: string; data: { is_typing: boolean; action?: string } };
+  const action = data.action ?? 'typing';
+  return `${chat}:${data.is_typing ? action : `stop ${action}`}`;
 });
 
 describe('useTypingStatus', () => {
@@ -26,6 +27,15 @@ describe('useTypingStatus', () => {
     expect(sent()).toEqual(['5:typing', '5:typing']);
     act(() => vi.advanceTimersByTime(TYPING_IDLE_MS - TYPING_REPEAT_MS));
     expect(sent()).toEqual(['5:typing', '5:typing', '5:stop typing']);
+  });
+
+  it('leaves out the default action so older servers accept plain typing', () => {
+    const { rerender } = renderHook((props: Props) => useTypingStatus(props), { initialProps: start });
+    rerender({ ...start, text: 'Hi' });
+    rerender({ ...start, isRecording: true });
+    expect(sendIfOpen.mock.calls.map(([event]) => (event as { data: object }).data)).toEqual([
+      { is_typing: true }, { is_typing: false }, { is_typing: true, action: 'recording_voice' },
+    ]);
   });
 
   it('stops when the text is sent or cleared', () => {
