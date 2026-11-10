@@ -12,6 +12,7 @@ import { createdMessage, unconfirmedSends, useUnsentMessageRelease } from './uns
 import { appendMessageFiles, createLocalFileContent, type UploadFile } from './uploadFileType';
 import type { Drawing } from '@/shared/ui/drawing';
 import { createOptimisticMessage } from './optimisticMessage';
+import { createStickerSender } from './stickerSender';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
 const BASE_URL = getApiBaseUrl();
@@ -78,6 +79,11 @@ export const useMessageSender = ({
   replyToRef.current = replyTo;
   const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
   const sentRef = useRef(new Map<string, OutgoingPayload>());
+  const stickers = createStickerSender({
+    chatId, username, setMessages, markMessageFailed, senderId: () => currentUserIdRef.current || currentUserId || undefined,
+    takeReply: () => { const reply = replyToRef.current; if (reply) setReplyTo(null); return reply; },
+    notSent: () => translationsRef.current.stickerNotSent,
+  });
 
   const createOptimisticFileMessage = (files: UploadFile[], caption: string, fileType?: string) => {
     const tempId = createTempMessageId();
@@ -222,6 +228,10 @@ export const useMessageSender = ({
   };
 
   const resendUnsavedMessage = (message: Message) => {
+    if (message.sticker) {
+      void stickers.post(retryUnsavedMessage(message, {}), message.sticker, message.reply_to);
+      return;
+    }
     if (message.type === 'file') {
       const source = uploadSourcesRef.current.get(String(message.id));
       if (!source) {
@@ -279,6 +289,7 @@ export const useMessageSender = ({
     markOptimisticUploadFailed,
     settleOptimisticUpload,
     handleSendMessage,
+    handleSendSticker: stickers.send,
     handleResendMessage,
     handleFileUpload,
   };

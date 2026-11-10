@@ -1,3 +1,5 @@
+import { configuredWebOrigin } from '@/shared/lib/webOrigin';
+
 export type QrFrameDecoder = (video: HTMLVideoElement) => Promise<string | null>;
 export type CameraProblem = 'denied' | 'missing' | 'failed';
 
@@ -60,14 +62,6 @@ export const stopCamera = (stream: MediaStream | null) => {
 };
 
 export const qrCodeOrigins = () => {
-  const configured = String(import.meta.env.VITE_WEB_ORIGIN || '').trim();
-  const origins = [window.location.origin];
-  if (configured) {
-    try {
-      origins.push(new URL(configured).origin);
-    } catch {
-      return origins;
-    }
-  }
-  return origins;
+  const configured = configuredWebOrigin();
+  return configured ? [window.location.origin, configured] : [window.location.origin];
 };
