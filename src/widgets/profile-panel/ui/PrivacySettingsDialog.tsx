@@ -188,13 +188,21 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
                 {group(translations.privacyWhoCanSee || 'Who can see me', rowsOf('see'))}
                 {group(translations.privacyWhoCanContact || 'Who can contact me', rowsOf('contact'))}
                 {group(translations.privacyDiscovery || 'Discovery', rowsOf('discovery'))}
-                {group(translations.privacyMessages || 'Messages', (
+                {group(translations.privacyMessages || 'Messages', (<>
                   <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                     <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{translations.readReceipts || 'Read receipts'}</span>
                     <Switch checked={!!privacySettings?.read_receipts_enabled} disabled={!privacySettings || isSaving}
                       onCheckedChange={(checked) => handlePrivacyChange('read_receipts_enabled', checked)} />
                   </label>
-                ))}
+                  <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground">{translations.typingStatus.setting}</span>
+                      <span className="block text-xs text-muted-foreground">{translations.typingStatus.settingDescription}</span>
+                    </span>
+                    <Switch checked={!!privacySettings?.typing_indicators_enabled} disabled={!privacySettings || isSaving}
+                      onCheckedChange={(checked) => handlePrivacyChange('typing_indicators_enabled', checked)} />
+                  </label>
+                </>))}
                 {callsOnServer && group(translations.privacyCalls, (
                   <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                     <span className="min-w-0 flex-1">

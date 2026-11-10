@@ -9,7 +9,7 @@ export const isGoApi = () => /\/api\/v2\/?$/.test(String(getApiBaseUrl()));
 interface OutgoingEvent {
   type: string;
   client_temp_id?: EntityId; message_id?: EntityId; reply_to?: EntityId | null;
-  content?: string; reaction?: string; emoji?: string; is_typing?: boolean;
+  content?: string; reaction?: string; emoji?: string;
 }
 export const goClientEvent = (raw: OutgoingEvent, chatId: EntityId): ClientEvent => {
   const generatedId = raw.type === 'message' ? crypto.randomUUID() : `op:${crypto.randomUUID()}`;
@@ -22,7 +22,6 @@ export const goClientEvent = (raw: OutgoingEvent, chatId: EntityId): ClientEvent
     case 'delete': data = { message_id: messageId, scope: 'everyone' }; break;
     case 'reaction_add': case 'reaction_remove': data = { message_id: messageId, emoji: raw.reaction || raw.emoji }; break;
     case 'resend': data = { message_id: messageId }; break;
-    case 'typing': data = { is_typing: raw.is_typing }; break;
     default: throw new Error(`Unsupported outgoing event: ${raw.type}`);
   }
   return { ...envelope, data } as ClientEvent;
@@ -54,7 +53,8 @@ export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => 
     case 'delete': return { type: 'delete', message_id: event.data.message_id };
     case 'reaction_add': case 'reaction_remove': return { type: event.type, message_id: event.data.message_id, user_id: event.data.reaction.user_id, reaction: event.data.reaction.emoji };
     case 'read': return { type: 'is_read', message_id: event.data.message_id, user_id: event.data.user_id, read_at: event.data.read_at };
-    case 'error': return event.client_temp_id?.startsWith('op:')
+    case 'error': if (!event.client_temp_id) return null;
+      return event.client_temp_id.startsWith('op:')
       ? { type: 'error', message: event.data.message || event.data.code, operation_error: true }
       : { type: 'error', message: event.data.message || event.data.code, message_id: event.client_temp_id };
     case 'group_updated': return { type: 'group_updated', group: groupModel(event.data.group) };

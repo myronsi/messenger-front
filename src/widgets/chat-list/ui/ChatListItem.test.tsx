@@ -1,5 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ServerEvent } from '@myronsi/messenger-api';
+import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { applyTypingFrame, clearTypingUsers } from '@/entities/typing';
 import { en } from '@/shared/lang/en';
 import type { Chat } from '@/entities/message';
 import ChatListItem from './ChatListItem';
@@ -10,6 +13,7 @@ vi.mock('@/shared/lib/notifications/api', () => ({
   notificationSnapshot: () => snapshot,
   muteNotifications: vi.fn(),
 }));
+vi.mock('@/entities/user', () => ({ useGetUserByIdQuery: (id: unknown) => ({ data: id === '5' ? { display_name: 'Anna' } : undefined }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { alt?: string }) => <img alt={props.alt} /> }));
 
 const chat = { id: '7', name: 'alice', display_name: 'Alice', type: 'one-on-one', unread_count: 3 } as Chat;
@@ -67,5 +71,26 @@ describe('ChatListItem layout', () => {
       isOwnLastMessage={() => false} isOwnLastMessageRead={() => false} />);
     expect(screen.getByTestId('chat-online-dot')).toBeInTheDocument();
     expect(screen.getByLabelText(en.pinned)).toBeInTheDocument();
+  });
+});
+
+describe('ChatListItem typing status', () => {
+  const base = { getLastMessagePreview: () => 'Hello there', getLastMessageTime: () => '09:30', onClick: vi.fn(), onContextMenu: vi.fn(), translations: en,
+    isOwnLastMessage: () => false, isOwnLastMessageRead: () => false };
+  const typing = (chatId: string, isTyping = true) => ({
+    type: 'typing', event_id: '1', chat_id: chatId, data: { user_id: '5', is_typing: isTyping, action: 'typing' },
+  }) as ServerEvent;
+
+  it('replaces the preview with the typing status and brings it back', () => {
+    localStorage.setItem('language', 'en');
+    render(<LanguageProvider><ChatListItem {...base} chat={{ id: '9', name: 'team', display_name: 'Team', type: 'group' } as Chat} /></LanguageProvider>);
+    expect(screen.getByText('Hello there')).toBeInTheDocument();
+    act(() => applyTypingFrame(typing('9')));
+    expect(screen.getByTestId('typing-label')).toHaveTextContent('Anna is typing…');
+    expect(screen.getByTestId('typing-label')).toHaveClass('text-primary');
+    expect(screen.queryByText('Hello there')).not.toBeInTheDocument();
+    act(() => applyTypingFrame(typing('9', false)));
+    expect(screen.getByText('Hello there')).toBeInTheDocument();
+    act(() => clearTypingUsers());
   });
 });

@@ -55,6 +55,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
 
       <ImageDrawingProvider chatId={chatId} enabled={isPersistedId(chatId)} onSent={settleOptimisticUpload}>
       <MessageList
+        chatId={chatId}
         messages={messages}
         username={username}
         userId={currentUserId}

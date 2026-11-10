@@ -6,9 +6,9 @@ import { useMessageListScroll } from '../model/useMessageListScroll';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
 import { isIgnoredTap } from '../model/tapFilter';
 import { nextVoiceMessageId } from '../model/nextVoiceMessage';
-import { MessageItem } from '@/entities/message';
+import { TypingBubble } from '@/entities/typing';
 import ScrollToBottomButton from './ScrollToBottomButton';
-import { isVisualMediaMessage, Message, ReactionInfo, type MessageSelection } from '@/entities/message';
+import { isVisualMediaMessage, Message, MessageItem, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useStableCallback } from '@/shared/lib/useStableCallback';
@@ -50,6 +50,7 @@ interface MessageListProps {
   onScrollStart?: () => void;
   selection?: MessageSelection;
   onSwipeReply?: (message: Message) => void;
+  chatId?: EntityId;
 }
 
 const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
@@ -79,10 +80,8 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
     onLoadOlderMessages,
     onLoadNewerMessages,
     onLoadLatestMessages,
-    hasMoreMessages = false,
-    hasMoreNewerMessages = false,
-    isLoadingOlderMessages = false,
-    isLoadingNewerMessages = false,
+    hasMoreMessages = false, hasMoreNewerMessages = false,
+    isLoadingOlderMessages = false, isLoadingNewerMessages = false,
     isLoadingInitialMessages = false,
   } = props;
   const bottomSpaceClass = bottomInset === undefined ? MESSAGE_LIST_BOTTOM_SPACE : '';
@@ -272,6 +271,7 @@ const MessageList = forwardRef<HTMLDivElement, MessageListProps>((props, ref) =>
             />
           );
         })}
+        {props.chatId !== undefined && !hasMoreNewerMessages && <TypingBubble chatId={props.chatId} isGroup={isGroup} />}
         {isLoadingNewerMessages && (
           <div className="flex justify-center">
             <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">

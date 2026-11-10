@@ -7,6 +7,7 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import { BellOff, Check, CheckCheck, Pin, Users } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import { useChatMuteStatus } from '@/features/chat-mute';
+import { TypingLabel, useTypingUsers } from '@/entities/typing';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -39,6 +40,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const isActive = chat.id === activeChatId && !isContextSelected;
   const unreadCount = chat.unread_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
+  const typingUsers = useTypingUsers(chat.id);
   const unreadBadgeClass = isMuted
     ? isActive ? 'bg-muted-foreground text-background md:bg-primary-foreground/60 md:text-primary' : 'bg-muted-foreground text-background'
     : isActive ? 'bg-primary text-primary-foreground md:bg-primary-foreground md:text-primary' : 'bg-primary text-primary-foreground';
@@ -101,8 +103,12 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         </div>
         <div className="mt-0.5 flex min-w-0 items-center gap-2">
           <div className={`min-w-0 flex-1 truncate text-sm leading-5 ${isActive ? `${previewTone} md:text-primary-foreground/80` : previewTone}`}>
-            {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}>{sender}: </span>}
-            {getLastMessagePreview(chat.last_message)}
+            {typingUsers.length ? (
+              <TypingLabel users={typingUsers} isGroup={chat.type === 'group'} className={isActive ? 'text-primary md:text-primary-foreground' : 'text-primary'} />
+            ) : (<>
+              {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}>{sender}: </span>}
+              {getLastMessagePreview(chat.last_message)}
+            </>)}
           </div>
           {chat.is_pinned && !unreadCount && <Pin aria-label={translations.pinned} className={`h-3.5 w-3.5 shrink-0 rotate-45 ${muted}`} />}
           <span
