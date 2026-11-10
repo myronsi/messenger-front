@@ -1,16 +1,13 @@
-import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect } from 'react';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
-import { authFetch } from '@/shared/auth/session';
 import { messengerApi } from '@/shared/api/baseApi';
 import { useGetGroupDetailsQuery } from '@/entities/chat';
 import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import type { RawGroupDetails } from './groupChatTypes';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { permissionsForRole, getAvatarSrc } from './groupChatUtils';
-const BASE_URL = getApiBaseUrl();
 interface Args {
   chatId: EntityId; username: string; groupName: string; token: string;
   dispatch: ReturnType<typeof useAppDispatch>; groupDetails: GroupDetails | null;
@@ -74,26 +71,24 @@ export const useGroupDetails = ({
     }
   }, [chatId, dispatch, groupName, normalizeGroupDetails, setGroupDetails, setGroupForm]);
 
-  const refreshGroupDetails = useCallback(async () => {
-    if (!token || !isPersistedId(chatId)) return;
-    try {
-      const response = await authFetch(`${BASE_URL}/groups/${chatId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(await response.text());
-      applyGroupDetails(await response.json());
-    } catch (error) {
-      console.error('Error refreshing group details:', error);
-    }
-  }, [applyGroupDetails, chatId, token]);
-
+  const skipGroupDetails = !token || !isPersistedId(chatId);
   const {
     data: latestGroupDetails,
     error: groupDetailsError,
+    refetch: refetchGroupDetails,
   } = useGetGroupDetailsQuery(chatId, {
-    skip: !token || !isPersistedId(chatId),
+    skip: skipGroupDetails,
     refetchOnMountOrArgChange: true,
   });
+
+  const refreshGroupDetails = useCallback(async () => {
+    if (skipGroupDetails) return;
+    try {
+      await refetchGroupDetails().unwrap();
+    } catch (error) {
+      console.error('Error refreshing group details:', error);
+    }
+  }, [refetchGroupDetails, skipGroupDetails]);
 
   useEffect(() => {
     if (!latestGroupDetails) return;

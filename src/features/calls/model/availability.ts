@@ -57,6 +57,8 @@ export const loadCallConfig = (): Promise<void> => {
   return request;
 };
 
+export const callConfigReady = (): Promise<void> => loading ?? Promise.resolve();
+
 export const callsEnabledOnServer = () => !!configStore.get()?.enabled;
 
 export const canPlaceCalls = () => callsEnabledOnServer() && !isNativeShell() && browserSupportsCallEncryption();

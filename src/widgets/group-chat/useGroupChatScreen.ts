@@ -1,13 +1,12 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState, type SetStateAction } from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import { useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { useAppDispatch } from '@/shared/hooks/redux';
-import { useDraftState } from '@/shared/hooks/useDraftState';
-import { chatDraftKey } from '@/shared/lib/drafts';
+import type { ComposerDraftHandle } from '@/features/message-composer';
 import { useChatTransport, useLatest, useMessageHistory, useMessageSender } from '@/features/chat-core';
 import type { GroupDetails } from './GroupProfileTypes';
 import { useGroupChatSocket } from './useGroupChatSocket';
@@ -29,7 +28,9 @@ export const useGroupChatScreen = ({
   const { messages, setMessages } = useConversationMessages(chatId);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
-  const [messageInput, setMessageInput] = useDraftState(chatDraftKey(chatId), editingMessage === null);
+  const composerDraftRef = useRef<ComposerDraftHandle | null>(null);
+  const getMessageInput = useCallback(() => composerDraftRef.current?.get() ?? '', []);
+  const setMessageInput = useCallback((value: SetStateAction<string>) => composerDraftRef.current?.set(value), []);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [readStatusMessage, setReadStatusMessage] = useState<Message | null>(null);
@@ -62,7 +63,7 @@ export const useGroupChatScreen = ({
 
   const sender = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations: rawTranslations, translationsRef, transport,
-    setMessages, setModal, messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
+    setMessages, setModal, getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
   });
 
   useGroupChatSocket({
@@ -70,6 +71,7 @@ export const useGroupChatScreen = ({
     applyGroupDetails, refreshGroupDetails, setMessages, setModal,
     markMessageFailed: sender.markMessageFailed, markLatestPendingMessageFailed: sender.markLatestPendingMessageFailed,
     onReconnected: () => { sender.resendUnconfirmed(); void history.catchUpAfterReconnect(); },
+    onOpened: () => { void history.catchUpAfterReconnect(true); },
   });
 
   const {
@@ -114,7 +116,7 @@ export const useGroupChatScreen = ({
     ...profilePanel,
     handleOpenUserProfile,
     handleOpenMemberProfile,
-    messageInputRef, messageInput, setMessageInput, replyTo, setReplyTo, editingMessage, setEditingMessage,
+    messageInputRef, composerDraftRef, setMessageInput, replyTo, setReplyTo, editingMessage, setEditingMessage,
     handleSendMessage: sender.handleSendMessage,
     handleSendSticker: sender.handleSendSticker,
     handleResendMessage: sender.handleResendMessage,
