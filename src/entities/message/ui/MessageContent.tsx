@@ -16,6 +16,7 @@ import LinkPreviewCard from './LinkPreviewCard';
 import { messageLinks } from '@/shared/lib/messageLinks';
 import { useImageDrawing } from '@/shared/ui/drawing';
 import { drawActionFor } from '../model/drawAction';
+import { StickerMessage } from './StickerMessage';
 
 interface MessageContentProps {
   message: Message;
@@ -45,6 +46,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   onMediaBroken,
 }) => {
   const imageDrawing = useImageDrawing();
+  if (message.sticker && !message.is_deleted && !mediaBroken) return <StickerMessage sticker={message.sticker} onBroken={onMediaBroken} />;
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
     if (typeof content !== 'string') return <>{content}{trailing}</>;

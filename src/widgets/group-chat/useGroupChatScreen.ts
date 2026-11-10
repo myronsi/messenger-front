@@ -116,6 +116,7 @@ export const useGroupChatScreen = ({
     handleOpenMemberProfile,
     messageInputRef, messageInput, setMessageInput, replyTo, setReplyTo, editingMessage, setEditingMessage,
     handleSendMessage: sender.handleSendMessage,
+    handleSendSticker: sender.handleSendSticker,
     handleResendMessage: sender.handleResendMessage,
     handleFileUpload: sender.handleFileUpload,
     createOptimisticUploadMessage: sender.createOptimisticUploadMessage,

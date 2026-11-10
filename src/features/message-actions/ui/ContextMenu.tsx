@@ -6,6 +6,8 @@ import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
 import { notifyMessageDeletedLocally } from '@/entities/message';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
+import { makeStickerFrom } from '@/entities/sticker';
+import { isGoApi } from '@/shared/api/goSocket';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ContextMenuProps {
@@ -99,7 +101,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const message = messages.find((m) => m.id === contextMenu.messageId);
     const isFile = message?.type === 'file';
     const fileContent = message && typeof message.content !== 'string' ? message.content : null;
-    const canEdit = !!message && !message.forwarded_from && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
+    const canEdit = !!message && !message.forwarded_from && !message.sticker && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
+    const stickerSource = fileContent && fileContent.file_type.startsWith('image/') && !fileContent.album?.length ? fileContent.file_url : null;
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
 
     const handleEdit = () => {
@@ -191,6 +194,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         onReply={handleReply}
         onForward={onForward && message ? handleForward : undefined}
         onSelect={onSelect && message ? () => { onSelect(message); closeMenu(); } : undefined}
+        onMakeSticker={stickerSource && isGoApi() ? () => { closeMenu(); makeStickerFrom(stickerSource); } : undefined}
         isClosing={isClosing || !!contextMenu.isClosing}
         onClose={onClose}
       />
