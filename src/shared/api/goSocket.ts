@@ -9,7 +9,7 @@ export const isGoApi = () => /\/api\/v2\/?$/.test(String(getApiBaseUrl()));
 interface OutgoingEvent {
   type: string;
   client_temp_id?: EntityId; message_id?: EntityId; reply_to?: EntityId | null;
-  content?: string; reaction?: string; emoji?: string; is_typing?: boolean;
+  content?: string; reaction?: string; emoji?: string;
 }
 export const goClientEvent = (raw: OutgoingEvent, chatId: EntityId): ClientEvent => {
   const generatedId = raw.type === 'message' ? crypto.randomUUID() : `op:${crypto.randomUUID()}`;
@@ -22,7 +22,6 @@ export const goClientEvent = (raw: OutgoingEvent, chatId: EntityId): ClientEvent
     case 'delete': data = { message_id: messageId, scope: 'everyone' }; break;
     case 'reaction_add': case 'reaction_remove': data = { message_id: messageId, emoji: raw.reaction || raw.emoji }; break;
     case 'resend': data = { message_id: messageId }; break;
-    case 'typing': data = { is_typing: raw.is_typing }; break;
     default: throw new Error(`Unsupported outgoing event: ${raw.type}`);
   }
   return { ...envelope, data } as ClientEvent;

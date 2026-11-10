@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import { coalesceTask } from '@/shared/lib/coalesceTask';
+import { applyTypingFrame, clearTypingUsers } from '@/entities/typing';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 
 const CHAT_LIST_REFETCH_DELAY_MS = 750;
@@ -52,18 +53,19 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
     const listRefetch = coalesceTask(() => refetchRef.current(), CHAT_LIST_REFETCH_DELAY_MS);
     const release = realtime.subscribe({
       onOpen: () => { setNotificationLive(true); refetchRef.current(); refetchRequestInboxRef.current(); },
-      onStatus: status => { if (status !== 'connected') setNotificationLive(false); },
+      onStatus: status => { if (status !== 'connected') { setNotificationLive(false); clearTypingUsers(); } },
       onEvent: frame => {
         if (frame.type === 'security_notice' && frame.data.type === 'password_reset') {
           sessionStorage.setItem('security_notice', 'Your password was reset using account recovery. Please sign in again.');
           endSession(); window.location.assign('/login'); return;
         }
+        applyTypingFrame(frame);
         notifyMessageFrame(frame, activeChatIdRef.current);
         if (GO_CHAT_LIST_EVENTS.includes(frame.type)) listRefetch.schedule();
         if (frame.type === 'approval_request_created') refetchRequestInboxRef.current();
         if (frame.type === 'chat_deleted' && frame.chat_id) onChatDeletedRef.current?.(frame.chat_id);
       },
     });
-    return () => { release(); listRefetch.cancel(); setNotificationLive(false); };
+    return () => { release(); listRefetch.cancel(); setNotificationLive(false); clearTypingUsers(); };
   }, [isSignedIn]);
 }

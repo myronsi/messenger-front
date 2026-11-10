@@ -162,6 +162,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
       <ImageDrawingProvider chatId={chatId} enabled={!isPreview} onSent={settleOptimisticUpload}>
       <MessageList
           ref={chatWindowRef}
+          chatId={chatId}
           messages={displayedMessages}
           username={username}
           interlocutorDeleted={interlocutorDeleted}

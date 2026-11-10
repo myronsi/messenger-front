@@ -4,6 +4,7 @@ import React, { useCallback, useRef, forwardRef, useState, useEffect, useLayoutE
 import { createPortal } from 'react-dom';
 import { Paperclip, Upload } from 'lucide-react';
 import { Message } from '@/entities/message';
+import { useTypingStatus } from '@/entities/typing';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { isAlbumFile, MAX_ALBUM_ITEMS, UPLOAD_ACCEPT, uploadLimitMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
 import { isGoApi } from '@/shared/api/goSocket';
@@ -81,6 +82,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     getReplyToId: () => replyToRef.current?.id ?? null,
   });
   const canSend = ((hasDraft || isEditing) && !isUnchangedEdit) || !!voicePreview;
+  useTypingStatus({ chatId, text: messageInput, canType: !isEditing && !disabled, isRecording });
 
   useLayoutEffect(() => {
     const field = inputRef.current;

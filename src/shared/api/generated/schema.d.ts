@@ -2797,6 +2797,8 @@ export interface components {
             search_visibility: components["schemas"]["SearchVisibility"];
             /** @description Whether others may ring this user. Calls are only possible from an existing direct chat or a shared group. */
             calls_enabled: boolean;
+            /** @description Whether other members see that this user is typing or recording a voice message. The user still sees theirs. */
+            typing_indicators_enabled: boolean;
             exceptions: components["schemas"]["PrivacyExceptions"];
         };
         UpdatePrivacySettingsRequest: {
@@ -2808,6 +2810,7 @@ export interface components {
             group_invites?: components["schemas"]["GroupInvitePolicy"];
             search_visibility?: components["schemas"]["SearchVisibility"];
             calls_enabled?: boolean;
+            typing_indicators_enabled?: boolean;
         };
         PrivacyExceptionsRequest: {
             user_ids: components["schemas"]["Id"][];

@@ -41,6 +41,19 @@ describe('one user realtime connection', () => {
     releaseList(); expect(sockets[0].close).toHaveBeenCalledOnce();
   });
 
+  it('delivers typing frames and sends typing only while connected', async () => {
+    const events = vi.fn(); client.subscribe({ onEvent: events });
+    const typing = { type: 'typing' as const, chat_id: '4', data: { is_typing: true, action: 'typing' as const } };
+    await flush();
+    expect(client.sendIfOpen(typing)).toBe(false);
+    sockets[0].open();
+    expect(client.sendIfOpen(typing)).toBe(true);
+    expect(JSON.parse(sockets[0].send.mock.calls[0][0])).toEqual(typing);
+    const frame = { type: 'typing', event_id: '9', chat_id: '4', data: { user_id: '7', is_typing: true, action: 'recording_voice' } };
+    sockets[0].frame(frame);
+    expect(events).toHaveBeenCalledWith(frame);
+  });
+
   it('uses a fresh ticket on reconnect and tells all subscribers to catch up', async () => {
     const opened = vi.fn(); client.subscribe({ onOpen: opened });
     await flush(); sockets[0].open(); sockets[0].drop(1012);
