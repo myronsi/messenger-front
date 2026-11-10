@@ -66,12 +66,33 @@ describe('RecoveryKeyReceipt', () => {
     expect(screen.getByRole('checkbox')).toBeEnabled();
   });
 
-  it('keeps the checkbox locked when copying fails', async () => {
+  it('falls back to a selection copy when the clipboard API is denied', async () => {
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: () => Promise.reject(new Error('denied')) } });
+    const execCommand = vi.fn(() => true);
+    Object.defineProperty(document, 'execCommand', { value: execCommand, configurable: true });
+    render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy recovery key' })); });
+    expect(execCommand).toHaveBeenCalledWith('copy');
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toBeEnabled();
+  });
+
+  it('shows the manual copy hint and unlocks the checkbox when every copy path fails', async () => {
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: () => Promise.reject(new Error('denied')) } });
+    Object.defineProperty(document, 'execCommand', { value: vi.fn(() => false), configurable: true });
     render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy recovery key' })); });
     expect(screen.getByRole('status')).toHaveTextContent('Select the key and copy it manually.');
+    expect(screen.getByRole('button', { name: 'Copy recovery key' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toBeEnabled();
+  });
+
+  it('unlocks the checkbox when the key is copied manually', () => {
+    render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={() => {}} />);
     expect(screen.getByRole('checkbox')).toBeDisabled();
+    fireEvent.copy(screen.getByText('K7QM'));
+    expect(screen.getByRole('checkbox')).toBeEnabled();
   });
 
   it('downloads a private file with the account, the key and how to use it', async () => {

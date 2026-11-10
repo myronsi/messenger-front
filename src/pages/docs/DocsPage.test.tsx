@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { en } from '@/shared/lang/en';
 import { ru } from '@/shared/lang/ru';
@@ -47,9 +47,11 @@ describe('DocsPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: ru.docs.title })).toBeInTheDocument();
   });
 
-  it('defaults to Russian like the rest of the app', () => {
+  it('defaults to the browser language like the rest of the app', () => {
+    const languages = vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ru-RU']);
     renderDocs();
     expect(screen.getByRole('heading', { level: 1, name: ru.docs.title })).toBeInTheDocument();
+    languages.mockRestore();
   });
 
   it('ignores a malformed anchor instead of crashing', () => {

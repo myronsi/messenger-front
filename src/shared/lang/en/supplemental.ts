@@ -35,6 +35,8 @@ export const supplemental = {
   accountName: "Account name",
   activeSessions: "Active sessions",
   addAvatar: "Add avatar",
+  avatarPreview: "Profile photo preview",
+  removeSelectedAvatar: "Remove selected photo",
   addParticipants: "Add participants",
   available: "available",
   avatarUploadFailed: "Avatar upload failed.",

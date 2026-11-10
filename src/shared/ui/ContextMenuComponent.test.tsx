@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ContextMenuComponent from './ContextMenuComponent';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply' } }),
+  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply', copy: 'Copy', forward: 'Forward', selectMessage: 'Select', editMessage: 'Edit' } }),
 }));
 
 const renderMenu = (props: { onDeleteForMe?: () => void; onDeleteForEveryone?: () => void }) => render(
@@ -33,5 +33,21 @@ describe('ContextMenuComponent delete', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete for me' }));
     expect(onDeleteForMe).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'For everyone' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ContextMenuComponent order', () => {
+  it('lists reply, copy, forward, select and edit, then delete last after a separator', () => {
+    const { container } = render(
+      <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine onReply={vi.fn()} onCopy={vi.fn()} onForward={vi.fn()}
+        onSelect={vi.fn()} onEdit={vi.fn()} onDeleteForMe={vi.fn()} onDeleteForEveryone={vi.fn()} isClosing={false} onClose={vi.fn()} />,
+    );
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Copy', 'Forward', 'Select', 'Edit', 'Delete']);
+    expect(container.querySelector('.border-t')?.nextElementSibling).toHaveTextContent('Delete');
+  });
+
+  it('shows no separator without a delete action', () => {
+    const { container } = renderMenu({});
+    expect(container.querySelector('.border-t')).toBeNull();
   });
 });

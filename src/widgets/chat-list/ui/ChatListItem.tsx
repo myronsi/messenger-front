@@ -91,7 +91,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           </div>
           {ownLastMessage && !ownLastMessageFailed && (
             <span className={`flex shrink-0 items-center transition-colors duration-150 ${isActive ? `${ticksTone} md:text-primary-foreground/80` : ticksTone}`}
-              title={ownLastMessageRead ? 'Read' : 'Unread'}>
+              title={ownLastMessageRead ? translations.messageRead : translations.messageSent}>
               {ownLastMessageRead ? <CheckCheck size={16} /> : <Check size={16} />}
             </span>
           )}
