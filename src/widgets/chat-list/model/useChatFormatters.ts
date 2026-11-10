@@ -23,6 +23,7 @@ export function useChatFormatters(currentUserId?: EntityId) {
       return withEditedLabel(translations.fileMessagePreview);
     }
     if (lastMessage.delivery_error) return lastMessage.delivery_error;
+    if (lastMessage.sticker) return `${lastMessage.sticker.emoji} ${translations.sticker}`;
     return withEditedLabel(typeof lastMessage.content === 'string' ? lastMessage.content : translations.fileMessagePreview);
   };
 

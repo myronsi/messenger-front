@@ -4,6 +4,7 @@ import type * as React from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import type { GroupRole } from '@/entities/chat';
 import type { ComposerDraftHandle } from '@/features/message-composer';
+import type { Sticker } from '@/entities/sticker';
 import type { GroupDetails, GroupParticipant, GroupProfileConfirmState } from './GroupProfileTypes';
 
 export type { RawGroupDetails, RawGroupParticipant, RawGroupPendingInvite } from '@/entities/chat';
@@ -73,6 +74,7 @@ export interface GroupChatViewModel {
   replyTo: Message | null;
   editingMessage: Message | null;
   handleSendMessage: () => void;
+  handleSendSticker: (sticker: Sticker) => void;
   handleFileUpload: (file: File | File[], caption?: string) => Promise<void>;
   handleResendMessage: (message: Message) => void;
   setReplyTo: Setter<Message | null>;

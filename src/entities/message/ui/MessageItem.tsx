@@ -19,6 +19,7 @@ import MessageTime from './MessageTime';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
+import { bubbleClass } from '../model/bubbleClass';
 import { AlertCircle, Check } from 'lucide-react';
 const PARTICLE_COUNT = 36;
 
@@ -103,7 +104,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const setRowRef = useCallback((element: HTMLDivElement | null) => { messageRefs.current[messageId] = element; }, [messageRefs, messageId]);
   const longPress = useLongPress(onLongPress && !onToggleSelect ? () => onLongPress(message) : undefined);
   const isMine = isOwnMessage(message);
-  const [mediaBroken, setMediaBroken] = useState(false), isImage = isImageMessage && !mediaBroken;
+  const [mediaBroken, setMediaBroken] = useState(false), isSticker = !!message.sticker && !message.is_deleted && !mediaBroken;
+  const isImage = (isImageMessage || isSticker) && !mediaBroken, tinted = isMine && !isSticker;
   const canSwipe = !!onSwipeReply && !onToggleSelect && isPersistedId(message.id) && !message.is_deleted && !interlocutorDeleted;
   const swipe = useSwipeAction(isMine ? -1 : 1, canSwipe ? () => onSwipeReply?.(message) : undefined);
   const reducedMotion = prefersReducedMotion();
@@ -128,7 +130,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const showAvatar = reserveAvatarSpace && isLastInGroup;
   const showTail = isLastInGroup && !isImage;
   const hasImageCaption = isImage && typeof message.content !== 'string' && !!message.content?.caption?.trim();
-  const isText = message.type !== 'file' && typeof message.content === 'string';
+  const isText = !isSticker && message.type !== 'file' && typeof message.content === 'string';
   const hasTime = isValidTimestamp(message.timestamp);
   const timeLabel = hasTime ? getMessageTime(message.timestamp) : '';
   const time = (interactive = true) => (
@@ -225,17 +227,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 {message.sender}
               </button>
             )}
-            <div className={`motion-message-bubble relative w-fit min-w-0 max-w-full rounded-bubble [overflow-wrap:anywhere] ${message.is_deleting ? 'message-dissolve' : ''} ${
-              isMine ? `bubble-out bg-primary text-primary-foreground${showTail ? ' message-tail-right' : ''}` : `bubble-in bg-accent text-accent-foreground${showTail ? ' message-tail-left' : ''}`
-            } ${isImage ? `p-0 border${isMine ? ' border-primary' : ' border-accent'}`
-              : `px-3 ${isText ? 'pt-0.5 pb-1.5' : 'py-1.5'} border${isMine ? ' border-primary' : ' border-accent'}`} ${
-              hasReactions ? (isImage ? 'mb-4' : 'mb-3.5') : ''
-            }`}>
+            <div className={bubbleClass({ isMine, showTail, isImage, isText, isSticker, hasReactions, deleting: message.is_deleting })}>
               {message.forwarded_from && (
-                <ForwardedLabel forwardedFrom={message.forwarded_from} translations={translations} isMine={isMine} isImage={isImage} />
+                <ForwardedLabel forwardedFrom={message.forwarded_from} translations={translations} isMine={tinted} isImage={isImage} />
               )}
               {message.reply_to && (
-                <ReplyPreview replyMessage={replyMessage} isMine={isMine} isReplyToOwn={!!replyMessage && isOwnMessage(replyMessage)} isImage={isImage}
+                <ReplyPreview replyMessage={replyMessage} isMine={tinted} isReplyToOwn={!!replyMessage && isOwnMessage(replyMessage)} isImage={isImage}
                   onClick={interlocutorDeleted ? undefined : handleReply} />
               )}
               <div className="relative">
@@ -273,7 +270,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 </div>
               )}
               {message.delivery_error && (
-                <div className={`mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-snug ${isMine ? 'text-primary-foreground/80' : 'text-destructive'}`}>
+                <div className={`mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-snug ${tinted ? 'text-primary-foreground/80' : 'text-destructive'}`}>
                   <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
                   <span>{message.delivery_error}</span>
                   {isMine && onResendMessage && <button type="button" className="ml-1 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[11px] font-medium underline-offset-2 hover:underline" onClick={(event) => {
