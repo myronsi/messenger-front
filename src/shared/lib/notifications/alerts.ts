@@ -5,9 +5,10 @@ import { isAppLanguage, type AppLanguage } from '@/shared/lang/languages';
 import { notificationSettings as enWords } from '@/shared/lang/en/notificationSettings';
 import { notificationSettings as ruWords } from '@/shared/lang/ru/notificationSettings';
 import { notificationSettings as esWords } from '@/shared/lang/es/notificationSettings';
+import { notificationSettings as deWords } from '@/shared/lang/de/notificationSettings';
 
 const NOTIFICATION_WORDS: Record<AppLanguage, { newMessage: string; open: string }> = {
-  en: enWords.notificationSettings, ru: ruWords.notificationSettings, es: esWords.notificationSettings,
+  en: enWords.notificationSettings, ru: ruWords.notificationSettings, es: esWords.notificationSettings, de: deWords.notificationSettings,
 };
 
 interface IncomingMessage { chatId: string; messageId: string; senderId: string; title: string; body: string; timestamp: string }
