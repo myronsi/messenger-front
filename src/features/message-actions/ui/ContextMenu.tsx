@@ -32,6 +32,7 @@ interface ContextMenuProps {
   isDirect?: boolean;
   onForward?: (message: Message) => void;
   onSelect?: (message: Message) => void;
+  onReply: (message: Message) => void;
 }
 
 const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
@@ -54,6 +55,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     isDirect = false,
     onForward,
     onSelect,
+    onReply,
   }, ref) => {
     const { translations } = useLanguage();
     const [deleteMessageForMe] = useDeleteMessageForMeMutation();
@@ -139,12 +141,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     };
 
     const handleReply = () => {
-      if (message) {
-        setReplyTo(message);
-        setEditingMessage(null);
-        setMessageInput('');
-        focusComposer(messageInputRef.current);
-      }
+      if (message) onReply(message);
       setContextMenu({ ...contextMenu, isClosing: true });
       setReactionMenu(reactionMenu ? { ...reactionMenu, isClosing: true } : null);
       setTimeout(() => onClose(), 200);
