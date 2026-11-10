@@ -83,6 +83,8 @@ export const directChatModel = (chat: Schema['Chat']) => ({
   interlocutor_last_seen: chat.peer?.last_seen,
   interlocutor_deleted: chat.peer?.is_deleted || false,
   avatar_url: chat.avatar_url || undefined,
+  first_unread_message_id: chat.first_unread_message_id ?? null,
+  last_read_message_id: chat.last_read_message_id ?? null,
   last_message: chat.last_message ? {
     ...messageModel(chat.last_message),
     sender_id: chat.last_message.sender?.id || '0',

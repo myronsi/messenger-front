@@ -2916,7 +2916,8 @@ export interface components {
         };
         RegisterRequest: {
             username: components["schemas"]["Username"];
-            display_name: string;
+            /** @description Defaults to the username when it is missing, empty or only whitespace. */
+            display_name?: string;
             password: string;
             bio?: string | null;
         };
@@ -3454,6 +3455,14 @@ export interface components {
             peer: components["schemas"]["User"] | null;
             is_pinned: boolean;
             unread_count: number;
+            /**
+             * @description The oldest message the caller has not read (the same messages `unread_count` counts: not their own,
+             *     not system messages, not deleted); `null` when nothing is unread. Clients open the chat around it and
+             *     show the "new messages" divider above it.
+             */
+            first_unread_message_id: components["schemas"]["Id"] | null;
+            /** @description The caller's read marker (`POST /chats/{chat_id}/read`); `null` before their first read. */
+            last_read_message_id: components["schemas"]["Id"] | null;
             last_message: components["schemas"]["Message"] | null;
             /** @description Only for groups. */
             my_role?: components["schemas"]["GroupRole"] | null;
