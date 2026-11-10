@@ -56,7 +56,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
       {/* overlay content sits above the circle */}
       <div
         id="search-overlay"
-        className={`absolute inset-0 p-4 overflow-auto flex flex-col ${
+        className={`absolute inset-0 p-4 overflow-auto flex flex-col bg-background ${
           showSearch ? 'opacity-100 duration-300 translate-y-0' : 'opacity-0 duration-200 translate-y-2'
         } transition-all`}
         style={{

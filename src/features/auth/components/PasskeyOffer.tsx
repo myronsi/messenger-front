@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
+import { Loader2 } from 'lucide-react';
 import { apiClient } from '@/shared/api/client';
 import { registerPasskey } from '@/shared/api/passkeys';
 import { deviceLabel } from '@/shared/lib/deviceLabel';
@@ -45,7 +46,9 @@ export const PasskeyOffer = ({ username, onDone }: { username: string; onDone: (
     finally { setBusy(false); }
   };
 
-  if (!ready) return <p role="status" className="text-sm text-muted-foreground">{t.loading}</p>;
+  if (!ready) return <p role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />{t.loading}
+  </p>;
   return <form className="flex flex-col gap-4" onSubmit={event => { event.preventDefault(); void add(); }}>
     <div className="flex flex-col gap-1.5">
       <h2 className="text-2xl font-bold tracking-tight text-foreground">{t.title}</h2>

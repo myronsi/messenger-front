@@ -1,6 +1,7 @@
 import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import { focusComposer } from '@/shared/lib/composerFocus';
+import { copyText } from '@/shared/lib/copyText';
 import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
@@ -75,27 +76,6 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       }
     }, [reactionMenu, contextMenu, setContextMenu, onClose]);
 
-    const copyToClipboard = async (text: string) => {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-          return true;
-        } else {
-          const textarea = document.createElement('textarea');
-          textarea.value = text;
-          textarea.style.position = 'fixed';
-          document.body.appendChild(textarea);
-          textarea.select();
-          const result = document.execCommand('copy');
-          document.body.removeChild(textarea);
-          return result;
-        }
-      } catch (err) {
-        console.error('Failed to copy:', err);
-        return false;
-      }
-    };
-
     const message = messages.find((m) => m.id === contextMenu.messageId);
     const isFile = message?.type === 'file';
     const fileContent = message && typeof message.content !== 'string' ? message.content : null;
@@ -150,7 +130,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const handleCopy = async () => {
       if (message) {
         const text = message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content);
-        await copyToClipboard(text);
+        await copyText(text);
       }
       closeMenu();
     };

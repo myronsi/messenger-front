@@ -5,6 +5,8 @@ import { useLongPress } from '@/shared/lib/useLongPress';
 import type { GroupTranslations } from './groupChatTypes';
 import type { EntityId } from '@/shared/api/entityId';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { participantCountLabel } from './groupChatUtils';
 
 interface GroupChatHeaderProps {
   chatId?: EntityId;
@@ -22,12 +24,13 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
   chatId, name, avatar, participantCount, description, translations, onBack, onOpenProfile, onOpenSearch,
 }) => {
   const longPress = useLongPress(onOpenSearch);
+  const { language } = useLanguage();
   return (
     <>
       <div data-testid="chat-header" {...longPress.handlers}
         className="motion-panel-in flex h-[72px] shrink-0 items-center justify-between border-b border-border px-4 sm:px-6">
         <div className="flex min-w-0 items-center space-x-4 md:space-x-0">
-          <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press rounded-full p-2 transition-colors hover:bg-accent md:hidden">
+          <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent md:hidden">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <button
@@ -39,7 +42,7 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
             <span className="flex min-w-0 flex-col items-start">
               <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{name}</span>
               <span className="max-w-[52vw] truncate text-xs font-normal text-muted-foreground sm:max-w-none">
-                {participantCount} {translations.participants || 'participants'}
+                {participantCountLabel(participantCount, translations, language)}
                 {description ? ` - ${description}` : ''}
               </span>
             </span>
@@ -53,7 +56,7 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
               onClick={onOpenSearch}
               aria-label={translations.search || 'Search'}
               title={translations.search || 'Search'}
-              className="motion-press shrink-0 rounded-full p-2 transition-colors hover:bg-accent"
+              className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent"
             >
               <Search className="h-5 w-5" />
             </button>

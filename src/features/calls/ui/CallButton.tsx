@@ -30,7 +30,7 @@ const CallButton: React.FC<CallButtonProps> = ({ chatId, disabled = false }) => 
       disabled={disabled || busy}
       aria-label={label}
       title={label}
-      className="motion-press shrink-0 rounded-full p-2 transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+      className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
     >
       <Phone className="h-5 w-5" />
     </button>

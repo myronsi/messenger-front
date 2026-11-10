@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-  Check, CheckCheck, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
+  Check, CheckCheck, Clock, Clock1, Clock2, Clock3, Clock4, Clock5, Clock6,
   Clock7, Clock8, Clock9, Clock10, Clock11, Clock12,
 } from 'lucide-react';
-import type { EntityId } from '@/shared/api/entityId';
+import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { Message } from '../model/types';
 
@@ -41,8 +41,12 @@ const MessageTime: React.FC<MessageTimeProps> = ({
   message, time, isMine, isGroup, isUploading, userId, translations, onOpenReadStatus, interactive = true,
 }) => {
   const isRead = message.read_by?.some((reader) => reader.user_id !== userId);
-  const statusLabel = isUploading ? translations.uploading : isRead ? translations.messageRead : translations.messageSent;
-  const status = isUploading ? <UploadClockStatus progress={message.upload_progress} animated={interactive} /> : (
+  const isPending = !isUploading && !isPersistedId(message.id);
+  const statusLabel = isUploading ? translations.uploading
+    : isPending ? translations.messageSending : isRead ? translations.messageRead : translations.messageSent;
+  const status = isUploading ? <UploadClockStatus progress={message.upload_progress} animated={interactive} /> : isPending ? (
+    <Clock size={14} data-testid="message-pending" />
+  ) : (
     <>
       {isRead ? <CheckCheck size={14} /> : <Check size={14} />}
       {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
@@ -52,7 +56,7 @@ const MessageTime: React.FC<MessageTimeProps> = ({
     <span className="inline-flex items-center gap-1 whitespace-nowrap">
       {message.edited_at && <span>{translations.edited}</span>}
       <span>{time}</span>
-      {isMine && !message.delivery_error && (interactive && isGroup && !isUploading && onOpenReadStatus ? (
+      {isMine && !message.delivery_error && (interactive && isGroup && !isUploading && !isPending && onOpenReadStatus ? (
         <button type="button" aria-label={translations.readBy} className="inline-flex items-center gap-0.5 transition-colors duration-150" onClick={(event) => {
           event.stopPropagation();
           onOpenReadStatus(message);

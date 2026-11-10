@@ -38,6 +38,7 @@ export const messages = {
   editing: "Редактирование",
   saveMessageEdit: "Сохранить изменения",
   messageSent: "Отправлено",
+  messageSending: "Отправляется",
   messageRead: "Прочитано",
   edited: "изменено",
   uploadUnsupportedType: "Этот тип файла не поддерживается.",
