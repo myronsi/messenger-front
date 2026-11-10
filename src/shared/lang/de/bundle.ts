@@ -21,9 +21,11 @@ import { notificationSettings } from './notificationSettings';
 import { presence } from './presence';
 import { drawing } from './drawing';
 import { typingStatus } from './typingStatus';
+import { stickers } from './stickers';
+import { stickerPacks } from './stickerPacks';
 
 export const de = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
-  ...appearance, ...authLayout, ...notificationSettings, ...presence, ...drawing, ...typingStatus,
+  ...appearance, ...authLayout, ...notificationSettings, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
 };
