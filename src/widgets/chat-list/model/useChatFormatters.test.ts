@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ChatLastMessage } from '@/entities/message';
 import { useChatFormatters } from './useChatFormatters';
 
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: { yesterday: 'Yesterday' } }) }));
+vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: { yesterday: 'Yesterday', sticker: 'Sticker' } }) }));
 
 const message = (date: Date): ChatLastMessage => ({ id: '1', sender_id: '2', sender_name: 'Anna', content: 'hi', type: 'message', timestamp: date.toISOString() });
 
@@ -23,4 +23,10 @@ it('shows the time today and the shared date labels before that', () => {
   expect(time(message(new Date(2026, 8, 20, 9, 30)))).toBe('20 September');
   expect(time(message(new Date(2025, 11, 10, 9, 30)))).toBe('10 December');
   expect(time(message(new Date(2024, 2, 1, 9, 30)))).toBe('1 March 2024');
+});
+
+it('previews a sticker as its emoji', () => {
+  const { result } = renderHook(() => useChatFormatters('1'));
+  const last = { ...message(new Date(2026, 10, 5, 9, 30)), content: '🐱', sticker: { emoji: '🐱', image_url: '/s/1' } };
+  expect(result.current.getLastMessagePreview(last)).toBe('🐱 Sticker');
 });

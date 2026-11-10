@@ -4,7 +4,7 @@ import type { Message } from '../model/types';
 import ReplyPreview from './ReplyPreview';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { replyUnavailable: 'Original message', replyFromYou: 'You', messageDeleted: '[Message deleted]', voiceMessage: 'Voice Message', image: 'Image' } }),
+  useLanguage: () => ({ translations: { replyUnavailable: 'Original message', replyFromYou: 'You', messageDeleted: '[Message deleted]', voiceMessage: 'Voice Message', image: 'Image', sticker: 'Sticker' } }),
 }));
 vi.mock('@/shared/contexts/fileTypesConfig', () => ({ useFileTypes: () => ({ getFileTypeConfig: () => null }) }));
 
@@ -30,6 +30,12 @@ describe('ReplyPreview', () => {
     };
     render(<ReplyPreview replyMessage={photo} isMine={false} />);
     expect(screen.getByTestId('drawing-overlay')).toHaveAttribute('viewBox', '0 0 1000 500');
+  });
+
+  it('quotes a sticker by its emoji and picture', () => {
+    render(<ReplyPreview replyMessage={{ ...original, content: '🐱', sticker: { emoji: '🐱', image_url: '/api/v2/attachments/s/content' } }} isMine={false} />);
+    expect(screen.getByText('🐱 Sticker')).toBeInTheDocument();
+    expect(screen.getByTestId('reply-preview').querySelector('img')).not.toBeNull();
   });
 
   it('shows only the thumbnail and sender for an image without a caption', () => {

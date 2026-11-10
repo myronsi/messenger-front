@@ -20,6 +20,8 @@ import SelectedFiles from './SelectedFiles';
 import { useFileDrop } from '../model/useFileDrop';
 import { useFileDrawings } from '../model/useFileDrawings';
 import type { Drawing } from '@/shared/ui/drawing';
+import type { Sticker } from '@/entities/sticker';
+import EmojiStickerButton from './EmojiStickerButton';
 
 interface MessageInputProps {
   messageInput: string;
@@ -27,6 +29,7 @@ interface MessageInputProps {
   replyTo: Message | null;
   editingMessage: Message | null;
   onSendMessage: () => void;
+  onSendSticker?: (sticker: Sticker) => void;
   onFileUpload: (file: File | File[], caption?: string, drawings?: (Drawing | undefined)[]) => void;
   onCancelReplyOrEdit: () => void;
   chatId: EntityId;
@@ -49,7 +52,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   setMessageInput,
   replyTo,
   editingMessage,
-  onSendMessage,
+  onSendMessage, onSendSticker,
   onFileUpload,
   onCancelReplyOrEdit,
   chatId,
@@ -275,6 +278,8 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 disabled={isDisabled}
               />
             )}
+            {!isRecording && !voicePreview && <EmojiStickerButton inputRef={inputRef} value={messageInput} onChange={setMessageInput} disabled={isDisabled}
+              onSticker={onSendSticker && !isEditing && !hasSelectedFile ? onSendSticker : undefined} />}
           </div>
           <ComposerActionButton
             mode={isRecording ? 'recording' : isUnchangedEdit ? 'cancel' : canSend ? 'send' : 'voice'}
