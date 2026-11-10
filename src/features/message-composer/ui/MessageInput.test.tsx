@@ -6,6 +6,7 @@ import MessageInput from './MessageInput';
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: {
   saveMessageEdit: 'Save edit',
   writeMessage: 'Write a message', writeCaption: 'Write a caption...', attachFile: 'Attach file', dropFileToAttach: 'Drop a file to attach it', attachDisabledWhileEditing: 'Not while editing',
+  selectedAlbumGroup: 'Album · {count}', selectedSeparateFiles: 'Separate files · {count}', sizeBytes: '{size} B',
 } }) }));
 vi.mock('@/shared/api/goSocket', () => ({ isGoApi: () => true }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
@@ -159,6 +160,22 @@ describe('MessageInput', () => {
     expect(onFileUpload).toHaveBeenCalledExactlyOnceWith([photo, video], 'Trip', [undefined, undefined]);
     expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument();
     expect(screen.queryByTitle('clip.webm')).not.toBeInTheDocument();
+  });
+
+  it('sends an album and every other file of a mixed selection as its own message', () => {
+    const { onFileUpload, field } = renderInput('Trip');
+    const photo = new File(['image'], 'photo.png', { type: 'image/png' });
+    const video = new File(['video'], 'clip.mp4', { type: 'video/mp4' });
+    const doc = new File(['doc'], 'notes.pdf', { type: 'application/pdf' });
+    const song = new File(['song'], 'song.mp3', { type: 'audio/mpeg' });
+    fireEvent.change(screen.getByTestId('message-file-input'), { target: { files: [photo, doc, video, song] } });
+    expect(setErrorMessage).toHaveBeenLastCalledWith(null);
+    expect(screen.getByTestId('selected-media')).toContainElement(screen.getByTitle('photo.png'));
+    expect(screen.getByTestId('selected-separate-files')).toHaveTextContent('notes.pdf');
+    expect(screen.getByText('Album · 2')).toBeInTheDocument();
+    expect(screen.getByText('Separate files · 2')).toBeInTheDocument();
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(onFileUpload.mock.calls).toEqual([[[photo, video], 'Trip', [undefined, undefined]], [doc, '', [undefined]], [song, '', [undefined]]]);
   });
 
   it('takes a file dropped anywhere on the chat', () => {

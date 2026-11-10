@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { File as FileIcon, FileVideo, X } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { formatFileSize } from '@/shared/lib/formatFileSize';
 
 interface SelectedFileChipProps {
   file: File;
@@ -9,6 +11,7 @@ interface SelectedFileChipProps {
 }
 
 const SelectedFileChip: React.FC<SelectedFileChipProps> = ({ file, removeLabel, onRemove }) => {
+  const { translations, language } = useLanguage();
   const [previewUrl, setPreviewUrl] = useState<string>();
   useEffect(() => {
     const url = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
@@ -29,7 +32,7 @@ const SelectedFileChip: React.FC<SelectedFileChipProps> = ({ file, removeLabel, 
         )}
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">{file.name}</div>
-          <div className="text-xs text-muted-foreground">{Math.ceil(file.size / 1024)} KB</div>
+          <div className="text-xs text-muted-foreground">{formatFileSize(file.size, language, translations)}</div>
         </div>
         <button type="button" onClick={onRemove} aria-label={removeLabel} className="motion-press shrink-0 rounded-full p-1 transition-colors hover:bg-accent">
           <X className="h-4 w-4" />

@@ -12,6 +12,7 @@ import { createdMessage, unconfirmedSends, useUnsentMessageRelease } from './uns
 import { appendMessageFiles, createLocalFileContent, type UploadFile } from './uploadFileType';
 import type { Drawing } from '@/shared/ui/drawing';
 import { createOptimisticMessage } from './optimisticMessage';
+import { createUploadQueue } from './uploadQueue';
 import { createStickerSender } from './stickerSender';
 import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
 
@@ -79,6 +80,7 @@ export const useMessageSender = ({
   replyToRef.current = replyTo;
   const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
   const sentRef = useRef(new Map<string, OutgoingPayload>());
+  const enqueueUpload = useRef(createUploadQueue()).current;
   const stickers = createStickerSender({
     chatId, username, setMessages, markMessageFailed, senderId: () => currentUserIdRef.current || currentUserId || undefined,
     takeReply: () => { const reply = replyToRef.current; if (reply) setReplyTo(null); return reply; },
@@ -88,7 +90,7 @@ export const useMessageSender = ({
   const createOptimisticFileMessage = (files: UploadFile[], caption: string, fileType?: string) => {
     const tempId = createTempMessageId();
     const reply = replyToRef.current;
-    if (reply) setReplyTo(null);
+    if (reply) { replyToRef.current = null; setReplyTo(null); }
     const content = createLocalFileContent(files, caption, fileType);
     const objectUrls = (content.album ?? [content]).map(item => item.file_url);
     const optimisticMessage = createOptimisticMessage(tempId, username, currentUserIdRef.current || currentUserId || undefined, {
@@ -273,7 +275,7 @@ export const useMessageSender = ({
     if (files.length === 0) return;
     const replyToId = replyToRef.current?.id;
     const optimisticMessageId = createOptimisticFileMessage(files, caption);
-    await uploadOptimisticMessage(optimisticMessageId, files, false, replyToId, caption);
+    await enqueueUpload(() => uploadOptimisticMessage(optimisticMessageId, files, false, replyToId, caption));
   };
 
   const resendUnconfirmed = () => {
