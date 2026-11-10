@@ -22,8 +22,9 @@ interface ReplyBarPreview {
   isVoice?: boolean;
 }
 
-const preview = (message: Message, voiceLabel: string): ReplyBarPreview => {
-  const { content } = message;
+const preview = (message: Message, voiceLabel: string, stickerLabel: string): ReplyBarPreview => {
+  const { content, sticker } = message;
+  if (sticker) return { text: `${sticker.emoji} ${stickerLabel}`, imageUrl: sticker.image_url };
   if (typeof content === 'string') return { text: content.replace(/\s+/g, ' ').trim() };
   if (content?.file_type === 'voice') {
     const seconds = content.audio_metadata?.duration;
@@ -38,7 +39,7 @@ const preview = (message: Message, voiceLabel: string): ReplyBarPreview => {
 };
 
 const ReplyEditBar: React.FC<ReplyEditBarProps> = ({ message, mode, translations, onCancel, showCancel = true }) => {
-  const { text, imageUrl, drawing, aspect, isFile, isVoice } = preview(message, translations.voiceMessage || 'Voice message');
+  const { text, imageUrl, drawing, aspect, isFile, isVoice } = preview(message, translations.voiceMessage || 'Voice message', translations.sticker);
   const Icon = mode === 'reply' ? Reply : Pencil;
   const label = mode === 'reply' ? translations.replyTo || 'Reply to' : translations.editing || 'Editing';
   const author = mode === 'reply' ? message.sender : null;
