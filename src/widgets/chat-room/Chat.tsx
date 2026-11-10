@@ -10,6 +10,7 @@ import { useStableCallback } from '@/shared/lib/useStableCallback';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
 import { usePreviewChat } from './model/usePreviewChat';
+import { usePreviewHandoff } from './model/usePreviewHandoff';
 import { useChatRoomState } from './model/useChatRoomState';
 import { useChatInteractions } from './model/useChatInteractions';
 import { ChatProps } from './model/types';
@@ -47,11 +48,14 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     hasPendingApprovalRequest,
     previewModal,
     setPreviewModal,
+    clearPreviewMessages,
     handleSendMessagePreview,
     handleFileUploadPreview,
   } = usePreviewChat({
     chatId,
     chatName,
+    chatDisplayName,
+    avatarUrl: interlocutorAvatarUrl,
     username,
     userId,
     directDraftDisabled,
@@ -139,7 +143,12 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     setTempHighlightedMessageId,
   });
 
-  const displayedMessages = isPreview ? previewFailedMessages : messages;
+  usePreviewHandoff({
+    isPreview, isLoadingHistory: isLoadingInitialMessages, messageCount: messages.length,
+    previewCount: previewFailedMessages.length, clearPreviewMessages,
+  });
+
+  const displayedMessages = isPreview || (!messages.length && previewFailedMessages.length) ? previewFailedMessages : messages;
   const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, displayedMessages);
   useBackToClose(selection.active, clearSelection, 'selection');
   useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');

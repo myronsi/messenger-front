@@ -59,11 +59,12 @@ describe('useChatSocket', () => {
 
   const setup = (token = 'a') => {
     const onReconnected = vi.fn();
+    const onOpened = vi.fn();
     const onConnectionFailed = vi.fn();
     const hook = renderHook(({ token: current, retryKey }) => useChatSocket({
-      chatId: 7, token: current, transport: transport(retryKey), onEvent: () => undefined, onConnectionFailed, onReconnected,
+      chatId: 7, token: current, transport: transport(retryKey), onEvent: () => undefined, onConnectionFailed, onReconnected, onOpened,
     }), { initialProps: { token, retryKey: 0 } });
-    return { ...hook, onReconnected, onConnectionFailed };
+    return { ...hook, onReconnected, onOpened, onConnectionFailed };
   };
 
   it('keeps the socket when the access token is refreshed', async () => {
@@ -76,25 +77,31 @@ describe('useChatSocket', () => {
     expect(latestSocket().readyState).toBe(FakeWebSocket.OPEN);
   });
 
-  it('catches up on the first open and after a reconnect', async () => {
-    const { onReconnected } = setup();
+  it('catches up only after a real reconnect', async () => {
+    const { onReconnected, onOpened } = setup();
     await flush();
     act(() => latestSocket().open());
-    expect(onReconnected).toHaveBeenCalledTimes(1);
+    expect(onReconnected).not.toHaveBeenCalled();
+    expect(onOpened).toHaveBeenCalledTimes(1);
 
     act(() => latestSocket().drop());
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     act(() => latestSocket().open());
     expect(FakeWebSocket.instances).toHaveLength(2);
-    expect(onReconnected).toHaveBeenCalledTimes(2);
+    expect(onReconnected).toHaveBeenCalledTimes(1);
   });
 
-  it('closes the initial history/subscription gap on the Go API', async () => {
+  it('does not reload history when a conversation subscribes to an already open socket', async () => {
     vi.stubEnv('VITE_BASE_URL', 'https://go.example.test/api/v2');
-    const { onReconnected } = setup();
+    const release = realtime.subscribe({});
     await flush();
     act(() => latestSocket().open());
-    expect(onReconnected).toHaveBeenCalledTimes(1);
+    const { onReconnected, onOpened } = setup();
+    await flush();
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    expect(onReconnected).not.toHaveBeenCalled();
+    expect(onOpened).toHaveBeenCalledTimes(1);
+    release();
   });
 
   it('catches up when the first open only succeeds after failed attempts', async () => {

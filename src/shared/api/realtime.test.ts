@@ -60,7 +60,25 @@ describe('one user realtime connection', () => {
     expect(client.getStatus()).toBe('reconnecting');
     await vi.advanceTimersByTimeAsync(1000); sockets[1].open();
     expect(ticket).toHaveBeenCalledTimes(2); expect(opened).toHaveBeenCalledTimes(2);
+    expect(opened.mock.calls.map(([open]) => open.reconnected)).toEqual([false, true]);
     expect(client.getStatus()).toBe('connected');
+  });
+
+  it('does not report a reconnect to a subscriber that joins an open socket', async () => {
+    const first = vi.fn(); client.subscribe({ onOpen: first });
+    await flush(); sockets[0].open();
+    const late = vi.fn(); client.subscribe({ onOpen: late });
+    await flush();
+    expect(first).toHaveBeenCalledOnce(); expect(first).toHaveBeenCalledWith({ reconnected: false });
+    expect(late).toHaveBeenCalledOnce(); expect(late).toHaveBeenCalledWith({ reconnected: false });
+    expect(sockets).toHaveLength(1);
+  });
+
+  it('reports a reconnect when the first open needed retries', async () => {
+    const opened = vi.fn(); client.subscribe({ onOpen: opened });
+    await flush(); sockets[0].drop(1006);
+    await vi.advanceTimersByTimeAsync(1000); sockets[1].open();
+    expect(opened).toHaveBeenCalledWith({ reconnected: true });
   });
 
   it('remembers that a connection was open until the session stops', async () => {

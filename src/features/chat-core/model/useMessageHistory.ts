@@ -56,6 +56,7 @@ export const useMessageHistory = ({
   const {
     currentData: latestHistory,
     isLoading: isLoadingLatestHistory,
+    isFetching: isFetchingLatestHistory,
     error: latestHistoryError,
   } = useGetMessageHistoryQuery(
     { chatId, limit: MESSAGE_PAGE_SIZE, aroundId: firstUnreadMessageId || undefined },
@@ -203,14 +204,17 @@ export const useMessageHistory = ({
 
   const chatIdRef = useRef(chatId);
   chatIdRef.current = chatId;
+  const isFetchingLatestHistoryRef = useRef(isFetchingLatestHistory);
+  isFetchingLatestHistoryRef.current = isFetchingLatestHistory;
 
   // Loads messages sent while the socket was down. If the user is reading older history the newer pages
   // load on scroll anyway; otherwise fetch everything after the newest loaded message. If that keeps
   // failing, the missed messages are left to the normal load-newer-on-scroll path.
-  const catchUpAfterReconnect = useCallback(async () => {
+  const catchUpAfterReconnect = useCallback(async (firstOpen = false) => {
     if (!token || !isPersistedId(chatId) || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
+    if (firstOpen && isFetchingLatestHistoryRef.current) return;
     const newestLoadedId = messagesRef.current.reduce<EntityId>((newest, message) => compareIds(newest, message.id) > 0 ? newest : message.id, 0);
-    if (!isPersistedId(newestLoadedId)) { await loadLatestMessages(); return; }
+    if (!isPersistedId(newestLoadedId)) { if (!firstOpen) await loadLatestMessages(); return; }
     const isCurrent = () => String(chatIdRef.current) === String(chatId);
     isLoadingNewerMessagesRef.current = true;
     try {

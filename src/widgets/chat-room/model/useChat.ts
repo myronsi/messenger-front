@@ -99,6 +99,7 @@ export const useChat = (
     chatId, token, transport, onEvent: handleSocketEvent,
     onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
     onReconnected: () => { resendUnconfirmed(); void catchUpAfterReconnect(); },
+    onOpened: () => { void catchUpAfterReconnect(true); },
   });
 
   const scrollToMessage = useCallback((messageId: EntityId) => {

@@ -37,4 +37,7 @@ export interface CurrentChat {
   directDraftReason?: 'self' | 'blocked' | 'privacy' | null;
   pendingApprovalRequest?: boolean;
   pendingApprovalMessage?: string;
+  previewKey?: string;
 }
+
+export const chatPanelKey = (chat: CurrentChat) => chat.previewKey ?? `${chat.type}-${chat.id}-${chat.name}`;

@@ -71,6 +71,7 @@ export const useGroupChatScreen = ({
     applyGroupDetails, refreshGroupDetails, setMessages, setModal,
     markMessageFailed: sender.markMessageFailed, markLatestPendingMessageFailed: sender.markLatestPendingMessageFailed,
     onReconnected: () => { sender.resendUnconfirmed(); void history.catchUpAfterReconnect(); },
+    onOpened: () => { void history.catchUpAfterReconnect(true); },
   });
 
   const {

@@ -108,9 +108,10 @@ export const useMessengerRouteSync = ({
       let isCancelled = false;
       const state = (location.state as MessengerRouteState | null) ?? {};
       if (state.chatName || state.chatDisplayName || state.chatId) {
-        setCurrentChat({
+        const name = state.chatName || String(directIdentifier.value);
+        setCurrentChat(current => ({
           id: state.chatId || 0,
-          name: state.chatName || String(directIdentifier.value),
+          name,
           displayName: state.chatDisplayName || state.chatName || String(directIdentifier.value),
           isOnline: state.isOnline,
           lastSeen: state.lastSeen ?? null,
@@ -118,6 +119,12 @@ export const useMessengerRouteSync = ({
           interlocutorDeleted: !!state.interlocutorDeleted,
           type: 'one-on-one',
           firstUnreadMessageId: state.firstUnreadMessageId ?? null,
+          previewKey: current?.name === name ? current.previewKey : undefined,
+        }));
+      } else if (directIdentifier.type === 'username' && directIdentifier.value.toLowerCase() !== username.toLowerCase()) {
+        const provisionalName = directIdentifier.value;
+        setCurrentChat(current => current?.type === 'one-on-one' && current.name.toLowerCase() === provisionalName.toLowerCase() ? current : {
+          id: 0, name: provisionalName, displayName: provisionalName, interlocutorDeleted: false, type: 'one-on-one', firstUnreadMessageId: null,
         });
       } else {
         setCurrentChat(null);
@@ -160,7 +167,7 @@ export const useMessengerRouteSync = ({
                 },
               });
             }
-            setCurrentChat({
+            setCurrentChat(current => ({
               id: chat.id,
               name: chat.interlocutor_name,
               displayName: chat.interlocutor_display_name,
@@ -170,7 +177,8 @@ export const useMessengerRouteSync = ({
               interlocutorDeleted: !!chat.interlocutor_deleted,
               type: 'one-on-one',
               firstUnreadMessageId: chat.first_unread_message_id ?? null,
-            });
+              previewKey: current?.name === chat.interlocutor_name ? current.previewKey : undefined,
+            }));
           })
           .catch((error) => {
             if (isCancelled) return;
