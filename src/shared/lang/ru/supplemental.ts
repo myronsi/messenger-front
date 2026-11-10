@@ -35,6 +35,8 @@ export const supplemental = {
   accountName: "Имя аккаунта",
   activeSessions: "Активные сессии",
   addAvatar: "Добавить аватар",
+  avatarPreview: "Предпросмотр фото профиля",
+  removeSelectedAvatar: "Убрать выбранное фото",
   addParticipants: "Добавить участников",
   available: "доступно",
   avatarUploadFailed: "Не удалось загрузить аватар.",

@@ -5,6 +5,7 @@ import {
   appendUniqueMessages,
   mergeFreshHistoryMessages,
   normalizeHistoryMessage,
+  prependOlderPage,
   prependUniqueMessages,
   trimNewestMessages,
 } from './historyNormalizers';
@@ -54,6 +55,36 @@ describe('normalizeHistoryMessage', () => {
 describe('prependUniqueMessages', () => {
   it('puts older messages first and skips ones already loaded', () => {
     expect(ids(prependUniqueMessages([msg(3), msg(4)], [msg(1), msg(2), msg(3)]))).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('prependUniqueMessages fast path', () => {
+  it('keeps the loaded array unchanged when the page holds nothing new', () => {
+    const current = [msg(3), msg(4)];
+    expect(prependUniqueMessages(current, [msg(3)])).toBe(current);
+  });
+
+  it('prepends an ordered older page without moving pending sends', () => {
+    expect(ids(prependUniqueMessages([msg('9007199254740995'), msg(-1)], [msg('9007199254740993'), msg('9007199254740994')])))
+      .toEqual(['9007199254740993', '9007199254740994', '9007199254740995', -1]);
+  });
+
+  it('sorts when the page overlaps or arrives out of order', () => {
+    expect(ids(prependUniqueMessages([msg(2), msg(5)], [msg(4), msg(1)]))).toEqual([1, 2, 4, 5]);
+  });
+});
+
+describe('prependOlderPage', () => {
+  it('prepends and trims the newest messages in one result', () => {
+    const page = prependOlderPage([msg(3), msg(4), msg(-1)], [msg(1), msg(2)], 3);
+    expect(ids(page.messages)).toEqual([1, 2, 3, -1]);
+    expect(page.newestId).toBe(3);
+  });
+
+  it('reports no trim while the window stays under the limit', () => {
+    const page = prependOlderPage([msg(3)], [msg(1), msg(2)], 5);
+    expect(ids(page.messages)).toEqual([1, 2, 3]);
+    expect(page.newestId).toBeNull();
   });
 });
 

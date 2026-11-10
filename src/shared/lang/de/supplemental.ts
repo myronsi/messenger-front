@@ -38,6 +38,8 @@ export const supplemental = {
   addParticipants: "Teilnehmer hinzufügen",
   available: "verfügbar",
   avatarUploadFailed: "Avatar konnte nicht hochgeladen werden.",
+  avatarPreview: "Vorschau des Profilbilds",
+  removeSelectedAvatar: "Ausgewähltes Foto entfernen",
   back: "Zurück",
   bioPlaceholder: "Schreib eine kurze Bio",
   bioUpdateFailed: "Bio konnte nicht aktualisiert werden.",

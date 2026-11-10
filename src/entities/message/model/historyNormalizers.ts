@@ -70,12 +70,27 @@ export const sortMessages = (messages: Message[]): Message[] => [
   ...messages.filter(message => !isPersistedId(message.id)),
 ];
 
+const isAscendingConfirmed = (messages: Message[]) => messages.every((message, index) => (
+  isPersistedId(message.id) && (index === 0 || compareIds(messages[index - 1].id, message.id) < 0)
+));
+
+const isOlderThanHead = (olderMessages: Message[], currentMessages: Message[]) => {
+  const head = currentMessages.find((message) => isPersistedId(message.id));
+  return !head || compareIds(olderMessages[olderMessages.length - 1].id, head.id) < 0;
+};
+
 export const prependUniqueMessages = (currentMessages: Message[], olderMessages: Message[]) => {
   const existingIds = new Set(currentMessages.map((message) => message.id));
-  return sortMessages([
-    ...olderMessages.filter((message) => !existingIds.has(message.id)),
-    ...currentMessages,
-  ]);
+  const unique = olderMessages.filter((message) => !existingIds.has(message.id));
+  if (unique.length === 0) return currentMessages;
+  if (isAscendingConfirmed(unique) && isOlderThanHead(unique, currentMessages)) return [...unique, ...currentMessages];
+  return sortMessages([...unique, ...currentMessages]);
+};
+
+export const prependOlderPage = (currentMessages: Message[], olderMessages: Message[], limit: number) => {
+  const merged = prependUniqueMessages(currentMessages, olderMessages);
+  const trimmed = trimNewestMessages(merged, limit);
+  return trimmed?.newestId ? trimmed : { messages: merged, newestId: null };
 };
 
 // Live messages can already sit at the end of a window that was trimmed, so the page that fills

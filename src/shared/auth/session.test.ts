@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { authFetch, getAccessToken, refreshAccessToken, setAccessToken } from './session';
+import { authFetch, endSession, getAccessToken, mayHaveRefreshSession, refreshAccessToken, setAccessToken } from './session';
 
 const jwt = (expiresInSeconds: number) => {
   const payload = btoa(JSON.stringify({ sub: '1', exp: Math.floor(Date.now() / 1000) + expiresInSeconds }));
@@ -147,5 +147,47 @@ describe('refreshAccessToken', () => {
     expect((await response.json()).code).toBe('two_factor_required');
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(getAccessToken()).not.toBeNull();
+  });
+});
+
+describe('refresh session marker', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it('tries the refresh cookie once for a browser that predates the marker and remembers a rejection', async () => {
+    const fetcher = vi.fn(async () => new Response('{}', { status: 401 }));
+    vi.stubGlobal('fetch', fetcher);
+    expect(mayHaveRefreshSession()).toBe(true);
+    expect(await refreshAccessToken()).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(mayHaveRefreshSession()).toBe(false);
+    expect(await refreshAccessToken()).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps trying while the first refresh cannot reach the server', async () => {
+    const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'restored' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetcher);
+    expect(await refreshAccessToken()).toBeNull();
+    expect(mayHaveRefreshSession()).toBe(true);
+    expect(await refreshAccessToken()).toBe('restored');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('refreshes a signed-out visitor only after a sign-in left the marker', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ access_token: 'next' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetcher);
+    setAccessToken('signed-in');
+    endSession();
+    expect(mayHaveRefreshSession()).toBe(false);
+    expect(await refreshAccessToken()).toBeNull();
+    expect(fetcher).not.toHaveBeenCalled();
+    setAccessToken('signed-in');
+    localStorage.removeItem('access_token');
+    expect(await refreshAccessToken()).toBe('next');
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });

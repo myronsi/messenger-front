@@ -1,7 +1,8 @@
 import { toast } from 'sonner';
 import { notificationAccount, notificationSnapshot } from './api';
 import { openNotificationChatInApp } from './openChat';
-import { isAppLanguage, type AppLanguage } from '@/shared/lang/languages';
+import type { AppLanguage } from '@/shared/lang/languages';
+import { preferredLanguage } from '@/shared/lang/preferredLanguage';
 import { notificationSettings as enWords } from '@/shared/lang/en/notificationSettings';
 import { notificationSettings as ruWords } from '@/shared/lang/ru/notificationSettings';
 import { notificationSettings as esWords } from '@/shared/lang/es/notificationSettings';
@@ -45,8 +46,7 @@ export function alertIncomingMessage(message: IncomingMessage, activeChatId?: st
     try { recent = JSON.parse(localStorage.getItem(marker) || '[]') as string[]; } catch { /* Start a fresh replay window. */ }
     if (recent.includes(message.messageId)) return;
     localStorage.setItem(marker, JSON.stringify([...recent.slice(-99), message.messageId]));
-    const stored = localStorage.getItem('language');
-    const words = NOTIFICATION_WORDS[isAppLanguage(stored) ? stored : 'ru'];
+    const words = NOTIFICATION_WORDS[preferredLanguage()];
     const id = toast(latest.preferences.previews ? message.title : 'Messenger', {
       description: latest.preferences.previews ? message.body : words.newMessage,
       action: { label: words.open, onClick: () => {

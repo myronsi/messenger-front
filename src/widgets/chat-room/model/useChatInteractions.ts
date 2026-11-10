@@ -72,7 +72,7 @@ export const useChatInteractions = ({
 
   const openMenusAt = (message: Message, point: { clientX: number; clientY: number }) => {
     if (!messageRefs.current[message.id]) return;
-    const placement = messageMenuPlacement(point);
+    const placement = messageMenuPlacement(point, messageRefs.current[message.id]);
     setReactionMenu({ message, ...placement.reaction });
     setContextMenu({ ...placement.context, openLeft: placement.openLeft, messageId: message.id, isMine: isOwnMessage(message) });
   };

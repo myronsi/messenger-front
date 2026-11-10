@@ -152,13 +152,16 @@ describe('RegisterComponent', () => {
     expect(screen.queryByRole('list', { name: 'Password requirements' })).not.toBeInTheDocument();
   });
 
-  it('shows field hints only while the field is focused', () => {
+  it('reserves the hint space and shows the hint only while the field is focused', () => {
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
     const hint = '3 to 32 characters: letters, numbers and _.';
-    expect(screen.queryByText(hint)).not.toBeInTheDocument();
-    act(() => screen.getByLabelText('Username').focus());
-    expect(screen.getByText(hint)).toBeInTheDocument();
-    act(() => screen.getByLabelText('Username').blur());
+    const input = screen.getByLabelText('Username');
+    expect(screen.getByText(hint)).toHaveClass('invisible');
+    expect(input).not.toHaveAccessibleDescription(hint);
+    act(() => input.focus());
+    expect(screen.getByText(hint)).not.toHaveClass('invisible');
+    expect(input).toHaveAccessibleDescription(hint);
+    act(() => input.blur());
     expect(screen.queryByText(hint)).not.toBeInTheDocument();
   });
 

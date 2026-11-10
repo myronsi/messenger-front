@@ -1,15 +1,25 @@
 const MB = 1024 * 1024;
-const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm'];
 export const MAX_ALBUM_ITEMS = 10;
-const ALBUM_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', ...VIDEO_EXTENSIONS];
-const VIDEO_LIMIT_BYTES = 100 * MB;
-const FILE_LIMIT_BYTES = 10 * MB;
 
-// Mirrors the extensions the backend accepts for the file picker (messenger-back /messages/upload).
+export type UploadKind = 'image' | 'audio' | 'video' | 'file';
+
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'weba'];
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm'];
+const ALBUM_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
+
+export const UPLOAD_LIMIT_BYTES: Record<UploadKind, number> = {
+  image: 20 * MB,
+  audio: 25 * MB,
+  video: 100 * MB,
+  file: 100 * MB,
+};
+
 const ALLOWED_EXTENSIONS = [
-  'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif',
-  'mp4', 'mov', 'webm', 'ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac',
-  'pdf', 'doc', 'docx', 'txt', 'pptx', 'zip',
+  ...IMAGE_EXTENSIONS, 'bmp', 'avif', 'heic', 'heif', 'svg',
+  ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS,
+  'pdf', 'doc', 'docx', 'rtf', 'txt', 'md', 'csv', 'json', 'xls', 'xlsx', 'ppt', 'pptx',
+  'zip', '7z', 'rar', 'tar', 'gz',
   'js', 'ts', 'py', 'java', 'cpp', 'html', 'css',
 ] as const;
 
@@ -17,16 +27,22 @@ export const UPLOAD_ACCEPT = ALLOWED_EXTENSIONS.map((extension) => `.${extension
 
 export type UploadValidationError = 'tooLarge' | 'unsupportedType';
 
-const getExtension = (fileName: string) => {
+export const getExtension = (fileName: string) => {
   const dot = fileName.lastIndexOf('.');
   return dot < 0 ? '' : fileName.slice(dot + 1).toLowerCase();
 };
 
 export const isAlbumFile = (file: Pick<File, 'name'>) => ALBUM_EXTENSIONS.includes(getExtension(file.name));
 
-export const uploadLimitBytes = (fileName: string) => {
-  return VIDEO_EXTENSIONS.includes(getExtension(fileName)) ? VIDEO_LIMIT_BYTES : FILE_LIMIT_BYTES;
+export const uploadKindOf = (fileName: string): UploadKind => {
+  const extension = getExtension(fileName);
+  if (IMAGE_EXTENSIONS.includes(extension)) return 'image';
+  if (AUDIO_EXTENSIONS.includes(extension)) return 'audio';
+  if (VIDEO_EXTENSIONS.includes(extension)) return 'video';
+  return 'file';
 };
+
+export const uploadLimitBytes = (fileName: string) => UPLOAD_LIMIT_BYTES[uploadKindOf(fileName)];
 
 export const uploadLimitMegabytes = (fileName: string) => uploadLimitBytes(fileName) / MB;
 

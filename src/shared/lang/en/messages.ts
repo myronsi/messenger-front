@@ -38,6 +38,7 @@ export const messages = {
   editing: "Editing",
   saveMessageEdit: "Save edit",
   messageSent: "Sent",
+  messageSending: "Sending",
   messageRead: "Read",
   edited: "edited",
   uploadFileTooLarge: "File is too large. The maximum size for this type is {size} MB.",

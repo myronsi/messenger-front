@@ -1,5 +1,6 @@
 import type { GroupRole } from './GroupProfileTypes';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
+import { localeOf } from '@/shared/lang/languages';
 
 
 export const permissionsForRole = (role?: GroupRole | null) => ({
@@ -13,3 +14,13 @@ export const permissionsForRole = (role?: GroupRole | null) => ({
 
 
 export const getAvatarSrc = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
+
+const PARTICIPANT_KEYS: Partial<Record<Intl.LDMLPluralRule, string>> = {
+  one: 'participantsCountOne', few: 'participantsCountFew', many: 'participantsCountMany', other: 'participantsCountOther',
+};
+
+export const participantCountLabel = (count: number, translations: Record<string, unknown>, language: string) => {
+  const key = PARTICIPANT_KEYS[new Intl.PluralRules(localeOf(language)).select(count)] ?? 'participantsCountOther';
+  const template = translations[key] ?? translations.participantsCountOther;
+  return typeof template === 'string' ? template.replace('{count}', String(count)) : String(count);
+};

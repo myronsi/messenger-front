@@ -1,6 +1,10 @@
 export const group = {
   groupName: "Gruppenname",
   participants: "Teilnehmer",
+  participantsCountOne: "{count} Teilnehmer",
+  participantsCountFew: "{count} Teilnehmer",
+  participantsCountMany: "{count} Teilnehmer",
+  participantsCountOther: "{count} Teilnehmer",
   addParticipant: "Teilnehmer hinzufügen",
   admin: "Admin",
   owner: "Inhaber",

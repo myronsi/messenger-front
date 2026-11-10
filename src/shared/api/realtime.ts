@@ -5,8 +5,9 @@ import { handleHelloEvent } from './serverHello';
 import { onCloseAllWebSockets, trackWebSocket } from './socketRegistry';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'rejected';
+export interface RealtimeOpen { reconnected: boolean }
 export interface RealtimeListener {
-  onOpen?: () => void;
+  onOpen?: (open: RealtimeOpen) => void;
   onEvent?: (event: ServerEvent) => void;
   onStatus?: (status: ConnectionStatus, attempts: number) => void;
   onDeliveryTimeout?: (tempId: string, chatId: string) => void;
@@ -67,7 +68,7 @@ export class RealtimeClient {
       this.stopConnectivity = onConnectivityRestored(() => this.reconnectNow());
       void this.connect();
     } else if (this.status === 'connected') {
-      queueMicrotask(() => { if (this.listeners.has(listener)) listener.onOpen?.(); });
+      queueMicrotask(() => { if (this.listeners.has(listener)) listener.onOpen?.({ reconnected: false }); });
     }
     return () => {
       this.listeners.delete(listener);
@@ -129,10 +130,11 @@ export class RealtimeClient {
       this.socket = socket;
       socket.onopen = () => {
         if (socket !== this.socket) return;
+        const open = { reconnected: this.opened || this.attempts > 0 };
         this.attempts = 0;
         this.opened = true;
         this.setStatus('connected');
-        this.listeners.forEach(listener => listener.onOpen?.());
+        this.listeners.forEach(listener => listener.onOpen?.(open));
       };
       socket.onmessage = event => {
         if (socket !== this.socket) return;

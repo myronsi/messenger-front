@@ -3,7 +3,7 @@ import { useAppDispatch } from '@/shared/hooks/redux';
 import { getAccessToken } from '@/shared/auth/session';
 import { getTokenSubject } from '@/shared/auth/tokenClaims';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
-import { conversationApi, messageEntities, messageSelectors, useGetConversationQuery } from '../api/conversationApi';
+import { conversationApi, messageSelectors, toMessageState, useGetConversationQuery } from '../api/conversationApi';
 import type { Message } from './types';
 
 const accountId = () => getTokenSubject(getAccessToken()) || '';
@@ -24,7 +24,7 @@ export const useConversationMessages = (chatId: EntityId) => {
       const previous = current ? messageSelectors.selectAll(current) : [];
       const next = typeof update === 'function' ? update(previous) : update;
       if (next === previous) return;
-      const value = messageEntities.setAll(messageEntities.getInitialState(), next);
+      const value = toMessageState(next);
       if (current) dispatch(conversationApi.util.updateQueryData('getConversation', arg, () => value));
       else dispatch(conversationApi.util.upsertQueryEntries([{ endpointName: 'getConversation', arg, value }]));
     });

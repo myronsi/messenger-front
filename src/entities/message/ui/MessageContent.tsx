@@ -3,11 +3,12 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
 import { Message } from '../model/types';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
-import { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
+import { FileTypeConfig, genericFileType } from '@/shared/contexts/fileTypesConfig';
 import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
 import AlbumMessage from './AlbumMessage';
-import { isVideoAttachment } from '../model/videoAttachment';
+import { attachmentView, isVoiceAttachment } from '../model/videoAttachment';
+import { UploadProgressRing } from './UploadProgress';
 import FileMessage from './FileMessage';
 import { LinkedMessageText } from './LinkedMessageText';
 import { MessageTextBody } from './MessageTextBody';
@@ -16,8 +17,6 @@ import { messageLinks } from '@/shared/lib/messageLinks';
 import { useImageDrawing } from '@/shared/ui/drawing';
 import { drawActionFor } from '../model/drawAction';
 import { StickerMessage } from './StickerMessage';
-
-
 
 interface MessageContentProps {
   message: Message;
@@ -80,47 +79,62 @@ const MessageContent: React.FC<MessageContentProps> = ({
     sender: isOwnMessage(message) ? translations.replyFromYou : message.sender,
     avatarName: message.sender, avatarUrl: message.avatar_url, sentAt: message.timestamp,
   };
+  const uploadProgress = message.upload_status === 'uploading' ? message.upload_progress ?? 0 : undefined;
   if (message.content.album?.length) {
-    return withCaption(<AlbumMessage messageId={message.id} items={message.content.album} viewerInfo={viewerInfo} />, true);
-  }
-
-  const audioPlayer = (
-    <AudioMessage
-      fileUrl={fullFileUrl}
-      messageId={message.id}
-      duration={audioMetadata?.duration}
-      waveform={audioMetadata?.waveform}
-      isPlaying={isAudioPlaying}
-      isMine={isOwnMessage(message)}
-      setPlayingMessageId={setPlayingMessageId}
-    />
-  );
-
-  if (message.content.file_type === 'voice') return withCaption(audioPlayer);
-  const isVideo = !!fileUrl && isVideoAttachment(message.content);
-  const isPicture = !isVideo && config?.isSpecial && config.replyText === translations.image;
-  if (mediaBroken && isPicture) return withCaption(<FileMessage config={config} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile} />);
-  if (isVideo || isPicture) {
     return withCaption(
-      <ImageMessage
-        fileUrl={fullFileUrl}
-        thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
-        width={message.content.image_width}
-        height={message.content.image_height}
-        fileName={fileName}
-        isMine={isOwnMessage(message)}
-        isVideo={isVideo}
-        onBroken={onMediaBroken}
-        viewerInfo={viewerInfo}
-        drawing={message.content.drawing}
-        onDraw={isVideo ? undefined : drawActionFor(imageDrawing, message.id, message.content, fullFileUrl)}
-      />,
-      true
+      <div className="relative w-fit max-w-full">
+        <AlbumMessage messageId={message.id} items={message.content.album} viewerInfo={viewerInfo} />
+        {uploadProgress !== undefined && <UploadProgressRing progress={uploadProgress} />}
+      </div>,
+      true,
     );
   }
-  if (config?.isSpecial && config.replyText === translations.voiceMessage) return withCaption(audioPlayer);
-  if (config) return withCaption(<FileMessage config={config} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile} />);
-  return null;
+
+  const isPictureName = !!config?.isSpecial && config.replyText === translations.image;
+  const view = attachmentView(message.content, isPictureName);
+  if (view === 'audio') {
+    return withCaption(
+      <>
+        {!isVoiceAttachment(message.content) && fileName && (
+          <div data-testid="audio-file-name" className="mb-0.5 max-w-[260px] truncate text-xs font-medium opacity-90" title={fileName}>{fileName}</div>
+        )}
+        <AudioMessage
+          fileUrl={fullFileUrl}
+          messageId={message.id}
+          duration={audioMetadata?.duration}
+          waveform={audioMetadata?.waveform}
+          isPlaying={isAudioPlaying}
+          isMine={isOwnMessage(message)}
+          setPlayingMessageId={setPlayingMessageId}
+        />
+      </>,
+    );
+  }
+
+  const isVideo = !!fileUrl && view === 'video';
+  const isPicture = view === 'image';
+  const fileMessage = (
+    <FileMessage config={config ?? genericFileType(translations.genericFile)} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile}
+      fileSize={message.content.file_size} uploadProgress={uploadProgress} />
+  );
+  if ((mediaBroken && isPicture) || !(isVideo || isPicture)) return withCaption(fileMessage);
+  return withCaption(
+    <ImageMessage
+      fileUrl={fullFileUrl}
+      thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
+      width={message.content.image_width}
+      height={message.content.image_height}
+      fileName={fileName}
+      isMine={isOwnMessage(message)}
+      isVideo={isVideo}
+      onBroken={onMediaBroken}
+      viewerInfo={viewerInfo}
+      drawing={message.content.drawing}
+      onDraw={isVideo ? undefined : drawActionFor(imageDrawing, message.id, message.content, fullFileUrl)}
+      uploadProgress={uploadProgress}
+    />,
+    true
+  );
 };
 
 export default MessageContent;
