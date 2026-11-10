@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { en } from '@/shared/lang/en';
 import { ru } from '@/shared/lang/ru';
 import { es } from '@/shared/lang/es';
-import { isAppLanguage, type AppLanguage } from '@/shared/lang/languages';
+import type { AppLanguage } from '@/shared/lang/languages';
+import { preferredLanguage, saveLanguage } from '@/shared/lang/preferredLanguage';
 import { syncNotificationWorkerLanguage } from '@/shared/lib/notifications/workerSettings';
 
 type Language = AppLanguage;
@@ -18,21 +19,23 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem('language');
-    return isAppLanguage(saved) ? saved : 'ru';
-  });
+  const [language, setCurrentLanguage] = useState<Language>(preferredLanguage);
+  const translations = BUNDLES[language];
 
-  const [translations, setTranslations] = useState<Translations>(BUNDLES[language]);
+  const setLanguage = useCallback((next: Language) => {
+    saveLanguage(next);
+    setCurrentLanguage(next);
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('language', language);
-    setTranslations(BUNDLES[language]);
+    document.documentElement.lang = language;
     syncNotificationWorkerLanguage(language);
   }, [language]);
 
+  const value = useMemo(() => ({ language, translations, setLanguage }), [language, translations, setLanguage]);
+
   return (
-    <LanguageContext.Provider value={{ language, translations, setLanguage }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

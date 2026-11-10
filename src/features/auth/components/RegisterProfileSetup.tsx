@@ -69,7 +69,8 @@ export const RegisterProfileSetup = ({
           <div className="relative">
             <AuthenticatedImage
               src={profileAvatarPreview || DEFAULT_AVATAR}
-              alt="Profile avatar preview"
+              alt={translations.avatarPreview}
+              initialsFrom={displayName}
               className="h-24 w-24 rounded-full border border-border object-cover"
             />
             {profileAvatarFile && (
@@ -78,7 +79,7 @@ export const RegisterProfileSetup = ({
                 onClick={onRemoveAvatar}
                 disabled={isSavingProfile}
                 className="absolute -right-1 -top-1 rounded-full bg-foreground p-1 text-background shadow-sm hover:bg-foreground/80 disabled:opacity-50"
-                aria-label="Remove selected avatar"
+                aria-label={translations.removeSelectedAvatar}
               >
                 <X className="h-4 w-4" />
               </button>

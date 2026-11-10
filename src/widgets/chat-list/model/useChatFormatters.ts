@@ -11,20 +11,18 @@ export function useChatFormatters(currentUserId?: EntityId) {
   const getLastMessagePreview = (lastMessage?: ChatLastMessage | null) => {
     if (!lastMessage) return translations.noMessagesYet;
     if (lastMessage.system_event) return systemEventText(lastMessage.system_event, translations, (id) => !!id && id === currentUserId);
-    const withEditedLabel = (preview: string) => (
-      lastMessage.edited_at ? `${translations.edited}: ${preview}` : preview
-    );
-
     if (lastMessage.type === 'file' && typeof lastMessage.content !== 'string') {
       const fileType = lastMessage.content.file_type;
       const fileName = lastMessage.content.file_name || '';
-      if (fileType === 'voice' || /\.opus$/i.test(fileName)) return withEditedLabel(translations.voiceMessagePreview);
-      if (fileType === 'image' || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) return withEditedLabel(translations.photoMessage);
-      return withEditedLabel(translations.fileMessagePreview);
+      const caption = lastMessage.content.caption?.trim();
+      if (fileType === 'voice' || /\.opus$/i.test(fileName)) return translations.voiceMessagePreview;
+      if (caption) return caption;
+      if (fileType === 'image' || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) return translations.photoMessage;
+      return translations.fileMessagePreview;
     }
     if (lastMessage.delivery_error) return lastMessage.delivery_error;
     if (lastMessage.sticker) return `${lastMessage.sticker.emoji} ${translations.sticker}`;
-    return withEditedLabel(typeof lastMessage.content === 'string' ? lastMessage.content : translations.fileMessagePreview);
+    return typeof lastMessage.content === 'string' ? lastMessage.content : translations.fileMessagePreview;
   };
 
   const getLastMessageTime = (lastMessage?: ChatLastMessage | null) => {

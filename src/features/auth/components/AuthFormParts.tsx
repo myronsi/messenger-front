@@ -39,8 +39,9 @@ export const AuthField: React.FC<AuthFieldProps> = ({ id, label, hint, error, va
         <p id={fieldMessageId(id)} role="alert" className="flex items-start gap-1.5 text-xs text-destructive">
           <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />{error}
         </p>
-      ) : showHint ? (
-        <p id={fieldMessageId(id)} className={cn('flex items-start gap-1.5 text-xs', valid ? 'text-success' : 'text-muted-foreground')}>
+      ) : hint ? (
+        <p id={showHint ? fieldMessageId(id) : undefined} aria-hidden={showHint ? undefined : true}
+          className={cn('flex min-h-4 items-start gap-1.5 text-xs', valid ? 'text-success' : 'text-muted-foreground', !showHint && 'invisible')}>
           {valid && <Check className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />}{hint}
         </p>
       ) : null}

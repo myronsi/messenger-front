@@ -98,32 +98,16 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
           </div>
         ) : (
           <div key="main" className={slideClass}>
-            {isMine && onEdit && (
-              <button type="button" className={itemClass} onClick={onEdit}>
-                <Edit className="w-4 h-4 mr-2" />
-                <span className="truncate">{translations.editMessage}</span>
-              </button>
-            )}
-            {onDeleteForMe && (
-              <button
-                type="button"
-                className={`${itemClass} text-destructive hover:text-destructive`}
-                onClick={() => (onDeleteForEveryone ? setView({ name: 'delete', direction: 'forward' }) : onDeleteForMe())}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                <span className="truncate">{onDeleteForEveryone ? translations.deleteMessage : translations.deleteForMe || 'Delete for me'}</span>
-              </button>
-            )}
+            <button type="button" className={itemClass} onClick={onReply}>
+              <Reply className="w-4 h-4 mr-2" />
+              <span className="truncate">{translations.replyToMessage}</span>
+            </button>
             {onCopy && (
               <button type="button" className={itemClass} onClick={onCopy}>
                 <Copy className="w-4 h-4 mr-2" />
                 <span className="truncate">{translations.copy}</span>
               </button>
             )}
-            <button type="button" className={itemClass} onClick={onReply}>
-              <Reply className="w-4 h-4 mr-2" />
-              <span className="truncate">{translations.replyToMessage}</span>
-            </button>
             {onForward && (
               <button type="button" className={itemClass} onClick={onForward}>
                 <Forward className="w-4 h-4 mr-2" />
@@ -141,6 +125,25 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
                 <CheckSquare className="w-4 h-4 mr-2" />
                 <span className="truncate">{translations.selectMessage}</span>
               </button>
+            )}
+            {isMine && onEdit && (
+              <button type="button" className={itemClass} onClick={onEdit}>
+                <Edit className="w-4 h-4 mr-2" />
+                <span className="truncate">{translations.editMessage}</span>
+              </button>
+            )}
+            {onDeleteForMe && (
+              <>
+                <div className="my-1 border-t border-border" />
+                <button
+                  type="button"
+                  className={`${itemClass} text-destructive hover:text-destructive`}
+                  onClick={() => (onDeleteForEveryone ? setView({ name: 'delete', direction: 'forward' }) : onDeleteForMe())}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  <span className="truncate">{onDeleteForEveryone ? translations.deleteMessage : translations.deleteForMe || 'Delete for me'}</span>
+                </button>
+              </>
             )}
           </div>
         )}

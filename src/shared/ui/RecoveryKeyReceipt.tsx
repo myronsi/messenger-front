@@ -5,6 +5,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { recoveryKeyGroups } from '@/shared/lib/recoveryKeyGroups';
 import { cn } from '@/shared/lib/utils';
+import { copyText } from '@/shared/lib/copyText';
 import { Button } from '@/shared/ui/button';
 import { localeOf } from '@/shared/lang/languages';
 
@@ -67,11 +68,11 @@ export const RecoveryKeyReceipt = ({ recoveryKey, username, onContinue, context 
   };
 
   const handleCopy = () => {
-    void navigator.clipboard.writeText(recoveryKey).then(() => {
-      setCopied(true);
+    void copyText(recoveryKey).then((ok) => {
+      setCopied(ok);
       setSaved(true);
-      setMessage('');
-    }).catch(() => setMessage(t.copyFailed));
+      setMessage(ok ? '' : t.copyFailed);
+    });
   };
 
   return <div className="flex flex-col gap-5">
@@ -85,7 +86,7 @@ export const RecoveryKeyReceipt = ({ recoveryKey, username, onContinue, context 
       </div>
     </div>
 
-    <section aria-label={t.keyLabel} className="rounded-xl border border-border p-3">
+    <section aria-label={t.keyLabel} className="rounded-xl border border-border p-3" onCopy={() => setSaved(true)}>
       <p className="mb-2 text-xs text-muted-foreground">{t.keyLabel}</p>
       <span className="sr-only" data-testid="recovery-key">{recoveryKey}</span>
       <div aria-hidden="true" className="grid grid-cols-4 gap-1.5">

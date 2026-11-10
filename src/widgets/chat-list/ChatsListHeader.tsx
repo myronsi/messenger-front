@@ -94,7 +94,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
               {t.newAction}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-64" onCloseAutoFocus={(event) => event.preventDefault()}>
             {actions.map((action, index) => (
               <React.Fragment key={action.key}>
                 {index === 2 && <DropdownMenuSeparator />}

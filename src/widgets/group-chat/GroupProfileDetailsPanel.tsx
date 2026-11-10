@@ -19,39 +19,40 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const {
-    currentGroupAvatar, currentGroupName, groupAvatarInputRef, onAvatarUpload, groupForm, setGroupForm,
-    isSavingGroup, onSaveGroup, groupDetails, onLeaveGroup, onDeleteGroup,
+    groupAvatarInputRef, onAvatarUpload, groupForm, setGroupForm,
+    isSavingGroup, onSaveGroup, groupDetails, onLeaveGroup, onDeleteGroup, currentUsername, getAvatarSrc,
   } = model;
+  const me = participants.find((participant) => participant.username.toLowerCase() === currentUsername.toLowerCase());
+  const changeAvatarLabel = translations.changeAvatar || 'Change avatar';
+  const descriptionLabel = translations.groupDescription || 'Description';
   return (
     <div className="min-h-full space-y-3 px-5 py-4 md:py-3">
       <section className="rounded-lg border border-border bg-card p-3">
         <div className="flex items-center gap-3">
-          <div className="relative shrink-0">
-            <AuthenticatedImage src={currentGroupAvatar} alt={currentGroupName} className="h-16 w-16 rounded-full border border-border object-cover" />
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => groupAvatarInputRef.current?.click()}
-                className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-background bg-foreground text-background shadow-sm transition-colors hover:bg-foreground/80"
-                aria-label={translations.changeAvatar || 'Change avatar'}
-                title={translations.changeAvatar || 'Change avatar'}
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <AuthenticatedImage src={getAvatarSrc(me?.avatar_url)} alt="" initialsFrom={me?.display_name || me?.username || currentUsername}
+            className="h-12 w-12 shrink-0 rounded-full border border-border object-cover" />
           <div className="min-w-0 flex-1">
             <div className="text-sm font-medium text-muted-foreground">{translations.yourRole || 'Your role'}</div>
             <div className="mt-1 inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-subtle-foreground">
               {roleLabel(currentRole, translations)}
             </div>
           </div>
-          <input ref={groupAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} />
         </div>
       </section>
 
       {canEdit ? (
         <section className="space-y-3 rounded-lg border border-border bg-card p-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => groupAvatarInputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm font-medium text-subtle-foreground transition-colors hover:bg-accent/60"
+            >
+              <Camera className="h-4 w-4" aria-hidden="true" />
+              {changeAvatarLabel}
+            </button>
+            <input ref={groupAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} />
+          </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{translations.groupName || 'Group name'}</label>
             <input
@@ -62,11 +63,11 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{translations.bio || translations.groupDescription || 'Description'}</label>
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{descriptionLabel}</label>
             <textarea
               value={groupForm.description}
               onChange={(event) => setGroupForm((form) => ({ ...form, description: event.target.value }))}
-              placeholder={translations.groupDescription || 'Group description'}
+              placeholder={descriptionLabel}
               rows={4}
               className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
             />
@@ -86,7 +87,7 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
           {groupDetails?.description && (
             <section className="rounded-lg border border-border bg-card p-3">
               <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {translations.bio || translations.groupDescription || 'Description'}
+                {descriptionLabel}
               </div>
               <p className="whitespace-pre-wrap break-words text-sm leading-5 text-foreground">{groupDetails.description}</p>
             </section>

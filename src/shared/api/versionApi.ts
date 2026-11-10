@@ -2,6 +2,7 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { components } from '@/shared/api/generated/schema';
 import { getMetaPath } from '@/shared/api/metaPath';
+import { isGoApi } from '@/shared/api/goSocket';
 
 export interface ServerVersionInfo {
   serverVersion: string;
@@ -21,8 +22,8 @@ export const versionApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
     getServerVersion: builder.query<ServerVersionInfo, void>({
       async queryFn(_arg, _api, _extra, fetchWithBQ) {
-        const legacy = await fetchWithBQ('/version');
-        if (legacy.data) {
+        const legacy = isGoApi() ? undefined : await fetchWithBQ('/version');
+        if (legacy?.data) {
           const { version, commit } = legacy.data as PythonVersionResponse;
           return { data: { serverVersion: version, commit } };
         }
@@ -33,7 +34,7 @@ export const versionApi = messengerApi.injectEndpoints({
           return { data: { serverVersion: backend_version ?? '', commit, apiVersion: api_version, minClientApiVersion: min_client_api_version } };
         }
 
-        return { error: meta.error ?? legacy.error! };
+        return { error: meta.error ?? legacy?.error ?? { status: 'CUSTOM_ERROR', error: 'meta unavailable' } };
       },
     }),
   }),
