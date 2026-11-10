@@ -152,7 +152,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, displayedMessages);
   useBackToClose(selection.active, clearSelection, 'selection');
   useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
-  const startReply = useReplyAction({ setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
+  const startReply = useReplyAction({ editingMessage, setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
   const onListMessageClick = useStableCallback(isPreview ? handleMessageClick : intercept(handleMessageClick));
   const onAvatarClick = useStableCallback((profileUsername: string) => {
     if (onOpenUserProfile) onOpenUserProfile(profileUsername);
@@ -280,7 +280,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         setReactionMenu={setReactionMenu}
         setEditingMessage={setEditingMessage}
         setMessageInput={setMessageInput}
-        setReplyTo={setReplyTo}
+        setReplyTo={setReplyTo} onReply={startReply}
         setModal={setModal}
         closeMenus={closeMenus}
         onForward={setForwardMessage}

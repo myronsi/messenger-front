@@ -26,6 +26,7 @@ interface ChatOverlaysProps {
   setEditingMessage: (message: Message | null) => void;
   setMessageInput: (input: string) => void;
   setReplyTo: (message: Message | null) => void;
+  onReply: (message: Message) => void;
   setModal: (modal: ModalState) => void;
   closeMenus: () => void;
   onForward: (message: Message | null) => void;
@@ -43,7 +44,7 @@ const mayDeleteForBoth = (userId: EntityId | null) => (message: Message) =>
 const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
   token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
-  setEditingMessage, setMessageInput, setReplyTo, setModal, closeMenus, onForward,
+  setEditingMessage, setMessageInput, setReplyTo, onReply, setModal, closeMenus, onForward,
   forwardMessage, username, modal, selection, onSelect, onClearSelection,
 }) => (
   <>
@@ -60,6 +61,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         setEditingMessage={setEditingMessage}
         setMessageInput={setMessageInput}
         setReplyTo={setReplyTo}
+        onReply={onReply}
         setModal={setModal}
         wsRef={wsRef}
         isClosing={isClosing}
