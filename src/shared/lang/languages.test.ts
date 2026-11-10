@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { en } from './en';
 import { es } from './es';
+import { de } from './de';
 import { ru } from './ru';
 import { isAppLanguage, localeOf } from './languages';
 
@@ -15,6 +16,7 @@ describe('localeOf', () => {
   it('maps app languages to date locales', () => {
     expect(localeOf('ru')).toBe('ru-RU');
     expect(localeOf('es')).toBe('es-ES');
+    expect(localeOf('de')).toBe('de-DE');
     expect(localeOf('en')).toBe('en-GB');
     expect(localeOf('en', 'en-US')).toBe('en-US');
   });
@@ -25,19 +27,19 @@ describe('localeOf', () => {
   });
 
   it('treats unknown languages as English', () => {
-    expect(isAppLanguage('de')).toBe(false);
-    expect(localeOf('de')).toBe('en-GB');
+    expect(isAppLanguage('fr')).toBe(false);
+    expect(localeOf('fr')).toBe('en-GB');
   });
 });
 
 describe('translation bundles', () => {
   const english = keysOf(en);
 
-  it.each([['ru', ru], ['es', es]] as const)('%s has every English key', (_, bundle) => {
+  it.each([['ru', ru], ['es', es], ['de', de]] as const)('%s has every English key', (_, bundle) => {
     expect(keysOf(bundle).sort()).toEqual([...english].sort());
   });
 
-  it.each([['ru', ru], ['es', es]] as const)('%s keeps the placeholders of every English string', (_, bundle) => {
+  it.each([['ru', ru], ['es', es], ['de', de]] as const)('%s keeps the placeholders of every English string', (_, bundle) => {
     const mismatched = english.filter((key) => placeholders(valueAt(en, key)).join() !== placeholders(valueAt(bundle, key)).join());
     expect(mismatched).toEqual([]);
   });

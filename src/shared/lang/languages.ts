@@ -1,16 +1,18 @@
-export const APP_LANGUAGES = ['en', 'ru', 'es'] as const;
+export const APP_LANGUAGES = ['en', 'ru', 'es', 'de'] as const;
 export type AppLanguage = typeof APP_LANGUAGES[number];
 
 export const LANGUAGE_NAMES: Record<AppLanguage, string> = {
   en: 'English',
   ru: 'Русский',
   es: 'Español',
+  de: 'Deutsch',
 };
 
 const LOCALES: Record<AppLanguage, string> = {
   en: 'en-GB',
   ru: 'ru-RU',
   es: 'es-ES',
+  de: 'de-DE',
 };
 
 export const isAppLanguage = (value: unknown): value is AppLanguage =>

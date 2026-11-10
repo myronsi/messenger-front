@@ -13,6 +13,7 @@ const LANGUAGES = [
   { value: 'en', label: 'EN' },
   { value: 'ru', label: 'RU' },
   { value: 'es', label: 'ES' },
+  { value: 'de', label: 'DE' },
 ] as const;
 
 const DocsPage = ({ onClose }: { onClose?: () => void }) => {

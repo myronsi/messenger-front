@@ -1,0 +1,25 @@
+export const appearance = {
+  appearance: {
+    title: "Darstellung",
+    description: "Lege fest, wie der Messenger auf diesem Gerät aussieht.",
+    preview: "Vorschau",
+    previewIncoming: "Hast du die neuen Farben gesehen?",
+    previewOutgoing: "Ja, der Chat sieht jetzt richtig gut aus!",
+    theme: "Design",
+    themes: { light: "Hell", dark: "Dunkel", system: "System" },
+    accent: "Akzentfarbe",
+    accents: {
+      blue: "Blau", violet: "Violett", green: "Grün", orange: "Orange", pink: "Pink", teal: "Petrol", graphite: "Graphit",
+    },
+    textSize: "Textgröße in Nachrichten",
+    textSizeValue: "{size} px",
+    corners: "Ecken der Nachrichten",
+    cornerOptions: { sharp: "Eckig", default: "Standard", round: "Rund" },
+    density: "Abstand zwischen Nachrichten",
+    densities: { comfortable: "Großzügig", compact: "Kompakt" },
+    chatBackground: "Chat-Hintergrund",
+    chatBackgrounds: { plain: "Einfarbig", tint: "Getönt", gradient: "Verlauf", dots: "Punkte", grid: "Raster" },
+    reset: "Auf Standard zurücksetzen",
+    deviceOnly: "Diese Einstellungen werden nur auf diesem Gerät gespeichert.",
+  },
+};
