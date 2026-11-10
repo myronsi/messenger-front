@@ -1,9 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState, type SetStateAction } from 'react';
 import { Message, ModalState, useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { useDraftState } from '@/shared/hooks/useDraftState';
-import { chatDraftKey } from '@/shared/lib/drafts';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
 
@@ -12,7 +10,12 @@ import {
   unescapeCurlyBraces, useChatSocket, useChatTransport, useLatest, useMessageEvents, useMessageHistory, useMessageSender,
   type ServerEvent,
 } from '@/features/chat-core';
+import type { ComposerDraftHandle } from '@/features/message-composer';
 import { createDeleteChatAction } from './useChatActions';
+
+const renderMessageContent = (message: Message) => (
+  message.type === 'message' && typeof message.content === 'string' ? unescapeCurlyBraces(message.content) : undefined
+);
 
 export const useChat = (
   chatId: EntityId,
@@ -27,7 +30,9 @@ export const useChat = (
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: EntityId; isMine: boolean } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
-  const [messageInput, setMessageInput] = useDraftState(chatDraftKey(chatId), editingMessage === null);
+  const composerDraftRef = useRef<ComposerDraftHandle | null>(null);
+  const getMessageInput = useCallback(() => composerDraftRef.current?.get() ?? '', []);
+  const setMessageInput = useCallback((value: SetStateAction<string>) => composerDraftRef.current?.set(value), []);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<EntityId | null>(null);
@@ -70,7 +75,7 @@ export const useChat = (
     resendUnconfirmed,
   } = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport,
-    setMessages, setModal, messageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
+    setMessages, setModal, getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
   });
 
   const handleDeleteChat = createDeleteChatAction({ chatId, translations, onBack, setModal });
@@ -97,32 +102,23 @@ export const useChat = (
     onOpened: () => { void catchUpAfterReconnect(true); },
   });
 
-  const scrollToMessage = (messageId: EntityId) => {
+  const scrollToMessage = useCallback((messageId: EntityId) => {
     setHighlightedMessageId(messageId);
     setTimeout(() => setHighlightedMessageId(null), 6000);
-  };
+  }, []);
 
-  const getFormattedDateLabel = (timestamp: string): string => {
+  const getFormattedDateLabel = useCallback((timestamp: string): string => {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
     return formatDateLabel(timestamp, language, today, yesterday);
-  };
+  }, [language]);
 
-  const getMessageTime = (timestamp: string): string => {
-    return formatTime(timestamp, language);
-  };
-
-  const renderMessageContent = (message: Message) => {
-    if (message.type === 'message' && typeof message.content === 'string') {
-      return unescapeCurlyBraces(message.content);
-    }
-    return undefined;
-  };
+  const getMessageTime = useCallback((timestamp: string): string => formatTime(timestamp, language), [language]);
 
   return {
     messages: preview ?? messages,
-    messageInput,
+    composerDraftRef,
     setMessageInput,
     contextMenu,
     setContextMenu,

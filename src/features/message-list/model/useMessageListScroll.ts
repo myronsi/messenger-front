@@ -251,8 +251,14 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     if (lastMessageIdRef.current !== lastMessageId) {
       const appended = getAppendedMessages(previousMessagesRef.current, messages);
       const lastIsOwn = isOwnMessageRef.current(messages[messages.length - 1]);
-      if (shouldStickToBottomRef.current || (appended.length > 0 && lastIsOwn)) {
+      if (appended.length > 0 && lastIsOwn) {
         shouldStickToBottomRef.current = true;
+        autoScrollUntilRef.current = 0;
+        settleRef.current = null;
+        if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+        container.scrollTop = container.scrollHeight;
+      } else if (shouldStickToBottomRef.current) {
         autoScrollUntilRef.current = Date.now() + 800;
         if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
         scrollAnimationFrameRef.current = requestAnimationFrame(() => {

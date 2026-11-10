@@ -5,7 +5,8 @@ import { ChatHeaderSearch, Message } from '@/entities/message';
 import ChatHeader from './ui/ChatHeader';
 import { MessageList } from '@/features/message-list';
 import { ImageDrawingProvider } from '@/features/image-drawing';
-import { MessageInput } from '@/features/message-composer';
+import { MessageComposer } from '@/features/message-composer';
+import { useStableCallback } from '@/shared/lib/useStableCallback';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
 import { usePreviewChat } from './model/usePreviewChat';
@@ -66,7 +67,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   });
 
   const {
-    messages, messageInput, setMessageInput, contextMenu, setContextMenu, replyTo, setReplyTo,
+    messages, composerDraftRef, setMessageInput, contextMenu, setContextMenu, replyTo, setReplyTo,
     editingMessage, setEditingMessage, setSelectedUser, modal, setModal,
     highlightedMessageId, isLoadingInitialMessages, isLoadingOlderMessages, isLoadingNewerMessages,
     hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages,
@@ -152,6 +153,18 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   useBackToClose(selection.active, clearSelection, 'selection');
   useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
   const startReply = useReplyAction({ setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
+  const onListMessageClick = useStableCallback(isPreview ? handleMessageClick : intercept(handleMessageClick));
+  const onAvatarClick = useStableCallback((profileUsername: string) => {
+    if (onOpenUserProfile) onOpenUserProfile(profileUsername);
+    else setSelectedUser(profileUsername);
+  });
+  const onListReactionMenu = useStableCallback(onOpenReactionMenu);
+  const onListScrollStart = useStableCallback(onScrollStart);
+  const onListReplyClick = useStableCallback(scrollToMessage);
+  const onListResend = useStableCallback(handleResendMessage);
+  const formatDate = useStableCallback(getFormattedDateLabel);
+  const formatTime = useStableCallback(getMessageTime);
+  const renderContent = useStableCallback(renderMessageContent);
 
   const content = (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
@@ -176,26 +189,20 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           username={username}
           interlocutorDeleted={interlocutorDeleted}
           firstUnreadMessageId={firstUnreadMessageId}
-          onMessageClick={isPreview ? handleMessageClick : intercept(handleMessageClick)}
-          onAvatarClick={(profileUsername) => {
-            if (onOpenUserProfile) {
-              onOpenUserProfile(profileUsername);
-            } else {
-              setSelectedUser(profileUsername);
-            }
-          }}
+          onMessageClick={onListMessageClick}
+          onAvatarClick={onAvatarClick}
           highlightedMessageId={highlightedMessageId}
           contextMenuMessageId={contextMenu?.messageId}
           composerTargetMessageId={(editingMessage || replyTo)?.id}
           bottomInset={composerHeight}
-          getFormattedDateLabel={getFormattedDateLabel}
-          getMessageTime={getMessageTime}
-          renderMessageContent={renderMessageContent}
+          getFormattedDateLabel={formatDate}
+          getMessageTime={formatTime}
+          renderMessageContent={renderContent}
           messageRefs={messageRefs}
-          onReplyClick={scrollToMessage}
+          onReplyClick={onListReplyClick}
           userId={userId || 0}
           wsRef={wsRef}
-          onOpenReactionMenu={onOpenReactionMenu}
+          onOpenReactionMenu={onListReactionMenu}
           tempHighlightedMessageId={tempHighlightedMessageId}
           setTempHighlightedMessageId={setTempHighlightedMessageId}
           onLoadOlderMessages={loadOlderMessages}
@@ -207,19 +214,20 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           isLoadingOlderMessages={isLoadingOlderMessages}
           isLoadingNewerMessages={isLoadingNewerMessages}
           onMarkMessagesRead={markMessagesRead}
-          onResendMessage={!isPreview ? handleResendMessage : undefined}
+          onResendMessage={!isPreview ? onListResend : undefined}
           scrollToBottomKey={chatId}
-          onScrollStart={onScrollStart}
+          onScrollStart={onListScrollStart}
           selection={isPreview ? undefined : selection}
           onSwipeReply={isPreview ? undefined : startReply}
         />
       </ImageDrawingProvider>
       {!interlocutorDeleted && !isBlockedByMe && (
         <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
-          <MessageInput
+          <MessageComposer
             ref={messageInputRef}
-            messageInput={isPreview ? previewMessageInput : messageInput}
-            setMessageInput={isPreview ? setPreviewMessageInput : setMessageInput}
+            draftRef={composerDraftRef}
+            messageInput={isPreview ? previewMessageInput : undefined}
+            setMessageInput={isPreview ? setPreviewMessageInput : undefined}
             replyTo={replyTo}
             editingMessage={editingMessage}
             onSendMessage={isPreview ? handleSendMessagePreview : handleSendMessage}

@@ -5,7 +5,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Message, MESSAGE_HISTORY_FRESH_SECONDS, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependUniqueMessages, trimNewestMessages,
+  Message, MESSAGE_HISTORY_FRESH_SECONDS, appendUniqueMessages, mergeFreshHistoryMessages, normalizeHistoryMessages, prependOlderPage,
 } from '@/entities/message';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
@@ -50,7 +50,7 @@ export const useMessageHistory = ({
   const [newestMessageId, setNewestMessageId] = useState<EntityId | null>(null);
   const isLoadingOlderMessagesRef = useRef(false);
   const isLoadingNewerMessagesRef = useRef(false);
-  const trimNewestPendingRef = useRef(false);
+  const trimmedNewestIdRef = useRef<EntityId | null>(null);
   const [markChatRead] = useMarkChatReadMutation();
   const [fetchHistory] = useLazyGetMessageHistoryQuery();
   const {
@@ -80,18 +80,18 @@ export const useMessageHistory = ({
     setHasMoreNewerMessages(false);
     setOldestMessageId(null);
     setNewestMessageId(null);
-    trimNewestPendingRef.current = false;
+    trimmedNewestIdRef.current = null;
   }, [chatId]);
 
-  useEffect(() => {
-    if (!trimNewestPendingRef.current) return;
-    trimNewestPendingRef.current = false;
-    const trimmed = trimNewestMessages(messages, MAX_LOADED_MESSAGES);
-    if (!trimmed || !trimmed.newestId) return;
-    setMessages(previous => trimNewestMessages(previous, MAX_LOADED_MESSAGES)?.messages ?? previous);
-    setNewestMessageId(trimmed.newestId);
+  const applyTrimmedWindow = useCallback(() => {
+    const newestId = trimmedNewestIdRef.current;
+    if (newestId === null) return;
+    trimmedNewestIdRef.current = null;
+    setNewestMessageId(newestId);
     setHasMoreNewerMessages(true);
-  }, [messages, setMessages]);
+  }, []);
+
+  useEffect(applyTrimmedWindow, [messages, applyTrimmedWindow]);
 
   const handleHistoryError = useCallback((error: unknown) => {
     const status = asApiError(error).status;
@@ -138,8 +138,12 @@ export const useMessageHistory = ({
     try {
       const data = await fetchHistory({ chatId, limit: MESSAGE_PAGE_SIZE, beforeId: oldestMessageId }).unwrap();
       const olderMessages = normalizeHistoryMessages(data.history);
-      setMessages(previous => prependUniqueMessages(previous, olderMessages));
-      trimNewestPendingRef.current = true;
+      setMessages(previous => {
+        const page = prependOlderPage(previous, olderMessages, MAX_LOADED_MESSAGES);
+        trimmedNewestIdRef.current = page.newestId;
+        return page.messages;
+      });
+      applyTrimmedWindow();
       setHasMoreMessages(data.has_more_before ?? data.has_more);
       const nextOldestId = data.next_before_id ?? olderMessages[0]?.id;
       if (nextOldestId != null) setOldestMessageId(nextOldestId);
@@ -149,7 +153,7 @@ export const useMessageHistory = ({
       isLoadingOlderMessagesRef.current = false;
       setIsLoadingOlderMessages(false);
     }
-  }, [fetchHistory, chatId, handleHistoryError, hasMoreMessages, oldestMessageId, setMessages, token]);
+  }, [fetchHistory, chatId, handleHistoryError, hasMoreMessages, oldestMessageId, setMessages, token, applyTrimmedWindow]);
 
   const loadNewerMessages = useCallback(async () => {
     if (!token || !newestMessageId || !hasMoreNewerMessages || isLoadingNewerMessagesRef.current) return;
