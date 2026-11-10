@@ -17,6 +17,10 @@ const ACTION_TITLES = {
     reply: 'Responder', read: 'Marcar como leído', many: (n) => `${n} mensajes nuevos`, call: 'Llamada entrante', groupCall: 'Llamada grupal entrante',
     missed: 'Llamada perdida', ended: 'Llamada finalizada', answered: 'Respondida en otro dispositivo',
   },
+  de: {
+    reply: 'Antworten', read: 'Als gelesen markieren', many: (n) => `${n} neue Nachrichten`, call: 'Eingehender Anruf', groupCall: 'Eingehender Gruppenanruf',
+    missed: 'Verpasster Anruf', ended: 'Anruf beendet', answered: 'Auf einem anderen Gerät angenommen',
+  },
 };
 const CALL_MAX_RING_MS = 120000;
 const cancelledCalls = new Map();

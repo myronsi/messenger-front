@@ -3,8 +3,9 @@ import type { AppLanguage } from '@/shared/lang/languages';
 import { timeDate as enDays } from '@/shared/lang/en/timeDate';
 import { timeDate as ruDays } from '@/shared/lang/ru/timeDate';
 import { timeDate as esDays } from '@/shared/lang/es/timeDate';
+import { timeDate as deDays } from '@/shared/lang/de/timeDate';
 
-const DAY_WORDS: Record<AppLanguage, { today: string; yesterday: string }> = { en: enDays, ru: ruDays, es: esDays };
+const DAY_WORDS: Record<AppLanguage, { today: string; yesterday: string }> = { en: enDays, ru: ruDays, es: esDays, de: deDays };
 export const parseUtcDate = (date: string | Date): Date => {
   if (typeof date === 'string') {
     const trimmed = date.trim();
