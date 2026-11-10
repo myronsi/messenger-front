@@ -4,7 +4,7 @@ import type { ChatLastMessage, FileMessageContent } from '@/entities/message';
 import { useChatFormatters } from './useChatFormatters';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: {
-  yesterday: 'Yesterday', edited: 'edited', photoMessage: 'Photo', fileMessagePreview: 'File', voiceMessagePreview: 'Voice message', noMessagesYet: 'No messages yet',
+  yesterday: 'Yesterday', edited: 'edited', photoMessage: 'Photo', fileMessagePreview: 'File', voiceMessagePreview: 'Voice message', noMessagesYet: 'No messages yet', sticker: 'Sticker',
 } }) }));
 
 const file = (content: Partial<FileMessageContent>, extra: Partial<ChatLastMessage> = {}): ChatLastMessage => ({
@@ -45,4 +45,10 @@ it('prefers the caption of media and files over the generic label', () => {
   expect(preview(file({ file_type: 'image' }, { edited_at: new Date().toISOString() }))).toBe('Photo');
   expect(preview(file({ file_type: 'file' }))).toBe('File');
   expect(preview(file({ file_type: 'voice', caption: 'ignored' }))).toBe('Voice message');
+});
+
+it('previews a sticker as its emoji', () => {
+  const { result } = renderHook(() => useChatFormatters('1'));
+  const last = { ...message(new Date(2026, 10, 5, 9, 30)), content: '🐱', sticker: { emoji: '🐱', image_url: '/s/1' } };
+  expect(result.current.getLastMessagePreview(last)).toBe('🐱 Sticker');
 });

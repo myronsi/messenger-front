@@ -61,6 +61,7 @@ export const useChatRoomState = ({
     loadLatestMessages: async () => {},
     markMessagesRead: async (_messageIds: EntityId[]) => {},
     handleSendMessage: () => {},
+    handleSendSticker: undefined,
     handleResendMessage: (_message: Message) => {},
     handleFileUpload: async (_file: File | File[]) => {},
     createOptimisticUploadMessage: (_file: Blob, _fileName: string, _fileType?: string, _caption?: string) => null,

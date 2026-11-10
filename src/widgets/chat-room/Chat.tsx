@@ -66,7 +66,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     editingMessage, setEditingMessage, setSelectedUser, modal, setModal,
     highlightedMessageId, isLoadingInitialMessages, isLoadingOlderMessages, isLoadingNewerMessages,
     hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages,
-    markMessagesRead, handleSendMessage, handleResendMessage, handleFileUpload,
+    markMessagesRead, handleSendMessage, handleSendSticker, handleResendMessage, handleFileUpload,
     createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
     settleOptimisticUpload, handleDeleteChat, getFormattedDateLabel, getMessageTime,
     renderMessageContent, wsRef,
@@ -214,6 +214,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
             replyTo={replyTo}
             editingMessage={editingMessage}
             onSendMessage={isPreview ? handleSendMessagePreview : handleSendMessage}
+            onSendSticker={isPreview ? undefined : handleSendSticker}
             onFileUpload={isPreview ? handleFileUploadPreview : handleFileUpload}
             onCancelReplyOrEdit={() => {
               if (isPreview) {
