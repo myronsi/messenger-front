@@ -65,7 +65,7 @@ export const useMessageHistory = ({
 
   // A disk page is a preview. Keep it out of the live message store and out of pagination cursors.
   const historyStatus = asApiError(latestHistoryError).status;
-  const canPreview = token && isPersistedId(chatId) && !latestHistory && !messages.length &&
+  const canPreview = token && isPersistedId(chatId) && !messages.length && !(latestHistory && latestHistory.history.length === 0) &&
     historyStatus !== 401 && historyStatus !== 403 && historyStatus !== 404;
   const savedPage = useChatSnapshot<MessageHistoryResponse>(canPreview ? historySnapshot(chatId, firstUnreadMessageId) : null);
   const preview = useMemo(() => canPreview && savedPage ? normalizeHistoryMessages(savedPage.history) : undefined, [canPreview, savedPage]);
