@@ -90,10 +90,7 @@ export const useMessageSender = ({
   const createOptimisticFileMessage = (files: UploadFile[], caption: string, fileType?: string) => {
     const tempId = createTempMessageId();
     const reply = replyToRef.current;
-    if (reply) {
-      replyToRef.current = null;
-      setReplyTo(null);
-    }
+    if (reply) { replyToRef.current = null; setReplyTo(null); }
     const content = createLocalFileContent(files, caption, fileType);
     const objectUrls = (content.album ?? [content]).map(item => item.file_url);
     const optimisticMessage = createOptimisticMessage(tempId, username, currentUserIdRef.current || currentUserId || undefined, {
