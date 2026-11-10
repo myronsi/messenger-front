@@ -1,12 +1,13 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useState } from 'react';
-import { ChatHeaderSearch, type Message } from '@/entities/message';
+import { ChatHeaderSearch, type Message, type ReactionInfo } from '@/entities/message';
 import { unescapeCurlyBraces } from '@/features/chat-core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { MessageList } from '@/features/message-list';
 import { ImageDrawingProvider } from '@/features/image-drawing';
-import { MessageInput } from '@/features/message-composer';
+import { MessageComposer } from '@/features/message-composer';
+import { useStableCallback } from '@/shared/lib/useStableCallback';
 import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog, SelectionBar, useMessageSelection, useReplyAction } from '@/features/message-actions';
 import { useBackToClose } from '@/shared/lib/useBackToClose';
 import GroupProfileDialog from './GroupProfileDialog';
@@ -15,12 +16,13 @@ import GroupChatHeader from './GroupChatHeader';
 import type { GroupChatViewModel } from './groupChatTypes';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
 
+const renderMessageContent = (message: Message) => message.type === 'message' && typeof message.content === 'string'
+  ? unescapeCurlyBraces(message.content)
+  : undefined;
+
 const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
   const [composerRef, composerHeight] = useElementHeight<HTMLDivElement>();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const renderMessageContent = (message: Message) => message.type === 'message' && typeof message.content === 'string'
-    ? unescapeCurlyBraces(message.content)
-    : undefined;
   const {
      onBack, openGroupProfile, currentGroupAvatar, currentGroupName, groupDetails, translations, messages,
      username, currentUserId, firstUnreadMessageId, handleMessageClick, handleOpenUserProfile, handleOpenMemberProfile,
@@ -29,7 +31,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      setTempHighlightedMessageId, loadOlderMessages, hasMoreMessages, isLoadingOlderMessages,
      isLoadingInitialMessages, loadNewerMessages, loadLatestMessages, hasMoreNewerMessages,
      isLoadingNewerMessages, markMessagesRead, isOwnMessage, setReadStatusMessage, setReactionDetails, chatId,
-     closeMenus, reactionMenu, messageInputRef, messageInput, setMessageInput, replyTo, editingMessage,
+     closeMenus, reactionMenu, messageInputRef, composerDraftRef, setMessageInput, replyTo, editingMessage,
      handleSendMessage, handleSendSticker, handleFileUpload, handleResendMessage, setReplyTo, setEditingMessage, token,
      createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
      settleOptimisticUpload, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage,
@@ -43,6 +45,15 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
   useBackToClose(selection.active, clearSelection, 'selection');
   useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
   const startReply = useReplyAction({ setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
+  const onListMessageClick = useStableCallback(intercept(handleMessageClick));
+  const onListAvatarClick = useStableCallback(handleOpenUserProfile);
+  const onListReactionMenu = useStableCallback((message: Message, event: React.MouseEvent) => openMenus(message, event));
+  const onListReadStatus = useStableCallback((message: Message) => { if (isOwnMessage(message)) setReadStatusMessage(message); });
+  const onListReactionDetails = useStableCallback((message: Message, reaction: string, reactions: ReactionInfo[]) => (
+    setReactionDetails({ message, reaction, reactions })
+  ));
+  const onListResend = useStableCallback(handleResendMessage);
+  const onListScrollStart = useStableCallback(() => { if (contextMenu || reactionMenu) closeMenus(); });
   return (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
       {isSearchOpen ? (
@@ -61,8 +72,8 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         userId={currentUserId}
         interlocutorDeleted={false}
         firstUnreadMessageId={firstUnreadMessageId}
-        onMessageClick={intercept(handleMessageClick)}
-        onAvatarClick={handleOpenUserProfile}
+        onMessageClick={onListMessageClick}
+        onAvatarClick={onListAvatarClick}
         highlightedMessageId={highlightedMessageId}
         contextMenuMessageId={contextMenu?.messageId}
         composerTargetMessageId={(editingMessage || replyTo)?.id}
@@ -73,7 +84,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         messageRefs={messageRefs}
         onReplyClick={scrollToMessage}
         wsRef={wsRef}
-        onOpenReactionMenu={(message, event) => openMenus(message, event)}
+        onOpenReactionMenu={onListReactionMenu}
         tempHighlightedMessageId={tempHighlightedMessageId}
         setTempHighlightedMessageId={setTempHighlightedMessageId}
         onLoadOlderMessages={loadOlderMessages}
@@ -82,29 +93,23 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         hasMoreNewerMessages={hasMoreNewerMessages}
         isLoadingNewerMessages={isLoadingNewerMessages}
         onMarkMessagesRead={markMessagesRead}
-        onResendMessage={handleResendMessage}
+        onResendMessage={onListResend}
         hasMoreMessages={hasMoreMessages}
         isLoadingOlderMessages={isLoadingOlderMessages}
         isLoadingInitialMessages={isLoadingInitialMessages}
         isGroup
-        onOpenReadStatus={(message) => {
-          if (isOwnMessage(message)) setReadStatusMessage(message);
-        }}
-        onOpenReactionDetails={(message, reaction, reactions) => setReactionDetails({ message, reaction, reactions })}
+        onOpenReadStatus={onListReadStatus}
+        onOpenReactionDetails={onListReactionDetails}
         scrollToBottomKey={chatId}
         selection={selection} onSwipeReply={startReply}
-        onScrollStart={() => {
-          if (!contextMenu && !reactionMenu) return;
-          closeMenus();
-        }}
+        onScrollStart={onListScrollStart}
       />
       </ImageDrawingProvider>
 
       <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
-        <MessageInput
+        <MessageComposer
           ref={messageInputRef}
-          messageInput={messageInput}
-          setMessageInput={setMessageInput}
+          draftRef={composerDraftRef}
           replyTo={replyTo}
           editingMessage={editingMessage}
           onSendMessage={handleSendMessage}

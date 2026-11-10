@@ -7,6 +7,8 @@ import { getUpdateStatus } from '@/shared/api/updateGate';
 const BASE_URL = getApiBaseUrl();
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const SESSION_MARKER_KEY = 'had_session';
+const SESSION_MARKER_CHECKED_KEY = 'had_session_checked';
 const DEVICE_PART_KEYS = ['device_part', 'device_parts'];
 const RECOVERY_SESSION_KEYS = ['recovery_username', 'recovery_cloud_part', 'recovery_device_part', 'recovery_token'];
 
@@ -26,12 +28,31 @@ const isTokenExpired = (token: string, skewMs = 30_000) => {
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 
+const markSession = (active: boolean) => {
+  try {
+    if (active) localStorage.setItem(SESSION_MARKER_KEY, '1');
+    else localStorage.removeItem(SESSION_MARKER_KEY);
+    localStorage.setItem(SESSION_MARKER_CHECKED_KEY, '1');
+  } catch {
+    return;
+  }
+};
+
+export const mayHaveRefreshSession = () => {
+  try {
+    return localStorage.getItem(SESSION_MARKER_KEY) === '1' || localStorage.getItem(SESSION_MARKER_CHECKED_KEY) !== '1';
+  } catch {
+    return true;
+  }
+};
+
 export const setAccessToken = (token: string | null) => {
   if (token) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
   } else {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
   }
+  markSession(Boolean(token));
   notifyTokenListeners(token);
 };
 
@@ -40,6 +61,7 @@ export const clearAuthTokens = () => {
   clearDrafts();
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  markSession(false);
   notifyTokenListeners(null);
 };
 
@@ -128,6 +150,7 @@ const requestRefresh = async (startedWith: string | null) => {
 export const refreshAccessToken = async () => {
   if (!refreshPromise) {
     const startedWith = getAccessToken();
+    if (!startedWith && !mayHaveRefreshSession()) return null;
     refreshPromise = withRefreshLock(() => requestRefresh(startedWith))
       .catch(() => null)
       .finally(() => {

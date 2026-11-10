@@ -1,13 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { RealtimeListener } from '@/shared/api/realtime';
 import { startCallSync } from './callSync';
-import { idleSession, patchSession, sessionStore } from './stores';
+import { configStore, idleSession, patchSession, sessionStore } from './stores';
 
 const socket = vi.hoisted(() => ({ listeners: [] as RealtimeListener[] }));
 const controller = vi.hoisted(() => ({
   catchUpCallKeys: vi.fn(), deliverCallKeys: vi.fn(), followCalls: vi.fn(), hangUpLocally: vi.fn(async () => undefined), ownsCallMedia: () => false,
 }));
-const config = vi.hoisted(() => ({ loadCallConfig: vi.fn(async () => undefined), stopCallConfigLoading: vi.fn() }));
+const config = vi.hoisted(() => ({
+  enabled: false,
+  loadCallConfig: vi.fn(async () => undefined),
+  stopCallConfigLoading: vi.fn(),
+  callConfigReady: vi.fn(async () => undefined),
+  callsEnabledOnServer: () => config.enabled,
+}));
+const api = vi.hoisted(() => ({ list: vi.fn(async () => []), get: vi.fn() }));
 const tabs = vi.hoisted(() => ({
   elsewhere: false,
   released: [] as (() => void)[],
@@ -18,7 +25,7 @@ vi.mock('@/shared/api/realtime', () => ({
   realtime: { subscribe: (listener: RealtimeListener) => { socket.listeners.push(listener); return () => undefined; } },
 }));
 vi.mock('@/shared/auth/session', () => ({ getAccessToken: () => 'token', subscribeToAccessToken: () => () => undefined }));
-vi.mock('../api/callsApi', () => ({ callsApi: { list: vi.fn(async () => []), get: vi.fn() } }));
+vi.mock('../api/callsApi', () => ({ callsApi: api }));
 vi.mock('./availability', () => config);
 vi.mock('./tabOwnership', () => ({
   isMediaOwnedElsewhere: async () => tabs.elsewhere,
@@ -34,23 +41,53 @@ describe('call sync', () => {
   afterEach(() => {
     stop?.(); stop = null; socket.listeners.length = 0;
     tabs.elsewhere = false; tabs.released.length = 0;
+    config.enabled = false;
     vi.clearAllMocks();
     sessionStore.set(idleSession);
+    configStore.set(null);
+  });
+
+  it('does not list calls when calls are disabled on the server', async () => {
+    stop = startCallSync();
+    socket.listeners[0].onOpen?.({ reconnected: false });
+    await settle();
+    expect(api.list).not.toHaveBeenCalled();
+  });
+
+  it('lists calls on open when enabled, and once calls become enabled later', async () => {
+    config.enabled = true;
+    stop = startCallSync();
+    socket.listeners[0].onOpen?.({ reconnected: false });
+    await settle();
+    expect(api.list).toHaveBeenCalledTimes(1);
+    stop(); stop = null;
+    config.enabled = false;
+    stop = startCallSync();
+    config.enabled = true;
+    configStore.set({ enabled: true } as never);
+    await settle();
+    expect(api.list).toHaveBeenCalledTimes(2);
   });
 
   it('catches up on call keys every time the realtime socket opens', () => {
     stop = startCallSync();
     expect(controller.catchUpCallKeys).not.toHaveBeenCalled();
-    socket.listeners[0].onOpen?.();
-    socket.listeners[0].onOpen?.();
+    socket.listeners[0].onOpen?.({ reconnected: false });
+    socket.listeners[0].onOpen?.({ reconnected: true });
     expect(controller.catchUpCallKeys).toHaveBeenCalledTimes(2);
+  });
+
+  it('loads the call config once on start and not again on the first socket open', () => {
+    stop = startCallSync();
+    socket.listeners[0].onOpen?.({ reconnected: false });
+    expect(config.loadCallConfig).toHaveBeenCalledTimes(1);
   });
 
   it('reloads the call config on every reconnect and when the tab becomes visible', () => {
     const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     stop = startCallSync();
     expect(config.loadCallConfig).toHaveBeenCalledTimes(1);
-    socket.listeners[0].onOpen?.();
+    socket.listeners[0].onOpen?.({ reconnected: true });
     expect(config.loadCallConfig).toHaveBeenCalledTimes(2);
     document.dispatchEvent(new Event('visibilitychange'));
     expect(config.loadCallConfig).toHaveBeenCalledTimes(2);

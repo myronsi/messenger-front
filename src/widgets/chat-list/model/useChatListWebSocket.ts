@@ -8,6 +8,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import { coalesceTask } from '@/shared/lib/coalesceTask';
 import { applyTypingFrame, clearTypingUsers } from '@/entities/typing';
+import { chatApi } from '@/entities/chat';
+import { useAppDispatch } from '@/shared/hooks/redux';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 
 const CHAT_LIST_REFETCH_DELAY_MS = 750;
@@ -33,7 +35,9 @@ interface UseChatListWebSocketParams {
 // teardown on unmount) and forwards parsed messages to the pure message-handling function.
 // The socket authenticates with a one-time ticket, so a token refresh does not need a new connection.
 export function useChatListWebSocket(params: UseChatListWebSocketParams) {
-  const { token, activeChatId, onChatDeleted, currentUserId, refetch, refetchRequestInbox } = params;
+  const { token, username, activeChatId, onChatDeleted, currentUserId, refetch, refetchRequestInbox } = params;
+  const dispatch = useAppDispatch();
+  const usernameRef = useRef(username);
   const activeChatIdRef = useRef(activeChatId);
   const onChatDeletedRef = useRef(onChatDeleted);
   const refetchRef = useRef(refetch);
@@ -44,6 +48,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   }, [isSignedIn, currentUserId]);
 
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
+  useEffect(() => { usernameRef.current = username; }, [username]);
   useEffect(() => { onChatDeletedRef.current = onChatDeleted; }, [onChatDeleted]);
   useEffect(() => { refetchRef.current = refetch; }, [refetch]);
   useEffect(() => { refetchRequestInboxRef.current = refetchRequestInbox; }, [refetchRequestInbox]);
@@ -51,8 +56,22 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   useEffect(() => {
     if (!isSignedIn) return;
     const listRefetch = coalesceTask(() => refetchRef.current(), CHAT_LIST_REFETCH_DELAY_MS);
+    const pending = () => dispatch((_, getState) => {
+      const state = getState();
+      const user = usernameRef.current;
+      return {
+        list: [chatApi.endpoints.getOneOnOneChats.select(user)(state), chatApi.endpoints.getGroupChats.select(user)(state)]
+          .some(entry => entry.status === 'pending'),
+        requests: chatApi.endpoints.getApprovalRequestInbox.select()(state).status === 'pending',
+      };
+    });
     const release = realtime.subscribe({
-      onOpen: () => { setNotificationLive(true); refetchRef.current(); refetchRequestInboxRef.current(); },
+      onOpen: ({ reconnected }) => {
+        setNotificationLive(true);
+        const inFlight = reconnected ? { list: false, requests: false } : pending();
+        if (!inFlight.list) refetchRef.current();
+        if (!inFlight.requests) refetchRequestInboxRef.current();
+      },
       onStatus: status => { if (status !== 'connected') { setNotificationLive(false); clearTypingUsers(); } },
       onEvent: frame => {
         if (frame.type === 'security_notice' && frame.data.type === 'password_reset') {
@@ -67,5 +86,5 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
       },
     });
     return () => { release(); listRefetch.cancel(); setNotificationLive(false); clearTypingUsers(); };
-  }, [isSignedIn]);
+  }, [dispatch, isSignedIn]);
 }

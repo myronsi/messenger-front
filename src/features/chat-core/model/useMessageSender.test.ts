@@ -35,7 +35,7 @@ const setup = (messageInput: string, editingMessage: Message | null = original, 
       wsRef: { current: { readyState: WebSocket.OPEN, send } as unknown as WebSocket },
       messageQueueRef: { current: [] }, pendingMessageIdsRef: { current: [] }, connectionRetryKey: 0, requestReconnect: vi.fn(),
     },
-    setMessages: vi.fn(), setModal: vi.fn(), messageInput, setMessageInput: vi.fn(),
+    setMessages: vi.fn(), setModal: vi.fn(), getMessageInput: () => messageInput, setMessageInput: vi.fn(),
     editingMessage, setEditingMessage: vi.fn(), replyTo, setReplyTo: vi.fn(),
   };
   const { result } = renderHook(() => useMessageSender(options));
@@ -119,7 +119,7 @@ describe('useMessageSender resending messages that were never saved', () => {
       setMessages: vi.fn((update: Message[] | ((previous: Message[]) => Message[])) => {
         messages = typeof update === 'function' ? update(messages) : update;
       }),
-      setModal: vi.fn(), messageInput, setMessageInput: vi.fn(),
+      setModal: vi.fn(), getMessageInput: () => messageInput, setMessageInput: vi.fn(),
       editingMessage: null, setEditingMessage: vi.fn(), replyTo: null, setReplyTo: vi.fn(),
     };
     const hook = renderHook(() => useMessageSender(options));
