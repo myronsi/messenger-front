@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { focusComposer, isMobileKeyboardOpen } from './composerFocus';
+import { focusComposer, isMobileKeyboardOpen, lastKeyboardHeight } from './composerFocus';
 
 afterEach(() => { vi.unstubAllGlobals(); document.body.replaceChildren(); });
 
@@ -40,4 +40,14 @@ it('detects the mobile keyboard from a shorter visual viewport', () => {
   expect(isMobileKeyboardOpen()).toBe(true);
   viewport.height = 800;
   expect(isMobileKeyboardOpen()).toBe(false);
+});
+
+it('remembers the last keyboard height for the current width', () => {
+  const viewport = { width: 393, height: 800, scale: 1, addEventListener: vi.fn() };
+  vi.stubGlobal('visualViewport', viewport);
+  expect(lastKeyboardHeight()).toBeNull();
+  viewport.height = 470;
+  expect(lastKeyboardHeight()).toBe(330);
+  viewport.height = 800;
+  expect(lastKeyboardHeight()).toBe(330);
 });

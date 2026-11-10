@@ -29,7 +29,7 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
   }, []);
 
   const openMenus = useCallback((message: Message, event: { clientX: number; clientY: number }) => {
-    const placement = messageMenuPlacement(event, messageRefs.current[message.id]);
+    const placement = messageMenuPlacement(event);
     setReactionMenu({ message, ...placement.reaction });
     setContextMenu({ ...placement.context, openLeft: placement.openLeft, messageId: message.id, isMine: isOwnMessage(message) });
   }, [isOwnMessage]);

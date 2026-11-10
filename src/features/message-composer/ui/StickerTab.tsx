@@ -4,6 +4,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 interface StickerTabProps {
   onPick: (sticker: Sticker) => void;
   onManage?: () => void;
+  filter?: (sticker: Sticker, packTitle: string) => boolean;
 }
 
 interface SectionProps {
@@ -28,7 +29,7 @@ const Section = ({ title, stickers, onPick, label }: SectionProps) => (
   </section>
 );
 
-export const StickerTab = ({ onPick, onManage }: StickerTabProps) => {
+export const StickerTab = ({ onPick, onManage, filter }: StickerTabProps) => {
   const { translations } = useLanguage();
   const packs = useListStickerPacksQuery(undefined, { refetchOnMountOrArgChange: true });
   const recent = useListRecentStickersQuery(undefined, { refetchOnMountOrArgChange: true });
@@ -48,9 +49,10 @@ export const StickerTab = ({ onPick, onManage }: StickerTabProps) => {
   if (!packs.currentData) {
     return packs.isError && !packs.isFetching ? message(translations.stickersUnavailable, () => { void packs.refetch(); }) : message(translations.loading);
   }
-  const recentStickers = recent.currentData ?? [];
-  const filled = packs.currentData.filter((pack) => pack.stickers.length > 0);
-  if (!filled.length && !recentStickers.length) return message(translations.noStickerPacks);
+  const keep = (stickers: Sticker[], title: string) => (filter ? stickers.filter((sticker) => filter(sticker, title)) : stickers);
+  const recentStickers = keep(recent.currentData ?? [], '');
+  const filled = packs.currentData.map((pack) => ({ ...pack, stickers: keep(pack.stickers, pack.title) })).filter((pack) => pack.stickers.length > 0);
+  if (!filled.length && !recentStickers.length) return message(filter ? translations.noSearchResults : translations.noStickerPacks);
   return (
     <div className="h-full overflow-y-auto" data-testid="sticker-tab">
       {manage && <div className="flex justify-end px-3 pb-1">{manage}</div>}

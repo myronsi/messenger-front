@@ -239,7 +239,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
               } else {
                 setReplyTo(null);
                 setEditingMessage(null);
-                setMessageInput('');
+                if (editingMessage) setMessageInput('');
               }
             }}
             chatId={chatId}

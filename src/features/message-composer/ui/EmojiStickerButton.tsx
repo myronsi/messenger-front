@@ -1,13 +1,13 @@
-import { useState, type RefObject } from 'react';
-import { Smile } from 'lucide-react';
-import { openStickerPacks, type Sticker } from '@/entities/sticker';
+import { useCallback, useEffect, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
+import { Keyboard, Smile } from 'lucide-react';
+import type { Sticker } from '@/entities/sticker';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { isMobileComposer } from '@/shared/lib/composerFocus';
+import { focusComposer, isMobileComposer, lastKeyboardHeight } from '@/shared/lib/composerFocus';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { EMOJI_SETS } from '@/shared/lib/emojiSets';
 import { insertAtCursor } from '../model/insertAtCursor';
-import { StickerTab } from './StickerTab';
+import { DockedEmojiPanel } from './DockedEmojiPanel';
+import { EmojiStickerPanel } from './EmojiStickerPanel';
 
 interface EmojiStickerButtonProps {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -15,11 +15,26 @@ interface EmojiStickerButtonProps {
   onChange: (value: string) => void;
   onSticker?: (sticker: Sticker) => void;
   disabled?: boolean;
+  dock?: HTMLElement | null;
 }
 
-const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = false }: EmojiStickerButtonProps) => {
+const BUTTON_CLASS = 'motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50';
+
+export const dockedPanelHeight = () => lastKeyboardHeight() ?? Math.round(Math.min(360, Math.max(240, window.innerHeight * 0.4)));
+
+const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = false, dock }: EmojiStickerButtonProps) => {
   const { translations } = useLanguage();
   const [open, setOpen] = useState(false);
+  const [dockedHeight, setDockedHeight] = useState<number | null>(null);
+  const docked = dockedHeight !== null;
+  const closeDock = useCallback(() => setDockedHeight(null), []);
+
+  useEffect(() => {
+    const field = inputRef.current;
+    if (!docked || !field) return undefined;
+    field.addEventListener('focus', closeDock);
+    return () => field.removeEventListener('focus', closeDock);
+  }, [docked, inputRef, closeDock]);
 
   const addEmoji = (emoji: string) => {
     const field = inputRef.current;
@@ -32,40 +47,42 @@ const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = f
     });
   };
 
+  if (dock && isMobileComposer()) {
+    const toggleDock = () => {
+      if (docked) {
+        closeDock();
+        focusComposer(inputRef.current);
+        return;
+      }
+      setDockedHeight(dockedPanelHeight());
+      inputRef.current?.blur();
+    };
+    return (
+      <>
+        <button type="button" disabled={disabled} aria-label={translations.emojiAndStickers} aria-expanded={docked} data-testid="emoji-sticker-button"
+          className={BUTTON_CLASS} onClick={toggleDock}>
+          {docked ? <Keyboard className="h-5 w-5" /> : <Smile className="h-5 w-5" />}
+        </button>
+        {docked && createPortal(
+          <DockedEmojiPanel baseHeight={dockedHeight} onClose={closeDock}>
+            <EmojiStickerPanel onEmoji={addEmoji} onSticker={onSticker} onDone={closeDock} />
+          </DockedEmojiPanel>,
+          dock,
+        )}
+      </>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} aria-label={translations.emojiAndStickers} data-testid="emoji-sticker-button"
-          className="motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50">
+        <button type="button" disabled={disabled} aria-label={translations.emojiAndStickers} data-testid="emoji-sticker-button" className={BUTTON_CLASS}>
           <Smile className="h-5 w-5" />
         </button>
       </PopoverTrigger>
       <PopoverContent side="top" align="end" sideOffset={12} collisionPadding={12} sticky="always" onOpenAutoFocus={(event) => event.preventDefault()}
         className="h-[min(24rem,55dvh)] w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl p-0">
-        <Tabs defaultValue={onSticker ? 'stickers' : 'emoji'} className="flex h-full flex-col">
-          <TabsList className="m-2 grid shrink-0 grid-cols-2">
-            <TabsTrigger value="emoji">{translations.emojiTab}</TabsTrigger>
-            <TabsTrigger value="stickers" disabled={!onSticker}>{translations.stickersTab}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="emoji" className="mt-0 min-h-0 flex-1 overflow-y-auto">
-            {EMOJI_SETS.map((set) => (
-              <section key={set.label} className="px-3 pb-2">
-                <h3 className="sticky top-0 z-10 bg-popover py-1.5 text-xs font-medium text-muted-foreground">{translations[set.label]}</h3>
-                <div className="grid grid-cols-8 gap-0.5">
-                  {set.emoji.map((emoji) => (
-                    <button key={emoji} type="button" aria-label={emoji} onClick={() => addEmoji(emoji)}
-                      className="flex aspect-square items-center justify-center rounded-md text-2xl leading-none transition-colors hover:bg-accent">
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </TabsContent>
-          <TabsContent value="stickers" className="mt-0 min-h-0 flex-1">
-            {onSticker && <StickerTab onPick={(sticker) => { onSticker(sticker); setOpen(false); }} onManage={() => { setOpen(false); openStickerPacks(); }} />}
-          </TabsContent>
-        </Tabs>
+        <EmojiStickerPanel onEmoji={addEmoji} onSticker={onSticker} onDone={() => setOpen(false)} />
       </PopoverContent>
     </Popover>
   );

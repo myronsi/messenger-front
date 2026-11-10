@@ -72,6 +72,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const rootRef = useRef<HTMLDivElement>(null);
   const replyToRef = useLatestRef(replyTo);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [emojiDock, setEmojiDock] = useState<HTMLDivElement | null>(null);
   const selectedFilesRef = useLatestRef(selectedFiles);
   const fileDrawings = useFileDrawings(selectedFiles);
   const albumsEnabled = isGoApi();
@@ -274,7 +275,8 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 disabled={isDisabled}
               />
             )}
-            {!isRecording && !voicePreview && <EmojiStickerButton inputRef={inputRef} value={messageInput} onChange={setMessageInput} disabled={isDisabled}
+            {!isRecording && !voicePreview && <EmojiStickerButton inputRef={inputRef} value={messageInput} onChange={setMessageInput}
+              disabled={isDisabled} dock={emojiDock}
               onSticker={onSendSticker && !isEditing && !hasSelectedFile ? onSendSticker : undefined} />}
           </div>
           <ComposerActionButton
@@ -288,6 +290,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             holdHandlers={hold.handlers}
           />
         </div>
+        <div ref={setEmojiDock} className="empty:hidden" />
       </div>
     </div>
   );

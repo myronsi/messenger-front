@@ -118,7 +118,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           onCancelReplyOrEdit={() => {
             setReplyTo(null);
             setEditingMessage(null);
-            setMessageInput('');
+            if (editingMessage) setMessageInput('');
           }}
           chatId={chatId}
           token={token}
