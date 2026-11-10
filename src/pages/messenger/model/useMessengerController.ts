@@ -3,7 +3,7 @@ import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CurrentChat, directChatPath, dmPath, parseDmIdentifier } from './messengerRoutes';
+import { CurrentChat, chatPanelKey, directChatPath, dmPath, parseDmIdentifier } from './messengerRoutes';
 import { currentEntryMarks, useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -166,6 +166,7 @@ export const useMessengerController = (username: string) => {
       interlocutorDeleted: false,
       type: 'one-on-one' as const,
       firstUnreadMessageId: null,
+      previewKey: currentChat && !isPersistedId(currentChat.id) ? chatPanelKey(currentChat) : currentChat?.previewKey,
     };
     setCurrentChat(nextChat);
     navigate(directChatPath(newId, newName, nextChat.interlocutorDeleted), {
