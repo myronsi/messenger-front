@@ -24,6 +24,15 @@ export interface FileMessageContent extends MessageAttachment {
   album?: MessageAttachment[];
 }
 
+export interface MessageSticker {
+  id?: EntityId;
+  pack_id?: EntityId;
+  pack_slug?: string;
+  emoji: string;
+  image_url?: string;
+  is_animated?: boolean;
+}
+
 export interface ForwardedFrom {
   message_id: EntityId;
   sender_id?: EntityId | null;
@@ -61,6 +70,7 @@ export interface ChatLastMessage {
   delivery_error?: string | null;
   forwarded_from?: ForwardedFrom | null;
   system_event?: SystemEventInfo;
+  sticker?: MessageSticker;
 }
 
 export interface UserMessageMeta {
@@ -100,6 +110,7 @@ export interface Message {
   is_deleting?: boolean;
   edited_at?: string | null;
   type: 'message' | 'file';
+  sticker?: MessageSticker;
   delivery_error?: string;
   forwarded_from?: ForwardedFrom | null;
   reactions?: ReactionInfo[];

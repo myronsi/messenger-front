@@ -63,3 +63,25 @@ describe('messageModel system messages', () => {
     expect(messageModel(base).is_system).toBe(false);
   });
 });
+
+describe('messageModel stickers', () => {
+  const base = {
+    id: '20', chat_id: '5', type: 'text', sender: user('1', 'bob'), content: 'answer', attachment: null, reply_to: null,
+    forwarded_from: null, reactions: [], read_by: [], created_at: '2026-11-03T10:00:00Z', edited_at: null, is_deleted: false,
+  };
+
+  it('keeps a sticker as its emoji with the sticker beside it, also when quoted', () => {
+    const image = { id: 'img', url: '/api/v2/attachments/img/content', kind: 'image', content_type: 'image/webp', filename: 'sticker.webp', size: 10 };
+    const sticker = { id: '7', pack_id: '3', pack_slug: 'ABCDEFGHJKLM', emoji: '🐱', is_animated: false, image };
+    const mapped = messageModel({ ...base,
+      type: 'sticker', content: '🐱', attachment: image, sticker,
+      reply_preview: { id: '10', type: 'sticker', sender: user('2', 'ann'), content: '😺', attachment: image, is_deleted: false },
+    } as Parameters<typeof messageModel>[0]);
+    expect(mapped).toMatchObject({
+      type: 'message', content: '🐱',
+      sticker: { id: '7', pack_id: '3', pack_slug: 'ABCDEFGHJKLM', emoji: '🐱', image_url: '/api/v2/attachments/img/content' },
+      reply_preview: { content: '😺', sticker: { emoji: '😺', image_url: '/api/v2/attachments/img/content' } },
+    });
+    expect(messageModel({ ...base, type: 'sticker', content: null, is_deleted: true } as Parameters<typeof messageModel>[0]).sticker).toBeUndefined();
+  });
+});

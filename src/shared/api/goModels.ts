@@ -35,6 +35,17 @@ const contentModel = ({ attachment, attachments, content }: Pick<Schema['Message
   return { ...attachmentModel(first), caption: content || undefined, album: attachments?.map(attachmentModel) };
 };
 
+const stickerModel = (sticker: Schema['Sticker']) => ({
+  id: sticker.id,
+  pack_id: sticker.pack_id,
+  pack_slug: sticker.pack_slug,
+  emoji: sticker.emoji,
+  image_url: sticker.image.url,
+  is_animated: sticker.is_animated,
+});
+
+const isSticker = (item: { type: Schema['MessageType']; is_deleted: boolean }) => item.type === 'sticker' && !item.is_deleted;
+
 export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
   id: preview.id,
   sender_id: preview.sender?.id,
@@ -42,7 +53,8 @@ export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
   sender_username: preview.sender?.username,
   timestamp: '',
   type: preview.type === 'file' || preview.type === 'voice' ? 'file' as const : 'message' as const,
-  content: contentModel(preview),
+  content: preview.type === 'sticker' ? preview.content || '' : contentModel(preview),
+  sticker: isSticker(preview) ? { emoji: preview.content || '', image_url: preview.attachment?.url } : undefined,
   is_deleted: preview.is_deleted,
   read_by: [],
 });
@@ -55,7 +67,8 @@ export const messageModel = (message: Schema['Message']) => ({
   avatar_url: message.sender?.avatar_url || undefined,
   timestamp: message.created_at,
   type: message.type === 'file' || message.type === 'voice' ? 'file' as const : 'message' as const,
-  content: contentModel(message),
+  content: message.type === 'sticker' ? message.content || message.sticker?.emoji || '' : contentModel(message),
+  sticker: isSticker(message) && message.sticker ? stickerModel(message.sticker) : undefined,
   is_system: message.type === 'system',
   reply_preview: message.reply_preview ? replyPreviewModel(message.reply_preview) : undefined,
   reactions: message.reactions.map(({ emoji, user_id }) => ({ reaction: emoji, user_id })),
