@@ -38,6 +38,12 @@ it('lists recent stickers before the packs and sends the one picked', () => {
   expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
 });
 
+it('leaves out packs that have no stickers yet', () => {
+  packs.mockReturnValue({ currentData: [pack, { ...pack, id: '4', title: 'Empty', stickers: [] }] });
+  render(<StickerTab onPick={vi.fn()} />);
+  expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['Cats']);
+});
+
 it('says when there are no packs, and offers a retry when loading failed', () => {
   packs.mockReturnValue({ currentData: [] });
   const { unmount } = render(<StickerTab onPick={vi.fn()} />);

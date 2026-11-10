@@ -1,6 +1,6 @@
 import { useCallback, useRef, type TouchEvent } from 'react';
 
-const LONG_PRESS_MS = 450;
+export const LONG_PRESS_MS = 450;
 const LONG_PRESS_SLOP = 10;
 
 export const useLongPress = (onLongPress?: () => void) => {

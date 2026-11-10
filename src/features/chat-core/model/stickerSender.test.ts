@@ -48,11 +48,16 @@ it('shows the sticker at once and sends it over REST', async () => {
   expect(messages()[0].sticker?.pack_slug).toBe('ABCDEFGHJKLM');
 });
 
-it('marks the sticker failed with the server reason, or a plain one', async () => {
+it('keeps a privacy reason from the server and says the sticker was not sent otherwise', async () => {
+  post.mockResolvedValueOnce({ response: new Response(null, { status: 403 }), error: { detail: 'The user blocked you' } });
+  const blocked = setup();
+  blocked.sender.send(sticker);
+  await vi.waitFor(() => expect(blocked.markMessageFailed).toHaveBeenCalledWith(blocked.messages()[0].id, 'The user blocked you'));
+
   post.mockResolvedValueOnce({ response: new Response(null, { status: 422 }), error: { detail: 'sticker_id is not an available sticker' } });
   const first = setup();
   first.sender.send(sticker);
-  await vi.waitFor(() => expect(first.markMessageFailed).toHaveBeenCalledWith(first.messages()[0].id, 'sticker_id is not an available sticker'));
+  await vi.waitFor(() => expect(first.markMessageFailed).toHaveBeenCalledWith(first.messages()[0].id, 'The sticker was not sent.'));
 
   post.mockRejectedValueOnce(new TypeError('offline'));
   const second = setup();

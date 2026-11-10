@@ -28,9 +28,11 @@ export const messageSticker = (sticker: Sticker): MessageSticker => ({
   is_animated: sticker.is_animated,
 });
 
-const problemDetail = (error: unknown) => {
-  const data = (error as { data?: { detail?: unknown } } | null)?.data;
-  return typeof data?.detail === 'string' && data.detail ? data.detail : undefined;
+const PRIVACY_DETAIL = /block|privacy|allow|permission/i;
+
+const privacyDetail = (error: unknown) => {
+  const detail = (error as { data?: { detail?: unknown } } | null)?.data?.detail;
+  return typeof detail === 'string' && PRIVACY_DETAIL.test(detail) ? detail : undefined;
 };
 
 export const createStickerSender = ({ chatId, username, senderId, setMessages, takeReply, markMessageFailed, notSent }: StickerSenderOptions) => {
@@ -44,7 +46,7 @@ export const createStickerSender = ({ chatId, username, senderId, setMessages, t
       const saved = createdMessage(created);
       if (saved) setMessages((previous) => mergeIncomingMessage(previous, saved));
     } catch (error) {
-      markMessageFailed(tempId, problemDetail(error) ?? notSent());
+      markMessageFailed(tempId, privacyDetail(error) ?? notSent());
     }
   };
 

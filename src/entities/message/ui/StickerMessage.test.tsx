@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { StickerMessage } from './StickerMessage';
 
 const dialog = vi.fn();
@@ -29,4 +29,19 @@ it('opens a built-in pack by its ID, and a quoted sticker without a pack is just
   unmount();
   render(<StickerMessage sticker={{ emoji: '😀', image_url: '/s/7' }} />);
   expect(screen.queryByRole('button')).toBeNull();
+});
+
+afterEach(() => vi.useRealTimers());
+
+it('leaves the tap after a long press to the message menu', () => {
+  vi.useFakeTimers();
+  dialog.mockClear();
+  const onMessageClick = vi.fn();
+  render(<div onClick={onMessageClick}><StickerMessage sticker={{ id: '7', pack_id: '3', emoji: '😀', image_url: '/s/7' }} /></div>);
+  const button = screen.getByRole('button', { name: 'Sticker 😀' });
+  fireEvent.touchStart(button);
+  vi.advanceTimersByTime(600);
+  fireEvent.click(button);
+  expect(dialog).not.toHaveBeenCalled();
+  expect(onMessageClick).toHaveBeenCalledTimes(1);
 });

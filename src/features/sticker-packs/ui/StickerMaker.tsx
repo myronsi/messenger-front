@@ -52,7 +52,10 @@ export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMak
     setError(null);
     let target = choice;
     try {
-      if (choice === NEW_PACK) target = (await createPack(title.trim()).unwrap()).id;
+      if (choice === NEW_PACK) {
+        target = (await createPack(title.trim()).unwrap()).id;
+        setChoice(target);
+      }
     } catch (caught) {
       setError(stickerErrorText(caught, translations, 'pack'));
       setSaving(false);

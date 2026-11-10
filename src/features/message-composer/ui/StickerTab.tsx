@@ -49,12 +49,13 @@ export const StickerTab = ({ onPick, onManage }: StickerTabProps) => {
     return packs.isError && !packs.isFetching ? message(translations.stickersUnavailable, () => { void packs.refetch(); }) : message(translations.loading);
   }
   const recentStickers = recent.currentData ?? [];
-  if (!packs.currentData.length && !recentStickers.length) return message(translations.noStickerPacks);
+  const filled = packs.currentData.filter((pack) => pack.stickers.length > 0);
+  if (!filled.length && !recentStickers.length) return message(translations.noStickerPacks);
   return (
     <div className="h-full overflow-y-auto" data-testid="sticker-tab">
       {manage && <div className="flex justify-end px-3 pb-1">{manage}</div>}
       {recentStickers.length > 0 && <Section title={translations.recentStickers} stickers={recentStickers} onPick={onPick} label={label} />}
-      {packs.currentData.map((pack) => (
+      {filled.map((pack) => (
         <Section key={pack.id} title={pack.title} stickers={pack.stickers} onPick={onPick} label={label} />
       ))}
     </div>
