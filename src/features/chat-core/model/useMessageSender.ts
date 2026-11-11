@@ -8,7 +8,7 @@ import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { applyMessageEdit, editableText, mergeIncomingMessage } from './messageUpdates';
-import { createdMessage, unconfirmedSends, useUnsentMessageRelease } from './unsentMessages';
+import { createdMessage, deliveryErrorText, unconfirmedSends, useUnsentMessageRelease } from './unsentMessages';
 import { appendMessageFiles, createLocalFileContent, type UploadFile } from './uploadFileType';
 import type { Drawing } from '@/shared/ui/drawing';
 import { createOptimisticMessage } from './optimisticMessage';
@@ -45,20 +45,9 @@ export const useMessageSender = ({
 }: MessageSenderOptions) => {
   const { wsRef, messageQueueRef, pendingMessageIdsRef, requestReconnect } = transport;
 
-  const getDeliveryErrorMessage = (message?: string) => {
-    const lowerMessage = (message || '').toLowerCase();
-    if (lowerMessage.includes('block')) {
-      return translationsRef.current.messageNotDeliveredBlocked || "This message could not be delivered due to the recipient's privacy settings.";
-    }
-    if (lowerMessage.includes('privacy') || lowerMessage.includes('allow') || lowerMessage.includes('permission')) {
-      return translationsRef.current.messageNotDeliveredPrivacy || 'This message cannot be received due to the user privacy settings.';
-    }
-    return message || translationsRef.current.messageNotDeliveredPrivacy || 'This message cannot be received due to the user privacy settings.';
-  };
-
   const markMessageFailed = (messageId: EntityId, message?: string) => {
     setMessages((previous) => previous.map((item) => String(item.id) === String(messageId)
-      ? { ...item, delivery_error: getDeliveryErrorMessage(message) }
+      ? { ...item, delivery_error: deliveryErrorText(message, translationsRef.current) }
       : item));
     return true;
   };
@@ -248,9 +237,15 @@ export const useMessageSender = ({
       return;
     }
     if (typeof message.content !== 'string') return;
-    const tempId = retryUnsavedMessage(message, {});
-    pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter((id) => String(id) !== String(message.id));
-    pendingMessageIdsRef.current.push(message.id);
+    retryUnsavedMessage(message, {});
+    resendPending(message);
+  };
+
+  const resendPending = (message: Message) => {
+    const tempId = message.client_temp_id ?? message.id;
+    if (message.sticker) { void stickers.post(tempId, message.sticker, message.reply_to); return; }
+    if (typeof message.content !== 'string' || messageQueueRef.current.some((queued) => String(queued.client_temp_id) === String(tempId))) return;
+    pendingMessageIdsRef.current = [...pendingMessageIdsRef.current.filter((id) => String(id) !== String(message.id)), message.id];
     const content = isGoApi() ? message.content : escapeCurlyBraces(message.content);
     sendOrQueue({ type: 'message', content, reply_to: message.reply_to ?? null, client_temp_id: tempId });
   };
@@ -284,6 +279,7 @@ export const useMessageSender = ({
 
   return {
     resendUnconfirmed,
+    resendPending,
     markMessageFailed,
     markLatestPendingMessageFailed,
     createOptimisticUploadMessage,

@@ -43,14 +43,22 @@ export const useUnsentMessageRelease = (chatId: EntityId, setMessages: SetMessag
         sources.delete(id);
         released.add(id);
       });
-      setMessages((previous) => abandonUnsentMessages(previous, released, {
-        notConfirmed: latestTranslations.current.messageDeliveryNotConfirmed,
-        uploadNotSent: latestTranslations.current.uploadNotSent,
-      }));
+      setMessages((previous) => abandonUnsentMessages(previous, released, latestTranslations.current.uploadNotSent));
     };
   }, [chatId, setMessages, translationsRef]);
 
   return { uploadSourcesRef, uploadingRef, releasedRef, releaseSource };
+};
+
+export const deliveryErrorText = (message: string | undefined, translations: Translations) => {
+  const lowerMessage = (message || '').toLowerCase();
+  if (lowerMessage.includes('block')) {
+    return translations.messageNotDeliveredBlocked || "This message could not be delivered due to the recipient's privacy settings.";
+  }
+  if (lowerMessage.includes('privacy') || lowerMessage.includes('allow') || lowerMessage.includes('permission')) {
+    return translations.messageNotDeliveredPrivacy || 'This message cannot be received due to the user privacy settings.';
+  }
+  return message || translations.messageNotDeliveredPrivacy || 'This message cannot be received due to the user privacy settings.';
 };
 
 export const unconfirmedSends = (sent: Map<string, OutgoingPayload>, pending: EntityId[], queue: OutgoingPayload[]) => {
