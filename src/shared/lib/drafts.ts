@@ -1,6 +1,13 @@
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 const DRAFT_PREFIX = 'draft:';
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((listener) => listener());
+
+export const subscribeToDrafts = (listener: () => void) => {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+};
 
 // Drafts live in sessionStorage so they survive the reload that follows "A new version is available",
 // but not a closed tab, and they are never shared with another tab. A draft belongs to one account:
@@ -23,6 +30,7 @@ export const writeDraft = (id: string | null, text: string) => {
   try {
     if (text.trim()) sessionStorage.setItem(`${DRAFT_PREFIX}${id}`, text);
     else sessionStorage.removeItem(`${DRAFT_PREFIX}${id}`);
+    notify();
   } catch {
     // storage may be full or blocked; losing a draft is better than breaking the composer
   }
@@ -31,6 +39,7 @@ export const writeDraft = (id: string | null, text: string) => {
 export const clearDrafts = () => {
   try {
     Object.keys(sessionStorage).filter((key) => key.startsWith(DRAFT_PREFIX)).forEach((key) => sessionStorage.removeItem(key));
+    notify();
   } catch {
     // nothing to clear
   }

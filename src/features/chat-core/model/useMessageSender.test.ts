@@ -131,7 +131,7 @@ describe('useMessageSender resending messages that were never saved', () => {
       };
       return { send: nextSend, transport, hook: renderHook(() => useMessageSender({ ...options, transport })) };
     };
-    return { send, hook, reopen, pendingMessageIdsRef, getMessages: () => messages };
+    return { send, hook, reopen, pendingMessageIdsRef, transport: options.transport, getMessages: () => messages };
   };
 
   it('sends an unsaved text again under its original client_temp_id so the server can dedupe it', () => {
@@ -191,27 +191,32 @@ describe('useMessageSender resending messages that were never saved', () => {
     expect(vi.mocked(uploadWithProgress).mock.calls[0][0].url).toMatch(/\/messages\/vm$/);
   });
 
-  it('marks a pending text failed when the chat closes so a new view can resend it', () => {
+  it('keeps a pending text pending when the chat closes so a new view resends it with the same id', () => {
     const pending: Message = { ...original, id: -5, client_temp_id: -5, sender_id: '1', is_own: true };
     const saved: Message = { ...original, is_own: true };
     const { hook, reopen, getMessages } = setupWithState([saved, pending]);
     hook.unmount();
-    expect(getMessages()[0].delivery_error).toBeUndefined();
-    expect(getMessages()[1].delivery_error).toBe(en.messageDeliveryNotConfirmed);
+    expect(getMessages()[1].delivery_error).toBeUndefined();
     const next = reopen();
-    act(() => next.hook.result.current.handleResendMessage(getMessages()[1]));
+    act(() => next.hook.result.current.resendPending(getMessages()[1]));
     expect(JSON.parse(next.send.mock.calls[0][0])).toMatchObject({ type: 'message', content: 'Hello there', client_temp_id: -5 });
     expect(next.transport.pendingMessageIdsRef.current).toEqual([-5]);
-    expect(getMessages()[1].delivery_error).toBeUndefined();
   });
 
-  it('marks a text queued while offline failed when the chat closes', () => {
+  it('keeps a text queued while offline pending when the chat closes', () => {
     const { hook, getMessages } = setupWithState([], { messageInput: 'Offline hello', readyState: WebSocket.CLOSED });
     act(() => hook.result.current.handleSendMessage());
+    hook.unmount();
     expect(getMessages()[0]).toMatchObject({ content: 'Offline hello' });
     expect(getMessages()[0].delivery_error).toBeUndefined();
-    hook.unmount();
-    expect(getMessages()[0].delivery_error).toBe(en.messageDeliveryNotConfirmed);
+  });
+
+  it('does not queue a pending text twice', () => {
+    const { hook, getMessages, transport } = setupWithState([], { messageInput: 'Offline hello', readyState: WebSocket.CLOSED });
+    act(() => hook.result.current.handleSendMessage());
+    act(() => hook.result.current.resendPending(getMessages()[0]));
+    expect(transport.messageQueueRef.current).toHaveLength(1);
+    expect(transport.pendingMessageIdsRef.current).toEqual([getMessages()[0].id]);
   });
 
   it('releases the local file of an upload that is abandoned when the chat closes', async () => {

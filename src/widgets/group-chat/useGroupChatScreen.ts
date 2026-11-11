@@ -7,7 +7,7 @@ import { useAccessToken } from '@/shared/auth/session';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import type { ComposerDraftHandle } from '@/features/message-composer';
-import { useChatTransport, useLatest, useMessageHistory, useMessageSender } from '@/features/chat-core';
+import { useChatTransport, useLatest, useMessageHistory, useMessageSender, useUnsentMessageStorage } from '@/features/chat-core';
 import type { GroupDetails } from './GroupProfileTypes';
 import { useGroupChatSocket } from './useGroupChatSocket';
 import { useGroupManagement } from './useGroupManagement';
@@ -64,6 +64,10 @@ export const useGroupChatScreen = ({
   const sender = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations: rawTranslations, translationsRef, transport,
     setMessages, setModal, getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
+  });
+
+  useUnsentMessageStorage({
+    chatId, messages, setMessages, resend: sender.resendPending, notConfirmed: rawTranslations.messageDeliveryNotConfirmed,
   });
 
   useGroupChatSocket({

@@ -6,7 +6,7 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Message, MESSAGE_HISTORY_FRESH_SECONDS, MESSAGE_PAGE_SIZE, MAX_LOADED_MESSAGES, appendUniqueMessages, joinAroundPage,
-  mergeFreshHistoryMessages, normalizeHistoryMessages, prependOlderPage,
+  mergeFreshHistoryMessages, normalizeHistoryMessages, prependOlderPage, sortMessages,
 } from '@/entities/message';
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
@@ -65,10 +65,14 @@ export const useMessageHistory = ({
 
   // A disk page is a preview. Keep it out of the live message store and out of pagination cursors.
   const historyStatus = asApiError(latestHistoryError).status;
-  const canPreview = token && isPersistedId(chatId) && !messages.length && !(latestHistory && latestHistory.history.length === 0) &&
+  const hasLoadedMessages = messages.some(message => isPersistedId(message.id));
+  const canPreview = token && isPersistedId(chatId) && !hasLoadedMessages && !(latestHistory && latestHistory.history.length === 0) &&
     historyStatus !== 401 && historyStatus !== 403 && historyStatus !== 404;
   const savedPage = useChatSnapshot<MessageHistoryResponse>(canPreview ? historySnapshot(chatId, firstUnreadMessageId) : null);
-  const preview = useMemo(() => canPreview && savedPage ? normalizeHistoryMessages(savedPage.history) : undefined, [canPreview, savedPage]);
+  const preview = useMemo(
+    () => canPreview && savedPage ? sortMessages([...normalizeHistoryMessages(savedPage.history), ...messages]) : undefined,
+    [canPreview, savedPage, messages],
+  );
 
   useEffect(() => () => {
     isLoadingOlderMessagesRef.current = false;
@@ -108,8 +112,8 @@ export const useMessageHistory = ({
   }, [onBackRef, setModal, translationsRef]);
 
   useEffect(() => {
-    setIsLoadingInitialMessages(isLoadingLatestHistory && messages.length === 0);
-  }, [isLoadingLatestHistory, messages.length]);
+    setIsLoadingInitialMessages(isLoadingLatestHistory && !hasLoadedMessages);
+  }, [isLoadingLatestHistory, hasLoadedMessages]);
 
   useEffect(() => {
     if (!latestHistory) return;
@@ -125,11 +129,11 @@ export const useMessageHistory = ({
 
   useEffect(() => {
     if (!latestHistoryError) return;
-    if (historyStatus === 401 || historyStatus === 403 || historyStatus === 404 || (!preview && !messages.length)) {
+    if (historyStatus === 401 || historyStatus === 403 || historyStatus === 404 || (!preview && !hasLoadedMessages)) {
       handleHistoryError(latestHistoryError);
     }
     setIsLoadingInitialMessages(false);
-  }, [latestHistoryError, handleHistoryError, historyStatus, preview, messages.length]);
+  }, [latestHistoryError, handleHistoryError, historyStatus, preview, hasLoadedMessages]);
 
   const loadOlderMessages = useCallback(async () => {
     if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;

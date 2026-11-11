@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { currentUserApi } from '@/shared/api/currentUserApi';
+import { currentUserApi, type CurrentUser } from '@/shared/api/currentUserApi';
+import { readSignedInUser } from '@/shared/auth/signedInUser';
 import { getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { useAppDispatch } from '@/shared/hooks/redux';
@@ -35,9 +36,15 @@ export function SessionEntry() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [checking, setChecking] = useState(true);
+  const [savedUser] = useState(() => readSignedInUser<CurrentUser>(getAccessToken()));
+  const [username, setUsername] = useState(savedUser?.username ?? '');
+  const [checking, setChecking] = useState(!savedUser);
   const stopWatching = useRef<() => void>(() => undefined);
+
+  useLayoutEffect(() => {
+    if (!savedUser) return;
+    dispatch(currentUserApi.util.upsertQueryEntries([{ endpointName: 'getCurrentUser', arg: undefined, value: savedUser }]));
+  }, [dispatch, savedUser]);
 
   useEffect(() => {
     if (getAccessToken()) void loadMessenger().catch(() => undefined);
@@ -103,7 +110,7 @@ export function SessionEntry() {
 
   return (
     <ChunkErrorBoundary key={username ? 'messenger' : 'auth'} fallback={<SessionLoading failed />}>
-      <Suspense fallback={<SessionLoading />}>
+      <Suspense fallback={username ? <main className="min-h-[100dvh] bg-background" /> : <SessionLoading />}>
         {username
           ? <MessengerApp username={username} onLogout={() => setUsername('')} />
           : <AuthFlowPage onLoginSuccess={handleLogin} />}
