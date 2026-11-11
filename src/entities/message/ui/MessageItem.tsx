@@ -156,9 +156,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const handleReply = () => {
     if (!message.reply_to) return;
     onReplyClick(message.reply_to);
-    const element = messageRefs.current[message.reply_to];
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    if (messageRefs.current[message.reply_to]) {
       setTempHighlightedMessageId(message.reply_to);
       setTimeout(() => setTempHighlightedMessageId(null), 2000);
     }

@@ -1,11 +1,12 @@
 import { compareIds, isPersistedId, type EntityId } from '@/shared/api/entityId';
-import { MutableRefObject, RefObject, useEffect, useRef } from 'react';
-import { Message } from '@/entities/message';
+import { MutableRefObject, RefObject, useLayoutEffect, useReducer, useRef } from 'react';
+import { MAX_LOADED_MESSAGES, MESSAGE_PAGE_SIZE, Message } from '@/entities/message';
+import { clampScrollTop, type ScrollTarget } from './smoothScroll';
 
-const GLIDE_SHARE = 0.2;
-const MIN_STEP = 2;
-const MAX_GLIDE_MS = 1500;
-const USER_INPUT = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+const SEEK_PAGES = 3;
+const ARRIVAL_LEAD = 0.6;
+
+export type SeekStep = 'older' | 'newer' | 'around' | 'none';
 
 interface HighlightScrollOptions {
   targetId: EntityId | null;
@@ -17,47 +18,24 @@ interface HighlightScrollOptions {
   hasMoreNewerMessages?: boolean;
   isLoadingNewerMessages?: boolean;
   onLoadNewerMessages?: () => Promise<void>;
-  behavior: ScrollBehavior;
+  onLoadMessagesAround?: (messageId: EntityId) => Promise<void>;
   chatContainerRef: RefObject<HTMLDivElement | null>;
+  startAnimation: (getTarget: ScrollTarget) => void;
+  replacedWindowRef: MutableRefObject<Message[] | null>;
 }
 
-const distanceFromCenter = (container: HTMLElement, element: HTMLElement) => {
+interface SeekRequest {
+  id: EntityId;
+  done: boolean;
+  busy: boolean;
+  pages: number;
+  around: boolean;
+  older: boolean;
+}
+
+export const centeredScrollTop = (container: HTMLElement, element: HTMLElement) => {
   const rect = element.getBoundingClientRect();
-  return rect.top - container.getBoundingClientRect().top - (container.clientHeight - rect.height) / 2;
-};
-
-export const skipToLastScreen = (container: HTMLElement, distance: number) => {
-  const screen = container.clientHeight;
-  if (Math.abs(distance) <= screen * 1.5) return;
-  container.scrollTop += distance - Math.sign(distance) * screen;
-};
-
-export const glideToCenter = (container: HTMLElement, element: HTMLElement, smooth: boolean) => {
-  if (smooth) skipToLastScreen(container, distanceFromCenter(container, element));
-  const startedAt = performance.now();
-  let frame = 0;
-  let stopped = false;
-  const stop = () => {
-    stopped = true;
-    cancelAnimationFrame(frame);
-    USER_INPUT.forEach((name) => container.removeEventListener(name, stop));
-  };
-  const step = () => {
-    if (stopped) return;
-    const distance = distanceFromCenter(container, element);
-    const timedOut = performance.now() - startedAt > MAX_GLIDE_MS;
-    const glide = Math.sign(distance) * Math.min(Math.abs(distance), Math.max(Math.abs(distance) * GLIDE_SHARE, MIN_STEP));
-    const before = container.scrollTop;
-    container.scrollTop = before + (smooth && !timedOut ? glide : distance);
-    if (Math.abs(distance) < 1 || container.scrollTop === before || timedOut || !element.isConnected) {
-      stop();
-      return;
-    }
-    frame = requestAnimationFrame(step);
-  };
-  USER_INPUT.forEach((name) => container.addEventListener(name, stop, { passive: true }));
-  frame = requestAnimationFrame(step);
-  return stop;
+  return container.scrollTop + rect.top - container.getBoundingClientRect().top - (container.clientHeight - rect.height) / 2;
 };
 
 const isNewerThanLoaded = (targetId: EntityId, messages: Message[]) => {
@@ -65,39 +43,75 @@ const isNewerThanLoaded = (targetId: EntityId, messages: Message[]) => {
   return !!newest && isPersistedId(targetId) && compareIds(targetId, newest.id) > 0;
 };
 
-// Scrolls to a highlighted message once per request. If the message is not loaded yet, older pages are
-// loaded until it appears or there is nothing left to load.
+interface SeekState {
+  newer: boolean;
+  pages: number;
+  loaded: number;
+  hasMoreMessages: boolean;
+  hasMoreNewerMessages: boolean;
+  canLoadAround: boolean;
+}
+
+export const nextSeekStep = ({ newer, pages, loaded, hasMoreMessages, hasMoreNewerMessages, canLoadAround }: SeekState): SeekStep => {
+  const hasMore = newer ? hasMoreNewerMessages : hasMoreMessages;
+  if (!hasMore) return 'none';
+  const pageFits = newer || loaded + MESSAGE_PAGE_SIZE <= MAX_LOADED_MESSAGES;
+  if (pages < SEEK_PAGES && pageFits) return newer ? 'newer' : 'older';
+  if (canLoadAround) return 'around';
+  return newer ? 'newer' : 'older';
+};
+
 export const useHighlightScroll = ({
-  targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior, chatContainerRef,
-  hasMoreNewerMessages = false, isLoadingNewerMessages = false, onLoadNewerMessages,
+  targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, chatContainerRef,
+  hasMoreNewerMessages = false, isLoadingNewerMessages = false, onLoadNewerMessages, onLoadMessagesAround,
+  startAnimation, replacedWindowRef,
 }: HighlightScrollOptions) => {
-  const requestRef = useRef<{ id: EntityId; done: boolean } | null>(null);
-  const stopGlideRef = useRef<(() => void) | null>(null);
+  const requestRef = useRef<SeekRequest | null>(null);
+  const [loadRound, nextLoadRound] = useReducer((round: number) => round + 1, 0);
 
-  useEffect(() => () => stopGlideRef.current?.(), []);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!targetId) {
       requestRef.current = null;
       return;
     }
-    if (requestRef.current?.id !== targetId) requestRef.current = { id: targetId, done: false };
+    if (requestRef.current?.id !== targetId) {
+      requestRef.current = { id: targetId, done: false, busy: false, pages: 0, around: false, older: !isNewerThanLoaded(targetId, messages) };
+    }
     const request = requestRef.current;
     if (request.done || messages.length === 0) return;
     const element = messageRefs.current[targetId];
     const container = chatContainerRef.current;
     if (element) {
       request.done = true;
-      stopGlideRef.current?.();
-      if (container) stopGlideRef.current = glideToCenter(container, element, behavior === 'smooth');
-      else element.scrollIntoView({ behavior, block: 'center' });
-    } else if (isNewerThanLoaded(targetId, messages) && hasMoreNewerMessages && onLoadNewerMessages) {
-      if (!isLoadingNewerMessages) void onLoadNewerMessages();
-    } else if (!hasMoreMessages || !onLoadOlderMessages) {
-      request.done = true;
-    } else if (!isLoadingOlderMessages) {
-      void onLoadOlderMessages();
+      if (!container) {
+        element.scrollIntoView({ block: 'center' });
+        return;
+      }
+      if (replacedWindowRef.current === messages) {
+        const lead = (request.older ? 1 : -1) * container.clientHeight * ARRIVAL_LEAD;
+        container.scrollTop = clampScrollTop(container, centeredScrollTop(container, element) + lead);
+      }
+      startAnimation(() => (element.isConnected ? centeredScrollTop(container, element) : null));
+      return;
     }
-  }, [targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, behavior, chatContainerRef,
-    hasMoreNewerMessages, isLoadingNewerMessages, onLoadNewerMessages]);
+    if (request.busy || isLoadingOlderMessages || isLoadingNewerMessages) return;
+    const step = request.around ? 'none' : nextSeekStep({
+      newer: isNewerThanLoaded(targetId, messages), pages: request.pages, loaded: messages.length,
+      hasMoreMessages, hasMoreNewerMessages, canLoadAround: !!onLoadMessagesAround,
+    });
+    const load = step === 'around' ? () => onLoadMessagesAround!(targetId)
+      : step === 'older' ? onLoadOlderMessages : step === 'newer' ? onLoadNewerMessages : undefined;
+    if (!load) {
+      request.done = true;
+      return;
+    }
+    request.busy = true;
+    if (step === 'around') request.around = true;
+    else request.pages += 1;
+    void load().finally(() => {
+      request.busy = false;
+      nextLoadRound();
+    });
+  }, [targetId, messages, messageRefs, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages, chatContainerRef,
+    hasMoreNewerMessages, isLoadingNewerMessages, onLoadNewerMessages, onLoadMessagesAround, startAnimation, replacedWindowRef, loadRound]);
 };

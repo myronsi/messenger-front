@@ -2,12 +2,16 @@ import type { EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
-import { useRowScrollAnchoring } from './useRowScrollAnchoring';
+import { useRowResizes } from './useRowResizes';
 import { getAppendedMessages } from '@/entities/message';
 import { useStickyDateBadge } from './useStickyDateBadge';
 import { useHighlightScroll } from './useHighlightScroll';
-import { getScrollBehavior, useScrollToBottom } from './useScrollToBottom';
+import { useScrollToBottom } from './useScrollToBottom';
 import { listenForScrollIntent } from './scrollIntent';
+import { EMPTY_LAYOUT, keepRowsInPlace, measureRowLayout, type RowLayout } from './scrollAnchor';
+import { maxScrollTop, useScrollAnimation } from './smoothScroll';
+import { prefetchPages } from './prefetchPages';
+import { useBottomInset } from './useBottomInset';
 
 interface MessageListScrollOptions {
   messages: Message[];
@@ -24,18 +28,21 @@ interface MessageListScrollOptions {
   onLoadOlderMessages?: () => Promise<void>;
   onLoadNewerMessages?: () => Promise<void>;
   onLoadLatestMessages?: () => Promise<void>;
+  onLoadMessagesAround?: (messageId: EntityId) => Promise<void>;
   onScrollStart?: () => void;
   scrollToBottomKey?: string | number;
   isOwnMessage: (message: Message) => boolean;
+  bottomInsetSource?: HTMLElement | null;
 }
 
 const BOTTOM_TOLERANCE = 4;
 const USER_SCROLL_WINDOW_MS = 1000;
+const ARRIVAL_LEAD = 0.6;
 
 export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const {
     messages, messageRefs, firstUnreadMessageId, highlightedMessageId, tempHighlightedMessageId,
-    hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages, isLoadingOlderMessages,
+    hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages, isLoadingOlderMessages, isLoadingNewerMessages,
     onLoadOlderMessages, onLoadLatestMessages, scrollToBottomKey, isOwnMessage,
   } = options;
   const [visibleFirstUnreadId, setVisibleFirstUnreadId] = useState<EntityId | null>(firstUnreadMessageId ?? null);
@@ -45,36 +52,74 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const firstUnreadMarkerRef = useRef<HTMLDivElement | null>(null);
-  const isRestoringScrollRef = useRef(false);
   const hasScrolledInitialRef = useRef(false);
   const hasScrolledToFirstUnreadRef = useRef(false);
   const isSeekingFirstUnreadRef = useRef(false);
   const shouldStickToBottomRef = useRef(true);
   const lastMessageIdRef = useRef<EntityId | null>(null);
-  const scrollAnimationFrameRef = useRef<number | null>(null);
   const positionedFrameRef = useRef(0);
-  const autoScrollUntilRef = useRef(0);
   const settleRef = useRef<(() => void) | null>(null);
   const lastUserInputAtRef = useRef(0);
   const previousMessagesRef = useRef<Message[]>([]);
+  const renderedMessagesRef = useRef<Message[]>([]);
+  const rowLayoutRef = useRef<RowLayout>(EMPTY_LAYOUT);
+  const replacedWindowRef = useRef<Message[] | null>(null);
+  const pendingBottomRef = useRef(false);
+  const isAnchoringRef = useRef(() => hasScrolledInitialRef.current && !settleRef.current && !shouldStickToBottomRef.current);
   const latest = useLatestRef(options);
   const isOwnMessageRef = useLatestRef(isOwnMessage);
+  const messagesRef = useLatestRef(messages);
+
+  const keepVisibleRows = useCallback(() => {
+    const container = chatContainerRef.current;
+    if (!container) return null;
+    const result = isAnchoringRef.current() ? keepRowsInPlace(container, rowLayoutRef.current) : null;
+    const rows = messagesRef.current.map((message) => messageRefs.current[message.id]).filter((row): row is HTMLDivElement => !!row);
+    rowLayoutRef.current = measureRowLayout(container, rows);
+    return result;
+  }, [messageRefs, messagesRef]);
+  useRowResizes({ chatContainerRef, messageRefs, messages, onResize: keepVisibleRows });
+  const { startAnimation, stopAnimation, isAnimatingRef } = useScrollAnimation(chatContainerRef, keepVisibleRows);
+
+  const glideToBottom = useCallback(() => {
+    shouldStickToBottomRef.current = false;
+    settleRef.current = null;
+    startAnimation(() => (chatContainerRef.current ? maxScrollTop(chatContainerRef.current) : null), () => {
+      shouldStickToBottomRef.current = true;
+    });
+  }, [startAnimation]);
+
   const { unseenCount, showScrollToBottom, scrollToBottom, countIncoming, clearUnseen, updateDistance } = useScrollToBottom({
     chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
-    scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, autoScrollUntilRef,
+    scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, pendingBottomRef, glideToBottom,
   });
+  useBottomInset(contentRef, options.bottomInsetSource);
   const { label: currentDate, badgeRef: dateBadgeRef } = useStickyDateBadge({ chatContainerRef, active: isScrolling, contentKey: messages });
+
+  useLayoutEffect(() => {
+    const container = chatContainerRef.current;
+    const messagesChanged = renderedMessagesRef.current !== messages;
+    renderedMessagesRef.current = messages;
+    const replaced = keepVisibleRows() === 'lost' && messagesChanged;
+    if (replaced) replacedWindowRef.current = messages;
+    if (!container || !messagesChanged || !pendingBottomRef.current || !hasScrolledInitialRef.current) return;
+    pendingBottomRef.current = false;
+    if (replaced) container.scrollTop = maxScrollTop(container) - container.clientHeight * ARRIVAL_LEAD;
+    glideToBottom();
+  }, [messages, isLoadingOlderMessages, isLoadingNewerMessages, isLoadingInitialMessages, keepVisibleRows, glideToBottom]);
+
   useHighlightScroll({
     targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, hasMoreMessages,
-    isLoadingOlderMessages, onLoadOlderMessages, behavior: getScrollBehavior(), chatContainerRef,
-    hasMoreNewerMessages, isLoadingNewerMessages: options.isLoadingNewerMessages, onLoadNewerMessages: options.onLoadNewerMessages,
+    isLoadingOlderMessages, onLoadOlderMessages, chatContainerRef, startAnimation, replacedWindowRef,
+    hasMoreNewerMessages, isLoadingNewerMessages, onLoadNewerMessages: options.onLoadNewerMessages,
+    onLoadMessagesAround: options.onLoadMessagesAround,
   });
 
   const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
   useLayoutEffect(() => {
     if (jumpTargetId == null) return;
     shouldStickToBottomRef.current = false;
-    autoScrollUntilRef.current = 0;
+    pendingBottomRef.current = false;
     settleRef.current = null;
   }, [jumpTargetId]);
 
@@ -84,6 +129,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   }, [firstUnreadMessageId]);
 
   useLayoutEffect(() => {
+    stopAnimation();
     hasScrolledInitialRef.current = false;
     hasScrolledToFirstUnreadRef.current = false;
     isSeekingFirstUnreadRef.current = false;
@@ -91,11 +137,12 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     shouldStickToBottomRef.current = true;
     lastMessageIdRef.current = null;
     previousMessagesRef.current = [];
-    autoScrollUntilRef.current = 0;
+    pendingBottomRef.current = false;
+    replacedWindowRef.current = null;
     settleRef.current = null;
     cancelAnimationFrame(positionedFrameRef.current);
     setIsPositioned(false);
-  }, [scrollToBottomKey]);
+  }, [scrollToBottomKey, stopAnimation]);
 
   useEffect(() => () => cancelAnimationFrame(positionedFrameRef.current), []);
 
@@ -134,48 +181,30 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     onLoadOlderMessages, scrollFirstUnreadIntoView, visibleFirstUnreadId,
   ]);
 
-  // One listener for the lifetime of the list; the work is throttled to a frame and reads the latest props from a ref.
   useEffect(() => {
     const container = chatContainerRef.current;
     if (!container) return;
     let frame = 0;
-    const run = async () => {
+    const run = () => {
       frame = 0;
       const current = latest.current;
       current.onScrollStart?.();
       updateDistance();
       const movedByUser = Date.now() - lastUserInputAtRef.current < USER_SCROLL_WINDOW_MS;
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (distanceFromBottom <= BOTTOM_TOLERANCE) {
+      if (distanceFromBottom <= BOTTOM_TOLERANCE && !pendingBottomRef.current) {
         shouldStickToBottomRef.current = true;
-        autoScrollUntilRef.current = 0;
         clearUnseen();
-      } else if (movedByUser && Date.now() > autoScrollUntilRef.current) {
+      } else if (movedByUser && !isAnimatingRef.current) {
         shouldStickToBottomRef.current = false;
       }
       setIsScrolling(true);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 500);
-      if (container.scrollTop <= 120 && current.hasMoreMessages && !current.isLoadingOlderMessages &&
-          !isRestoringScrollRef.current && current.onLoadOlderMessages) {
-        const previousScrollHeight = container.scrollHeight;
-        const previousScrollTop = container.scrollTop;
-        isRestoringScrollRef.current = true;
-        await current.onLoadOlderMessages();
-        requestAnimationFrame(() => {
-          container.scrollTop = container.scrollHeight - previousScrollHeight + previousScrollTop;
-          isRestoringScrollRef.current = false;
-        });
-      }
-      const latestProps = latest.current;
-      const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (remaining <= 160 && latestProps.hasMoreNewerMessages && !latestProps.isLoadingNewerMessages &&
-          latestProps.onLoadNewerMessages) {
-        await latestProps.onLoadNewerMessages();
-      }
+      if (hasScrolledInitialRef.current && !pendingBottomRef.current) prefetchPages(container, current);
     };
     const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(() => { void run(); });
+      if (!frame) frame = requestAnimationFrame(run);
     };
     container.addEventListener('scroll', onScroll, { passive: true });
     return () => {
@@ -183,25 +212,17 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       cancelAnimationFrame(frame);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
-  }, [latest, updateDistance, clearUnseen]);
-
-  // Keeps the view pinned to the bottom (or on the first unread message) while content such as images
-  // finishes loading, until the user takes over by scrolling.
-  useRowScrollAnchoring({ chatContainerRef, messageRefs, messages, shouldStickToBottomRef, isRestoringScrollRef });
+  }, [latest, updateDistance, clearUnseen, isAnimatingRef]);
 
   useEffect(() => {
     const container = chatContainerRef.current;
     const content = contentRef.current;
     if (!container || !content || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
-      if (isRestoringScrollRef.current || !hasScrolledInitialRef.current) return;
-      if (settleRef.current) {
-        settleRef.current();
-      } else if (shouldStickToBottomRef.current && Date.now() > autoScrollUntilRef.current) {
-        container.scrollTop = container.scrollHeight;
-      } else if (shouldStickToBottomRef.current) {
-        container.scrollTo({ top: container.scrollHeight, behavior: getScrollBehavior() });
-      }
+      if (!hasScrolledInitialRef.current) return;
+      if (settleRef.current) settleRef.current();
+      else if (shouldStickToBottomRef.current && !isAnimatingRef.current) container.scrollTop = container.scrollHeight;
+      keepVisibleRows();
     });
     observer.observe(content, { box: 'border-box' });
     observer.observe(container);
@@ -209,12 +230,12 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       lastUserInputAtRef.current = Date.now();
     });
     return () => { observer.disconnect(); stopInput(); };
-  }, []);
+  }, [isAnimatingRef, keepVisibleRows]);
 
   useLayoutEffect(() => {
     const container = chatContainerRef.current;
     const lastMessageId = messages[messages.length - 1]?.id || null;
-    if (!container || !lastMessageId || isRestoringScrollRef.current) {
+    if (!container || !lastMessageId) {
       lastMessageIdRef.current = lastMessageId;
       return;
     }
@@ -228,7 +249,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       const shouldPreferFirstUnread = !!visibleFirstUnreadId;
       const positionInitially = () => {
         const nextContainer = chatContainerRef.current;
-        if (!nextContainer || isRestoringScrollRef.current) return;
+        if (!nextContainer) return;
         if (visibleFirstUnreadId && scrollFirstUnreadIntoView()) return;
         if (shouldPreferFirstUnread) {
           shouldStickToBottomRef.current = false;
@@ -252,20 +273,14 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       const appended = getAppendedMessages(previousMessagesRef.current, messages);
       const lastIsOwn = isOwnMessageRef.current(messages[messages.length - 1]);
       if (appended.length > 0 && lastIsOwn) {
+        stopAnimation();
         shouldStickToBottomRef.current = true;
-        autoScrollUntilRef.current = 0;
+        pendingBottomRef.current = false;
         settleRef.current = null;
-        if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
-        scrollAnimationFrameRef.current = null;
         container.scrollTop = container.scrollHeight;
       } else if (shouldStickToBottomRef.current) {
-        autoScrollUntilRef.current = Date.now() + 800;
-        if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
-        scrollAnimationFrameRef.current = requestAnimationFrame(() => {
-          const nextContainer = chatContainerRef.current;
-          if (!nextContainer || isRestoringScrollRef.current) return;
-          nextContainer.scrollTo({ top: nextContainer.scrollHeight, behavior: getScrollBehavior() });
-          scrollAnimationFrameRef.current = null;
+        startAnimation(() => (chatContainerRef.current ? maxScrollTop(chatContainerRef.current) : null), () => {
+          shouldStickToBottomRef.current = true;
         });
       } else {
         countIncoming(appended);
@@ -273,13 +288,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     }
     previousMessagesRef.current = messages;
     lastMessageIdRef.current = lastMessageId;
-    return () => {
-      if (scrollAnimationFrameRef.current !== null) {
-        cancelAnimationFrame(scrollAnimationFrameRef.current);
-        scrollAnimationFrameRef.current = null;
-      }
-    };
-  }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView, countIncoming, hasMoreMessages, isOwnMessageRef]);
+  }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView, countIncoming, hasMoreMessages,
+    isOwnMessageRef, startAnimation, stopAnimation]);
 
   return {
     currentDate, dateBadgeRef, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, contentRef, firstUnreadMarkerRef,

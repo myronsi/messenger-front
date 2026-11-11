@@ -60,6 +60,7 @@ export interface GroupChatViewModel {
   isLoadingInitialMessages: boolean;
   loadNewerMessages: () => Promise<void>;
   loadLatestMessages: () => Promise<void>;
+  loadMessagesAround: (messageId: EntityId) => Promise<void>;
   hasMoreNewerMessages: boolean;
   isLoadingNewerMessages: boolean;
   markMessagesRead?: (messageIds: EntityId[]) => Promise<void>;

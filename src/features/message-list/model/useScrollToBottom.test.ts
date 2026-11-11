@@ -8,7 +8,8 @@ const live = (id: string, extra: Partial<Message> = {}): Message => ({ id, sende
 it('counts new live messages from others but not service lines', () => {
   const { result } = renderHook(() => useScrollToBottom({
     chatContainerRef: { current: null }, messageRefs: { current: {} }, messages: [], isPositioned: true, hasMoreNewerMessages: false,
-    isOwnMessage: () => false, shouldStickToBottomRef: { current: false }, autoScrollUntilRef: { current: 0 },
+    isOwnMessage: () => false, shouldStickToBottomRef: { current: false }, pendingBottomRef: { current: false },
+    glideToBottom: () => {},
   }));
   act(() => result.current.countIncoming([live('1'), live('2', { system_event: { kind: 'member_joined', actor_id: '5', actor_name: 'Max' } })]));
   expect(result.current.unseenCount).toBe(1);

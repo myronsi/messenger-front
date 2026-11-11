@@ -43,7 +43,7 @@ const ImageViewerHeader: React.FC<ImageViewerHeaderProps> = ({ info, index, tota
   if (!info) {
     if (!counter && !showInChat) return null;
     return (
-      <div className="fixed left-4 top-4 z-[10000] flex items-center gap-2">
+      <div className="pointer-events-auto fixed left-4 top-[calc(1rem+env(safe-area-inset-top))] z-[10000] flex items-center gap-2">
         {counter && <div aria-live="polite" className="rounded-full bg-black/30 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm">{counter}</div>}
         {showInChat}
       </div>
@@ -51,7 +51,7 @@ const ImageViewerHeader: React.FC<ImageViewerHeaderProps> = ({ info, index, tota
   }
   const sentAt = info.sentAt ? formatSentAt(info.sentAt, language) : '';
   return (
-    <div className="fixed left-4 top-4 z-[10000] flex max-w-[calc(100%-11rem)] items-center gap-2 sm:max-w-[calc(100%-16rem)]">
+    <div className="pointer-events-auto fixed left-4 top-[calc(1rem+env(safe-area-inset-top))] z-[10000] flex max-w-[calc(100%-11rem)] items-center gap-2 sm:max-w-[calc(100%-16rem)]">
       <div data-testid="image-viewer-info" aria-live="polite" className="flex min-w-0 items-center gap-2.5 rounded-full bg-black/30 py-1 pl-1 pr-3 text-white backdrop-blur-sm">
         <AuthenticatedImage src={resolveMediaUrl(info.avatarUrl)} alt="" initialsFrom={info.avatarName || info.sender} className="h-8 w-8 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 leading-tight">

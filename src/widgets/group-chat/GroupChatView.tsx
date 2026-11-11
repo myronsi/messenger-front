@@ -21,7 +21,7 @@ const renderMessageContent = (message: Message) => message.type === 'message' &&
   : undefined;
 
 const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
-  const [composerRef, composerHeight] = useElementHeight<HTMLDivElement>();
+  const [composerRef, composerHeight, composerNode] = useElementHeight<HTMLDivElement>();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const {
      onBack, openGroupProfile, currentGroupAvatar, currentGroupName, groupDetails, translations, messages,
@@ -29,7 +29,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      highlightedMessageId, contextMenu, getFormattedDateLabel, getMessageTime, messageRefs, canDeleteMessage,
      jumpToSearchResult, scrollToMessage, wsRef, openMenus, tempHighlightedMessageId,
      setTempHighlightedMessageId, loadOlderMessages, hasMoreMessages, isLoadingOlderMessages,
-     isLoadingInitialMessages, loadNewerMessages, loadLatestMessages, hasMoreNewerMessages,
+     isLoadingInitialMessages, loadNewerMessages, loadLatestMessages, loadMessagesAround, hasMoreNewerMessages,
      isLoadingNewerMessages, markMessagesRead, isOwnMessage, setReadStatusMessage, setReactionDetails, chatId,
      closeMenus, reactionMenu, messageInputRef, composerDraftRef, setMessageInput, replyTo, editingMessage,
      handleSendMessage, handleSendSticker, handleFileUpload, handleResendMessage, setReplyTo, setEditingMessage, token,
@@ -75,9 +75,9 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         onMessageClick={onListMessageClick}
         onAvatarClick={onListAvatarClick}
         highlightedMessageId={highlightedMessageId}
-        contextMenuMessageId={contextMenu?.messageId}
+        contextMenuMessageId={isClosing || contextMenu?.isClosing ? undefined : contextMenu?.messageId}
         composerTargetMessageId={(editingMessage || replyTo)?.id}
-        bottomInset={composerHeight}
+        bottomInset={composerHeight} bottomInsetSource={composerNode}
         getFormattedDateLabel={getFormattedDateLabel}
         getMessageTime={getMessageTime}
         renderMessageContent={renderMessageContent}
@@ -90,6 +90,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         onLoadOlderMessages={loadOlderMessages}
         onLoadNewerMessages={loadNewerMessages}
         onLoadLatestMessages={loadLatestMessages}
+        onLoadMessagesAround={loadMessagesAround}
         hasMoreNewerMessages={hasMoreNewerMessages}
         isLoadingNewerMessages={isLoadingNewerMessages}
         onMarkMessagesRead={markMessagesRead}

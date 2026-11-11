@@ -27,9 +27,15 @@ interface ViewerVideoProps {
   mediaRef: (node: HTMLVideoElement | null) => void;
   onLoad: () => void;
   onError: () => void;
+  controlsVisible?: boolean;
+  onSingleTap?: () => void;
 }
 
-export function ViewerVideo({ url, name, poster, loaded, idle, className, style, tapRef, mediaRef, onLoad, onError }: ViewerVideoProps) {
+export function ViewerVideo({
+  url, name, poster, loaded, idle, className, style, tapRef, mediaRef, onLoad, onError, controlsVisible = true, onSingleTap,
+}: ViewerVideoProps) {
+  const singleTapRef = useRef(onSingleTap);
+  singleTapRef.current = onSingleTap;
   const { translations: t } = useLanguage();
   const src = useAuthenticatedMedia(url, undefined, true, onError);
   const posterSrc = useAuthenticatedMedia(poster);
@@ -113,7 +119,7 @@ export function ViewerVideo({ url, name, poster, loaded, idle, className, style,
       window.clearTimeout(timers.current.tap);
       if (now - taps.current.at < DOUBLE_TAP_MS) { skipTo(side, now, ripple); return; }
       taps.current = { ...taps.current, at: now, streakUntil: 0 };
-      timers.current.tap = window.setTimeout(press, DOUBLE_TAP_MS);
+      timers.current.tap = window.setTimeout(() => (singleTapRef.current ? singleTapRef.current() : press()), DOUBLE_TAP_MS);
     };
     return () => { tapRef.current = null; };
   }, [press, skipTo, tapRef, video]);
@@ -149,7 +155,7 @@ export function ViewerVideo({ url, name, poster, loaded, idle, className, style,
           </div>
         </div>
       )}
-      <VideoControls video={video} playback={playback} visible={idle} />
+      <VideoControls video={video} playback={playback} visible={idle && controlsVisible} />
     </>
   );
 }

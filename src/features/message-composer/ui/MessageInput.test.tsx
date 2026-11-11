@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Message } from '@/entities/message';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MessageInput from './MessageInput';
@@ -112,12 +112,12 @@ describe('MessageInput', () => {
     expect(onSendMessage).not.toHaveBeenCalled();
   });
 
-  it('cannot attach a file while editing and drops one picked before', () => {
+  it('cannot attach a file while editing and drops one picked before', async () => {
     const { onSendMessage, onFileUpload, field, startEditing } = renderInput('New text');
     fireEvent.change(screen.getByTestId('message-file-input'), { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } });
     expect(screen.getByTitle('photo.png')).toBeInTheDocument();
     startEditing();
-    expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Attach file' })).toBeDisabled();
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(onFileUpload).not.toHaveBeenCalled();
@@ -147,7 +147,7 @@ describe('MessageInput', () => {
     expect(onSendMessage).not.toHaveBeenCalled();
   });
 
-  it('sends selected photos and videos as one album with one caption', () => {
+  it('sends selected photos and videos as one album with one caption', async () => {
     const { onFileUpload, field } = renderInput('Trip');
     const photo = new File(['image'], 'photo.png', { type: 'image/png' });
     const video = new File(['video'], 'clip.webm', { type: 'video/webm' });
@@ -158,7 +158,7 @@ describe('MessageInput', () => {
     expect(screen.getByTestId('selected-media')).toContainElement(screen.getByTitle('clip.webm'));
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(onFileUpload).toHaveBeenCalledExactlyOnceWith([photo, video], 'Trip', [undefined, undefined]);
-    expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTitle('photo.png')).not.toBeInTheDocument());
     expect(screen.queryByTitle('clip.webm')).not.toBeInTheDocument();
   });
 

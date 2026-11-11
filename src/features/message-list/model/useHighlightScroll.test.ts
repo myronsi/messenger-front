@@ -1,140 +1,79 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { glideToCenter, skipToLastScreen } from './useHighlightScroll';
+import { renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import type { Message } from '@/entities/message';
+import { nextSeekStep, useHighlightScroll } from './useHighlightScroll';
 
-let frames: FrameRequestCallback[] = [];
-const runFrames = (count = 200) => {
-  for (let i = 0; i < count && frames.length; i += 1) {
-    const pending = frames;
-    frames = [];
-    pending.forEach((callback) => callback(0));
-  }
-};
+const message = (id: string): Message => ({ id, sender: 'a', content: 'x', timestamp: 't', type: 'message', read_by: [] });
+const loaded = ['100', '101'].map(message);
 
-const setup = () => {
-  const layout = { targetTop: 3000, scrollHeight: 6000 };
-  let scrollTop = 4000;
-  const container = document.createElement('div');
-  Object.defineProperty(container, 'clientHeight', { configurable: true, get: () => 500 });
-  Object.defineProperty(container, 'scrollTop', {
-    configurable: true,
-    get: () => scrollTop,
-    set: (value: number) => { scrollTop = Math.max(0, Math.min(value, layout.scrollHeight - 500)); },
-  });
-  container.getBoundingClientRect = () => ({ top: 100 }) as DOMRect;
-  const element = document.createElement('div');
-  container.appendChild(element);
-  document.body.appendChild(container);
-  element.getBoundingClientRect = () => ({ top: 100 + layout.targetTop - scrollTop, height: 100 }) as DOMRect;
-  const centered = () => layout.targetTop - scrollTop === 200;
-  return { container, element, layout, centered, scrollTop: () => scrollTop };
-};
+describe('nextSeekStep', () => {
+  const base = { newer: false, pages: 0, loaded: 100, hasMoreMessages: true, hasMoreNewerMessages: true, canLoadAround: true };
 
-describe('glideToCenter', () => {
-  beforeEach(() => {
-    frames = [];
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
-    vi.stubGlobal('cancelAnimationFrame', () => undefined);
-  });
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    document.body.innerHTML = '';
+  it('pages towards a nearby message so the way there stays continuous', () => {
+    expect(nextSeekStep(base)).toBe('older');
+    expect(nextSeekStep({ ...base, newer: true })).toBe('newer');
   });
 
-  it('centers the message it jumps to', () => {
-    const { container, element, centered } = setup();
-
-    glideToCenter(container, element, true);
-    runFrames();
-
-    expect(centered()).toBe(true);
+  it('loads the page around the message after a few pages', () => {
+    expect(nextSeekStep({ ...base, pages: 3 })).toBe('around');
   });
 
-  it('still lands on the message when rows above it change height on the way', () => {
-    const { container, element, layout, centered } = setup();
-
-    glideToCenter(container, element, true);
-    runFrames(3);
-    layout.targetTop += 400;
-    layout.scrollHeight += 400;
-    container.scrollTop += 400;
-    runFrames(2);
-    layout.targetTop -= 150;
-    runFrames();
-
-    expect(centered()).toBe(true);
+  it('loads around the message instead of paging when paging would drop the visible messages', () => {
+    expect(nextSeekStep({ ...base, loaded: 480 })).toBe('around');
   });
 
-  it('moves gradually instead of jumping when motion is allowed', () => {
-    const { container, element, scrollTop } = setup();
-
-    glideToCenter(container, element, true);
-    runFrames(1);
-
-    expect(scrollTop()).toBeGreaterThan(2800);
-    expect(scrollTop()).toBeLessThan(4000);
+  it('keeps paging when the around request is not available', () => {
+    expect(nextSeekStep({ ...base, pages: 5, canLoadAround: false })).toBe('older');
   });
 
-  it('jumps in one frame when the user prefers reduced motion', () => {
-    const { container, element, centered } = setup();
-
-    glideToCenter(container, element, false);
-    runFrames(1);
-
-    expect(centered()).toBe(true);
-  });
-
-  it('lets the user take over by scrolling', () => {
-    const { container, element, scrollTop } = setup();
-
-    glideToCenter(container, element, true);
-    runFrames(1);
-    const position = scrollTop();
-    container.dispatchEvent(new Event('wheel'));
-    runFrames();
-
-    expect(scrollTop()).toBe(position);
+  it('gives up when there is nothing more in that direction', () => {
+    expect(nextSeekStep({ ...base, hasMoreMessages: false })).toBe('none');
+    expect(nextSeekStep({ ...base, newer: true, hasMoreNewerMessages: false })).toBe('none');
   });
 });
 
-describe('useHighlightScroll loading', () => {
-  it('loads newer pages for a message newer than the loaded window, older pages otherwise', async () => {
-    const { renderHook } = await import('@testing-library/react');
-    const { useHighlightScroll } = await import('./useHighlightScroll');
-    const loaded = ['100', '101'].map((id) => ({ id, sender: 'a', content: 'x', timestamp: 't', type: 'message' as const, read_by: [] }));
-    const onLoadOlderMessages = vi.fn(async () => undefined);
-    const onLoadNewerMessages = vi.fn(async () => undefined);
-    const run = (targetId: string) => renderHook(() => useHighlightScroll({
-      targetId, messages: loaded, messageRefs: { current: {} }, hasMoreMessages: true, isLoadingOlderMessages: false, onLoadOlderMessages,
-      hasMoreNewerMessages: true, isLoadingNewerMessages: false, onLoadNewerMessages, behavior: 'auto', chatContainerRef: { current: null },
-    }));
-    run('500');
-    expect(onLoadNewerMessages).toHaveBeenCalledOnce();
-    expect(onLoadOlderMessages).not.toHaveBeenCalled();
-    run('50');
-    expect(onLoadOlderMessages).toHaveBeenCalledOnce();
-  });
-});
-
-describe('skipToLastScreen', () => {
-  const box = (scrollTop: number) => {
-    const element = document.createElement('div');
-    Object.defineProperty(element, 'clientHeight', { value: 600 });
-    element.scrollTop = scrollTop;
-    return element;
-  };
-
-  it('jumps over long distances and leaves one screen to glide', () => {
-    const up = box(20000);
-    skipToLastScreen(up, -15000);
-    expect(up.scrollTop).toBe(20000 - 15000 + 600);
-    const down = box(1000);
-    skipToLastScreen(down, 9000);
-    expect(down.scrollTop).toBe(1000 + 9000 - 600);
+describe('useHighlightScroll', () => {
+  const options = (overrides: Partial<Parameters<typeof useHighlightScroll>[0]> = {}) => ({
+    targetId: '100', messages: loaded, messageRefs: { current: {} }, hasMoreMessages: true, isLoadingOlderMessages: false,
+    onLoadOlderMessages: vi.fn(async () => undefined), hasMoreNewerMessages: true, isLoadingNewerMessages: false,
+    onLoadNewerMessages: vi.fn(async () => undefined), onLoadMessagesAround: vi.fn(async () => undefined),
+    chatContainerRef: { current: null }, startAnimation: vi.fn(), replacedWindowRef: { current: null }, ...overrides,
   });
 
-  it('keeps short distances for the smooth glide', () => {
-    const near = box(5000);
-    skipToLastScreen(near, -800);
-    expect(near.scrollTop).toBe(5000);
+  it('loads newer pages for a message newer than the loaded window, older pages otherwise', () => {
+    const newer = options({ targetId: '500' });
+    renderHook(() => useHighlightScroll(newer));
+    expect(newer.onLoadNewerMessages).toHaveBeenCalledOnce();
+    expect(newer.onLoadOlderMessages).not.toHaveBeenCalled();
+    const older = options({ targetId: '50' });
+    renderHook(() => useHighlightScroll(older));
+    expect(older.onLoadOlderMessages).toHaveBeenCalledOnce();
+  });
+
+  it('glides to a message that is already loaded', () => {
+    const row = document.createElement('div');
+    const container = document.createElement('div');
+    const loadedRow = options({ messageRefs: { current: { 100: row } }, chatContainerRef: { current: container } });
+    renderHook(() => useHighlightScroll(loadedRow));
+    expect(loadedRow.startAnimation).toHaveBeenCalledOnce();
+    expect(loadedRow.onLoadOlderMessages).not.toHaveBeenCalled();
+  });
+
+  it('places a message from a replaced window a little above the center before gliding up to it', () => {
+    let scrollTop = 0;
+    const container = document.createElement('div');
+    Object.defineProperty(container, 'clientHeight', { configurable: true, get: () => 1000 });
+    Object.defineProperty(container, 'scrollHeight', { configurable: true, get: () => 10000 });
+    Object.defineProperty(container, 'scrollTop', { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } });
+    container.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    const row = document.createElement('div');
+    row.getBoundingClientRect = () => ({ top: 5000 - scrollTop, height: 100 }) as DOMRect;
+    const target = message('50');
+    const settings = options({ targetId: '50', messageRefs: { current: {} }, chatContainerRef: { current: container } });
+    const hook = renderHook((props) => useHighlightScroll(props), { initialProps: settings });
+    const replaced = [target, ...loaded];
+    hook.rerender({ ...settings, messages: replaced, messageRefs: { current: { 50: row } }, replacedWindowRef: { current: replaced } });
+    expect(scrollTop).toBe(5000 - 450 + 600);
+    expect(settings.startAnimation).toHaveBeenCalledOnce();
   });
 });

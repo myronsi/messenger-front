@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en/bundle';
 import { StickerPackDialog } from './StickerPackDialog';
@@ -25,4 +25,16 @@ it('stays a dialog on larger screens', () => {
   render(<StickerPackDialog pack={{ slug: 'ABC' }} onClose={vi.fn()} />);
   expect(screen.queryByTestId('sticker-pack-sheet')).not.toBeInTheDocument();
   expect(screen.getByRole('dialog')).toHaveTextContent('Cats');
+});
+
+it('keeps the window on screen for its closing animation and reports the close once it is over', () => {
+  vi.useFakeTimers();
+  mobile.value = false;
+  const onClose = vi.fn();
+  render(<StickerPackDialog pack={{ slug: 'ABC' }} onClose={onClose} />);
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+  expect(onClose).not.toHaveBeenCalled();
+  act(() => { vi.advanceTimersByTime(700); });
+  expect(onClose).toHaveBeenCalledOnce();
+  vi.useRealTimers();
 });

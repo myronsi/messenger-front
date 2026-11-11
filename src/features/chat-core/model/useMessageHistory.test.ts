@@ -44,6 +44,29 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('useMessageHistory paging', () => {
+  it('replaces the window with the page around a message far back and pages from there', async () => {
+    const { hook } = setup(range(951, 1000).map(message));
+    await waitFor(() => expect(hook.result.current.history.hasMoreMessages).toBe(true));
+    mocks.fetchHistory.mockReturnValue({ unwrap: () => Promise.resolve(page(range(100, 149), { has_more_after: true, next_after_id: '149' })) });
+    await act(async () => { await hook.result.current.history.loadMessagesAround('125'); });
+    expect(mocks.fetchHistory).toHaveBeenCalledWith({ chatId: '4', limit: 50, aroundId: '125' });
+    expect(hook.result.current.messages.map((item) => item.id)).toEqual(range(100, 149).map(String));
+    expect(hook.result.current.history.hasMoreNewerMessages).toBe(true);
+    mocks.fetchHistory.mockReturnValue({ unwrap: () => Promise.resolve(page(range(150, 199), { has_more_after: true, next_after_id: '199' })) });
+    await act(async () => { await hook.result.current.history.loadNewerMessages(); });
+    expect(mocks.fetchHistory).toHaveBeenLastCalledWith({ chatId: '4', limit: 50, afterId: '149' });
+  });
+
+  it('extends the window when the page around a message overlaps it', async () => {
+    const { hook } = setup(range(951, 1000).map(message));
+    await waitFor(() => expect(hook.result.current.history.hasMoreMessages).toBe(true));
+    mocks.fetchHistory.mockReturnValue({ unwrap: () => Promise.resolve(page(range(920, 969), { has_more_after: true })) });
+    await act(async () => { await hook.result.current.history.loadMessagesAround('940'); });
+    expect(hook.result.current.messages[0].id).toBe('920');
+    expect(hook.result.current.messages[hook.result.current.messages.length - 1].id).toBe('1000');
+    expect(hook.result.current.history.hasMoreNewerMessages).toBe(false);
+  });
+
   it('trims the newest messages beyond the loaded limit after paging back and lets them load again', async () => {
     const { hook } = setup(range(501, 1000).map(message));
     await waitFor(() => expect(hook.result.current.history.hasMoreMessages).toBe(true));

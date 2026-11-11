@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
+import { keyboardInset } from './composerFocus';
 
 const HEIGHT_VAR = '--visual-viewport-height';
 const TOP_VAR = '--visual-viewport-top';
+const KEYBOARD_VAR = '--keyboard-inset';
 
 export const visualViewportStyle = {
   top: `var(${TOP_VAR}, 0px)`,
@@ -17,6 +19,7 @@ export const useVisualViewport = (enabled: boolean) => {
       if (viewport.scale > 1.01) return;
       root.style.setProperty(HEIGHT_VAR, `${Math.round(viewport.height)}px`);
       root.style.setProperty(TOP_VAR, `${Math.round(viewport.offsetTop)}px`);
+      root.style.setProperty(KEYBOARD_VAR, `${keyboardInset()}px`);
     };
     update();
     viewport.addEventListener('resize', update);
@@ -28,6 +31,7 @@ export const useVisualViewport = (enabled: boolean) => {
       window.removeEventListener('resize', update);
       root.style.removeProperty(HEIGHT_VAR);
       root.style.removeProperty(TOP_VAR);
+      root.style.removeProperty(KEYBOARD_VAR);
     };
   }, [enabled]);
 };

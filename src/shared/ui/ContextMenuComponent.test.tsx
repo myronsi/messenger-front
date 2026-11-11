@@ -51,3 +51,22 @@ describe('ContextMenuComponent order', () => {
     expect(container.querySelector('.border-t')).toBeNull();
   });
 });
+
+describe('ContextMenuComponent placement', () => {
+  const place = (y: number) => {
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(200);
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(150);
+    render(<ContextMenuComponent ref={createRef<HTMLDivElement>()} x={100} y={y} isMine onReply={vi.fn()} isClosing={false} onClose={vi.fn()} />);
+    height.mockRestore();
+    width.mockRestore();
+    return screen.getByRole('menu').style.top;
+  };
+
+  it('opens down from the tap when there is room below', () => {
+    expect(place(300)).toBe('300px');
+  });
+
+  it('flips above the tap, leaving room for the reaction bar, when it would run off the bottom', () => {
+    expect(place(window.innerHeight - 50)).toBe(`${window.innerHeight - 50 - 200 - 48}px`);
+  });
+});

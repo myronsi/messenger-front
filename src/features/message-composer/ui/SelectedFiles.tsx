@@ -84,7 +84,7 @@ interface SelectedMediaStripProps {
 function SelectedMediaStrip({ files, removeLabel, addLabel, canAdd, onAdd, onRemove, drawings, onDrawingChange }: SelectedMediaStripProps) {
   const [editing, setEditing] = useState<File | null>(null);
   return (
-    <div data-testid="selected-media" className="flex gap-2 overflow-x-auto rounded-2xl border border-border/60 bg-background/55 p-2 shadow-lg shadow-foreground/10 backdrop-blur-2xl">
+    <div data-testid="selected-media" className="flex gap-2 overflow-x-auto rounded-2xl border border-border/60 bg-background/55 p-2 backdrop-blur-2xl">
       {files.map((file, index) => (
         <SelectedMediaTile key={`${file.name}-${file.size}-${file.lastModified}-${index}`} file={file} removeLabel={removeLabel}
           drawing={drawings?.get(file)} onRemove={() => onRemove(index)} onDraw={onDrawingChange && (() => setEditing(file))} />

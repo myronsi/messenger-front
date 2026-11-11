@@ -58,6 +58,7 @@ export const useChatRoomState = ({
     loadOlderMessages: async () => {},
     loadNewerMessages: async () => {},
     loadLatestMessages: async () => {},
+    loadMessagesAround: async (_messageId: EntityId) => {},
     markMessagesRead: async (_messageIds: EntityId[]) => {},
     handleSendMessage: () => {},
     handleSendSticker: undefined,
