@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const session = vi.hoisted(() => ({ authFetch: vi.fn(), token: 'token' as string | null }));
@@ -63,5 +63,21 @@ describe('AuthenticatedImage', () => {
     session.authFetch.mockImplementation(async () => new Response('png', { status: 200 }));
     render(<AuthenticatedImage src={`${window.location.origin}/api/v2/static/avatars/default.jpg`} alt="Anna" />);
     await waitFor(() => expect(screen.getByAltText('Anna').getAttribute('src')).toMatch(/^data:image\/svg\+xml/));
+  });
+
+  it('loads the picture again once when its cached copy stops working, before calling it broken', async () => {
+    const sticker = `${window.location.origin}/api/v2/attachments/s1/content`;
+    session.authFetch.mockImplementation(async () => new Response('webp', { status: 200 }));
+    const onError = vi.fn();
+    render(<AuthenticatedImage src={sticker} alt="👍" onError={onError} />);
+    await waitFor(() => expect(screen.getByAltText('👍').getAttribute('src')).toBe('blob:avatar-1'));
+
+    fireEvent.error(screen.getByAltText('👍'));
+
+    await waitFor(() => expect(screen.getByAltText('👍').getAttribute('src')).toBe('blob:avatar-2'));
+    expect(session.authFetch).toHaveBeenCalledTimes(2);
+    expect(onError).not.toHaveBeenCalled();
+    fireEvent.error(screen.getByAltText('👍'));
+    expect(onError).toHaveBeenCalledTimes(1);
   });
 });

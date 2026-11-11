@@ -31,6 +31,17 @@ describe('useUrlOverlay', () => {
     expect(currentEntryMarks().settingsChain).toBe(1);
   });
 
+  it('can open an overlay on another page and leaves no way back into the open chat', () => {
+    window.history.replaceState(null, '', '/chat/38');
+    const start = window.history.length;
+    const { result } = renderHook(() => useUrlOverlay(), { wrapper });
+    act(() => result.current.open({ kind: 'settings', page: 'profile' }, { settingsOpened: true }, '/'));
+    expect(window.location.pathname).toBe('/settings');
+    expect(window.history.length).toBe(start + 1);
+    act(() => result.current.close());
+    expect(window.location.pathname).toBe('/');
+  });
+
   it('reads no marks from an entry the app did not create', () => {
     window.history.replaceState({ usr: 'other' }, '', '/');
     expect(currentEntryMarks()).toEqual({});

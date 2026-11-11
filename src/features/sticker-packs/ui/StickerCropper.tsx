@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
+import { createPinchTracker } from '@/shared/lib/pinchTracker';
 import { clampZoom, coverZoom, displayedSize, initialCrop, MAX_ZOOM_OVER_COVER, renderCrop, type CropState, type ImageSize } from '../model/crop';
 
 interface StickerCropperProps {
@@ -17,6 +18,7 @@ export const StickerCropper = ({ src, onCancel, onDone, onError }: StickerCroppe
   const imageRef = useRef<HTMLImageElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
+  const pinch = useRef(createPinchTracker()).current;
   const [size, setSize] = useState<ImageSize | null>(null);
   const [crop, setCrop] = useState<CropState>({ zoom: 1, x: 0, y: 0 });
   const [frame, setFrame] = useState(0);
@@ -41,6 +43,12 @@ export const StickerCropper = ({ src, onCancel, onDone, onError }: StickerCroppe
   };
 
   const move = (event: PointerEvent<HTMLDivElement>) => {
+    const factor = pinch.move(event.pointerId, event.clientX, event.clientY);
+    if (factor !== null) {
+      if (size) setCrop((value) => ({ ...value, zoom: clampZoom(value.zoom * factor, size) }));
+      return;
+    }
+    if (pinch.pinching) return;
     const last = drag.current;
     if (!last || last.id !== event.pointerId || !frame) return;
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
@@ -70,11 +78,12 @@ export const StickerCropper = ({ src, onCancel, onDone, onError }: StickerCroppe
         style={{ background: checkerboard }}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
-          drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+          pinch.down(event.pointerId, event.clientX, event.clientY);
+          drag.current = pinch.pinching ? null : { id: event.pointerId, x: event.clientX, y: event.clientY };
         }}
         onPointerMove={move}
-        onPointerUp={() => { drag.current = null; }}
-        onPointerCancel={() => { drag.current = null; }}
+        onPointerUp={(event) => { pinch.up(event.pointerId); drag.current = null; }}
+        onPointerCancel={(event) => { pinch.up(event.pointerId); drag.current = null; }}
         onWheel={(event) => size && setCrop((value) => ({ ...value, zoom: clampZoom(value.zoom * (event.deltaY < 0 ? 1.08 : 0.92), size) }))}
       >
         <img

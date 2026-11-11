@@ -7,7 +7,9 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DrawingItems } from './DrawingOverlay';
 import { DrawingToolbar } from './DrawingToolbar';
 import { InlineTextEditor } from './InlineTextEditor';
-import { DEFAULT_SIZE_LEVEL, DRAWING_COLORS, hitsItem, MAX_DRAWING_ITEMS, strokeWidthAt, textSizeAt, toDrawing, type Drawing } from './model';
+import { TextTransformFrame } from './TextTransformFrame';
+import { useTextGrab } from './useTextGrab';
+import { DEFAULT_SIZE_LEVEL, DRAWING_COLORS, hitsItem, MAX_DRAWING_ITEMS, roundCoordinate, strokeWidthAt, textSizeAt, toDrawing, type Drawing } from './model';
 import { useDrawingHistory } from './useDrawingHistory';
 import { useDrawingPointer, type DrawingTool } from './useDrawingPointer';
 import { MAX_ZOOM, useEditorZoom } from './useEditorZoom';
@@ -67,6 +69,8 @@ export function DrawingEditor({
   const [limitReached, setLimitReached] = useState(false);
   const { items, commit, undo, redo, canUndo, canRedo } = useDrawingHistory(initial?.items);
   const surfaceRef = useRef<SVGSVGElement>(null);
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const grabOrigin = useRef({ x: 0, y: 0 });
   const textDraftRef = useRef(textDraft);
   textDraftRef.current = textDraft;
   const { stage, setStageNode, box } = useFitBox(aspect);
@@ -90,6 +94,7 @@ export function DrawingEditor({
   };
 
   const placeText = (x: number, y: number) => {
+    const editing = !!textDraftRef.current;
     const current = commitText();
     let index = -1;
     current.forEach((item, position) => { if (item.type === 'text' && hitsItem(item, x, y, aspect ?? 1, 0.005)) index = position; });
@@ -97,13 +102,25 @@ export function DrawingEditor({
     if (existing) {
       setColor(existing.color);
       setSizeLevel(levelOfTextSize(existing.size));
-      setTextDraft({ x: existing.x ?? x, y: existing.y ?? y, value: existing.text ?? '', index });
-    } else setTextDraft({ x, y, value: '', index: null });
+      grabOrigin.current = { x: existing.x ?? x, y: existing.y ?? y };
+      setTextDraft({ ...grabOrigin.current, value: existing.text ?? '', index });
+      return true;
+    }
+    if (!editing) setTextDraft({ x, y, value: '', index: null });
+    return false;
   };
+
+  const dragText = (dx: number, dy: number) => setTextDraft((current) => (current
+    ? { ...current, x: roundCoordinate(grabOrigin.current.x + dx), y: roundCoordinate(grabOrigin.current.y + dy) } : current));
+  const moveText = (x: number, y: number) => setTextDraft((current) => (current ? { ...current, x, y } : current));
+  const grab = useTextGrab({
+    x: textDraft?.x ?? 0, y: textDraft?.y ?? 0, box: box ?? { width: 1, height: 1 }, zoom: zoom.view.scale,
+    onMove: moveText, onGrab: () => fieldRef.current?.blur(),
+  });
 
   const { visibleItems, draft, handlers, cancel } = useDrawingPointer({
     surfaceRef, tool, color, width: strokeWidthAt(sizeLevel), aspect: aspect ?? 1, zoom: zoom.view.scale, items, commit,
-    onPlaceText: placeText, onLimit: () => setLimitReached(true), isGesturing: zoom.isGesturing,
+    onPlaceText: placeText, onDragText: dragText, onLimit: () => setLimitReached(true), isGesturing: zoom.isGesturing,
   });
   cancelStrokeRef.current = cancel;
   useEffect(() => setLimitReached(false), [items]);
@@ -184,13 +201,18 @@ export function DrawingEditor({
                 <InlineTextEditor x={textDraft.x} y={textDraft.y} value={textDraft.value} color={color}
                   fontSize={textSizeAt(sizeLevel) * box.height} zoom={zoom.view.scale}
                   label={t.drawingTextPlaceholder} onChange={(value) => setTextDraft((current) => (current ? { ...current, value } : current))}
-                  onCommit={commitText} onCancel={() => setTextDraft(null)} />
+                  onCommit={commitText} onCancel={() => setTextDraft(null)} fieldRef={fieldRef} grab={textDraft.value.trim() ? grab : undefined} />
+              )}
+              {textDraft?.value.trim() && box && (
+                <TextTransformFrame x={textDraft.x} y={textDraft.y} value={textDraft.value} size={textSizeAt(sizeLevel)} box={box} zoom={zoom.view.scale}
+                  moveLabel={t.drawingTextMove} resizeLabel={t.drawingTextResize} onResize={(size) => setSizeLevel(levelOfTextSize(size))}
+                  onGrab={() => fieldRef.current?.blur()}
+                  onMove={moveText} />
               )}
             </div>
             {!box && <Loader2 className="absolute size-6 animate-spin text-white/50" />}
           </div>
-          {tool === 'text' && !textDraft && <p className="px-4 pt-2 text-center text-sm text-white/60">{t.drawingTextHint}</p>}
-          <DrawingToolbar tool={tool} color={color} sizeLevel={sizeLevel} previewSize={previewSize} onSizeLevel={setSizeLevel} onColor={setColor}
+          <DrawingToolbar hint={tool === 'text' && !textDraft ? t.drawingTextHint : undefined} tool={tool} color={color} sizeLevel={sizeLevel} previewSize={previewSize} onSizeLevel={setSizeLevel} onColor={setColor}
             onTool={(next) => { commitText(); setTool(next); }} />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

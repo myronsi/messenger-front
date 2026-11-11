@@ -25,13 +25,14 @@ export const StickerManagerHost = ({ linkSlug, onLinkClose }: StickerManagerHost
       {linkSlug && <StickerPackDialog pack={{ slug: linkSlug }} onClose={() => onLinkClose?.()} />}
       {request?.kind === 'packs' && (
         <Dialog open onOpenChange={(open) => { if (!open) closeStickerManager(); }}>
-          <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto p-4 sm:p-5">
-            <DialogTitle className="text-base">{translations.myStickerPacks}</DialogTitle>
+          <DialogContent className="flex h-[100dvh] max-h-[100dvh] max-w-none flex-col gap-3 overflow-y-auto rounded-none p-4 sm:h-auto sm:max-h-[85dvh] sm:max-w-xl sm:rounded-2xl sm:p-6">
+            <DialogTitle className="pr-8 text-lg">{translations.myStickerPacks}</DialogTitle>
             <DialogDescription className="sr-only">{translations.stickerPackPrivacy}</DialogDescription>
             {packId ? <StickerPackEditor packId={packId} onBack={() => setPackId(null)} /> : <MyStickerPacks onOpen={setPackId} />}
           </DialogContent>
         </Dialog>
       )}
+      {request?.kind === 'pack' && <StickerPackDialog pack={request.pack} onClose={closeStickerManager} />}
       {request?.kind === 'make' && (
         <StickerMaker sourceUrl={request.sourceUrl} onClose={closeStickerManager} onSaved={(saved) => openStickerPacks(saved)} />
       )}

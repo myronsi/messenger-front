@@ -16,16 +16,20 @@ interface DrawingPointerOptions {
   zoom: number;
   items: DrawingItem[];
   commit: (items: DrawingItem[]) => void;
-  onPlaceText: (x: number, y: number) => void;
+  onPlaceText: (x: number, y: number) => boolean;
+  onDragText: (dx: number, dy: number) => void;
   onLimit: () => void;
   isGesturing: () => boolean;
 }
 
-export function useDrawingPointer({ surfaceRef, tool, color, width, aspect, zoom, items, commit, onPlaceText, onLimit, isGesturing }: DrawingPointerOptions) {
+export function useDrawingPointer({
+  surfaceRef, tool, color, width, aspect, zoom, items, commit, onPlaceText, onDragText, onLimit, isGesturing,
+}: DrawingPointerOptions) {
   const [draft, setDraft] = useState<DrawingItem | null>(null);
   const [erased, setErased] = useState<DrawingItem[] | null>(null);
   const pointsRef = useRef<number[]>([]);
   const activeRef = useRef<number | null>(null);
+  const grabRef = useRef<{ x: number; y: number } | null>(null);
 
   const position = (event: ReactPointerEvent) => {
     const rect = surfaceRef.current?.getBoundingClientRect();
@@ -55,7 +59,10 @@ export function useDrawingPointer({ surfaceRef, tool, color, width, aspect, zoom
     if (!point) return;
     event.preventDefault();
     if (tool === 'text') {
-      onPlaceText(roundCoordinate(point.x), roundCoordinate(point.y));
+      if (!onPlaceText(roundCoordinate(point.x), roundCoordinate(point.y))) return;
+      try { event.currentTarget.setPointerCapture?.(event.pointerId); } catch { return; }
+      activeRef.current = event.pointerId;
+      grabRef.current = point;
       return;
     }
     if (tool === 'pen' && items.length >= MAX_DRAWING_ITEMS) {
@@ -79,6 +86,11 @@ export function useDrawingPointer({ surfaceRef, tool, color, width, aspect, zoom
 
   const onPointerMove = (event: ReactPointerEvent<Element>) => {
     if (activeRef.current !== event.pointerId) return;
+    if (grabRef.current) {
+      const point = position(event);
+      if (point) onDragText(point.x - grabRef.current.x, point.y - grabRef.current.y);
+      return;
+    }
     const events = 'getCoalescedEvents' in event.nativeEvent ? event.nativeEvent.getCoalescedEvents() : [];
     const samples = events.length ? events : [event.nativeEvent];
     for (const sample of samples) {
@@ -92,6 +104,10 @@ export function useDrawingPointer({ surfaceRef, tool, color, width, aspect, zoom
   const finish = (event: ReactPointerEvent<Element>) => {
     if (activeRef.current !== event.pointerId) return;
     activeRef.current = null;
+    if (grabRef.current) {
+      grabRef.current = null;
+      return;
+    }
     if (tool === 'eraser') {
       if (erased && erased !== items) commit(erased);
       setErased(null);
@@ -104,6 +120,7 @@ export function useDrawingPointer({ surfaceRef, tool, color, width, aspect, zoom
 
   const cancel = useCallback(() => {
     activeRef.current = null;
+    grabRef.current = null;
     pointsRef.current = [];
     setDraft(null);
     setErased(null);

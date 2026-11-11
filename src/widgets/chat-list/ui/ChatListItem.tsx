@@ -8,6 +8,8 @@ import { BellOff, Check, CheckCheck, Pin, Users } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import { useChatMuteStatus } from '@/features/chat-mute';
 import { TypingLabel, useTypingUsers } from '@/entities/typing';
+import { isContentLabel } from '../model/useChatFormatters';
+import { CallPreviewIcon } from './CallPreviewIcon';
 
 interface ChatListItemProps {
   chat: Chat;
@@ -37,7 +39,8 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const ownLastMessage = isOwnLastMessage(chat.last_message);
   const ownLastMessageRead = isOwnLastMessageRead(chat.last_message);
   const ownLastMessageFailed = ownLastMessage && !!chat.last_message?.delivery_error;
-  const isActive = chat.id === activeChatId && !isContextSelected;
+  const isActive = chat.id === activeChatId;
+  const callEvent = chat.last_message?.system_event?.kind === 'call' ? chat.last_message.system_event : null;
   const unreadCount = chat.unread_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
   const typingUsers = useTypingUsers(chat.id);
@@ -48,9 +51,11 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const lastThumbnail = typeof lastContent === 'object' && lastContent.thumbnail_url ? resolveMediaUrl(lastContent.thumbnail_url) : undefined;
   const preloadHandlers = useMediaPreload(lastThumbnail);
   const muted = isActive ? 'text-muted-foreground md:text-primary-foreground/80' : 'text-muted-foreground';
-  const showSender = chat.type === 'group' && !!chat.last_message && !chat.last_message.system_event && !chat.last_message.delivery_error;
+  const isSystemEvent = !!chat.last_message?.system_event;
+  const isNotice = isSystemEvent || !chat.last_message;
+  const showSender = chat.type === 'group' && !!chat.last_message && !isSystemEvent && !chat.last_message.delivery_error;
   const sender = ownLastMessage ? translations.replyFromYou : chat.last_message?.sender_name;
-  const previewTone = unreadCount ? 'text-foreground' : 'text-muted-foreground';
+  const previewTone = unreadCount && !isNotice ? 'text-foreground' : 'text-muted-foreground';
   const ticksTone = ownLastMessageRead ? 'text-primary' : 'text-muted-foreground';
 
   return (
@@ -62,8 +67,9 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       {...preloadHandlers}
       onContextMenu={(event) => onContextMenu(event, chat)}
       className={`motion-list-item motion-press flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer ${
-        isContextSelected ? 'bg-muted text-foreground' : isActive ? 'md:bg-primary md:text-primary-foreground'
-          : '[@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground'
+        isActive ? `md:bg-primary md:text-primary-foreground ${isContextSelected ? 'max-md:bg-accent max-md:text-accent-foreground' : ''}`
+          : isContextSelected ? 'bg-accent text-accent-foreground'
+            : '[@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground'
       }`}
     >
       <div className="relative shrink-0">
@@ -89,7 +95,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
               <BellOff data-testid="chat-muted-icon" aria-label={translations.mutedForever} className={`h-3.5 w-3.5 shrink-0 ${muted}`} />
             )}
           </div>
-          {ownLastMessage && !ownLastMessageFailed && (
+          {ownLastMessage && !ownLastMessageFailed && !isSystemEvent && (
             <span className={`flex shrink-0 items-center transition-colors duration-150 ${isActive ? `${ticksTone} md:text-primary-foreground/80` : ticksTone}`}
               title={ownLastMessageRead ? translations.messageRead : translations.messageSent}>
               {ownLastMessageRead ? <CheckCheck size={16} /> : <Check size={16} />}
@@ -104,10 +110,17 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         <div className="mt-0.5 flex min-w-0 items-center gap-2">
           <div className={`min-w-0 flex-1 truncate text-sm leading-5 ${isActive ? `${previewTone} md:text-primary-foreground/80` : previewTone}`}>
             {typingUsers.length ? (
-              <TypingLabel users={typingUsers} isGroup={chat.type === 'group'} className={isActive ? 'text-primary md:text-primary-foreground' : 'text-primary'} />
+              <TypingLabel users={typingUsers} isGroup={chat.type === 'group'} className={`italic ${isActive ? 'text-primary md:text-primary-foreground' : 'text-primary'}`} />
             ) : (<>
               {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}>{sender}: </span>}
-              {getLastMessagePreview(chat.last_message)}
+              {isNotice || isContentLabel(chat.last_message)
+                ? (
+                  <span data-testid={isNotice ? 'chat-system-preview' : 'chat-label-preview'} className="italic">
+                    {callEvent && <CallPreviewIcon event={callEvent} outgoing={ownLastMessage} onAccent={isActive} />}
+                    {getLastMessagePreview(chat.last_message)}
+                  </span>
+                )
+                : getLastMessagePreview(chat.last_message)}
             </>)}
           </div>
           {chat.is_pinned && !unreadCount && <Pin aria-label={translations.pinned} className={`h-3.5 w-3.5 shrink-0 rotate-45 ${muted}`} />}

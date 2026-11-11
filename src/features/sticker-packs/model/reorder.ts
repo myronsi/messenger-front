@@ -1,10 +1,10 @@
 import { publicWebOrigin } from '@/shared/lib/webOrigin';
 
-export const moveItem = <T,>(items: readonly T[], index: number, step: -1 | 1): T[] => {
-  const target = index + step;
-  if (index < 0 || target < 0 || target >= items.length) return [...items];
+export const moveTo = <T,>(items: readonly T[], from: number, to: number): T[] => {
+  if (from < 0 || from >= items.length || to < 0 || to >= items.length || from === to) return [...items];
   const next = [...items];
-  [next[index], next[target]] = [next[target], next[index]];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
   return next;
 };
 

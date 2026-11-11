@@ -3,6 +3,15 @@ import { systemEventText, type ChatLastMessage } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
 
+export const isContentLabel = (lastMessage?: ChatLastMessage | null) => {
+  if (!lastMessage || lastMessage.system_event || lastMessage.delivery_error) return false;
+  if (lastMessage.sticker) return true;
+  if (typeof lastMessage.content === 'string') return false;
+  const fileName = lastMessage.content.file_name || '';
+  if (lastMessage.content.file_type === 'voice' || /\.opus$/i.test(fileName)) return true;
+  return !lastMessage.content.caption?.trim();
+};
+
 // Pure presentational helpers for rendering a chat's last-message preview/time
 // and whether the current user authored/has read it.
 export function useChatFormatters(currentUserId?: EntityId) {
@@ -36,7 +45,8 @@ export function useChatFormatters(currentUserId?: EntityId) {
   };
 
   const isOwnLastMessage = (lastMessage?: ChatLastMessage | null) => {
-    return !!currentUserId && lastMessage?.sender_id === currentUserId;
+    const author = lastMessage?.system_event ? lastMessage.system_event.actor_id : lastMessage?.sender_id;
+    return !!currentUserId && author === currentUserId;
   };
 
   const isOwnLastMessageRead = (lastMessage?: ChatLastMessage | null) => {

@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { isPersistedId } from '@/shared/api/entityId';
-import type { FileMessageContent, ForwardedFrom, Message, ReactionInfo, ReadReceiptInfo, SystemEventInfo } from '@/entities/message';
+import type { FileMessageContent, ForwardedFrom, Message, MessageSticker, ReactionInfo, ReadReceiptInfo, SystemEventInfo } from '@/entities/message';
 
 export interface NewMessageEvent {
   type: 'message' | 'file';
@@ -22,6 +22,7 @@ export interface NewMessageEvent {
   reply_preview?: Message;
   is_system?: boolean;
   system_event?: SystemEventInfo;
+  sticker?: MessageSticker;
   reactions?: ReactionInfo[];
   read_by?: ReadReceiptInfo[];
 }

@@ -1,4 +1,5 @@
 import { ModalSurface } from '@/shared/ui/ModalSurface';
+import { createPinchTracker } from '@/shared/lib/pinchTracker';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
@@ -22,6 +23,8 @@ const loadImage = (src: string) =>
     image.onerror = reject;
     image.src = src;
   });
+
+const MAX_ZOOM = 3;
 
 const getDisplaySize = (width: number, height: number, zoom: number) => {
   const baseScale = Math.max(CROP_VIEW_SIZE / width, CROP_VIEW_SIZE / height);
@@ -86,6 +89,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
   const [isCropping, setIsCropping] = useState(false);
   const [sourceSize, setSourceSize] = useState<{ width: number; height: number } | null>(null);
   const dragStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+  const pinch = useRef(createPinchTracker()).current;
 
   const imageStyle = useMemo(() => {
     if (!sourceSize) {
@@ -114,6 +118,12 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
   }, [sourceSize, zoom]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const factor = pinch.move(event.pointerId, event.clientX, event.clientY);
+    if (factor !== null) {
+      setZoom((value) => Math.min(MAX_ZOOM, Math.max(1, value * factor)));
+      return;
+    }
+    if (pinch.pinching) return;
     const start = dragStartRef.current;
     if (!start) return;
     setOffset(clampOffset({
@@ -161,6 +171,12 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
             className="relative h-[280px] w-[280px] touch-none overflow-hidden rounded-lg bg-black"
             onPointerDown={(event) => {
               if (isBusy) return;
+              pinch.down(event.pointerId, event.clientX, event.clientY);
+              event.currentTarget.setPointerCapture(event.pointerId);
+              if (pinch.pinching) {
+                dragStartRef.current = null;
+                return;
+              }
               dragStartRef.current = {
                 x: event.clientX,
                 y: event.clientY,
@@ -171,10 +187,12 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
             }}
             onPointerMove={handlePointerMove}
             onPointerUp={(event) => {
+              pinch.up(event.pointerId);
               dragStartRef.current = null;
               event.currentTarget.releasePointerCapture(event.pointerId);
             }}
-            onPointerCancel={() => {
+            onPointerCancel={(event) => {
+              pinch.up(event.pointerId);
               dragStartRef.current = null;
             }}
           >
@@ -194,7 +212,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
             <input
               type="range"
               min="1"
-              max="3"
+              max={MAX_ZOOM}
               step="0.01"
               value={zoom}
               disabled={isBusy}

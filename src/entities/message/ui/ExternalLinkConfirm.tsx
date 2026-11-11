@@ -1,13 +1,20 @@
-import type { RefObject } from 'react';
+import { useEffect, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
+import { openStickerPack, stickerSlugFromHref } from '@/entities/sticker';
 
 export function ExternalLinkConfirm({ href, open, onOpenChange, trigger }: {
   href: string; open: boolean; onOpenChange: (open: boolean) => void; trigger: RefObject<HTMLAnchorElement | null>;
 }) {
   const { translations } = useLanguage();
-  if (!open) return null;
+  const stickerSlug = stickerSlugFromHref(href);
+  useEffect(() => {
+    if (!open || !stickerSlug) return;
+    openStickerPack({ slug: stickerSlug });
+    onOpenChange(false);
+  }, [open, stickerSlug, onOpenChange]);
+  if (!open || stickerSlug) return null;
   return createPortal(
     <ConfirmModal
       title={translations.externalLinkTitle}

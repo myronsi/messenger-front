@@ -5,7 +5,7 @@ import { StickerMessage } from './StickerMessage';
 const dialog = vi.fn();
 vi.mock('@/entities/sticker', () => ({
   StickerImage: ({ emoji, url }: { emoji: string; url: string }) => <img alt={emoji} src={url} />,
-  StickerPackDialog: (props: { pack: unknown }) => { dialog(props.pack); return null; },
+  openStickerPack: (pack: unknown) => dialog(pack),
 }));
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { stickerLabel: 'Sticker {emoji}' } }) }));
 

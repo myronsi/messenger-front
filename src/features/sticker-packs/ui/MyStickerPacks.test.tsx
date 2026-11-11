@@ -34,6 +34,8 @@ it('says when the pack limit is reached', async () => {
   create.mockReturnValue({ unwrap: () => Promise.reject({ status: 409 }) });
   render(<MyStickerPacks onOpen={vi.fn()} />);
   expect(screen.getByText('Dogs')).toBeInTheDocument();
+  expect(screen.queryByLabelText(en.stickerPackTitle)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: en.newStickerPack }));
   fireEvent.change(screen.getByLabelText(en.stickerPackTitle), { target: { value: 'More' } });
   fireEvent.click(screen.getByRole('button', { name: en.createStickerPack }));
   expect(await screen.findByRole('alert')).toHaveTextContent(en.stickerPackLimit);

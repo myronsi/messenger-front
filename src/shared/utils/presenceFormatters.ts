@@ -1,10 +1,12 @@
 import type { en } from '@/shared/lang/en';
 import { localeOf, type AppLanguage } from '@/shared/lang/languages';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { parseUtcDate } from './dateFormatters';
+import { formatTime, isSameDay, parseUtcDate, trimYearSuffix } from './dateFormatters';
 
 type PresenceWords = typeof en.presence;
 type PluralWords = PresenceWords['minutes'];
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const pluralize = (words: PluralWords, count: number, language: AppLanguage) => {
   const category = new Intl.PluralRules(localeOf(language)).select(count);
@@ -25,14 +27,17 @@ export const getPresenceLabel = (
   if (diffMinutes < 1) return words.justNow;
   if (diffMinutes < 60) return pluralize(words.minutes, diffMinutes, language);
 
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return pluralize(words.hours, diffHours, language);
+  const time = formatTime(lastSeenDate, language);
+  const today = new Date(now);
+  if (isSameDay(lastSeenDate, today)) return words.today.replace('{time}', time);
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  if (isSameDay(lastSeenDate, yesterday)) return words.yesterday.replace('{time}', time);
 
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return words.yesterday;
-  if (diffDays < 7) return pluralize(words.days, diffDays, language);
-
-  return words.date.replace('{date}', lastSeenDate.toLocaleDateString(localeOf(language)));
+  const date = trimYearSuffix(new Intl.DateTimeFormat(localeOf(language), {
+    day: 'numeric', month: 'short', ...(lastSeenDate.getFullYear() === today.getFullYear() ? {} : { year: 'numeric' }),
+  }).format(lastSeenDate));
+  if (now - lastSeenDate.getTime() >= WEEK_MS) return words.longAgo.replace('{date}', date);
+  return words.date.replace('{date}', date).replace('{time}', time);
 };
 
 export const usePresenceLabel = (isOnline: boolean | undefined, lastSeen: string | null | undefined) => {

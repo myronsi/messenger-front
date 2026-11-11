@@ -8,6 +8,7 @@ const addSticker = vi.fn();
 const upload = vi.fn();
 vi.mock('@/entities/sticker', () => ({
   useListOwnStickerPacksQuery: () => ({ currentData: [] }),
+  StickerImage: () => null,
   useCreateStickerPackMutation: () => [createPack],
   useAddStickerMutation: () => [addSticker],
   uploadStickerImage: (...args: unknown[]) => upload(...args),
@@ -28,9 +29,9 @@ it('reuses the pack it created when saving again after a failed upload', async (
   fireEvent.click(screen.getByRole('button', { name: 'crop' }));
   fireEvent.click(screen.getByRole('option', { name: '😀' }));
   fireEvent.change(screen.getByLabelText(en.stickerPackTitle), { target: { value: 'Cats' } });
-  fireEvent.click(screen.getByRole('button', { name: en.saveSticker }));
+  fireEvent.click(screen.getByRole('button', { name: en.addStickerToPack }));
   expect(await screen.findByRole('alert')).toHaveTextContent(en.stickerImageTooLarge);
-  fireEvent.click(screen.getByRole('button', { name: en.saveSticker }));
+  fireEvent.click(screen.getByRole('button', { name: en.addStickerToPack }));
   await waitFor(() => expect(onClose).toHaveBeenCalled());
   expect(createPack).toHaveBeenCalledTimes(1);
   expect(addSticker).toHaveBeenCalledWith({ packId: '9', attachmentId: 'img', emoji: '😀' });

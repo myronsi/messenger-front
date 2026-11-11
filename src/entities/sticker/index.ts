@@ -1,5 +1,6 @@
 export * from './model/types';
 export * from './model/manager';
+export { stickerLinkSlug, stickerSlugFromHref } from './model/stickerLink';
 export {
   useGetStickerPackQuery,
   useListRecentStickersQuery,

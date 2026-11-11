@@ -28,8 +28,8 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
   return (
     <>
       <div data-testid="chat-header" {...longPress.handlers}
-        className="motion-panel-in flex h-[72px] shrink-0 items-center justify-between border-b border-border px-4 sm:px-6">
-        <div className="flex min-w-0 items-center space-x-4 md:space-x-0">
+        className="motion-panel-in flex h-[72px] shrink-0 items-center justify-between border-b border-border pl-1.5 pr-3 sm:px-6">
+        <div className="flex min-w-0 items-center space-x-1 md:space-x-0">
           <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent md:hidden">
             <ArrowLeft className="h-5 w-5" />
           </button>
