@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useRef, useState, type SetStateAction } from 'react';
-import { Message, ModalState, useConversationMessages } from '@/entities/message';
+import { ContextMenuState, Message, ModalState, useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
@@ -27,7 +27,7 @@ export const useChat = (
   onPresenceUpdate?: (update: { username: string; is_online: boolean; last_seen: string | null }) => void
 ) => {
   const { messages, setMessages } = useConversationMessages(chatId);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: EntityId; isMine: boolean } | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const composerDraftRef = useRef<ComposerDraftHandle | null>(null);
@@ -54,6 +54,7 @@ export const useChat = (
     loadOlderMessages,
     loadNewerMessages,
     loadLatestMessages,
+    loadMessagesAround,
     catchUpAfterReconnect,
     markMessagesRead,
   } = useMessageHistory({
@@ -140,6 +141,7 @@ export const useChat = (
     loadOlderMessages,
     loadNewerMessages,
     loadLatestMessages,
+    loadMessagesAround,
     markMessagesRead: preview ? undefined : markMessagesRead,
     handleSendMessage,
     handleSendSticker,

@@ -47,7 +47,7 @@ const ReplyEditBar: React.FC<ReplyEditBarProps> = ({ message, mode, translations
   return (
     <div
       data-testid="reply-edit-bar"
-      className="motion-reply-in flex min-w-0 items-center gap-2 rounded-2xl border border-border/60 bg-background/55 p-2 shadow-lg shadow-foreground/10 backdrop-blur-2xl"
+      className="motion-reply-in flex min-w-0 items-center gap-2 rounded-2xl border border-border/60 bg-background/55 p-2 backdrop-blur-2xl"
     >
       <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
       {imageUrl && (

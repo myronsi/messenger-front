@@ -40,9 +40,9 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
       if (ref && 'current' in ref && ref.current) {
         const menu = ref.current;
         const left = openLeft ? x - menu.offsetWidth : x;
-        const top = Math.min(y, window.innerHeight - EDGE - menu.offsetHeight);
+        const top = y + menu.offsetHeight > window.innerHeight - EDGE ? y - menu.offsetHeight - REACTION_MENU_OFFSET : y;
         setAdjustedX(Math.max(EDGE, Math.min(left, window.innerWidth - menu.offsetWidth - EDGE)));
-        setAdjustedY(Math.max(EDGE + REACTION_MENU_OFFSET, top));
+        setAdjustedY(Math.max(EDGE, top));
       }
     }, [x, y, openLeft, ref, view.name]);
 

@@ -2,7 +2,6 @@ import type { EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
-import { skipToLastScreen } from './useHighlightScroll';
 
 interface ScrollToBottomOptions {
   chatContainerRef: RefObject<HTMLDivElement | null>;
@@ -14,12 +13,9 @@ interface ScrollToBottomOptions {
   scrollToBottomKey?: string | number;
   isOwnMessage: (message: Message) => boolean;
   shouldStickToBottomRef: MutableRefObject<boolean>;
-  autoScrollUntilRef: MutableRefObject<number>;
+  pendingBottomRef: MutableRefObject<boolean>;
+  glideToBottom: () => void;
 }
-
-export const getScrollBehavior = (): ScrollBehavior => (
-  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
-);
 
 const distanceFromBottom = (container: HTMLElement) => (
   container.scrollHeight - container.scrollTop - container.clientHeight
@@ -28,7 +24,7 @@ const distanceFromBottom = (container: HTMLElement) => (
 // State of the "scroll to bottom" button: whether it is shown, the unseen live-message badge, and where it scrolls to.
 export const useScrollToBottom = ({
   chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
-  scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, autoScrollUntilRef,
+  scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, pendingBottomRef, glideToBottom,
 }: ScrollToBottomOptions) => {
   const [unseenIds, setUnseenIds] = useState<EntityId[]>([]);
   const [isFarFromBottom, setIsFarFromBottom] = useState(false);
@@ -85,28 +81,20 @@ export const useScrollToBottom = ({
   }, [unseenIds, messageRefs, chatContainerRef]);
 
   const scrollToBottom = useCallback(async () => {
-    const container = chatContainerRef.current;
-    if (!container) return;
-    shouldStickToBottomRef.current = true;
-    autoScrollUntilRef.current = Date.now() + 800;
-    if (hasMoreNewerMessagesRef.current && onLoadLatestMessagesRef.current) {
-      // The newest messages are not loaded: replace the window with the latest page, then jump to its end.
-      await onLoadLatestMessagesRef.current();
-      shouldStickToBottomRef.current = true;
-      const jump = () => {
-        const next = chatContainerRef.current;
-        if (next) next.scrollTop = next.scrollHeight;
-      };
-      requestAnimationFrame(() => {
-        jump();
-        requestAnimationFrame(jump);
-      });
+    if (!chatContainerRef.current) return;
+    if (!hasMoreNewerMessagesRef.current || !onLoadLatestMessagesRef.current) {
+      glideToBottom();
       return;
     }
-    const behavior = getScrollBehavior();
-    if (behavior === 'smooth') skipToLastScreen(container, distanceFromBottom(container));
-    container.scrollTo({ top: container.scrollHeight, behavior });
-  }, [chatContainerRef, shouldStickToBottomRef, autoScrollUntilRef, hasMoreNewerMessagesRef, onLoadLatestMessagesRef]);
+    shouldStickToBottomRef.current = false;
+    pendingBottomRef.current = true;
+    await onLoadLatestMessagesRef.current();
+    requestAnimationFrame(() => {
+      if (!pendingBottomRef.current) return;
+      pendingBottomRef.current = false;
+      glideToBottom();
+    });
+  }, [chatContainerRef, shouldStickToBottomRef, pendingBottomRef, glideToBottom, hasMoreNewerMessagesRef, onLoadLatestMessagesRef]);
 
   return {
     unseenCount: unseenIds.length,

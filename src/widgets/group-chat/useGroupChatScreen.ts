@@ -109,6 +109,7 @@ export const useGroupChatScreen = ({
     isLoadingInitialMessages: history.isLoadingInitialMessages,
     loadNewerMessages: history.loadNewerMessages,
     loadLatestMessages: history.loadLatestMessages,
+    loadMessagesAround: history.loadMessagesAround,
     hasMoreNewerMessages: history.hasMoreNewerMessages,
     isLoadingNewerMessages: history.isLoadingNewerMessages,
     markMessagesRead: history.preview ? undefined : history.markMessagesRead,

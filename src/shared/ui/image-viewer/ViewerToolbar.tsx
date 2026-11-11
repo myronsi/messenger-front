@@ -19,7 +19,7 @@ interface ViewerToolbarProps {
 export function ViewerToolbar({ canDownload, isDownloading, deleteButtonRef, onZoom, onDownload, onDelete, onDraw, onClose }: ViewerToolbarProps) {
   const { translations } = useLanguage();
   return (
-    <div className="fixed top-4 right-4 flex gap-2 z-[10000]">
+    <div className="pointer-events-auto fixed right-4 top-[calc(1rem+env(safe-area-inset-top))] z-[10000] flex gap-2">
       <button type="button" onClick={() => onZoom(1.25)} aria-label={translations.zoomIn || 'Zoom in'} className={`${desktopOnly} ${buttonClass}`}>
         <ZoomIn className="w-5 h-5" />
       </button>

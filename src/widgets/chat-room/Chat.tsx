@@ -70,7 +70,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     messages, composerDraftRef, setMessageInput, contextMenu, setContextMenu, replyTo, setReplyTo,
     editingMessage, setEditingMessage, setSelectedUser, modal, setModal,
     highlightedMessageId, isLoadingInitialMessages, isLoadingOlderMessages, isLoadingNewerMessages,
-    hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages,
+    hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages, loadMessagesAround,
     markMessagesRead, handleSendMessage, handleSendSticker, handleResendMessage, handleFileUpload,
     createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
     settleOptimisticUpload, handleDeleteChat, getFormattedDateLabel, getMessageTime,
@@ -90,7 +90,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const reactionMenuRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
-  const [composerRef, composerHeight] = useElementHeight<HTMLDivElement>();
+  const [composerRef, composerHeight, composerNode] = useElementHeight<HTMLDivElement>();
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const lastSearchRequestKeyRef = useRef(searchRequestKey);
   const [isClosing, setIsClosing] = useState(false);
@@ -192,9 +192,9 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           onMessageClick={onListMessageClick}
           onAvatarClick={onAvatarClick}
           highlightedMessageId={highlightedMessageId}
-          contextMenuMessageId={contextMenu?.messageId}
+          contextMenuMessageId={isClosing || contextMenu?.isClosing ? undefined : contextMenu?.messageId}
           composerTargetMessageId={(editingMessage || replyTo)?.id}
-          bottomInset={composerHeight}
+          bottomInset={composerHeight} bottomInsetSource={composerNode}
           getFormattedDateLabel={formatDate}
           getMessageTime={formatTime}
           renderMessageContent={renderContent}
@@ -207,7 +207,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           setTempHighlightedMessageId={setTempHighlightedMessageId}
           onLoadOlderMessages={loadOlderMessages}
           onLoadNewerMessages={loadNewerMessages}
-          onLoadLatestMessages={loadLatestMessages}
+          onLoadLatestMessages={loadLatestMessages} onLoadMessagesAround={loadMessagesAround}
           hasMoreMessages={hasMoreMessages}
           hasMoreNewerMessages={hasMoreNewerMessages}
           isLoadingInitialMessages={isLoadingInitialMessages}

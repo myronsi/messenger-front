@@ -11,11 +11,13 @@ const message = (id: string): Message => ({
 let resize: () => void = () => {};
 let observed: [Element, ResizeObserverOptions | undefined][] = [];
 let frames: FrameRequestCallback[] = [];
-const flushFrames = () => {
-  for (let i = 0; i < 5 && frames.length; i += 1) {
+let clock = 0;
+const flushFrames = (count = 5) => {
+  for (let i = 0; i < count && frames.length; i += 1) {
     const pending = frames;
     frames = [];
-    pending.forEach((callback) => callback(0));
+    clock += 1000 / 60;
+    pending.forEach((callback) => callback(clock));
   }
 };
 
@@ -87,6 +89,7 @@ describe('useMessageListScroll', () => {
     await act(async () => { flushFrames(); });
     grow(1400);
     act(() => resize());
+    await act(async () => { flushFrames(100); });
 
     expect(container.scrollTop).toBe(900);
   });

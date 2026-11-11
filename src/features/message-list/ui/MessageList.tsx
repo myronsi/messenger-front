@@ -3,6 +3,7 @@ import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, memo, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
+import { bottomInsetPadding } from '../model/useBottomInset';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
 import { isIgnoredTap } from '../model/tapFilter';
 import { nextVoiceMessageId } from '../model/nextVoiceMessage';
@@ -24,6 +25,7 @@ interface MessageListProps {
   contextMenuMessageId?: EntityId;
   composerTargetMessageId?: EntityId;
   bottomInset?: number;
+  bottomInsetSource?: HTMLElement | null;
   getFormattedDateLabel: (timestamp: string) => string;
   getMessageTime: (timestamp: string) => string;
   renderMessageContent: (message: Message) => React.ReactNode;
@@ -36,6 +38,7 @@ interface MessageListProps {
   onLoadOlderMessages?: () => Promise<void>;
   onLoadNewerMessages?: () => Promise<void>;
   onLoadLatestMessages?: () => Promise<void>;
+  onLoadMessagesAround?: (messageId: EntityId) => Promise<void>;
   hasMoreMessages?: boolean;
   hasMoreNewerMessages?: boolean;
   isLoadingOlderMessages?: boolean;
@@ -54,7 +57,6 @@ interface MessageListProps {
 }
 
 const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
-const COMPOSER_GAP = 16;
 
 const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, ref) => {
   const {
@@ -79,21 +81,19 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     setTempHighlightedMessageId,
     onLoadOlderMessages,
     onLoadNewerMessages,
-    onLoadLatestMessages,
+    onLoadLatestMessages, onLoadMessagesAround,
     hasMoreMessages = false, hasMoreNewerMessages = false,
     isLoadingOlderMessages = false, isLoadingNewerMessages = false,
     isLoadingInitialMessages = false,
   } = props;
   const bottomSpaceClass = bottomInset === undefined ? MESSAGE_LIST_BOTTOM_SPACE : '';
-  const bottomSpaceStyle = bottomInset === undefined ? undefined : { paddingBottom: bottomInset + COMPOSER_GAP };
+  const bottomSpaceStyle = bottomInset === undefined ? undefined : { paddingBottom: bottomInsetPadding(bottomInset) };
   const { getFileTypeConfig } = useFileTypes();
   const { translations } = useLanguage();
   const isGroup = props.isGroup || false;
   const onOpenReadStatus = props.onOpenReadStatus;
   const onOpenReactionDetails = props.onOpenReactionDetails;
-  const onResendMessage = props.onResendMessage;
-  const scrollToBottomKey = props.scrollToBottomKey;
-  const onScrollStart = props.onScrollStart;
+  const { onResendMessage, scrollToBottomKey, onScrollStart } = props;
   const onMarkMessagesRead = props.onMarkMessagesRead;
   const isOwnMessage = useCallback((message: Message) => {
     if (message.is_own) return true;
@@ -136,7 +136,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     messages, messageRefs, firstUnreadMessageId: visibleUnreadBoundaryId, highlightedMessageId, tempHighlightedMessageId,
     getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages,
     isLoadingOlderMessages, isLoadingNewerMessages, onLoadOlderMessages, onLoadNewerMessages, onLoadLatestMessages,
-    onScrollStart, scrollToBottomKey, isOwnMessage,
+    onLoadMessagesAround, onScrollStart, scrollToBottomKey, isOwnMessage, bottomInsetSource: props.bottomInsetSource,
   });
 
   const setContentRef = useCallback((node: HTMLDivElement | null) => {

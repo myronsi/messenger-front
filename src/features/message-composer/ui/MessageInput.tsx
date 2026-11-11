@@ -13,6 +13,7 @@ import { useVoiceRecorder } from '../model/useVoiceRecorder';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { useHoldToRecord } from '../model/useHoldToRecord';
 import ReplyEditBar from './ReplyEditBar';
+import { ComposerReveal } from './ComposerReveal';
 import ComposerActionButton from './ComposerActionButton';
 import ComposerNotice from './ComposerNotice';
 import RecordingBar from './RecordingBar';
@@ -220,7 +221,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
         dropZone,
       )}
       <div className="mx-auto flex w-full flex-col gap-2 md:w-2/3">
-        {(editingMessage || replyTo) && (
+        <ComposerReveal show={!!(editingMessage || replyTo)}>{(editingMessage || replyTo) && (
           <ReplyEditBar
             message={(editingMessage || replyTo) as Message}
             mode={editingMessage ? 'edit' : 'reply'}
@@ -228,19 +229,19 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             onCancel={cancelKeepingFocus}
             showCancel={!isUnchangedEdit}
           />
-        )}
+        )}</ComposerReveal>
         {errorMessage && (
           <ComposerNotice key={errorMessage} message={errorMessage} closeLabel={translations.close || 'Close'} onDismiss={dismissError} />
         )}
-        {hasSelectedFile && (
+        <ComposerReveal show={hasSelectedFile}>{hasSelectedFile && (
           <SelectedFiles files={selectedFiles} removeLabel={translations.removeFile} addLabel={translations.attachFile}
             canAdd={albumsEnabled && canAddToSelection(selectedFiles) && !isDisabled}
             onAdd={() => fileInputRef.current?.click()}
             onRemove={(index) => setSelectedFiles(current => current.filter((_, item) => item !== index))}
             drawings={fileDrawings.drawings} onDrawingChange={isGoApi() ? fileDrawings.setDrawing : undefined} />
-        )}
+        )}</ComposerReveal>
         <div className="flex items-end gap-2">
-          <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 shadow-xl shadow-foreground/10 backdrop-blur-2xl">
+          <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 backdrop-blur-2xl">
             {!isRecording && !voicePreview && (
               <button
                 type="button"
@@ -290,7 +291,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             holdHandlers={hold.handlers}
           />
         </div>
-        <div ref={setEmojiDock} className="empty:hidden" />
+        <div ref={setEmojiDock} className="-mt-2 empty:hidden" />
       </div>
     </div>
   );

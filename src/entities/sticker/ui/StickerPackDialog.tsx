@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -8,6 +9,35 @@ import { openStickerPacks } from '../model/manager';
 import type { StickerPackRef } from '../model/types';
 import { StickerImage } from './StickerImage';
 import { StickerPackReport } from './StickerPackReport';
+import { SheetGrip } from '@/shared/ui/SheetGrip';
+
+const CLOSE_FALLBACK_MS = 700;
+
+const useExitAnimation = (ref: StickerPackRef | null, onClose: () => void) => {
+  const [open, setOpen] = useState(true);
+  const closedRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    closedRef.current = false;
+    setOpen(true);
+  }, [ref]);
+
+  const finish = useCallback(() => {
+    if (closedRef.current) return;
+    closedRef.current = true;
+    onCloseRef.current();
+  }, []);
+
+  useEffect(() => {
+    if (open) return undefined;
+    const timer = setTimeout(finish, CLOSE_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [open, finish]);
+
+  return { open, close: () => setOpen(false), finish };
+};
 
 interface StickerPackDialogProps {
   pack: StickerPackRef | null;
@@ -19,6 +49,7 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
   const { currentData: pack, isError, isFetching } = useGetStickerPackQuery(ref ?? {}, { skip: !ref, refetchOnMountOrArgChange: true });
   const [setInstalled, { isLoading: saving, isError: saveFailed }] = useSetStickerPackInstalledMutation();
   const isMobile = useIsMobile();
+  const exit = useExitAnimation(ref, onClose);
   const subtitle = pack?.is_official ? translations.stickerPackOfficial : pack?.is_mine ? translations.stickerPackMine : translations.stickerPackByUser;
   const Title = isMobile ? DrawerTitle : DialogTitle;
   const Description = isMobile ? DrawerDescription : DialogDescription;
@@ -66,18 +97,20 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
   );
   if (isMobile) {
     return (
-      <Drawer open={!!ref} onOpenChange={(open) => { if (!open) onClose(); }} shouldScaleBackground={false}>
+      <Drawer open={!!ref && exit.open} onOpenChange={(open) => { if (!open) exit.close(); }} shouldScaleBackground={false}
+        onAnimationEnd={(open) => { if (!open) exit.finish(); }}>
         <DrawerContent data-testid="sticker-pack-sheet" className="max-h-[85dvh] gap-3 rounded-t-3xl px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
           onClick={(event) => event.stopPropagation()}>
-          <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30" />
+          <div className="-mt-3 flex h-5 shrink-0 items-center justify-center"><SheetGrip /></div>
           {body}
         </DrawerContent>
       </Drawer>
     );
   }
   return (
-    <Dialog open={!!ref} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-h-[85dvh] max-w-md grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-4 sm:p-5" onClick={(event) => event.stopPropagation()}>
+    <Dialog open={!!ref && exit.open} onOpenChange={(open) => { if (!open) exit.close(); }}>
+      <DialogContent className="max-h-[85dvh] max-w-md grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-4 sm:p-5" onClick={(event) => event.stopPropagation()}
+        onAnimationEnd={(event) => { if (!exit.open && event.target === event.currentTarget) exit.finish(); }}>
         {body}
       </DialogContent>
     </Dialog>

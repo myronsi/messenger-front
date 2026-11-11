@@ -301,6 +301,11 @@
     pointer-events: auto;
   }
 
+  [data-near] > .message-cv,
+  [data-gliding] .message-cv {
+    content-visibility: visible;
+  }
+
   /* Message tails */
   .message-tail-right {
     position: relative;

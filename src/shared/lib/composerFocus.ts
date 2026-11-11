@@ -27,6 +27,14 @@ export function isMobileKeyboardOpen() {
   return full - viewport.height > KEYBOARD_MIN_HEIGHT;
 }
 
+export function keyboardInset() {
+  const viewport = window.visualViewport;
+  if (!viewport || viewport.scale > 1.01) return 0;
+  rememberViewportHeight();
+  const inset = (fullViewportHeights.get(Math.round(viewport.width)) ?? viewport.height) - viewport.height;
+  return inset > KEYBOARD_MIN_HEIGHT ? Math.round(inset) : 0;
+}
+
 export function lastKeyboardHeight() {
   const viewport = window.visualViewport;
   if (!viewport) return null;

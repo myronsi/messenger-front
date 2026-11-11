@@ -13,7 +13,7 @@ interface Props {
   onError: () => void;
 }
 
-const slideClass = 'h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw] select-none rounded-lg object-contain';
+const slideClass = 'h-full w-full max-w-none select-none object-contain';
 
 export function NeighborSlide({ image, direction, offset, gesturing, broken, onLoad, onError }: Props) {
   const content = () => {

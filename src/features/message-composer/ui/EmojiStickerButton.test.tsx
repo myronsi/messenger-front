@@ -22,12 +22,19 @@ const Harness = () => {
   );
 };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe('EmojiStickerButton on mobile', () => {
-  it('docks the panel under the composer with the last keyboard height and closes it when typing again', () => {
+  it('docks the panel under the composer with the last keyboard height and gives its place to the keyboard when typing again', () => {
     vi.stubGlobal('innerWidth', 390);
-    const viewport = { width: 390, height: 800, scale: 1, addEventListener: vi.fn() };
+    const listeners: (() => void)[] = [];
+    const viewport = {
+      width: 390, height: 800, scale: 1,
+      addEventListener: (_name: string, listener: () => void) => listeners.push(listener), removeEventListener: vi.fn(),
+    };
     vi.stubGlobal('visualViewport', viewport);
     lastKeyboardHeight();
     viewport.height = 480;
@@ -37,13 +44,19 @@ describe('EmojiStickerButton on mobile', () => {
     fireEvent.click(screen.getByTestId('emoji-sticker-button'));
     const panel = screen.getByTestId('emoji-sticker-dock');
     expect(screen.getByTestId('dock')).toContainElement(panel);
-    expect(panel).toHaveStyle({ height: '320px' });
+    expect(panel).toHaveStyle({ height: '312px' });
     expect(field).not.toHaveFocus();
+    expect(screen.getByTestId('emoji-sticker-keyboard-slot').style.height).toBe('max(0px, calc(320px - var(--keyboard-inset, 0px)))');
+    viewport.height = 800;
     act(() => field.focus());
+    expect(screen.getByTestId('emoji-sticker-keyboard-slot')).toHaveAttribute('aria-hidden', 'true');
+    viewport.height = 480;
+    act(() => listeners.forEach((listener) => listener()));
     expect(screen.queryByTestId('emoji-sticker-dock')).toBeNull();
   });
 
   it('inserts emoji without reopening the keyboard and toggles back to the keyboard', () => {
+    vi.useFakeTimers();
     vi.stubGlobal('innerWidth', 390);
     render(<Harness />);
     const field = screen.getByLabelText('composer') as HTMLTextAreaElement;
@@ -52,7 +65,11 @@ describe('EmojiStickerButton on mobile', () => {
     expect(field.value).toContain('😀');
     expect(field).not.toHaveFocus();
     fireEvent.click(screen.getByTestId('emoji-sticker-button'));
-    expect(screen.queryByTestId('emoji-sticker-dock')).toBeNull();
     expect(field).toHaveFocus();
+    expect(screen.getByTestId('emoji-sticker-keyboard-slot')).toHaveAttribute('aria-hidden', 'true');
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(screen.getByTestId('emoji-sticker-keyboard-slot').style.height).toBe('0px');
+    act(() => { vi.advanceTimersByTime(220); });
+    expect(screen.queryByTestId('emoji-sticker-dock')).toBeNull();
   });
 });

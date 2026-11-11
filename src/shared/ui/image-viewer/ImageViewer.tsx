@@ -1,7 +1,7 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeft, ChevronRight, ImageOff, Loader2, VideoOff } from 'lucide-react';
+import { ImageOff, Loader2, VideoOff } from 'lucide-react';
 import { preloadMedia } from '@/shared/api/mediaCache';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
@@ -16,14 +16,17 @@ import { useGallerySwipe } from './useGallerySwipe';
 import { useSwipeDismiss } from './useSwipeDismiss';
 import { useSwipeMorph } from './useSwipeMorph';
 import { useFadeClose } from './useFadeClose';
+import { useViewerChrome } from './useViewerChrome';
 import { BackToClose } from '@/shared/ui/BackToClose';
 import { mobileImageDirection } from './mobileImageDirection';
 import { MobileGalleryEdges } from './MobileGalleryEdges';
+import { GalleryArrows } from './GalleryArrows';
 import ImageViewerHeader from './ImageViewerHeader';
 import { DrawingOverlay } from '@/shared/ui/drawing';
 import type { ViewerImage } from './viewerTypes';
 export type { ViewerImage } from './viewerTypes';
 const KEY_PAN_STEP = 80;
+const FULL_SCREEN_MEDIA = 'absolute inset-0 h-full w-full max-w-none select-none object-contain';
 interface ImageViewerProps {
   images: ViewerImage[];
   initialIndex?: number;
@@ -59,6 +62,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   }, [images.length]);
   const onSwipe = useGallerySwipe(stageRef, index, images.length, go);
   const fadeClose = useFadeClose(stageRef, onClose);
+  const chrome = useViewerChrome();
   const onDismiss = useSwipeDismiss(stageRef, onClose, [image?.thumbnailSource, image?.url, image?.previewUrl]);
   const { view, swipeX, swipeY, isGesturing, movedRef, reset, zoomBy, pan, pointerHandlers } = useZoomPan(
     stageRef, imageRef, isStageMounted, { onSwipe: isGallery ? onSwipe : undefined, onDismiss, tapZoom: !image?.isVideo },
@@ -126,16 +130,17 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const previewRef = useRef<HTMLImageElement>(null);
   const videoTapRef = useRef<VideoTap | null>(null);
   const handleStageClick = useCallback((event: React.MouseEvent) => {
-    if (movedRef.current || view.scale > 1 || (event.target instanceof Element && event.target.closest('[data-viewer-controls]'))) return;
+    if (event.target instanceof Element && event.target.closest('[data-viewer-controls]')) return;
+    if (movedRef.current) { chrome.cancel(); return; }
     const media = imageRef.current;
     const touch = (event.nativeEvent as PointerEvent).pointerType === 'touch' || window.innerWidth < 640;
     if (media instanceof HTMLVideoElement && touch) { videoTapRef.current?.(event.clientX, event.clientY, true); return; }
-    const direction = isGallery ? mobileImageDirection(event.clientX, stageRef.current) : null;
+    const direction = isGallery && view.scale === 1 ? mobileImageDirection(event.clientX, stageRef.current) : null;
     if (direction) { onSwipe(direction, 0); return; }
-    const onPicture = isOnPicture([imageRef.current, previewRef.current], event.clientX, event.clientY);
-    if (onPicture && media instanceof HTMLVideoElement) videoTapRef.current?.(event.clientX, event.clientY, false);
-    else if (!onPicture) fadeClose();
-  }, [movedRef, fadeClose, view.scale, isGallery, onSwipe]);
+    if (!(media instanceof HTMLVideoElement)) chrome.toggleSoon();
+    else if (isOnPicture([media, previewRef.current], event.clientX, event.clientY)) videoTapRef.current?.(event.clientX, event.clientY, false);
+    else chrome.toggleNow();
+  }, [movedRef, chrome, view.scale, isGallery, onSwipe]);
   if (!image) return null;
   const isBroken = !!brokenUrls[image.url];
   const isVideo = !!image.isVideo;
@@ -161,9 +166,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     }
   };
   const deleteState = deleting?.url === image.url ? deleting : null;
-  const sideButtonClass = 'max-sm:pointer-events-none max-sm:opacity-0 max-sm:focus-visible:pointer-events-auto max-sm:focus-visible:opacity-100 absolute top-1/2 z-[10000] -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/50 disabled:pointer-events-none disabled:opacity-0 sm:p-3';
   const edgeResistance = (!canGoBack && swipeX > 0) || (!canGoForward && swipeX < 0) ? 0.3 : 1;
-  const mainClass = `h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw] select-none object-contain rounded-lg ${isLoaded ? 'opacity-100' : 'opacity-0'}`;
+  const mainClass = `${FULL_SCREEN_MEDIA} ${isLoaded ? 'opacity-100' : 'opacity-0'}`;
   const markCurrentLoaded = () => markLoaded(image.url);
   const markCurrentBroken = () => setBrokenUrls((current) => ({ ...current, [image.url]: true }));
   const mediaStyle: React.CSSProperties = {
@@ -208,6 +212,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
           >
             <BackToClose onClose={fadeClose} flag="imageViewer" />
             <DialogPrimitive.Title className="sr-only">{image.name}</DialogPrimitive.Title>
+            <div data-testid="image-viewer-chrome" inert={!chrome.visible} aria-hidden={!chrome.visible || undefined}
+              className={`pointer-events-none fixed inset-0 z-[10000] transition-opacity duration-200 ease-out ${chrome.visible ? 'opacity-100' : 'opacity-0'}`}>
             <ImageViewerHeader info={image.info} index={index} total={images.length} onShowInChat={image.onShowInChat} onClose={onClose} />
             <ViewerToolbar
               canDownload={!isBroken || isVideo} isDownloading={isDownloading} deleteButtonRef={deleteButtonRef}
@@ -219,25 +225,17 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                 busy={deleteState.busy} failed={deleteState.failed} onCancel={() => setDeleting(null)} onConfirm={() => void confirmDelete()}
               />
             )}
-            {isGallery && (
-              <>
-                <button type="button" disabled={!canGoBack} onClick={() => onSwipe(-1, 0)} aria-label={translations.previousImage} className={`${sideButtonClass} left-2 sm:left-4`}>
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button type="button" disabled={!canGoForward} onClick={() => onSwipe(1, 0)} aria-label={translations.nextImage} className={`${sideButtonClass} right-2 sm:right-4`}>
-                  <ChevronRight className="h-6 w-6" />
-                </button>
-              </>
-            )}
+            {isGallery && <GalleryArrows canGoBack={canGoBack} canGoForward={canGoForward} onGo={(direction) => onSwipe(direction, 0)} />}
+            </div>
             <div
               ref={setStage}
               data-testid="image-viewer-stage"
-              className={`relative flex-1 flex items-center justify-center overflow-hidden px-0 py-8 sm:px-8 select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+              className={`relative flex-1 flex items-center justify-center overflow-hidden select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
               style={{ touchAction: 'none' }}
               onClick={handleStageClick}
               {...pointerHandlers}
             >
-              {isGallery && !image.isVideo && <MobileGalleryEdges previous={canGoBack} next={canGoForward} zoomed={view.scale > 1} />}
+              {isGallery && !image.isVideo && <MobileGalleryEdges previous={canGoBack} next={canGoForward} zoomed={view.scale > 1 || !chrome.visible} />}
               {view.scale === 1 && ([-1, 1] as const).map((direction) => {
                 const neighbor = images[index + direction];
                 if (!neighbor) return null;
@@ -262,7 +260,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                     <AuthenticatedImage
                       key={previewUrl} ref={previewRef} src={previewUrl} alt="" aria-hidden="true"
                       data-testid="image-viewer-preview" data-active-slide
-                      className="pointer-events-none absolute inset-0 m-auto h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw] select-none object-contain"
+                      className={`pointer-events-none ${FULL_SCREEN_MEDIA}`}
                       style={{ transform: `translate(${swipeX * edgeResistance}px, ${swipeY}px) scale(${Math.max(0.65, 1 - swipeY / window.innerHeight * 0.5)})` }}
                       draggable={false}
                     />
@@ -273,6 +271,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                     <ViewerVideo
                       key={image.url} url={image.url} name={image.name} poster={previewUrl}
                       loaded={isLoaded} idle={swipeX === 0 && swipeY === 0} tapRef={videoTapRef} mediaRef={setVideo}
+                      controlsVisible={chrome.visible} onSingleTap={chrome.toggleNow}
                       className={mainClass}
                       style={mediaStyle}
                       onLoad={markCurrentLoaded} onError={markCurrentBroken}
@@ -285,7 +284,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                     />
                   )}
                   {isLoaded && !isVideo && <DrawingOverlay drawing={image.drawing} aspect={image.aspect ?? naturalAspect(imageRef.current)} fit="contain"
-                    className="pointer-events-none absolute inset-0 m-auto h-[80vh] w-[calc(100vw-16px)] max-w-none sm:w-[80vw]" style={mediaStyle} />}
+                    className="pointer-events-none absolute inset-0 h-full w-full" style={mediaStyle} />}
                 </>
               )}
             </div>
