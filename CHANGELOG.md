@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.18](https://github.com/myronsi/messenger-front/compare/v0.6.17...v0.6.18) (2026-11-11)
+
+
+### Features
+
+* **chat:** keep drafts, stack the message menus and dock the emoji panel on mobile ([#191](https://github.com/myronsi/messenger-front/issues/191)) ([8fb19c3](https://github.com/myronsi/messenger-front/commit/8fb19c3eea4118daabdba9d662ce37f026140b11))
+* **chat:** read the unread anchor from the chat list ([#189](https://github.com/myronsi/messenger-front/issues/189)) ([2e035fa](https://github.com/myronsi/messenger-front/commit/2e035fa970f5d09c2668c2c19afaf71f1ddde262))
+* **i18n:** add German ([#188](https://github.com/myronsi/messenger-front/issues/188)) ([cfba50e](https://github.com/myronsi/messenger-front/commit/cfba50e2e989b2d9f0a9a24a0f64dc1a98de65a9))
+* **stickers:** sticker panel, sticker messages and user-made packs ([#182](https://github.com/myronsi/messenger-front/issues/182)) ([3fdbf37](https://github.com/myronsi/messenger-front/commit/3fdbf370b1e8e676e78829233d9395b55390d138))
+* **ui:** redesign stickers, improve drawing and chat details ([#194](https://github.com/myronsi/messenger-front/issues/194)) ([09d93b1](https://github.com/myronsi/messenger-front/commit/09d93b10d89f1962f90461d35a39d4aaa16d6574))
+
+
+### Bug Fixes
+
+* **api:** remove duplicate startup requests and speed up the first message ([#187](https://github.com/myronsi/messenger-front/issues/187)) ([3356a88](https://github.com/myronsi/messenger-front/commit/3356a88957126c9d8a54f37f8380e93151a9233e))
+* **chat:** keep the typed draft when starting a reply ([#190](https://github.com/myronsi/messenger-front/issues/190)) ([a65ed95](https://github.com/myronsi/messenger-front/commit/a65ed951c6ccdd17cb57235874b72cf980d76221))
+* **chat:** open a reloaded chat at the bottom without scrolling ([#193](https://github.com/myronsi/messenger-front/issues/193)) ([1739f4b](https://github.com/myronsi/messenger-front/commit/1739f4b782748d8ecd0da7f7c409102200b4e114))
+* **media:** mixed attachments, inline audio, upload progress and file sizes ([#185](https://github.com/myronsi/messenger-front/issues/185)) ([c50defe](https://github.com/myronsi/messenger-front/commit/c50defe82dc3392725e9cfe90f00d101cf3199c9))
+* **ux:** recovery key copy, browser language, sending state and clearer menus ([#184](https://github.com/myronsi/messenger-front/issues/184)) ([fba4e06](https://github.com/myronsi/messenger-front/commit/fba4e061e6f606d5526c185a45f53353d3a7ea43))
+
+
+### Performance Improvements
+
+* **chat:** cut the bubble width measuring that freezes long chats ([#192](https://github.com/myronsi/messenger-front/issues/192)) ([60988e2](https://github.com/myronsi/messenger-front/commit/60988e2e9d05b3014112c541a0d6c4088f3148a2))
+* **chat:** smoother message list and typing in large chats ([#186](https://github.com/myronsi/messenger-front/issues/186)) ([b191a03](https://github.com/myronsi/messenger-front/commit/b191a03ae940e642a5c787ca5f6f543c0bab979e))
+
 ## [0.6.17](https://github.com/myronsi/messenger-front/compare/v0.6.16...v0.6.17) (2026-11-10)
 
 
