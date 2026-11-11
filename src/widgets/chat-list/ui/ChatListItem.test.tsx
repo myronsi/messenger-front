@@ -89,7 +89,7 @@ describe('ChatListItem layout', () => {
     const call = (outcome: 'completed' | 'missed', actorId: string) => ({
       ...message, system_event: { kind: 'call' as const, actor_id: actorId, actor_name: 'Anna', call: { call_id: 'c', kind: 'direct' as const, outcome, duration_seconds: 5 } },
     });
-    const own = (lastMessage?: { sender_id?: unknown } | null) => lastMessage?.sender_id === '1';
+    const own = (lastMessage?: { system_event?: { actor_id?: unknown } } | null) => lastMessage?.system_event?.actor_id === '1';
     const { unmount } = render(<ChatListItem {...base} chat={{ id: '9', name: 'anna', type: 'one-on-one', last_message: call('missed', '5') } as Chat}
       isOwnLastMessage={own} isOwnLastMessageRead={() => false} />);
     expect(screen.getByTestId('chat-call-icon')).toHaveAttribute('data-alert', 'true');

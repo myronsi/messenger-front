@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react';
 import { LINE_HEIGHT, MAX_DRAWING_TEXT, textLines } from './model';
+import type { TextGrabHandlers } from './useTextGrab';
 
 const CARET_WIDTH = 1;
 
@@ -15,9 +16,10 @@ interface InlineTextEditorProps {
   onCommit: () => void;
   onCancel: () => void;
   fieldRef?: RefObject<HTMLTextAreaElement | null>;
+  grab?: TextGrabHandlers;
 }
 
-export function InlineTextEditor({ x, y, value, color, fontSize, zoom, label, onChange, onCommit, onCancel, fieldRef: outerRef }: InlineTextEditorProps) {
+export function InlineTextEditor({ x, y, value, color, fontSize, zoom, label, onChange, onCommit, onCancel, fieldRef: outerRef, grab }: InlineTextEditorProps) {
   const innerRef = useRef<HTMLTextAreaElement>(null);
   const fieldRef = outerRef ?? innerRef;
   const [caret, setCaret] = useState<number | null>(value.length);
@@ -53,9 +55,9 @@ export function InlineTextEditor({ x, y, value, color, fontSize, zoom, label, on
         rows={lines.length} wrap="off" spellCheck={false}
         onChange={(event) => { onChange(event.target.value); trackCaret(); }} onKeyDown={onKeyDown}
         onSelect={trackCaret} onKeyUp={trackCaret} onFocus={trackCaret} onBlur={() => setCaret(null)}
-        onPointerDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()} {...grab}
         className="absolute m-0 resize-none overflow-hidden whitespace-pre border-0 bg-transparent p-0 font-semibold outline-none"
-        style={{ ...text, color: 'transparent', caretColor: 'transparent' }} />
+        style={{ ...text, color: 'transparent', caretColor: 'transparent', touchAction: grab ? 'none' : undefined }} />
       {caret !== null && (
         <div aria-hidden="true" className="pointer-events-none absolute whitespace-pre font-semibold text-transparent" style={text}>
           {value.slice(0, caret)}

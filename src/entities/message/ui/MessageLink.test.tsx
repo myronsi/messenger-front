@@ -8,9 +8,10 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ tran
   externalLinkTitle: 'Open external link?', externalLinkDescription: 'This link takes you outside Messenger.', cancel: 'Cancel',
 } }) }));
 vi.mock('@/shared/lib/copyText', () => ({ copyText: vi.fn(async () => true) }));
+const openPack = vi.hoisted(() => vi.fn());
 vi.mock('@/entities/sticker', async (original) => ({
   ...await original<typeof import('@/entities/sticker')>(),
-  StickerPackDialog: ({ pack }: { pack: { slug: string } }) => <div role="dialog" aria-label="sticker pack">{pack.slug}</div>,
+  openStickerPack: openPack,
 }));
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
@@ -97,7 +98,7 @@ it('opens the sticker pack preview instead of the leave-the-app question for sti
   const open = vi.spyOn(window, 'open').mockReturnValue(null);
   render(<LinkedMessageText text={`Take these ${window.location.origin}/stickers/ABCD1234`} />);
   fireEvent.click(screen.getByRole('link'));
-  expect(screen.getByRole('dialog', { name: 'sticker pack' })).toHaveTextContent('ABCD1234');
+  expect(openPack).toHaveBeenCalledWith({ slug: 'ABCD1234' });
   expect(screen.queryByText('Open external link?')).not.toBeInTheDocument();
   expect(open).not.toHaveBeenCalled();
 });

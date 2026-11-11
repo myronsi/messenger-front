@@ -16,6 +16,11 @@ export const useUrlOverlay = () => {
 
   const go = useCallback((next: UrlOverlay | null, replace: boolean, marks?: EntryMarks, base?: string) => {
     const current = splitOverlayPath(window.location.pathname);
+    if (base !== undefined && base !== current.base) {
+      navigate({ pathname: joinOverlayPath(base, current.overlay), search: window.location.search, hash: window.location.hash }, {
+        replace: true, state: window.history.state?.usr,
+      });
+    }
     const pathname = joinOverlayPath(base ?? current.base, next);
     if (pathname === window.location.pathname) return;
     const state = marks ? { ...currentEntryMarks(), ...marks } : window.history.state?.usr;

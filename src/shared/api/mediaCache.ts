@@ -224,7 +224,9 @@ export const peekMedia = (url: string) => {
 
 export const dropMedia = (url: string) => {
   const entry = entries.get(url);
-  if (entry?.objectUrl) forget(url, entry);
+  if (!entry?.objectUrl) return;
+  if (entry.users === 0) forget(url, entry);
+  else entries.delete(url);
 };
 
 export const acquireMedia = (url: string) => {
@@ -236,6 +238,10 @@ export const acquireMedia = (url: string) => {
     released = true;
     entry.users -= 1;
     if (entry.users > 0) return;
+    if (entries.get(url) !== entry) {
+      if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+      return;
+    }
     if (!entry.objectUrl && !entry.keep) forget(url, entry);
     else evictIdle();
   };

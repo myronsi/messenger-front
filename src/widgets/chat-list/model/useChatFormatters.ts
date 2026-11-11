@@ -45,7 +45,8 @@ export function useChatFormatters(currentUserId?: EntityId) {
   };
 
   const isOwnLastMessage = (lastMessage?: ChatLastMessage | null) => {
-    return !!currentUserId && lastMessage?.sender_id === currentUserId;
+    const author = lastMessage?.system_event ? lastMessage.system_event.actor_id : lastMessage?.sender_id;
+    return !!currentUserId && author === currentUserId;
   };
 
   const isOwnLastMessageRead = (lastMessage?: ChatLastMessage | null) => {

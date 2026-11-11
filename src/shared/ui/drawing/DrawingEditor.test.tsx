@@ -125,7 +125,7 @@ describe('DrawingEditor', () => {
     expect(item.text).toBe('Old');
   });
 
-  it('drags a label by grabbing the text itself', () => {
+  it('drags a label by grabbing the text itself, while a short tap leaves it in place', () => {
     const onConfirm = vi.fn();
     const initial = { version: 1, items: [{ type: 'text' as const, color: '#3b82f6', x: 0.25, y: 0.5, size: 0.05, text: 'Old' }] };
     render(editor({ onConfirm, initial }));
@@ -133,10 +133,14 @@ describe('DrawingEditor', () => {
     fireEvent.pointerDown(surface(), { pointerId: 1, clientX: 52, clientY: 51, button: 0 });
     fireEvent.pointerMove(surface(), { pointerId: 1, clientX: 92, clientY: 61 });
     fireEvent.pointerUp(surface(), { pointerId: 1 });
-    const grab = screen.getByTestId('drawing-text-grab');
-    fireEvent.pointerDown(grab, { pointerId: 2, clientX: 0, clientY: 0 });
-    fireEvent.pointerMove(grab, { pointerId: 2, clientX: 0, clientY: 20 });
-    fireEvent.pointerUp(grab, { pointerId: 2 });
+    const field = screen.getByTestId('drawing-text-field');
+    fireEvent.pointerDown(field, { pointerId: 3, clientX: 0, clientY: 0, button: 0 });
+    fireEvent.pointerMove(field, { pointerId: 3, clientX: 2, clientY: 2 });
+    fireEvent.pointerUp(field, { pointerId: 3 });
+    expect(field.style.left).toBe('45%');
+    fireEvent.pointerDown(field, { pointerId: 2, clientX: 0, clientY: 0, button: 0 });
+    fireEvent.pointerMove(field, { pointerId: 2, clientX: 0, clientY: 20 });
+    fireEvent.pointerUp(field, { pointerId: 2 });
     fireEvent.click(screen.getByTestId('drawing-confirm'));
     const [item] = onConfirm.mock.calls[0][0].items;
     expect(item.x).toBeCloseTo(0.45, 2);

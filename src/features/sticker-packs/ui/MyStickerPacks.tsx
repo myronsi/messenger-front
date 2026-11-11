@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ChevronRight, EyeOff, Plus, Sticker } from 'lucide-react';
 import { StickerImage, useCreateStickerPackMutation, useListOwnStickerPacksQuery } from '@/entities/sticker';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -20,6 +20,11 @@ export const MyStickerPacks = ({ onOpen }: MyStickerPacksProps) => {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const showForm = creating || packs?.length === 0;
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (creating) titleRef.current?.focus();
+  }, [creating]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -54,7 +59,7 @@ export const MyStickerPacks = ({ onOpen }: MyStickerPacksProps) => {
       )}
       {showForm && (
         <form className="flex gap-2" onSubmit={(event) => { void submit(event); }}>
-          <input autoFocus={creating} className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={64}
+          <input ref={titleRef} className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={64}
             placeholder={translations.stickerPackTitle} aria-label={translations.stickerPackTitle} value={title}
             onChange={(event) => setTitle(event.target.value)} />
           {creating && <Button type="button" variant="ghost" onClick={() => { setCreating(false); setTitle(''); }}>{translations.cancel}</Button>}

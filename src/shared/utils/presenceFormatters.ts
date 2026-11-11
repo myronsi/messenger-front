@@ -1,14 +1,12 @@
 import type { en } from '@/shared/lang/en';
 import { localeOf, type AppLanguage } from '@/shared/lang/languages';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { formatTime, parseUtcDate } from './dateFormatters';
+import { formatTime, isSameDay, parseUtcDate, trimYearSuffix } from './dateFormatters';
 
 type PresenceWords = typeof en.presence;
 type PluralWords = PresenceWords['minutes'];
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 const pluralize = (words: PluralWords, count: number, language: AppLanguage) => {
   const category = new Intl.PluralRules(localeOf(language)).select(count);
@@ -31,13 +29,13 @@ export const getPresenceLabel = (
 
   const time = formatTime(lastSeenDate, language);
   const today = new Date(now);
-  if (sameDay(lastSeenDate, today)) return words.today.replace('{time}', time);
+  if (isSameDay(lastSeenDate, today)) return words.today.replace('{time}', time);
   const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-  if (sameDay(lastSeenDate, yesterday)) return words.yesterday.replace('{time}', time);
+  if (isSameDay(lastSeenDate, yesterday)) return words.yesterday.replace('{time}', time);
 
-  const date = new Intl.DateTimeFormat(localeOf(language), {
+  const date = trimYearSuffix(new Intl.DateTimeFormat(localeOf(language), {
     day: 'numeric', month: 'short', ...(lastSeenDate.getFullYear() === today.getFullYear() ? {} : { year: 'numeric' }),
-  }).format(lastSeenDate).replace(/\s?г\.$/, '');
+  }).format(lastSeenDate));
   if (now - lastSeenDate.getTime() >= WEEK_MS) return words.longAgo.replace('{date}', date);
   return words.date.replace('{date}', date).replace('{time}', time);
 };

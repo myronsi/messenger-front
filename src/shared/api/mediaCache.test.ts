@@ -11,7 +11,7 @@ vi.mock('@/shared/auth/session', () => ({
   subscribeToAccessToken: (listener: (token: string | null) => void) => { session.listeners.push(listener); return () => undefined; },
 }));
 
-import { acquireMedia, clearMediaCache, peekMedia, preloadMedia, storageLifetime } from './mediaCache';
+import { acquireMedia, clearMediaCache, dropMedia, peekMedia, preloadMedia, storageLifetime } from './mediaCache';
 
 const attachment = (id: string) => `${window.location.origin}/api/v2/attachments/${id}/content?variant=thumbnail`;
 const avatar = `${window.location.origin}/api/v2/users/7/avatar`;
@@ -53,6 +53,24 @@ describe('mediaCache', () => {
 
     expect(await first.promise).toBe(await second.promise);
     expect(session.authFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads an image for one user without breaking the copy other users still show', async () => {
+    const other = acquireMedia(avatar);
+    const failing = acquireMedia(avatar);
+    const shared = await other.promise;
+    await failing.promise;
+
+    dropMedia(avatar);
+    const fresh = acquireMedia(avatar);
+    expect(await fresh.promise).not.toBe(shared);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+
+    failing.release();
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    other.release();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(shared);
+    expect(peekMedia(avatar)).not.toBe(shared);
   });
 
   it('keeps a loaded image after its last user is gone', async () => {

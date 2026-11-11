@@ -41,7 +41,6 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const ownLastMessageFailed = ownLastMessage && !!chat.last_message?.delivery_error;
   const isActive = chat.id === activeChatId;
   const callEvent = chat.last_message?.system_event?.kind === 'call' ? chat.last_message.system_event : null;
-  const callOutgoing = !!callEvent && isOwnLastMessage({ sender_id: callEvent.actor_id } as ChatLastMessage);
   const unreadCount = chat.unread_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
   const typingUsers = useTypingUsers(chat.id);
@@ -117,7 +116,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
               {isNotice || isContentLabel(chat.last_message)
                 ? (
                   <span data-testid={isNotice ? 'chat-system-preview' : 'chat-label-preview'} className="italic">
-                    {callEvent && <CallPreviewIcon event={callEvent} outgoing={callOutgoing} onAccent={isActive} />}
+                    {callEvent && <CallPreviewIcon event={callEvent} outgoing={ownLastMessage} onAccent={isActive} />}
                     {getLastMessagePreview(chat.last_message)}
                   </span>
                 )

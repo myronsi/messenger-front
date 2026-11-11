@@ -52,3 +52,13 @@ it('previews a sticker as its emoji', () => {
   const last = { ...message(new Date(2026, 10, 5, 9, 30)), content: '🐱', sticker: { emoji: '🐱', image_url: '/s/1' } };
   expect(result.current.getLastMessagePreview(last)).toBe('🐱 Sticker');
 });
+
+it('treats a call as mine when I started it, whoever the system message is from', () => {
+  const { result } = renderHook(() => useChatFormatters('1'));
+  const call = (actorId: string): ChatLastMessage => ({
+    ...message(new Date(2026, 10, 5, 9, 30)), sender_id: '0', system_event: { kind: 'call', actor_id: actorId, actor_name: 'x' },
+  });
+  expect(result.current.isOwnLastMessage(call('1'))).toBe(true);
+  expect(result.current.isOwnLastMessage(call('2'))).toBe(false);
+  expect(result.current.isOwnLastMessage({ ...message(new Date()), sender_id: '1' })).toBe(true);
+});

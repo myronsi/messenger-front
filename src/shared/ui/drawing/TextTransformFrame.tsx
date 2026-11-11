@@ -17,7 +17,6 @@ interface TextTransformFrameProps {
   resizeLabel: string;
   onMove: (x: number, y: number) => void;
   onResize: (size: number) => void;
-  onTap: () => void;
   onGrab: () => void;
 }
 
@@ -33,7 +32,7 @@ interface Gesture {
   moved: boolean;
 }
 
-export function TextTransformFrame({ x, y, value, size, box, zoom, moveLabel, resizeLabel, onMove, onResize, onTap, onGrab }: TextTransformFrameProps) {
+export function TextTransformFrame({ x, y, value, size, box, zoom, moveLabel, resizeLabel, onMove, onResize, onGrab }: TextTransformFrameProps) {
   const gesture = useRef<Gesture | null>(null);
   const lines = textLines(value);
   const fontSize = size * box.height;
@@ -70,7 +69,6 @@ export function TextTransformFrame({ x, y, value, size, box, zoom, moveLabel, re
     if (current?.id !== event.pointerId) return;
     event.stopPropagation();
     gesture.current = null;
-    if (!current.moved) onTap();
   };
 
   const handleClass = 'pointer-events-auto absolute grid place-items-center rounded-full bg-primary text-primary-foreground shadow-md ring-2 ring-black/30 touch-none';
@@ -82,8 +80,6 @@ export function TextTransformFrame({ x, y, value, size, box, zoom, moveLabel, re
         left: x * box.width - 4 / zoom, top: y * box.height - 4 / zoom, width: width + 8 / zoom, height: height + 8 / zoom,
         borderWidth: 1.5 / zoom, boxShadow: `0 0 0 ${1 / zoom}px rgba(0,0,0,0.35)`,
       }}>
-      <div data-testid="drawing-text-grab" className="pointer-events-auto absolute inset-0 cursor-move touch-none"
-        onPointerDown={start('move')} onPointerMove={move} onPointerUp={end} onPointerCancel={end} />
       <button type="button" aria-label={moveLabel} title={moveLabel} onPointerDown={start('move')} {...handleProps}
         className={`${handleClass} cursor-move`} style={{ width: handle, height: handle, left: -handle * 0.85, top: -handle * 0.85 }}>
         <Move style={{ width: handle * 0.55, height: handle * 0.55 }} />

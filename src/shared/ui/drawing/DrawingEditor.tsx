@@ -8,6 +8,7 @@ import { DrawingItems } from './DrawingOverlay';
 import { DrawingToolbar } from './DrawingToolbar';
 import { InlineTextEditor } from './InlineTextEditor';
 import { TextTransformFrame } from './TextTransformFrame';
+import { useTextGrab } from './useTextGrab';
 import { DEFAULT_SIZE_LEVEL, DRAWING_COLORS, hitsItem, MAX_DRAWING_ITEMS, roundCoordinate, strokeWidthAt, textSizeAt, toDrawing, type Drawing } from './model';
 import { useDrawingHistory } from './useDrawingHistory';
 import { useDrawingPointer, type DrawingTool } from './useDrawingPointer';
@@ -111,6 +112,11 @@ export function DrawingEditor({
 
   const dragText = (dx: number, dy: number) => setTextDraft((current) => (current
     ? { ...current, x: roundCoordinate(grabOrigin.current.x + dx), y: roundCoordinate(grabOrigin.current.y + dy) } : current));
+  const moveText = (x: number, y: number) => setTextDraft((current) => (current ? { ...current, x, y } : current));
+  const grab = useTextGrab({
+    x: textDraft?.x ?? 0, y: textDraft?.y ?? 0, box: box ?? { width: 1, height: 1 }, zoom: zoom.view.scale,
+    onMove: moveText, onGrab: () => fieldRef.current?.blur(),
+  });
 
   const { visibleItems, draft, handlers, cancel } = useDrawingPointer({
     surfaceRef, tool, color, width: strokeWidthAt(sizeLevel), aspect: aspect ?? 1, zoom: zoom.view.scale, items, commit,
@@ -195,13 +201,13 @@ export function DrawingEditor({
                 <InlineTextEditor x={textDraft.x} y={textDraft.y} value={textDraft.value} color={color}
                   fontSize={textSizeAt(sizeLevel) * box.height} zoom={zoom.view.scale}
                   label={t.drawingTextPlaceholder} onChange={(value) => setTextDraft((current) => (current ? { ...current, value } : current))}
-                  onCommit={commitText} onCancel={() => setTextDraft(null)} fieldRef={fieldRef} />
+                  onCommit={commitText} onCancel={() => setTextDraft(null)} fieldRef={fieldRef} grab={textDraft.value.trim() ? grab : undefined} />
               )}
               {textDraft?.value.trim() && box && (
                 <TextTransformFrame x={textDraft.x} y={textDraft.y} value={textDraft.value} size={textSizeAt(sizeLevel)} box={box} zoom={zoom.view.scale}
                   moveLabel={t.drawingTextMove} resizeLabel={t.drawingTextResize} onResize={(size) => setSizeLevel(levelOfTextSize(size))}
-                  onTap={() => fieldRef.current?.focus({ preventScroll: true })} onGrab={() => fieldRef.current?.blur()}
-                  onMove={(x, y) => setTextDraft((current) => (current ? { ...current, x, y } : current))} />
+                  onGrab={() => fieldRef.current?.blur()}
+                  onMove={moveText} />
               )}
             </div>
             {!box && <Loader2 className="absolute size-6 animate-spin text-white/50" />}

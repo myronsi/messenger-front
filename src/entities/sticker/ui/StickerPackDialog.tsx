@@ -1,7 +1,6 @@
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { EventBoundary } from '@/shared/ui/EventBoundary';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog';
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/shared/ui/drawer';
 import { useGetStickerPackQuery, useSetStickerPackInstalledMutation } from '../api/stickerApi';
@@ -67,24 +66,20 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
   );
   if (isMobile) {
     return (
-      <EventBoundary>
-        <Drawer open={!!ref} onOpenChange={(open) => { if (!open) onClose(); }} shouldScaleBackground={false}>
-          <DrawerContent data-testid="sticker-pack-sheet" className="max-h-[85dvh] gap-3 rounded-t-3xl px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
-            onClick={(event) => event.stopPropagation()}>
-            <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30" />
-            {body}
-          </DrawerContent>
-        </Drawer>
-      </EventBoundary>
+      <Drawer open={!!ref} onOpenChange={(open) => { if (!open) onClose(); }} shouldScaleBackground={false}>
+        <DrawerContent data-testid="sticker-pack-sheet" className="max-h-[85dvh] gap-3 rounded-t-3xl px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+          onClick={(event) => event.stopPropagation()}>
+          <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30" />
+          {body}
+        </DrawerContent>
+      </Drawer>
     );
   }
   return (
-    <EventBoundary>
-      <Dialog open={!!ref} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DialogContent className="max-h-[85dvh] max-w-md grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-4 sm:p-5" onClick={(event) => event.stopPropagation()}>
-          {body}
-        </DialogContent>
-      </Dialog>
-    </EventBoundary>
+    <Dialog open={!!ref} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[85dvh] max-w-md grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-4 sm:p-5" onClick={(event) => event.stopPropagation()}>
+        {body}
+      </DialogContent>
+    </Dialog>
   );
 };

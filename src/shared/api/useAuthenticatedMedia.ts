@@ -9,6 +9,7 @@ export const useAuthenticatedMedia = (source?: string, fallback?: string, enable
   latestToken.current = token;
   const signedIn = !!token;
   const failureCallback = useRef(onFailure);
+  const droppedRef = useRef<string | null>(null);
   failureCallback.current = onFailure;
   const [loaded, setLoaded] = useState<{ source: string; url: string; token: string | null; retry: string | null; attempt: number } | null>(null);
   const url = source ? resolveMediaUrl(source) : undefined;
@@ -19,7 +20,10 @@ export const useAuthenticatedMedia = (source?: string, fallback?: string, enable
     if (!enabled || !url || !protectedMedia || !signedIn) return;
     let active = true;
     const requestedWith = latestToken.current;
-    if (attempt > 0) dropMedia(url);
+    if (attempt > 0 && droppedRef.current !== url) {
+      droppedRef.current = url;
+      dropMedia(url);
+    }
     const lease = acquireMedia(url);
     lease.promise.then(objectUrl => {
       if (active) setLoaded({ source: url, url: objectUrl, token: requestedWith, retry, attempt });

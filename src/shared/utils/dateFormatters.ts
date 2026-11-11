@@ -44,17 +44,21 @@ export const formatDateOnly = (date: string | Date, language: AppLanguage) => {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+export const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+
+export const trimYearSuffix = (text: string) => text.replace(/\s?г\.$/, '');
+
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
 export const formatDateLabel = (date: string | Date, language: AppLanguage, today: Date, yesterday: Date): string => {
   const dateObj = parseUtcDate(date);
   const locale = localeOf(language);
 
-  if (dateObj.toDateString() === today.toDateString()) {
+  if (isSameDay(dateObj, today)) {
     return DAY_WORDS[language].today;
   }
 
-  if (dateObj.toDateString() === yesterday.toDateString()) {
+  if (isSameDay(dateObj, yesterday)) {
     return DAY_WORDS[language].yesterday;
   }
 
@@ -67,9 +71,8 @@ export const formatDateLabel = (date: string | Date, language: AppLanguage, toda
   const yearAgo = new Date(startOfDay(today));
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
   const withYear = startOfDay(dateObj) <= yearAgo || daysAgo < 0 && dateObj.getFullYear() !== today.getFullYear();
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', ...(withYear ? { year: 'numeric' } : {}) })
-    .format(dateObj)
-    .replace(/\s?г\.$/, '');
+  return trimYearSuffix(new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', ...(withYear ? { year: 'numeric' } : {}) })
+    .format(dateObj));
 };
 
 export const formatTime = (date: string | Date, language: AppLanguage): string => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronUp, Crop, PenLine, Plus, Smile, Sticker as StickerIcon } from 'lucide-react';
 import { StickerImage, uploadStickerImage, useAddStickerMutation, useCreateStickerPackMutation, useListOwnStickerPacksQuery } from '@/entities/sticker';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -49,6 +49,11 @@ export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMak
   const owned = useListOwnStickerPacksQuery(undefined, { skip: !!packId });
   const [choice, setChoice] = useState<string>(packId ?? '');
   const [title, setTitle] = useState('');
+  const titleRef = useRef<HTMLInputElement>(null);
+  const chooseNewPack = () => {
+    setChoice(NEW_PACK);
+    requestAnimationFrame(() => titleRef.current?.focus());
+  };
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [createPack] = useCreateStickerPackMutation();
@@ -152,11 +157,11 @@ export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMak
                       cover={pack.stickers[0] ? <StickerImage url={pack.stickers[0].image.url} emoji={pack.stickers[0].emoji} className="h-full w-full" />
                         : <StickerIcon className="h-4 w-4" />} />
                   ))}
-                  <PackChoice selected={choice === NEW_PACK} label={translations.newStickerPack} onSelect={() => setChoice(NEW_PACK)}
+                  <PackChoice selected={choice === NEW_PACK} label={translations.newStickerPack} onSelect={chooseNewPack}
                     cover={<Plus className="h-4 w-4" />} />
                 </div>
                 {choice === NEW_PACK && (
-                  <input autoFocus className="rounded-xl border-0 bg-muted/50 px-3 py-2.5 outline-none focus:ring-1 focus:ring-primary" maxLength={64} placeholder={translations.stickerPackTitle}
+                  <input ref={titleRef} className="rounded-xl border-0 bg-muted/50 px-3 py-2.5 outline-none focus:ring-1 focus:ring-primary" maxLength={64} placeholder={translations.stickerPackTitle}
                     aria-label={translations.stickerPackTitle} value={title} onChange={(event) => setTitle(event.target.value)} />
                 )}
               </div>
