@@ -8,6 +8,7 @@ import { BellOff, Check, CheckCheck, Pin, Users } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import { useChatMuteStatus } from '@/features/chat-mute';
 import { TypingLabel, useTypingUsers } from '@/entities/typing';
+import { useChatDraft } from '@/shared/hooks/useChatDraft';
 import { isContentLabel } from '../model/useChatFormatters';
 import { CallPreviewIcon } from './CallPreviewIcon';
 
@@ -44,6 +45,8 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const unreadCount = chat.unread_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
   const typingUsers = useTypingUsers(chat.id);
+  const draft = useChatDraft(chat.id);
+  const showDraft = !!draft && chat.id !== activeChatId;
   const unreadBadgeClass = isMuted
     ? isActive ? 'bg-muted-foreground text-background md:bg-primary-foreground/60 md:text-primary' : 'bg-muted-foreground text-background'
     : isActive ? 'bg-primary text-primary-foreground md:bg-primary-foreground md:text-primary' : 'bg-primary text-primary-foreground';
@@ -95,13 +98,13 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
               <BellOff data-testid="chat-muted-icon" aria-label={translations.mutedForever} className={`h-3.5 w-3.5 shrink-0 ${muted}`} />
             )}
           </div>
-          {ownLastMessage && !ownLastMessageFailed && !isSystemEvent && (
+          {!showDraft && ownLastMessage && !ownLastMessageFailed && !isSystemEvent && (
             <span className={`flex shrink-0 items-center transition-colors duration-150 ${isActive ? `${ticksTone} md:text-primary-foreground/80` : ticksTone}`}
               title={ownLastMessageRead ? translations.messageRead : translations.messageSent}>
               {ownLastMessageRead ? <CheckCheck size={16} /> : <Check size={16} />}
             </span>
           )}
-          {chat.last_message && (
+          {!showDraft && chat.last_message && (
             <span className={`shrink-0 text-xs ${unreadCount && !isMuted ? 'font-medium text-primary' : ''} ${muted}`}>
               {getLastMessageTime(chat.last_message)}
             </span>
@@ -111,6 +114,11 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           <div className={`min-w-0 flex-1 truncate text-sm leading-5 ${isActive ? `${previewTone} md:text-primary-foreground/80` : previewTone}`}>
             {typingUsers.length ? (
               <TypingLabel users={typingUsers} isGroup={chat.type === 'group'} className={`italic ${isActive ? 'text-primary md:text-primary-foreground' : 'text-primary'}`} />
+            ) : showDraft ? (
+              <span data-testid="chat-draft-preview">
+                <span className="text-destructive">{translations.chatDraftPrefix} </span>
+                {draft.replace(/\s+/g, ' ')}
+              </span>
             ) : (<>
               {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}>{sender}: </span>}
               {isNotice || isContentLabel(chat.last_message)

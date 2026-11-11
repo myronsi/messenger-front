@@ -50,6 +50,7 @@ export const messages = {
   olderSearchResult: "Older match",
   newerSearchResult: "Newer match",
   replyFromYou: "You",
+  chatDraftPrefix: "Draft:",
   voicePreviewPlay: "Play recording",
   voicePreviewPause: "Pause recording playback",
   voicePreviewSeek: "Recording position",

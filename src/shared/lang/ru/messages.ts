@@ -50,6 +50,7 @@ export const messages = {
   olderSearchResult: "Предыдущее совпадение",
   newerSearchResult: "Следующее совпадение",
   replyFromYou: "Вы",
+  chatDraftPrefix: "Черновик:",
   systemGroupCreated: "{actor} создал(а) группу",
   systemGroupCreatedYou: "Вы создали группу",
   systemMemberAdded: "{actor} добавил(а) {target}",

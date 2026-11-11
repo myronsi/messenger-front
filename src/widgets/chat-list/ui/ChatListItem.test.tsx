@@ -5,6 +5,7 @@ import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { applyTypingFrame, clearTypingUsers } from '@/entities/typing';
 import { en } from '@/shared/lang/en';
 import type { Chat } from '@/entities/message';
+import { clearDrafts, writeDraft } from '@/shared/lib/drafts';
 import ChatListItem from './ChatListItem';
 
 let snapshot = { preferences: { enabled: true, sound: true, previews: false }, mutes: [] as { chat_id: string; until: string }[] };
@@ -14,6 +15,9 @@ vi.mock('@/shared/lib/notifications/api', () => ({
   muteNotifications: vi.fn(),
 }));
 vi.mock('@/entities/user', () => ({ useGetUserByIdQuery: (id: unknown) => ({ data: id === '5' ? { display_name: 'Anna' } : undefined }) }));
+vi.mock('@/shared/auth/tokenClaims', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/shared/auth/tokenClaims')>(), getTokenSubject: () => 'u1',
+}));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { alt?: string }) => <img alt={props.alt} /> }));
 
 const chat = { id: '7', name: 'alice', display_name: 'Alice', type: 'one-on-one', unread_count: 3 } as Chat;
@@ -153,5 +157,39 @@ describe('ChatListItem typing status', () => {
     act(() => applyTypingFrame(typing('9', false)));
     expect(screen.getByText('Hello there')).toBeInTheDocument();
     act(() => clearTypingUsers());
+  });
+});
+
+describe('ChatListItem draft', () => {
+  const base = { getLastMessagePreview: () => 'Hello there', getLastMessageTime: () => '09:30', onClick: vi.fn(), onContextMenu: vi.fn(), translations: en,
+    isOwnLastMessage: () => false, isOwnLastMessageRead: () => false };
+
+  it('shows the draft of a chat in place of the last message and follows changes to it', () => {
+    const own = { ...chat, last_message: { id: '1', content: 'Hello there', timestamp: '2026-11-11T09:30:00Z' } } as Chat;
+    render(<ChatListItem {...base} chat={own} activeChatId="8" isOwnLastMessage={() => true} />);
+    expect(screen.getByText('Hello there')).toBeInTheDocument();
+    expect(screen.getByText('09:30')).toBeInTheDocument();
+    expect(screen.getByTitle(en.messageSent)).toBeInTheDocument();
+    act(() => writeDraft('u1:chat:7', `See you
+at noon`));
+    expect(screen.getByTestId('chat-draft-preview')).toHaveTextContent('Draft: See you at noon');
+    expect(screen.getByText(en.chatDraftPrefix)).toHaveClass('text-destructive');
+    expect(screen.queryByText('Hello there')).not.toBeInTheDocument();
+    expect(screen.queryByText('09:30')).not.toBeInTheDocument();
+    expect(screen.queryByTitle(en.messageSent)).not.toBeInTheDocument();
+    act(() => writeDraft('u1:chat:7', '  '));
+    expect(screen.queryByTestId('chat-draft-preview')).not.toBeInTheDocument();
+    expect(screen.getByText('Hello there')).toBeInTheDocument();
+    expect(screen.getByText('09:30')).toBeInTheDocument();
+  });
+
+  it('hides the draft of the open chat and after logout', () => {
+    act(() => writeDraft('u1:chat:7', 'Typing here'));
+    const { rerender } = render(<ChatListItem {...base} chat={chat} activeChatId="7" />);
+    expect(screen.queryByTestId('chat-draft-preview')).not.toBeInTheDocument();
+    rerender(<ChatListItem {...base} chat={chat} activeChatId="8" />);
+    expect(screen.getByTestId('chat-draft-preview')).toBeInTheDocument();
+    act(() => clearDrafts());
+    expect(screen.queryByTestId('chat-draft-preview')).not.toBeInTheDocument();
   });
 });
