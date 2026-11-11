@@ -2,6 +2,7 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useState } from 'react';
 import { clearDrafts } from '@/shared/lib/drafts';
 import { clearUnsentMessages } from '@/shared/lib/unsentMessages';
+import { forgetSignedInUser } from '@/shared/auth/signedInUser';
 import { getTokenExpiresAt, getTokenSession, getTokenSubject, hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { getUpdateStatus } from '@/shared/api/updateGate';
 
@@ -61,6 +62,7 @@ export const clearAuthTokens = () => {
   window.dispatchEvent(new Event('messenger:logout'));
   clearDrafts();
   clearUnsentMessages();
+  forgetSignedInUser();
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   markSession(false);
