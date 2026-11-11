@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { glideToCenter } from './useHighlightScroll';
+import { glideToCenter, skipToLastScreen } from './useHighlightScroll';
 
 let frames: FrameRequestCallback[] = [];
 const runFrames = (count = 200) => {
@@ -112,5 +112,29 @@ describe('useHighlightScroll loading', () => {
     expect(onLoadOlderMessages).not.toHaveBeenCalled();
     run('50');
     expect(onLoadOlderMessages).toHaveBeenCalledOnce();
+  });
+});
+
+describe('skipToLastScreen', () => {
+  const box = (scrollTop: number) => {
+    const element = document.createElement('div');
+    Object.defineProperty(element, 'clientHeight', { value: 600 });
+    element.scrollTop = scrollTop;
+    return element;
+  };
+
+  it('jumps over long distances and leaves one screen to glide', () => {
+    const up = box(20000);
+    skipToLastScreen(up, -15000);
+    expect(up.scrollTop).toBe(20000 - 15000 + 600);
+    const down = box(1000);
+    skipToLastScreen(down, 9000);
+    expect(down.scrollTop).toBe(1000 + 9000 - 600);
+  });
+
+  it('keeps short distances for the smooth glide', () => {
+    const near = box(5000);
+    skipToLastScreen(near, -800);
+    expect(near.scrollTop).toBe(5000);
   });
 });

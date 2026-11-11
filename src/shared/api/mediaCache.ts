@@ -222,6 +222,11 @@ export const peekMedia = (url: string) => {
   return entry.objectUrl;
 };
 
+export const dropMedia = (url: string) => {
+  const entry = entries.get(url);
+  if (entry?.objectUrl) forget(url, entry);
+};
+
 export const acquireMedia = (url: string) => {
   const entry = load(url, 'high');
   entry.users += 1;

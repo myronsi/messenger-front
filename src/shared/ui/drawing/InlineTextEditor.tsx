@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react';
 import { LINE_HEIGHT, MAX_DRAWING_TEXT, textLines } from './model';
 
-const CARET_WIDTH = 1.5;
+const CARET_WIDTH = 1;
 
 interface InlineTextEditorProps {
   x: number;
@@ -14,17 +14,19 @@ interface InlineTextEditorProps {
   onChange: (value: string) => void;
   onCommit: () => void;
   onCancel: () => void;
+  fieldRef?: RefObject<HTMLTextAreaElement | null>;
 }
 
-export function InlineTextEditor({ x, y, value, color, fontSize, zoom, label, onChange, onCommit, onCancel }: InlineTextEditorProps) {
-  const fieldRef = useRef<HTMLTextAreaElement>(null);
+export function InlineTextEditor({ x, y, value, color, fontSize, zoom, label, onChange, onCommit, onCancel, fieldRef: outerRef }: InlineTextEditorProps) {
+  const innerRef = useRef<HTMLTextAreaElement>(null);
+  const fieldRef = outerRef ?? innerRef;
   const [caret, setCaret] = useState<number | null>(value.length);
   useEffect(() => {
     const field = fieldRef.current;
     if (!field) return;
     field.focus({ preventScroll: true });
     field.setSelectionRange(field.value.length, field.value.length);
-  }, []);
+  }, [fieldRef]);
   const lines = textLines(value);
   const longest = Math.max(1, ...lines.map((line) => [...line].length));
   const trackCaret = () => {
@@ -57,9 +59,9 @@ export function InlineTextEditor({ x, y, value, color, fontSize, zoom, label, on
       {caret !== null && (
         <div aria-hidden="true" className="pointer-events-none absolute whitespace-pre font-semibold text-transparent" style={text}>
           {value.slice(0, caret)}
-          <span key={`${caret}:${value.length}`} data-testid="drawing-caret" className="motion-drawing-caret inline-block rounded-full align-top"
+          <span key={`${caret}:${value.length}`} data-testid="drawing-caret" className="motion-drawing-caret inline-block align-top"
             style={{ width: CARET_WIDTH / zoom, height: '1em', marginInline: -CARET_WIDTH / zoom / 2, marginTop: `${(LINE_HEIGHT - 1) / 2}em`, backgroundColor: color,
-              boxShadow: `0 0 ${1 / zoom}px rgba(0,0,0,0.5)` }} />
+              boxShadow: `0 0 0 ${0.5 / zoom}px rgba(0,0,0,0.25)` }} />
         </div>
       )}
     </>

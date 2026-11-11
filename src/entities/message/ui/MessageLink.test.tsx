@@ -8,6 +8,10 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ tran
   externalLinkTitle: 'Open external link?', externalLinkDescription: 'This link takes you outside Messenger.', cancel: 'Cancel',
 } }) }));
 vi.mock('@/shared/lib/copyText', () => ({ copyText: vi.fn(async () => true) }));
+vi.mock('@/entities/sticker', async (original) => ({
+  ...await original<typeof import('@/entities/sticker')>(),
+  StickerPackDialog: ({ pack }: { pack: { slug: string } }) => <div role="dialog" aria-label="sticker pack">{pack.slug}</div>,
+}));
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
 it('opens a link-specific menu on a touch hold and consumes the release click', () => {
@@ -87,4 +91,13 @@ it('also requires confirmation for the link menu Open action', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Open link' }));
   expect(navigate).toHaveBeenCalledExactlyOnceWith('https://example.com/path', '_blank', 'noopener,noreferrer');
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
+it('opens the sticker pack preview instead of the leave-the-app question for sticker links', () => {
+  const open = vi.spyOn(window, 'open').mockReturnValue(null);
+  render(<LinkedMessageText text={`Take these ${window.location.origin}/stickers/ABCD1234`} />);
+  fireEvent.click(screen.getByRole('link'));
+  expect(screen.getByRole('dialog', { name: 'sticker pack' })).toHaveTextContent('ABCD1234');
+  expect(screen.queryByText('Open external link?')).not.toBeInTheDocument();
+  expect(open).not.toHaveBeenCalled();
 });

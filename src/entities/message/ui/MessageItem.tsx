@@ -104,7 +104,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const setRowRef = useCallback((element: HTMLDivElement | null) => { messageRefs.current[messageId] = element; }, [messageRefs, messageId]);
   const longPress = useLongPress(onLongPress && !onToggleSelect ? () => onLongPress(message) : undefined);
   const isMine = isOwnMessage(message);
-  const [mediaBroken, setMediaBroken] = useState(false), isSticker = !!message.sticker && !message.is_deleted && !mediaBroken;
+  const mediaKey = message.sticker?.image_url ?? (typeof message.content === 'string' ? '' : message.content?.file_url ?? '');
+  const [brokenMedia, setBrokenMedia] = useState<string | null>(null), mediaBroken = brokenMedia === mediaKey;
+  const isSticker = !!message.sticker && !message.is_deleted && !mediaBroken;
   const isImage = (isImageMessage || isSticker) && !mediaBroken, tinted = isMine && !isSticker;
   const canSwipe = !!onSwipeReply && !onToggleSelect && isPersistedId(message.id) && !message.is_deleted && !interlocutorDeleted;
   const swipe = useSwipeAction(isMine ? -1 : 1, canSwipe ? () => onSwipeReply?.(message) : undefined);
@@ -194,7 +196,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       >
         {onToggleSelect && (
           <button type="button" role="checkbox" aria-checked={isSelected} aria-label={translations.selectMessage}
-            className={`absolute inset-0 z-10 flex items-center rounded-lg pl-1 transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-accent/40'}`}
+            className={`absolute inset-0 z-10 flex items-center rounded-lg pl-1 transition-colors ${isSelected ? 'bg-primary/10' : '[@media(hover:hover)]:hover:bg-accent/40'}`}
             onClick={(event) => { event.stopPropagation(); onToggleSelect(message, event.shiftKey); }}
             onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
             <span className={`motion-selection-check flex h-5 w-5 items-center justify-center rounded-full border-2 ${isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/60 bg-background'}`}>
@@ -235,11 +237,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 <ReplyPreview replyMessage={replyMessage} isMine={tinted} isReplyToOwn={!!replyMessage && isOwnMessage(replyMessage)} isImage={isImage}
                   onClick={interlocutorDeleted ? undefined : handleReply} />
               )}
-              <div className="relative">
+              <div className={isSticker ? `relative w-fit ${isMine ? 'ml-auto' : 'mr-auto'}` : 'relative'}>
                 {message.is_deleting && !reducedMotion && <DissolveParticles />}
                 <MessageContent
                   message={message}
-                  isMobile={isMobile} mediaBroken={mediaBroken} onMediaBroken={() => setMediaBroken(true)} translations={translations}
+                  isMobile={isMobile} mediaBroken={mediaBroken} onMediaBroken={() => setBrokenMedia(mediaKey)} translations={translations}
                   getFileTypeConfig={getFileTypeConfig}
                   isOwnMessage={isOwnMessage}
                   renderMessageContent={renderMessageContent}

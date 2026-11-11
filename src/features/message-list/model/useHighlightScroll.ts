@@ -26,7 +26,14 @@ const distanceFromCenter = (container: HTMLElement, element: HTMLElement) => {
   return rect.top - container.getBoundingClientRect().top - (container.clientHeight - rect.height) / 2;
 };
 
+export const skipToLastScreen = (container: HTMLElement, distance: number) => {
+  const screen = container.clientHeight;
+  if (Math.abs(distance) <= screen * 1.5) return;
+  container.scrollTop += distance - Math.sign(distance) * screen;
+};
+
 export const glideToCenter = (container: HTMLElement, element: HTMLElement, smooth: boolean) => {
+  if (smooth) skipToLastScreen(container, distanceFromCenter(container, element));
   const startedAt = performance.now();
   let frame = 0;
   let stopped = false;

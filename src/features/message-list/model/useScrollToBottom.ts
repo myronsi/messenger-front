@@ -2,6 +2,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
+import { skipToLastScreen } from './useHighlightScroll';
 
 interface ScrollToBottomOptions {
   chatContainerRef: RefObject<HTMLDivElement | null>;
@@ -102,7 +103,9 @@ export const useScrollToBottom = ({
       });
       return;
     }
-    container.scrollTo({ top: container.scrollHeight, behavior: getScrollBehavior() });
+    const behavior = getScrollBehavior();
+    if (behavior === 'smooth') skipToLastScreen(container, distanceFromBottom(container));
+    container.scrollTo({ top: container.scrollHeight, behavior });
   }, [chatContainerRef, shouldStickToBottomRef, autoScrollUntilRef, hasMoreNewerMessagesRef, onLoadLatestMessagesRef]);
 
   return {

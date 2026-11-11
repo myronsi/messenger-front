@@ -32,8 +32,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <>
-      <div data-testid="chat-header" {...longPress.handlers} className="motion-panel-in h-[72px] shrink-0 px-4 sm:px-6 border-b border-border flex justify-between items-center">
-        <div className="flex min-w-0 items-center space-x-4 md:space-x-0">
+      <div data-testid="chat-header" {...longPress.handlers} className="motion-panel-in h-[72px] shrink-0 pl-1.5 pr-3 sm:px-6 border-b border-border flex justify-between items-center">
+        <div className="flex min-w-0 items-center space-x-1 md:space-x-0">
           <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center hover:bg-accent rounded-full transition-colors md:hidden">
             <ArrowLeft className="w-5 h-5" />
           </button>

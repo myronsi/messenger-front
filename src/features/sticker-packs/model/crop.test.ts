@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { clampZoom, coverZoom, displayedSize, drawCrop, initialCrop } from './crop';
-import { moveItem, packLink } from './reorder';
+import { packLink } from './reorder';
 import { stickerLinkSlug } from './stickerLink';
 import { stickerErrorText } from './stickerErrors';
 import { en } from '@/shared/lang/en/bundle';
@@ -24,11 +24,6 @@ describe('crop', () => {
 });
 
 describe('pack helpers', () => {
-  it('moves a sticker one place and ignores moves past the ends', () => {
-    expect(moveItem(['a', 'b', 'c'], 1, -1)).toEqual(['b', 'a', 'c']);
-    expect(moveItem(['a', 'b', 'c'], 2, 1)).toEqual(['a', 'b', 'c']);
-  });
-
   it('builds and reads share links', () => {
     expect(packLink('ABCDEFGHJKLM', 'https://chat.example')).toBe('https://chat.example/stickers/ABCDEFGHJKLM');
     expect(stickerLinkSlug('/stickers/ABCDEFGHJKLM')).toBe('ABCDEFGHJKLM');

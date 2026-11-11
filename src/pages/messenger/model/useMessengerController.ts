@@ -33,12 +33,12 @@ export const useMessengerController = (username: string) => {
   const isUserProfileOpen = !!profileUsername;
   const setIsProfileOpen = useCallback((open: boolean) => {
     const marks = currentEntryMarks();
-    if (open) openOverlay({ kind: 'settings', page: 'profile' }, { settingsOpened: true, settingsDepth: 0, settingsChain: 0 });
+    if (open) openOverlay({ kind: 'settings', page: 'profile' }, { settingsOpened: true, settingsDepth: 0, settingsChain: 0 }, '/');
     else if (isProfileOpen && marks.settingsOpened && marks.settingsChain && marks.settingsChain === marks.settingsDepth) navigate(-(marks.settingsChain + 1));
     else if (isProfileOpen) closeOverlay();
   }, [closeOverlay, isProfileOpen, navigate, openOverlay]);
   const openMessageRequests = useCallback(() => {
-    openOverlay({ kind: 'settings', page: 'requests' }, { settingsOpened: true, settingsDepth: 0, settingsChain: 0 });
+    openOverlay({ kind: 'settings', page: 'requests' }, { settingsOpened: true, settingsDepth: 0, settingsChain: 0 }, '/');
   }, [openOverlay]);
   const {
     backToChats,

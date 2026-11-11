@@ -32,6 +32,7 @@ export const buildMessageFromSocketEvent = (
   reply_preview: event.reply_preview,
   is_system: event.is_system,
   system_event: event.system_event,
+  sticker: event.sticker,
   is_deleted: event.is_deleted || false,
   delivery_error: event.delivery_error || undefined,
   forwarded_from: event.forwarded_from || null,

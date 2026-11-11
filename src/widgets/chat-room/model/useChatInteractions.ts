@@ -122,7 +122,8 @@ export const useChatInteractions = ({
   const jumpToSearchResult = (messageId: EntityId) => {
     const element = messageRefs.current[messageId];
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const far = Math.abs(element.getBoundingClientRect().top - window.innerHeight / 2) > window.innerHeight * 1.5;
+      element.scrollIntoView({ behavior: far ? 'auto' : 'smooth', block: 'center' });
       setTempHighlightedMessageId(messageId);
       setTimeout(() => setTempHighlightedMessageId(null), 2000);
     } else {

@@ -102,10 +102,71 @@ describe('DrawingEditor', () => {
     expect(onConfirm.mock.calls[0][0].items).toEqual([expect.objectContaining({ text: 'New', color: '#3b82f6', x: 0.25, y: 0.5 })]);
   });
 
+  it('moves and resizes a label with its handles', () => {
+    const onConfirm = vi.fn();
+    const initial = { version: 1, items: [{ type: 'text' as const, color: '#3b82f6', x: 0.25, y: 0.5, size: 0.05, text: 'Old' }] };
+    render(editor({ onConfirm, initial }));
+    fireEvent.click(screen.getByLabelText('drawingText'));
+    fireEvent.pointerDown(surface(), { pointerId: 1, clientX: 52, clientY: 51, button: 0 });
+    fireEvent.pointerUp(surface(), { pointerId: 1 });
+    const move = screen.getByLabelText('drawingTextMove');
+    fireEvent.pointerDown(move, { pointerId: 2, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(move, { pointerId: 2, clientX: 40, clientY: 20 });
+    fireEvent.pointerUp(move, { pointerId: 2 });
+    const resize = screen.getByLabelText('drawingTextResize');
+    fireEvent.pointerDown(resize, { pointerId: 3, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(resize, { pointerId: 3, clientX: 30, clientY: 30 });
+    fireEvent.pointerUp(resize, { pointerId: 3 });
+    fireEvent.click(screen.getByTestId('drawing-confirm'));
+    const [item] = onConfirm.mock.calls[0][0].items;
+    expect(item.x).toBeGreaterThan(0.25);
+    expect(item.y).toBeGreaterThan(0.5);
+    expect(item.size).toBeGreaterThan(0.05);
+    expect(item.text).toBe('Old');
+  });
+
+  it('drags a label by grabbing the text itself', () => {
+    const onConfirm = vi.fn();
+    const initial = { version: 1, items: [{ type: 'text' as const, color: '#3b82f6', x: 0.25, y: 0.5, size: 0.05, text: 'Old' }] };
+    render(editor({ onConfirm, initial }));
+    fireEvent.click(screen.getByLabelText('drawingText'));
+    fireEvent.pointerDown(surface(), { pointerId: 1, clientX: 52, clientY: 51, button: 0 });
+    fireEvent.pointerMove(surface(), { pointerId: 1, clientX: 92, clientY: 61 });
+    fireEvent.pointerUp(surface(), { pointerId: 1 });
+    const grab = screen.getByTestId('drawing-text-grab');
+    fireEvent.pointerDown(grab, { pointerId: 2, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(grab, { pointerId: 2, clientX: 0, clientY: 20 });
+    fireEvent.pointerUp(grab, { pointerId: 2 });
+    fireEvent.click(screen.getByTestId('drawing-confirm'));
+    const [item] = onConfirm.mock.calls[0][0].items;
+    expect(item.x).toBeCloseTo(0.45, 2);
+    expect(item.y).toBeGreaterThan(0.6);
+  });
+
+  it('picks a colour from one button and closes the list after a tap outside', () => {
+    render(editor());
+    fireEvent.click(screen.getByTestId('drawing-color-button'));
+    expect(screen.getByTestId('drawing-color-button')).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getAllByRole('radio', { name: 'drawingColor 1' })[0]);
+    expect(screen.getByTestId('drawing-color-button')).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(screen.getByTestId('drawing-color-button'));
+    fireEvent.pointerDown(surface(), { pointerId: 5, clientX: 10, clientY: 10, button: 0 });
+    expect(screen.getByTestId('drawing-color-button')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('finishes the label instead of starting a new one when tapping empty space', () => {
+    render(editor());
+    fireEvent.click(screen.getByLabelText('drawingText'));
+    fireEvent.pointerDown(surface(), { pointerId: 1, clientX: 20, clientY: 20, button: 0 });
+    fireEvent.change(screen.getByTestId('drawing-text-field'), { target: { value: 'Hi' } });
+    fireEvent.pointerDown(surface(), { pointerId: 2, clientX: 180, clientY: 90, button: 0 });
+    expect(screen.queryByTestId('drawing-text-field')).not.toBeInTheDocument();
+  });
+
   it('draws with any width chosen on the slider', () => {
     const onConfirm = vi.fn();
     render(editor({ onConfirm }));
-    fireEvent.change(screen.getByLabelText('drawingSize'), { target: { value: '1' } });
+    fireEvent.change(screen.getByRole('slider', { name: 'drawingSize' }), { target: { value: '1' } });
     drag(surface(), [[20, 10], [180, 90]]);
     fireEvent.click(screen.getByTestId('drawing-confirm'));
     expect(onConfirm.mock.calls[0][0].items[0].width).toBe(0.06);
