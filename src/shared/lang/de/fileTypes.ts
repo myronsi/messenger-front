@@ -15,6 +15,7 @@ export const fileTypes = {
   selectedSeparateFiles: "Als einzelne Dateien senden · {count}",
   separateFilesLimit: "Du kannst bis zu {max} einzelne Dateien auf einmal anhängen.",
   uploadProgress: "Wird hochgeladen: {percent} %",
+  downloadProgress: "Wird geladen: {percent} %",
   excelTable: "Excel-Tabelle",
   powerpointPresentation: "PowerPoint-Präsentation",
   sourceCode: "Quellcode",

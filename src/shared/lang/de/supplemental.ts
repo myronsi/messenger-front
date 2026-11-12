@@ -51,6 +51,8 @@ export const supplemental = {
   customName: "Eigener Name",
   disable: "Deaktivieren",
   download: "Herunterladen",
+  cancelUpload: "Hochladen abbrechen",
+  cancelDownload: "Download abbrechen",
   enable: "Aktivieren",
   finish: "Fertigstellen",
   groupInfo: "Gruppeninfo",

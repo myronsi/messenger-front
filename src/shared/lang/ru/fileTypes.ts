@@ -20,4 +20,5 @@ export const fileTypes = {
   selectedSeparateFiles: "Отдельными файлами · {count}",
   separateFilesLimit: "Можно прикрепить до {max} отдельных файлов за раз.",
   uploadProgress: "Загрузка: {percent}%",
+  downloadProgress: "Скачивание: {percent}%",
 };

@@ -5,6 +5,7 @@ import { isGoApi } from '@/shared/api/goSocket';
 import { messageModel } from '@/shared/api/goModels';
 import type { components } from '@/shared/api/generated/schema';
 import { normalizeHistoryMessage, type Message } from '@/entities/message';
+import { forgetUpload } from '@/shared/lib/uploadCancellation';
 import { abandonUnsentMessages } from './messageUpdates';
 import type { OutgoingPayload, SetMessages } from './types';
 
@@ -27,6 +28,13 @@ export const useUnsentMessageRelease = (chatId: EntityId, setMessages: SetMessag
     const source = uploadSourcesRef.current.get(id);
     source?.objectUrls.forEach(url => URL.revokeObjectURL(url));
     uploadSourcesRef.current.delete(id);
+    forgetUpload(id);
+  };
+
+  const dropCancelledUpload = (id: string) => {
+    uploadingRef.current.delete(id);
+    releaseSource(id);
+    setMessages((previous) => previous.filter((message) => String(message.id) !== id));
   };
 
   useEffect(() => {
@@ -47,7 +55,7 @@ export const useUnsentMessageRelease = (chatId: EntityId, setMessages: SetMessag
     };
   }, [chatId, setMessages, translationsRef]);
 
-  return { uploadSourcesRef, uploadingRef, releasedRef, releaseSource };
+  return { uploadSourcesRef, uploadingRef, releasedRef, releaseSource, dropCancelledUpload };
 };
 
 export const deliveryErrorText = (message: string | undefined, translations: Translations) => {

@@ -20,4 +20,5 @@ export const fileTypes = {
   selectedSeparateFiles: "Sent as separate files · {count}",
   separateFilesLimit: "You can attach up to {max} separate files at once.",
   uploadProgress: "Uploading: {percent}%",
+  downloadProgress: "Downloading: {percent}%",
 };
