@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { openStickerPacks, type Sticker } from '@/entities/sticker';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -12,6 +12,7 @@ interface EmojiStickerPanelProps {
   onEmoji: (emoji: string) => void;
   onSticker?: (sticker: Sticker) => void;
   onDone: () => void;
+  onStickersVisible?: (visible: boolean) => void;
 }
 
 const EmojiGrid = ({ emoji, onEmoji }: { emoji: string[]; onEmoji: (emoji: string) => void }) => (
@@ -25,8 +26,15 @@ const EmojiGrid = ({ emoji, onEmoji }: { emoji: string[]; onEmoji: (emoji: strin
   </div>
 );
 
-export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone }: EmojiStickerPanelProps) => {
+export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone, onStickersVisible }: EmojiStickerPanelProps) => {
   const { translations } = useLanguage();
+  const [tab, setTab] = useState(onSticker ? 'stickers' : 'emoji');
+  const showsStickers = tab === 'stickers' && !!onSticker;
+  useEffect(() => {
+    if (!onStickersVisible) return undefined;
+    onStickersVisible(showsStickers);
+    return () => onStickersVisible(false);
+  }, [onStickersVisible, showsStickers]);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const searching = normalizeSearch(query) !== '';
@@ -41,7 +49,7 @@ export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone }: EmojiStickerPa
   };
   const empty = <p className="px-6 py-8 text-center text-sm text-muted-foreground">{translations.noSearchResults}</p>;
   return (
-    <Tabs defaultValue={onSticker ? 'stickers' : 'emoji'} className="flex h-full flex-col">
+    <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col">
       {searchOpen && (
         <div className="mx-2 mt-2 flex shrink-0 items-center gap-2 rounded-full bg-muted pl-3 pr-1">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />

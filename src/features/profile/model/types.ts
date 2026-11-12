@@ -8,7 +8,7 @@ export type DirectMessagePrivacyVisibility = BasicPrivacyVisibility | 'wait_appr
 export type GroupInvitePrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
 export type PrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
 export type SearchVisibility = 'everyone' | 'nobody';
-export type PrivacyExceptionKey = 'avatar_visibility' | 'profile_visibility' | 'presence_visibility' | 'group_invites' | 'direct_messages' | 'search_visibility';
+export type PrivacyExceptionKey = 'avatar_visibility' | 'profile_visibility' | 'presence_visibility' | 'last_seen_visibility' | 'group_invites' | 'direct_messages' | 'search_visibility';
 export type PrivacyExceptionEffect = 'allow' | 'deny';
 export type PrivacyExceptionLists = Record<PrivacyExceptionKey, Record<PrivacyExceptionEffect, User[]>>;
 
@@ -16,6 +16,7 @@ export interface PrivacySettings {
   avatar_visibility: ExceptionPrivacyVisibility;
   profile_visibility: ExceptionPrivacyVisibility;
   presence_visibility: PresencePrivacyVisibility;
+  last_seen_visibility: PresencePrivacyVisibility;
   read_receipts_enabled: boolean;
   calls_enabled: boolean;
   typing_indicators_enabled: boolean;

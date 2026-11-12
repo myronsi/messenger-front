@@ -24,4 +24,16 @@ describe('EmojiStickerPanel search', () => {
     fireEvent.click(screen.getByRole('button', { name: 'searchEmojiAndStickers' }));
     expect(screen.getByRole('searchbox')).toHaveValue('');
   });
+
+  it('reports while the sticker tab is shown', () => {
+    const visible = vi.fn();
+    const { unmount } = render(<EmojiStickerPanel onEmoji={vi.fn()} onSticker={vi.fn()} onDone={vi.fn()} onStickersVisible={visible} />);
+    expect(visible).toHaveBeenLastCalledWith(true);
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'emojiTab' }));
+    expect(visible).toHaveBeenLastCalledWith(false);
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'stickersTab' }));
+    expect(visible).toHaveBeenLastCalledWith(true);
+    unmount();
+    expect(visible).toHaveBeenLastCalledWith(false);
+  });
 });

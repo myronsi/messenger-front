@@ -17,6 +17,7 @@ interface EmojiStickerButtonProps {
   onSticker?: (sticker: Sticker) => void;
   disabled?: boolean;
   dock?: HTMLElement | null;
+  onStickersVisible?: (visible: boolean) => void;
 }
 
 const KEYBOARD_WAIT_MS = 1000;
@@ -26,7 +27,7 @@ const BUTTON_CLASS = 'motion-press flex h-10 w-10 shrink-0 items-center justify-
 
 export const dockedPanelHeight = () => (lastKeyboardHeight() ?? Math.round(Math.min(360, Math.max(240, window.innerHeight * 0.4)))) - DOCK_GAP;
 
-const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = false, dock }: EmojiStickerButtonProps) => {
+const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = false, dock, onStickersVisible }: EmojiStickerButtonProps) => {
   const { translations } = useLanguage();
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<{ height: number; leaving: boolean; closing?: boolean } | null>(null);
@@ -91,7 +92,7 @@ const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = f
         </button>
         {panel && createPortal(
           <DockedEmojiPanel key={panel.height} baseHeight={panel.height} onClose={collapseDock} leaving={panel.leaving} closing={panel.closing}>
-            <EmojiStickerPanel onEmoji={addEmoji} onSticker={onSticker} onDone={collapseDock} />
+            <EmojiStickerPanel onEmoji={addEmoji} onSticker={onSticker} onDone={collapseDock} onStickersVisible={onStickersVisible} />
           </DockedEmojiPanel>,
           dock,
         )}
@@ -108,7 +109,7 @@ const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = f
       </PopoverTrigger>
       <PopoverContent side="top" align="end" sideOffset={12} collisionPadding={12} sticky="always" onOpenAutoFocus={(event) => event.preventDefault()}
         className="h-[min(24rem,55dvh)] w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl p-0">
-        <EmojiStickerPanel onEmoji={addEmoji} onSticker={onSticker} onDone={() => setOpen(false)} />
+        <EmojiStickerPanel onEmoji={addEmoji} onSticker={onSticker} onDone={() => setOpen(false)} onStickersVisible={onStickersVisible} />
       </PopoverContent>
     </Popover>
   );

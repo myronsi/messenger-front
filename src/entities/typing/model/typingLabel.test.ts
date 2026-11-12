@@ -26,6 +26,14 @@ describe('getTypingLabel', () => {
     expect(getTypingLabel(three, true, ru.typingStatus, 'ru')).toBe('3 человека печатают…');
   });
 
+  it('names stickers, photos, videos and files', () => {
+    expect(getTypingLabel([{ action: 'choosing_sticker' }], false, words, 'en')).toBe('choosing a sticker…');
+    expect(getTypingLabel([{ action: 'uploading_photo' }], false, words, 'en')).toBe('sending a photo…');
+    expect(getTypingLabel([{ action: 'uploading_video', name: 'Anna' }], true, words, 'en')).toBe('Anna is sending a video…');
+    expect(getTypingLabel([{ action: 'uploading_file', name: 'Anna' }], true, words, 'en')).toBe('Anna is sending a file…');
+    expect(getTypingLabel([{ action: 'choosing_sticker', name: 'Анна' }], true, ru.typingStatus, 'ru')).toBe('Анна выбирает стикер…');
+  });
+
   it('is empty when nobody types', () => {
     expect(getTypingLabel([], true, words, 'en')).toBe('');
   });

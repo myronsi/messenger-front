@@ -27,6 +27,8 @@ describe('typing store', () => {
     act(() => applyTypingFrame(typing('5', '7', true, 'recording_voice')));
     expect(result.current).toEqual([{ userId: '7', action: 'recording_voice' }]);
     act(() => applyTypingFrame(typing('5', '7', true, 'uploading_photo')));
+    expect(result.current).toEqual([{ userId: '7', action: 'uploading_photo' }]);
+    act(() => applyTypingFrame(typing('5', '7', true, 'dancing')));
     expect(result.current).toEqual([{ userId: '7', action: 'typing' }]);
   });
 

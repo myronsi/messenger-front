@@ -518,7 +518,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites" | "direct_messages" | "search_visibility";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -3122,7 +3122,10 @@ export interface components {
         PrivacySettings: {
             avatar_visibility: components["schemas"]["Visibility"];
             profile_visibility: components["schemas"]["Visibility"];
+            /** @description Who sees that the user is online now (`User.is_online`, `presence` events). */
             presence_visibility: components["schemas"]["Visibility"];
+            /** @description Who sees when the user was last online (`User.last_seen`, `presence` events). */
+            last_seen_visibility: components["schemas"]["Visibility"];
             read_receipts_enabled: boolean;
             direct_messages: components["schemas"]["DirectMessagePolicy"];
             group_invites: components["schemas"]["GroupInvitePolicy"];
@@ -3137,6 +3140,7 @@ export interface components {
             avatar_visibility?: components["schemas"]["Visibility"];
             profile_visibility?: components["schemas"]["Visibility"];
             presence_visibility?: components["schemas"]["Visibility"];
+            last_seen_visibility?: components["schemas"]["Visibility"];
             read_receipts_enabled?: boolean;
             direct_messages?: components["schemas"]["DirectMessagePolicy"];
             group_invites?: components["schemas"]["GroupInvitePolicy"];
@@ -4891,7 +4895,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "group_invites" | "direct_messages" | "search_visibility";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
