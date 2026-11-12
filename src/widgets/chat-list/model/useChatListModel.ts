@@ -1,3 +1,4 @@
+import { isOffline } from '@/shared/lib/network';
 import { useEffect, useState } from 'react';
 import { clearAuthTokens, useAccessToken } from '@/shared/auth/session';
 import { useChatsData } from './useChatsData';
@@ -68,7 +69,7 @@ export function useChatListModel(props: ChatsListComponentProps) {
 
   // Handle RTK Query errors
   useEffect(() => {
-    if (!error) return;
+    if (!error || isOffline()) return;
     let errorMessage = 'Failed to load chats';
 
     if ('data' in error && error.data) {

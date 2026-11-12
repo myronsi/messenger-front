@@ -256,6 +256,23 @@ describe('mediaCache', () => {
     expect(session.authFetch).toHaveBeenCalledTimes(1);
   });
 
+  it('shows an expired stored copy when the download fails', async () => {
+    stored.set(attachment('a7'), new Response('old', { headers: { 'X-Media-Expires': String(Date.now() - 1) } }));
+    session.authFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(acquireMedia(attachment('a7')).promise).resolves.toMatch(/^blob:/);
+    expect(session.authFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses an expired stored copy without the network while offline', async () => {
+    stored.set(attachment('a8'), new Response('old', { headers: { 'X-Media-Expires': String(Date.now() - 1) } }));
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+    await expect(acquireMedia(attachment('a8')).promise).resolves.toMatch(/^blob:/);
+    expect(session.authFetch).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
   it('ignores media outside the API', () => {
     preloadMedia('/static/avatars/default.jpg');
 
