@@ -4,11 +4,18 @@ import ChatHeaderSearch from './ChatHeaderSearch';
 
 const search = vi.fn();
 const highlight = vi.fn();
-vi.mock('@/shared/lib/searchHighlight', () => ({ setSearchHighlight: (query: string) => highlight(query) }));
-vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { close: 'Close', olderSearchResult: 'Older match', newerSearchResult: 'Newer match', noSearchResults: 'No results' }, language: 'en' }),
+vi.mock('@/shared/lib/searchHighlight', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/shared/lib/searchHighlight')>(), setSearchHighlight: (query: string) => highlight(query),
 }));
-const results = [{ id: '9', sender: 'Bob', content: 'old news', timestamp: 't', type: 'message' }, { id: '4', sender: 'Ann', content: 'very old', timestamp: 't', type: 'message' }];
+vi.mock('@/shared/hooks/use-mobile', () => ({ useIsMobile: () => mobile.value }));
+const mobile = vi.hoisted(() => ({ value: false }));
+vi.mock('@/shared/contexts/LanguageContext', () => ({
+  useLanguage: () => ({ translations: { close: 'Close', olderSearchResult: 'Older match', newerSearchResult: 'Newer match', noSearchResults: 'No results', searchResultsList: 'Results list' }, language: 'en' }),
+}));
+const results = [
+  { id: '9', sender: 'Bob', content: 'old news', timestamp: '2026-11-10T09:30:00Z', type: 'message' },
+  { id: '4', sender: 'Ann', content: 'very old', timestamp: '2026-11-09T08:00:00Z', type: 'message' },
+];
 const served = { results };
 vi.mock('../api/messageApi', () => ({
   useSearchChatMessagesQuery: (args: { chatId: string; query: string }, options: { skip: boolean }) => {
@@ -69,5 +76,42 @@ describe('ChatHeaderSearch', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
     unmount();
     expect(highlight).toHaveBeenLastCalledWith('');
+  });
+
+  it('lists the matches with sender and the match marked, and jumps to a picked row', () => {
+    const onJump = vi.fn();
+    render(<ChatHeaderSearch chatId="31" onClose={vi.fn()} onJumpToMessage={onJump} />);
+    type('old');
+    fireEvent.click(screen.getByRole('button', { name: 'Results list' }));
+    const list = screen.getByTestId('chat-search-results');
+    expect(list).toHaveTextContent('Bob');
+    expect(list).toHaveTextContent('Ann');
+    expect(list.querySelectorAll('mark[data-search-match]')).toHaveLength(2);
+    fireEvent.click(screen.getByText('Ann'));
+    expect(onJump).toHaveBeenLastCalledWith('4');
+    expect(screen.getByTestId('chat-search-status')).toHaveTextContent('2 / 2');
+    expect(screen.getByTestId('chat-search-results')).toBeInTheDocument();
+  });
+
+  it('closes the list first on Escape, then the search', () => {
+    const onClose = vi.fn();
+    render(<ChatHeaderSearch chatId="31" onClose={onClose} onJumpToMessage={vi.fn()} />);
+    type('old');
+    fireEvent.click(screen.getByRole('button', { name: 'Results list' }));
+    fireEvent.keyDown(screen.getByPlaceholderText('Search in chat'), { key: 'Escape' });
+    expect(screen.queryByTestId('chat-search-results')).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByPlaceholderText('Search in chat'), { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('hides the list after picking a match on a phone', () => {
+    mobile.value = true;
+    render(<ChatHeaderSearch chatId="31" onClose={vi.fn()} onJumpToMessage={vi.fn()} />);
+    type('old');
+    fireEvent.click(screen.getByRole('button', { name: 'Results list' }));
+    fireEvent.click(screen.getByText('Ann'));
+    expect(screen.queryByTestId('chat-search-results')).not.toBeInTheDocument();
+    mobile.value = false;
   });
 });

@@ -18,6 +18,7 @@ export const supplemental = {
   searchUsers: "Buscar usuarios...",
   searchMessages: "Buscar mensajes",
   searchInChat: "Buscar en el chat",
+  searchResultsList: "Lista de resultados",
   noSearchResults: "Sin resultados",
   groupCreated: "¡Grupo creado!",
   errorWhileCreatingGroup: "Error al crear el grupo",
