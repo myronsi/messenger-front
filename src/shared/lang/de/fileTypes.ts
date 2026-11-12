@@ -13,6 +13,8 @@ export const fileTypes = {
   sizeGigabytes: "{size} GB",
   selectedAlbumGroup: "Album · {count}",
   selectedSeparateFiles: "Als einzelne Dateien senden · {count}",
+  captionTargetFile: "Die Beschriftung wird mit {name} gesendet.",
+  captionTargetAlbum: "Die Beschriftung wird mit dem Album gesendet.",
   separateFilesLimit: "Du kannst bis zu {max} einzelne Dateien auf einmal anhängen.",
   uploadProgress: "Wird hochgeladen: {percent} %",
   downloadProgress: "Wird geladen: {percent} %",

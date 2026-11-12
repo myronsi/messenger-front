@@ -18,6 +18,8 @@ export const fileTypes = {
   sizeGigabytes: "{size} GB",
   selectedAlbumGroup: "Álbum · {count}",
   selectedSeparateFiles: "Se envían como archivos separados · {count}",
+  captionTargetFile: "El texto se envía con {name}.",
+  captionTargetAlbum: "El texto se envía con el álbum.",
   separateFilesLimit: "Puedes adjuntar hasta {max} archivos separados a la vez.",
   uploadProgress: "Subiendo: {percent}%",
   downloadProgress: "Descargando: {percent} %",

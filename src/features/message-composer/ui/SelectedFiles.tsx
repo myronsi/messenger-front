@@ -121,6 +121,8 @@ export default function SelectedFiles(props: SelectedMediaStripProps) {
   const media = indexed.filter(({ file }) => isAlbumFile(file));
   const others = indexed.filter(({ file }) => !isAlbumFile(file));
   const grouped = media.length > 0 && others.length > 0;
+  const messageCount = (media.length ? 1 : 0) + others.length;
+  const captionTarget = media.length ? t.captionTargetAlbum : fillTemplate(t.captionTargetFile, { name: others[0]?.file.name ?? '' });
   return (
     <div data-testid="selected-files" className="flex flex-col gap-1.5">
       {grouped && media.length > 1 && <GroupLabel text={fillTemplate(t.selectedAlbumGroup, { count: String(media.length) })} />}
@@ -137,6 +139,7 @@ export default function SelectedFiles(props: SelectedMediaStripProps) {
           {!media.length && props.canAdd && <AddTile label={props.addLabel} onAdd={props.onAdd} className="size-[3.75rem]" />}
         </div>
       )}
+      {messageCount > 1 && <p data-testid="caption-target" className="truncate px-2 text-xs text-muted-foreground">{captionTarget}</p>}
     </div>
   );
 }
