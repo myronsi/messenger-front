@@ -15,7 +15,7 @@ import type { Drawing } from '@/shared/ui/drawing';
 import { createOptimisticMessage } from './optimisticMessage';
 import { createUploadQueue } from './uploadQueue';
 import { createStickerSender } from './stickerSender';
-import type { ChatTransport, OutgoingPayload, SetMessages, ShowError } from './types';
+import type { ChatTransport, OutgoingPayload, SetMessages } from './types';
 
 const BASE_URL = getApiBaseUrl();
 const SOCKET_CONNECT_WAIT_ATTEMPTS = 30;
@@ -30,7 +30,6 @@ interface MessageSenderOptions {
   translationsRef: MutableRefObject<Translations>;
   transport: ChatTransport;
   setMessages: SetMessages;
-  setModal: ShowError;
   getMessageInput: () => string;
   setMessageInput: (value: string) => void;
   editingMessage: Message | null;
@@ -41,7 +40,7 @@ interface MessageSenderOptions {
 
 // Sending, optimistic rendering, delivery failures and uploads shared by one-to-one and group chats.
 export const useMessageSender = ({
-  chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport, setMessages, setModal,
+  chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport, setMessages,
   getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
 }: MessageSenderOptions) => {
   const { wsRef, messageQueueRef, pendingMessageIdsRef, requestReconnect } = transport;
@@ -142,7 +141,6 @@ export const useMessageSender = ({
     } catch {
       if (signal.aborted) return dropCancelledUpload(String(messageId));
       markOptimisticUploadFailed(messageId, translations.errorLoading || 'Upload failed');
-      setModal({ type: 'error', message: translations.errorLoading });
     }
   };
 
@@ -270,7 +268,8 @@ export const useMessageSender = ({
   };
 
   const handleFileUpload = async (selection: File | File[], caption = '', drawings: (Drawing | undefined)[] = []) => {
-    const files = (Array.isArray(selection) ? selection : [selection]).map((file, index) => ({ file, fileName: file.name, drawing: drawings[index] }));
+    const files = (Array.isArray(selection) ? selection : [selection]).map((file, index) => ({ file, fileName: file.name, drawing: drawings[index] }))
+      .filter(({ file }) => file.size > 0);
     if (files.length === 0) return;
     const replyToId = replyToRef.current?.id;
     const optimisticMessageId = createOptimisticFileMessage(files, caption);

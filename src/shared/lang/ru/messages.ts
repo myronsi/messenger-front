@@ -42,6 +42,7 @@ export const messages = {
   messageRead: "Прочитано",
   edited: "изменено",
   uploadUnsupportedType: "Этот тип файла не поддерживается.",
+  uploadFilesEmpty: "Пустые файлы не добавлены: {names}. Выберите их ещё раз.",
   uploadFileTooLarge: "Файл слишком большой. Максимальный размер для этого типа — {size} МБ.",
   deleteForMeShort: "Для меня",
   replyUnavailable: "Исходное сообщение",

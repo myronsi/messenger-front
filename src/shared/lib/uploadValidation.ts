@@ -25,7 +25,7 @@ const ALLOWED_EXTENSIONS = [
 
 export const UPLOAD_ACCEPT = ALLOWED_EXTENSIONS.map((extension) => `.${extension}`).join(',');
 
-export type UploadValidationError = 'tooLarge' | 'unsupportedType';
+export type UploadValidationError = 'tooLarge' | 'unsupportedType' | 'empty';
 
 export const getExtension = (fileName: string) => {
   const dot = fileName.lastIndexOf('.');
@@ -48,6 +48,7 @@ export const uploadLimitMegabytes = (fileName: string) => uploadLimitBytes(fileN
 
 export const validateUploadFile = (file: Pick<File, 'name' | 'size'>): UploadValidationError | null => {
   if (!(ALLOWED_EXTENSIONS as readonly string[]).includes(getExtension(file.name))) return 'unsupportedType';
+  if (file.size === 0) return 'empty';
   if (file.size > uploadLimitBytes(file.name)) return 'tooLarge';
   return null;
 };

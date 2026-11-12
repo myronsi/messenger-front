@@ -29,3 +29,10 @@ it('shows a lowercase participant count with the right plural form', () => {
   rerender(<GroupChatHeader name="Team" avatar="/a.png" participantCount={4} description="Weekly sync" translations={translations} onBack={vi.fn()} onOpenProfile={vi.fn()} />);
   expect(screen.getByText('4 participants - Weekly sync')).toBeInTheDocument();
 });
+
+it('shows no participant count until the group details are loaded', () => {
+  const translations = { participantsCountOne: '{count} participant', participantsCountOther: '{count} participants' } as GroupTranslations;
+  render(<GroupChatHeader name="Team" avatar="/a.png" description="Weekly sync" translations={translations} onBack={vi.fn()} onOpenProfile={vi.fn()} />);
+  expect(screen.queryByText(/participants?/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Weekly sync/)).not.toBeInTheDocument();
+});

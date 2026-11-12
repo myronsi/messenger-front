@@ -12,7 +12,7 @@ interface GroupChatHeaderProps {
   chatId?: EntityId;
   name: string;
   avatar: string;
-  participantCount: number;
+  participantCount?: number;
   description?: string;
   translations: GroupTranslations;
   onBack: () => void;
@@ -42,8 +42,8 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
             <span className="flex min-w-0 flex-col items-start">
               <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{name}</span>
               <span className="max-w-full truncate text-xs font-normal text-muted-foreground">
-                {participantCountLabel(participantCount, translations, language)}
-                {description ? ` - ${description}` : ''}
+                {participantCount === undefined ? String.fromCharCode(160) : participantCountLabel(participantCount, translations, language)}
+                {participantCount !== undefined && description ? ` - ${description}` : ''}
               </span>
             </span>
           </button>

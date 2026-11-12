@@ -43,6 +43,7 @@ export const messages = {
   edited: "edited",
   uploadFileTooLarge: "File is too large. The maximum size for this type is {size} MB.",
   uploadUnsupportedType: "This file type is not supported.",
+  uploadFilesEmpty: "Empty files were not added: {names}. Choose them again.",
   deleteForMeShort: "For me",
   replyUnavailable: "Original message",
   showInChat: "Show in chat",
