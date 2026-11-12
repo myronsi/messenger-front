@@ -90,7 +90,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     getReplyToId: () => replyToRef.current?.id ?? null,
   });
   const canSend = ((hasDraft || isEditing) && !isUnchangedEdit) || !!voicePreview;
-  useTypingStatus({ chatId, text: messageInput, canType: !isEditing && !disabled, isRecording });
+  const setChoosingSticker = useTypingStatus({ chatId, text: messageInput, canType: !isEditing && !disabled, isRecording });
 
   useLayoutEffect(() => {
     const field = inputRef.current;
@@ -277,7 +277,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
               />
             )}
             {!isRecording && !voicePreview && <EmojiStickerButton inputRef={inputRef} value={messageInput} onChange={setMessageInput}
-              disabled={isDisabled} dock={emojiDock}
+              disabled={isDisabled} dock={emojiDock} onStickersVisible={setChoosingSticker}
               onSticker={onSendSticker && !isEditing && !hasSelectedFile ? onSendSticker : undefined} />}
           </div>
           <ComposerActionButton

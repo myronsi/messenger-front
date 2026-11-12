@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { TYPING_IDLE_MS, TYPING_REPEAT_MS, useTypingStatus } from './useTypingStatus';
+import { beginChatActivity } from './chatActivity';
 
 const sendIfOpen = vi.hoisted(() => vi.fn((_event: unknown) => true));
 vi.mock('@/shared/api/realtime', () => ({ realtime: { sendIfOpen } }));
@@ -70,5 +71,24 @@ describe('useTypingStatus', () => {
     rerender({ ...start, chatId: '6', text: 'other draft!' });
     unmount();
     expect(sent()).toEqual(['5:typing', '5:stop typing', '6:typing', '6:stop typing']);
+  });
+
+  it('sends a sticker choice reported by the picker', () => {
+    const { result, unmount } = renderHook((props: Props) => useTypingStatus(props), { initialProps: start });
+    act(() => result.current(true));
+    act(() => result.current(false));
+    unmount();
+    expect(sent()).toEqual(['5:choosing_sticker', '5:stop choosing_sticker']);
+  });
+
+  it('sends a running upload or sticker choice instead of typing, and voice recording first', () => {
+    const { rerender, unmount } = renderHook((props: Props) => useTypingStatus(props), { initialProps: start });
+    let end = () => {};
+    act(() => { end = beginChatActivity('5', 'uploading_photo'); });
+    rerender({ ...start, text: 'caption' });
+    rerender({ ...start, text: 'caption', isRecording: true });
+    act(() => end());
+    unmount();
+    expect(sent()).toEqual(['5:uploading_photo', '5:stop uploading_photo', '5:recording_voice', '5:stop recording_voice']);
   });
 });

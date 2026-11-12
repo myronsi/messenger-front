@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { realtime } from '@/shared/api/realtime';
 import type { TypingAction } from './typingStore';
+import { useChatActivity } from './chatActivity';
 
 export const TYPING_REPEAT_MS = 3000;
 export const TYPING_IDLE_MS = 5000;
@@ -18,6 +19,8 @@ interface TypingStatusOptions {
 
 export const useTypingStatus = ({ chatId, text, canType, isRecording }: TypingStatusOptions) => {
   const [typingIn, setTypingIn] = useState<EntityId | null>(null);
+  const [choosingSticker, setChoosingSticker] = useState(false);
+  const activity = useChatActivity(chatId) ?? (choosingSticker ? 'choosing_sticker' : null);
   const seen = useRef({ chatId, text });
   useEffect(() => {
     const previous = seen.current;
@@ -31,7 +34,7 @@ export const useTypingStatus = ({ chatId, text, canType, isRecording }: TypingSt
     const timer = setTimeout(() => setTypingIn(null), TYPING_IDLE_MS);
     return () => clearTimeout(timer);
   }, [isTyping, text]);
-  const action: TypingAction | null = isRecording ? 'recording_voice' : isTyping ? 'typing' : null;
+  const action: TypingAction | null = isRecording ? 'recording_voice' : activity ?? (isTyping ? 'typing' : null);
   useEffect(() => {
     if (!action || !isPersistedId(chatId)) return;
     sendTyping(chatId, true, action);
@@ -41,4 +44,5 @@ export const useTypingStatus = ({ chatId, text, canType, isRecording }: TypingSt
       sendTyping(chatId, false, action);
     };
   }, [chatId, action]);
+  return setChoosingSticker;
 };

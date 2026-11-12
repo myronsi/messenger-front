@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react';
 import type { ServerEvent } from '@myronsi/messenger-api';
 import type { EntityId } from '@/shared/api/entityId';
 
-export type TypingAction = 'typing' | 'recording_voice';
+export const TYPING_ACTIONS = ['typing', 'recording_voice', 'choosing_sticker', 'uploading_photo', 'uploading_video', 'uploading_file'] as const;
+export type TypingAction = typeof TYPING_ACTIONS[number];
 export interface TypingUser {
   userId: string;
   action: TypingAction;
@@ -15,6 +16,7 @@ const listeners = new Set<() => void>();
 let snapshot: Record<string, TypingUser[]> = {};
 
 const timerKey = (chatId: string, userId: string) => `${chatId}:${userId}`;
+const knownAction = (action: string): TypingAction => (TYPING_ACTIONS as readonly string[]).includes(action) ? action as TypingAction : 'typing';
 const emit = () => listeners.forEach(listener => listener());
 
 const remove = (chatId: string, userId: string) => {
@@ -35,7 +37,7 @@ const put = (chatId: string, userId: string, action: string) => {
   const key = timerKey(chatId, userId);
   clearTimeout(timers.get(key));
   timers.set(key, setTimeout(() => remove(chatId, userId), TYPING_EXPIRY_MS));
-  const entry: TypingUser = { userId, action: action === 'recording_voice' ? 'recording_voice' : 'typing' };
+  const entry: TypingUser = { userId, action: knownAction(action) };
   const users = snapshot[chatId] ?? EMPTY;
   const current = users.find(user => user.userId === userId);
   if (current?.action === entry.action) return;

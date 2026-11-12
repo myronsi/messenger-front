@@ -96,7 +96,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     if (path === '/me/privacy' && method === 'PATCH') {
       data = { ...data };
       delete data.privacy_exceptions;
-      for (const key of ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'group_invites']) {
+      for (const key of ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'group_invites']) {
         if (data[key] === 'shared_chats') data[key] = 'contacts';
       }
     }
@@ -194,7 +194,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     const result = await response.clone().json();
     if (path === '/me/privacy' || path.includes('/privacy/exceptions/')) {
       const exceptions: Record<string, {allow: unknown[]; deny: unknown[]}> = {};
-      for (const key of ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'group_invites', 'direct_messages', 'search_visibility']) {
+      for (const key of ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'group_invites', 'direct_messages', 'search_visibility']) {
         if (result[key] === 'contacts') result[key] = 'shared_chats';
         const source = result.exceptions?.[key] || { allow: [], deny: [] };
         exceptions[key] = { allow: [], deny: [] };

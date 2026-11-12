@@ -16,14 +16,25 @@ const countLabel = (words: CountWords, count: number, language: AppLanguage) => 
   return template.replace('{count}', String(count));
 };
 
+const actionWords = (action: TypingAction, words: TypingWords) => {
+  switch (action) {
+    case 'recording_voice': return { alone: words.recordingVoice, named: words.oneRecording };
+    case 'choosing_sticker': return { alone: words.choosingSticker, named: words.oneChoosingSticker };
+    case 'uploading_photo': return { alone: words.sendingPhoto, named: words.oneSendingPhoto };
+    case 'uploading_video': return { alone: words.sendingVideo, named: words.oneSendingVideo };
+    case 'uploading_file': return { alone: words.sendingFile, named: words.oneSendingFile };
+    default: return { alone: words.typing, named: words.oneTyping };
+  }
+};
+
 export const getTypingLabel = (users: NamedTypingUser[], isGroup: boolean, words: TypingWords, language: AppLanguage) => {
   const [first, second] = users;
   if (!first) return '';
-  const recording = first.action === 'recording_voice';
-  if (!isGroup) return recording ? words.recordingVoice : words.typing;
+  const label = actionWords(first.action, words);
+  if (!isGroup) return label.alone;
   if (users.length === 1) {
-    if (!first.name) return recording ? words.recordingVoice : words.typing;
-    return (recording ? words.oneRecording : words.oneTyping).replace('{name}', first.name);
+    if (!first.name) return label.alone;
+    return label.named.replace('{name}', first.name);
   }
   if (users.length === 2 && first.name && second?.name) {
     return words.twoTyping.replace('{first}', first.name).replace('{second}', second.name);
