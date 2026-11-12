@@ -1,6 +1,7 @@
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 const DRAFT_PREFIX = 'draft:';
+const CONTEXT_PREFIX = 'draft-context:';
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
 
@@ -36,9 +37,40 @@ export const writeDraft = (id: string | null, text: string) => {
   }
 };
 
+export type DraftContext<Item> = { kind: 'reply'; message: Item } | { kind: 'edit'; message: Item; text: string };
+
+export const readDraftContext = <Item>(id: string | null): DraftContext<Item> | null => {
+  if (!id) return null;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(`${CONTEXT_PREFIX}${id}`) ?? 'null') as DraftContext<Item> | null;
+    return saved && (saved.kind === 'reply' || saved.kind === 'edit') && saved.message ? saved : null;
+  } catch {
+    return null;
+  }
+};
+
+export const writeDraftContext = <Item>(id: string | null, context: DraftContext<Item> | null) => {
+  if (!id) return;
+  try {
+    if (context) sessionStorage.setItem(`${CONTEXT_PREFIX}${id}`, JSON.stringify(context));
+    else sessionStorage.removeItem(`${CONTEXT_PREFIX}${id}`);
+    notify();
+  } catch {
+    return;
+  }
+};
+
+export const readChatDraftPreview = (id: string | null): string => {
+  const context = readDraftContext<unknown>(id);
+  if (context?.kind === 'edit' && context.text.trim()) return `edit:${context.text.trim()}`;
+  const text = readDraft(id).trim();
+  return text ? `draft:${text}` : '';
+};
+
 export const clearDrafts = () => {
   try {
-    Object.keys(sessionStorage).filter((key) => key.startsWith(DRAFT_PREFIX)).forEach((key) => sessionStorage.removeItem(key));
+    Object.keys(sessionStorage).filter((key) => key.startsWith(DRAFT_PREFIX) || key.startsWith(CONTEXT_PREFIX))
+      .forEach((key) => sessionStorage.removeItem(key));
     notify();
   } catch {
     // nothing to clear

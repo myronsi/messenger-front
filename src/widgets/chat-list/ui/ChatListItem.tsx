@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import type { EntityId } from '@/shared/api/entityId';
@@ -45,8 +46,10 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const unreadCount = chat.unread_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
   const typingUsers = useTypingUsers(chat.id);
-  const draft = useChatDraft(chat.id);
-  const showDraft = !!draft && chat.id !== activeChatId;
+  const liveDraft = useChatDraft(chat.id);
+  const [draft, setDraft] = useState(liveDraft);
+  if ((chat.id !== activeChatId || !liveDraft) && draft !== liveDraft) setDraft(liveDraft);
+  const showDraft = !!draft;
   const unreadBadgeClass = isMuted
     ? isActive ? 'bg-muted-foreground text-background md:bg-primary-foreground/60 md:text-primary' : 'bg-muted-foreground text-background'
     : isActive ? 'bg-primary text-primary-foreground md:bg-primary-foreground md:text-primary' : 'bg-primary text-primary-foreground';
@@ -116,8 +119,8 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
               <TypingLabel users={typingUsers} isGroup={chat.type === 'group'} className={`italic ${isActive ? 'text-primary md:text-primary-foreground' : 'text-primary'}`} />
             ) : showDraft ? (
               <span data-testid="chat-draft-preview">
-                <span className="text-destructive">{translations.chatDraftPrefix} </span>
-                {draft.replace(/\s+/g, ' ')}
+                <span className="text-destructive">{draft.kind === 'edit' ? translations.chatEditPrefix : translations.chatDraftPrefix} </span>
+                {draft.text.replace(/\s+/g, ' ')}
               </span>
             ) : (<>
               {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}>{sender}: </span>}

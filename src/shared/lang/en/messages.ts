@@ -51,6 +51,7 @@ export const messages = {
   newerSearchResult: "Newer match",
   replyFromYou: "You",
   chatDraftPrefix: "Draft:",
+  chatEditPrefix: "Edit:",
   voicePreviewPlay: "Play recording",
   voicePreviewPause: "Pause recording playback",
   voicePreviewSeek: "Recording position",

@@ -110,7 +110,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
       <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
         <MessageComposer
           ref={messageInputRef}
-          draftRef={composerDraftRef}
+          draftRef={composerDraftRef} setReplyTo={setReplyTo} setEditingMessage={setEditingMessage}
           replyTo={replyTo}
           editingMessage={editingMessage}
           onSendMessage={handleSendMessage}
