@@ -114,4 +114,14 @@ describe('selection against the loaded messages', () => {
     expect(forwardTargetLimit(3)).toBe(6);
     expect(forwardTargetLimit(20)).toBe(1);
   });
+
+  it('selects every loaded selectable message, at most the newest 100', () => {
+    const many = [message('0', { is_deleted: true }), ...Array.from({ length: MAX_SELECTED_MESSAGES + 5 }, (_, i) => message(String(i + 1)))];
+    const { result } = renderHook(() => useMessageSelection('5', many));
+    act(() => result.current.selectAll());
+    expect(result.current.selection.active).toBe(true);
+    expect(result.current.selection.ids.size).toBe(MAX_SELECTED_MESSAGES);
+    expect(result.current.selection.ids.has('5')).toBe(false);
+    expect(result.current.selection.ids.has(String(MAX_SELECTED_MESSAGES + 5))).toBe(true);
+  });
 });

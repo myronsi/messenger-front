@@ -149,7 +149,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   });
 
   const displayedMessages = isPreview || (!messages.length && previewFailedMessages.length) ? previewFailedMessages : messages;
-  const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, displayedMessages);
+  const { selection, start: startSelection, clear: clearSelection, selectAll, intercept } = useMessageSelection(chatId, displayedMessages);
   useBackToClose(selection.active, clearSelection, 'selection');
   useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
   const startReply = useReplyAction({ editingMessage, setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
@@ -287,7 +287,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         forwardMessage={forwardMessage}
         username={username}
         modal={modal}
-        selection={selection} onSelect={isPreview ? undefined : startSelection} onClearSelection={clearSelection}
+        selection={selection} onSelect={isPreview ? undefined : startSelection} onClearSelection={clearSelection} onSelectAll={selectAll}
       />
 
     </div>

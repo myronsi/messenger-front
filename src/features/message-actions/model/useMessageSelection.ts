@@ -77,6 +77,13 @@ export const useMessageSelection = (chatId: EntityId, messages: Message[] = []) 
     });
   }, []);
 
+  const selectAll = useCallback(() => {
+    const ids = loaded.current.filter(isSelectableMessage).slice(-MAX_SELECTED_MESSAGES).map((message) => message.id);
+    if (!ids.length) return;
+    anchor.current = null;
+    setState({ ids: new Set(ids), closing: false });
+  }, []);
+
   const clear = useCallback(() => {
     anchor.current = null;
     setState(closed);
@@ -101,5 +108,5 @@ export const useMessageSelection = (chatId: EntityId, messages: Message[] = []) 
     [active, start, state, toggle],
   );
 
-  return { selection, start, clear, intercept };
+  return { selection, start, clear, selectAll, intercept };
 };
