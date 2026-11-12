@@ -6,7 +6,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useGetCurrentUserQuery } from '@/features/profile';
-import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
+import { useGetChatAudiosQuery, useGetChatFilesQuery, useGetChatPhotosQuery } from '@/entities/message';
 import {
   useGetUserByUsernameQuery, useUpdateContactDisplayNameMutation, useDeleteContactDisplayNameMutation,
   useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation,
@@ -83,6 +83,10 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   } = useGetChatAudiosQuery(directChatId || 0, {
     skip: !directChatId || !isPersistedId(directChatId),
   });
+  const { data: chatFilesData, isLoading: isLoadingDmFiles, error: dmFilesQueryError } = useGetChatFilesQuery(directChatId || 0, {
+    skip: !directChatId || !isPersistedId(directChatId),
+  });
+  const dmFiles = chatFilesData?.files ?? [];
   const profileDisplayName = userData?.display_name || username;
   const accountDisplayName = userData?.account_display_name || username;
   const contactDisplayName = userData?.contact_display_name?.trim();
@@ -101,6 +105,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const dmAudiosError = dmAudiosQueryError
     ? translations.errorLoadingMessages || translations.errorLoading || 'Error loading messages.'
     : null;
+  const dmFilesError = dmFilesQueryError ? translations.errorLoadingMessages || translations.errorLoading || 'Error loading messages.' : null;
   const blockUserConsequences = translations.blockUserConsequences || [
     'They will not be able to send you direct messages.',
     'They will not be able to invite you to groups.',
@@ -190,14 +195,16 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const canShowMessageAction = !hideMessageAction && !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
   const canShowPhotosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmPhotos.length > 0;
   const canShowAudiosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmAudios.length > 0;
+  const canShowFilesAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmFiles.length > 0;
   const canShowDmSections = !!directChatId && isPersistedId(directChatId) && !isCurrentUser;
-  const actionCount = [canShowMessageAction, canShowDmSections, canShowPhotosAction, canShowAudiosAction, canShowDmSections]
+  const actionCount = [canShowMessageAction, canShowDmSections, canShowPhotosAction, canShowAudiosAction, canShowFilesAction, canShowDmSections]
     .filter(Boolean).length;
-  const actionColumns = Math.min(Math.max(actionCount, 1), 4);
+  const actionColumns = Math.min(Math.max(actionCount, 1), 6);
   const visiblePanelOrder: ProfilePanelView[] = [
     'details',
     ...(canShowPhotosAction ? (['photos'] as const) : []),
     ...(canShowAudiosAction ? (['audios'] as const) : []),
+    ...(canShowFilesAction ? (['files'] as const) : []),
   ];
   const selectView = (view: ProfilePanelView) => transitionToView(view, visiblePanelOrder);
 
@@ -222,6 +229,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const renderPanelContent = (view: ProfilePanelView) => (
     <UserProfilePanelView
       view={view} canShowPhotos={canShowPhotosAction} canShowAudios={canShowAudiosAction}
+      canShowFiles={canShowFilesAction} files={dmFiles} isLoadingFiles={isLoadingDmFiles} filesError={dmFilesError}
       photos={dmPhotos} audios={dmAudios}
       isLoadingPhotos={isLoadingDmPhotos} isLoadingAudios={isLoadingDmAudios}
       photosError={dmPhotosError} audiosError={dmAudiosError} infoPanel={infoPanel} currentUsername={currentUser?.username}
@@ -245,7 +253,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
         <UserProfileActions
           actionCount={actionCount} actionColumns={actionColumns}
           showDetails={canShowDmSections} showMessage={canShowMessageAction}
-          showPhotos={canShowPhotosAction} showAudios={canShowAudiosAction}
+          showPhotos={canShowPhotosAction} showAudios={canShowAudiosAction} showFiles={canShowFilesAction}
           muteChatId={canShowDmSections ? directChatId : undefined} activeView={activeView}
           onSelectView={selectView} onMessage={handleMessage}
         />

@@ -12,7 +12,8 @@ export const RESEND_WINDOW_MS = 23 * 60 * 60 * 1000;
 const tempKey = (message: Message) => String(message.client_temp_id ?? message.id);
 
 export const isKeptUnsent = (message: Message) => (
-  !isPersistedId(message.id) && Boolean(message.is_own) && !message.is_deleting && message.type === 'message' && typeof message.content === 'string'
+  !isPersistedId(message.id) && Boolean(message.is_own) && !message.is_deleting && !message.is_deleted
+  && message.type === 'message' && typeof message.content === 'string'
 );
 
 export const restoreUnsentMessages = (current: Message[], saved: Message[], now: number, notConfirmed: string) => {

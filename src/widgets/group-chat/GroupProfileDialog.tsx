@@ -1,12 +1,12 @@
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useGetChatAudiosQuery, useGetChatPhotosQuery } from '@/entities/message';
+import { useGetChatAudiosQuery, useGetChatFilesQuery, useGetChatPhotosQuery } from '@/entities/message';
 import { useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useBackToClose } from '@/shared/lib/useBackToClose';
 import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
-import { ProfileAudiosPanel, ProfilePhotosPanel, toProfileAudios, toProfilePhotos } from '@/entities/message';
+import { ProfileAudiosPanel, ProfileFilesPanel, ProfilePhotosPanel, toProfileAudios, toProfilePhotos } from '@/entities/message';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupProfileView, GroupProfileTransition } from './GroupProfileTypes';
 import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';
@@ -46,6 +46,10 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   } = useGetChatAudiosQuery(chatId, {
     skip: !open || !isPersistedId(chatId),
   });
+  const { data: chatFilesData, isLoading: isLoadingFiles, error: filesQueryError } = useGetChatFilesQuery(chatId, {
+    skip: !open || !isPersistedId(chatId),
+  });
+  const files = chatFilesData?.files ?? [];
   useEffect(() => {
     setIsRoleHistoryOpen(false);
     if (!open) return;
@@ -123,13 +127,16 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const mediaError = translations.errorLoadingMessages || translations.errorLoading || 'Error loading messages.';
   const photosError = photosQueryError ? mediaError : null;
   const audiosError = audiosQueryError ? mediaError : null;
+  const filesError = filesQueryError ? mediaError : null;
   const canShowPhotosAction = photos.length > 0;
   const canShowAudiosAction = audios.length > 0;
+  const canShowFilesAction = files.length > 0;
   const visiblePanelOrder: GroupProfileView[] = [
     'details',
     'participants',
     ...(canShowPhotosAction ? (['photos'] as const) : []),
     ...(canShowAudiosAction ? (['audios'] as const) : []),
+    ...(canShowFilesAction ? (['files'] as const) : []),
   ];
   const canMute = isPersistedId(chatId);
   const actionColumns = Math.min(visiblePanelOrder.length + (canMute ? 1 : 0), 6);
@@ -168,6 +175,12 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
         />
       );
     }
+    if (view === 'files' && canShowFilesAction) {
+      return (
+        <ProfileFilesPanel files={files} isLoading={isLoadingFiles} error={filesError}
+          currentUsername={currentUsername} onJumpToMessage={model.onJumpToMessage} />
+      );
+    }
     if (view === 'participants') {
       return (
         <GroupParticipantsPanel
@@ -191,7 +204,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     open={open} isClosing={isClosing} onOpenChange={onOpenChange}
     currentGroupName={currentGroupName} currentGroupAvatar={currentGroupAvatar}
     participants={participants} actionColumns={actionColumns}
-    canShowPhotosAction={canShowPhotosAction} canShowAudiosAction={canShowAudiosAction}
+    canShowPhotosAction={canShowPhotosAction} canShowAudiosAction={canShowAudiosAction} canShowFilesAction={canShowFilesAction}
     activeView={activeView} panelTransition={panelTransition} onSelectView={selectView}
     renderPanelContent={renderPanelContent} groupConfirm={groupConfirm}
     onCloseGroupConfirm={onCloseGroupConfirm} isAvatarViewerOpen={isAvatarViewerOpen}

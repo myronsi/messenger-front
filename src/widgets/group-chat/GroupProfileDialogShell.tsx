@@ -6,7 +6,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import { ChatMuteAction } from '@/features/chat-mute';
-import { Image as ImageIcon, Music, UserPlus, Users, X } from 'lucide-react';
+import { FileText, Image as ImageIcon, Music, UserPlus, Users, X } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
@@ -15,7 +15,7 @@ import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { getAvatarSrc } from './groupChatUtils';
 import type { GroupProfileConfirmState, GroupParticipant } from './GroupProfileTypes';
 
-type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios';
+type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files';
 type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };
 interface Props {
   chatId: EntityId;
@@ -29,6 +29,7 @@ interface Props {
   actionColumns: number;
   canShowPhotosAction: boolean;
   canShowAudiosAction: boolean;
+  canShowFilesAction?: boolean;
   activeView: GroupProfileView;
   panelTransition: GroupProfileTransition | null;
   onSelectView: (view: GroupProfileView) => void;
@@ -42,14 +43,15 @@ interface Props {
 
 const GroupProfileDialogShell: React.FC<Props> = ({
   chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, actionColumns,
-  canShowPhotosAction, canShowAudiosAction, activeView, panelTransition, onSelectView, renderPanelContent,
+  canShowPhotosAction, canShowAudiosAction, canShowFilesAction = false, activeView, panelTransition, onSelectView, renderPanelContent,
   groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null,
 }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const requestClose = () => onOpenChange(false);
   const hasCustomAvatar = !!currentGroupAvatar && currentGroupAvatar !== getAvatarSrc(DEFAULT_GROUP_AVATAR);
-  const visibleViews: GroupProfileView[] = ['details', 'participants', ...(canShowPhotosAction ? ['photos' as const] : []), ...(canShowAudiosAction ? ['audios' as const] : [])];
+  const visibleViews: GroupProfileView[] = ['details', 'participants', ...(canShowPhotosAction ? ['photos' as const] : []), ...(canShowAudiosAction ? ['audios' as const] : []),
+    ...(canShowFilesAction ? ['files' as const] : [])];
   const actionButton = (view: GroupProfileView, icon: React.ReactNode, label: string) => (
     <button
       type="button"
@@ -132,6 +134,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                 {actionButton('participants', <UserPlus className="h-5 w-5" />, translations.participants || 'Participants')}
                 {canShowPhotosAction && actionButton('photos', <ImageIcon className="h-5 w-5" />, translations.photos || 'Photos')}
                 {canShowAudiosAction && actionButton('audios', <Music className="h-5 w-5" />, translations.audios || 'Audios')}
+                {canShowFilesAction && actionButton('files', <FileText className="h-5 w-5" />, translations.chatFilesTab || 'Files')}
                 {canMute && (
                   <ChatMuteAction
                     chatId={chatId}

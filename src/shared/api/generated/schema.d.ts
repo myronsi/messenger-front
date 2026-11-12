@@ -956,6 +956,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chats/{chat_id}/unsent": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The caller's rejected sends of a chat
+         * @description Sends the server rejected for a reason that may pass later (`forbidden`, `blocked_by_user`, `rate_limited`,
+         *     `internal_error`), oldest first. They belong to the caller and are shown on all of the caller's devices.
+         *     A later send with the same `client_temp_id` that succeeds removes the entry; at most 500 are kept per user.
+         */
+        get: operations["listUnsentMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/unsent/{client_temp_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                client_temp_id: components["schemas"]["ClientTempId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Discard a rejected send */
+        delete: operations["deleteUnsentMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chats/{chat_id}/messages/search": {
         parameters: {
             query?: never;
@@ -995,7 +1049,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Photos, videos or audio of a chat
+         * Photos, videos, audio or files of a chat
          * @description Replaces `GET /messages/photos/{chat_id}` and `GET /messages/audios/{chat_id}`.
          */
         get: operations["listChatMedia"];
@@ -3208,8 +3262,11 @@ export interface components {
             attachment_id: components["schemas"]["AttachmentRef"];
             drawing: components["schemas"]["Drawing"];
         };
-        /** @enum {string} */
-        MediaKind: "image" | "audio" | "visual";
+        /**
+         * @description `image` photos, `visual` photos and videos, `audio` audio files and voice messages, `file` other files (documents, archives).
+         * @enum {string}
+         */
+        MediaKind: "image" | "audio" | "visual" | "file";
         /** @enum {string} */
         MessageType: "text" | "file" | "voice" | "system" | "sticker";
         /**
@@ -3377,6 +3434,20 @@ export interface components {
              *     an excerpt.
              */
             highlight?: string | null;
+        };
+        /** @description A send the server rejected for a reason that may pass later. Resend it with the same `client_temp_id`. */
+        UnsentMessage: {
+            chat_id: components["schemas"]["Id"];
+            client_temp_id: components["schemas"]["ClientTempId"];
+            /** @enum {string} */
+            type: "text" | "file" | "voice" | "sticker";
+            content: string | null;
+            reply_to: components["schemas"]["Id"] | null;
+            /** @description Uploaded files of the send that still exist, in the order they were sent. */
+            attachments: components["schemas"]["Attachment"][];
+            sticker?: components["schemas"]["Sticker"];
+            error_code: components["schemas"]["ErrorCode"];
+            created_at: components["schemas"]["Timestamp"];
         };
         MessageSearchPage: {
             items: components["schemas"]["SearchHit"][];
@@ -5635,6 +5706,69 @@ export interface operations {
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listUnsentMessages: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kept sends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["UnsentMessage"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteUnsentMessage: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                client_temp_id: components["schemas"]["ClientTempId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discarded */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
         };
     };
     searchMessages: {

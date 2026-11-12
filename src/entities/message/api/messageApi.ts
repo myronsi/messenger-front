@@ -4,7 +4,7 @@ import { contractQuery } from '@/shared/api/queryResult';
 import { messageModel } from '@/shared/api/goModels';
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
-import type { ChatAudiosResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message } from '../model/types';
+import type { ChatAudiosResponse, ChatFilesResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message } from '../model/types';
 import type { MessageHistoryResponse } from '../model/history';
 
 export const messageApi = messengerApi.injectEndpoints({
@@ -93,6 +93,12 @@ export const messageApi = messengerApi.injectEndpoints({
       query: (chatId) => `/messages/audios/${chatId}`,
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Message', id: `${chatId}-audios` }],
+    }),
+
+    getChatFiles: builder.query<ChatFilesResponse, EntityId>({
+      query: (chatId) => `/messages/files/${chatId}`,
+      keepUnusedDataFor: 300,
+      providesTags: (result, error, chatId) => [{ type: 'Message', id: `${chatId}-files` }],
     }),
 
     searchChatMessages: builder.query<ChatSearchResponse, { chatId: EntityId; query: string }>({
@@ -185,6 +191,7 @@ export const {
   useLazyGetMessageHistoryQuery,
   useGetChatPhotosQuery,
   useGetChatAudiosQuery,
+  useGetChatFilesQuery,
   useSearchChatMessagesQuery,
   useGetMessagesQuery,
   useSendMessageMutation,

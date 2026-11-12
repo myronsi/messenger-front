@@ -3,7 +3,7 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useRef, type MutableRefObject } from 'react';
-import type { Message } from '@/entities/message';
+import { keptAttachmentIds, resendKeptFile, type Message } from '@/entities/message';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { uploadAbortSignal } from '@/shared/lib/uploadCancellation';
 import { isGoApi } from '@/shared/api/goSocket';
@@ -54,9 +54,7 @@ export const useMessageSender = ({
 
   const markLatestPendingMessageFailed = (message?: string) => {
     const failedId = pendingMessageIdsRef.current.pop();
-    if (!failedId) return false;
-    markMessageFailed(failedId, message);
-    return true;
+    return failedId ? markMessageFailed(failedId, message) : false;
   };
 
   const clearMessageDeliveryError = (messageId: EntityId) => {
@@ -228,7 +226,10 @@ export const useMessageSender = ({
     if (message.type === 'file') {
       const source = uploadSourcesRef.current.get(String(message.id));
       if (!source) {
-        setMessages((previous) => previous.filter((item) => String(item.id) !== String(message.id)));
+        if (!keptAttachmentIds(message).length) return setMessages((previous) => previous.filter((item) => String(item.id) !== String(message.id)));
+        retryUnsavedMessage(message, {});
+        void resendKeptFile(chatId, message).then((created) => settleOptimisticUpload(message.id, created))
+          .catch(() => markMessageFailed(message.id, translationsRef.current.messageDeliveryNotConfirmed));
         return;
       }
       if (typeof message.content === 'string') return;

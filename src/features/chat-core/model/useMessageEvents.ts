@@ -4,11 +4,12 @@ import { compareIds, isPersistedId } from '@/shared/api/entityId';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
+import { SERVER_KEPT_ERRORS, useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
 import {
   addReaction, addReadReceipts, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
 } from './messageUpdates';
 import { closeForGood } from '@/shared/api/reconnect';
+import { markServerKept } from './serverOutbox';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ReadBatchEvent, ReadEvent, ServerEvent } from './socketEvents';
 import type { ChatTransport, SetMessages, ShowError } from './types';
@@ -107,7 +108,10 @@ export const useMessageEvents = ({
         return;
       case 'error':
         if (event.operation_error) setModal({ type: 'error', message: event.message ?? '' });
-        else if (event.message_id) markMessageFailed(event.message_id, event.message);
+        else if (event.message_id) {
+          markMessageFailed(event.message_id, event.message);
+          if (event.code && SERVER_KEPT_ERRORS.has(event.code)) setMessages(previous => markServerKept(previous, event.message_id!));
+        }
         else if (!markLatestPendingMessageFailed(event.message)) setModal({ type: 'error', message: event.message ?? '' });
         return;
       case 'chat_deleted':
