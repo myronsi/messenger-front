@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Inbox, ChevronRight } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
+import { toast } from '@/shared/ui/sonner';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { GroupCreateModal, useCreateGroup } from '@/features/groups';
 import { QrScannerDialog } from '@/features/auth';
@@ -23,12 +24,12 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const [scanning, setScanning] = useState(false);
   const createGroup = useCreateGroup((message, groupName, chatId) => {
     setCreatingGroup(false);
-    model.setModal({
-      type: 'success',
-      message,
-      confirmText: chatId ? model.translations.openCreatedGroup : model.translations.close,
-      onConfirm: chatId ? () => model.onChatOpen(chatId, groupName, false, 'group') : undefined,
-    });
+    if (chatId) {
+      model.onChatOpen(chatId, groupName, false, 'group');
+      toast(message);
+    } else {
+      model.setModal({ type: 'success', message, confirmText: model.translations.close });
+    }
     void model.refetch();
   });
   const pendingRequests = model.requestInbox?.unread_count || 0;

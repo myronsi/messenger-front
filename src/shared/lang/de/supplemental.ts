@@ -19,7 +19,6 @@ export const supplemental = {
   searchMessages: "Nachrichten suchen",
   searchInChat: "Im Chat suchen",
   noSearchResults: "Keine Ergebnisse",
-  openCreatedGroup: "Gruppe öffnen",
   groupCreated: "Gruppe erfolgreich erstellt!",
   errorWhileCreatingGroup: "Fehler beim Erstellen der Gruppe",
   groupCreationFailed: "Die Gruppe konnte nicht erstellt werden. Bitte versuch es noch einmal.",
