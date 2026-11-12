@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
@@ -11,7 +12,7 @@ interface UserProfileConfirmationsProps {
   onCancelBlock: () => void;
   onConfirmBlock: () => void;
   onCancelDeleteChat: () => void;
-  onConfirmDeleteChat: () => void;
+  onConfirmDeleteChat: (scope: 'me' | 'everyone') => void;
 }
 
 const UserProfileConfirmations: React.FC<UserProfileConfirmationsProps> = ({
@@ -19,6 +20,7 @@ const UserProfileConfirmations: React.FC<UserProfileConfirmationsProps> = ({
   onCancelBlock, onConfirmBlock, onCancelDeleteChat, onConfirmDeleteChat,
 }) => {
   const { translations } = useLanguage();
+  const [alsoForPeer, setAlsoForPeer] = useState(false);
   return (
     <>
       {isBlockConfirmOpen && (
@@ -41,8 +43,9 @@ const UserProfileConfirmations: React.FC<UserProfileConfirmationsProps> = ({
           confirmText={translations.deleteChat || 'Delete Chat'}
           cancelText={translations.cancel || 'Cancel'}
           isDestructive
-          onCancel={onCancelDeleteChat}
-          onConfirm={onConfirmDeleteChat}
+          checkbox={{ label: fillTemplate(translations.chatCleanup.alsoDeleteFor, { name: displayName }), checked: alsoForPeer, onChange: setAlsoForPeer }}
+          onCancel={() => { setAlsoForPeer(false); onCancelDeleteChat(); }}
+          onConfirm={() => { onConfirmDeleteChat(alsoForPeer ? 'everyone' : 'me'); setAlsoForPeer(false); }}
         />
       )}
     </>

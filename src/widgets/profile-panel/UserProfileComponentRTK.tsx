@@ -32,7 +32,7 @@ interface UserProfileComponentRTKProps {
     isOnline?: boolean;
     lastSeen?: string | null;
   }) => void;
-  onDeleteChat?: () => void;
+  onDeleteChat?: (scope: 'me' | 'everyone') => void;
   hideMessageAction?: boolean;
   onJumpToMessage?: (messageId: EntityId) => void;
 }
@@ -266,7 +266,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
         displayName={displayName} blockConsequences={blockUserConsequences} deleteConsequences={deleteChatConsequences}
         onCancelBlock={() => setIsBlockConfirmOpen(false)} onConfirmBlock={handleBlockToggle}
         onCancelDeleteChat={() => setIsDeleteChatConfirmOpen(false)}
-        onConfirmDeleteChat={() => { setIsDeleteChatConfirmOpen(false); onDeleteChat?.(); }}
+        onConfirmDeleteChat={(scope) => { setIsDeleteChatConfirmOpen(false); onDeleteChat?.(scope); }}
       />
       {isAvatarViewerOpen && hasCustomAvatar && (
         <AvatarHistoryViewer

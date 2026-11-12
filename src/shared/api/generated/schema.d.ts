@@ -859,7 +859,10 @@ export interface paths {
         post?: never;
         /**
          * Delete a direct chat
-         * @description Deletes the chat and its messages for both users (as v1 did); both get `chat_deleted`.
+         * @description `scope=everyone` (the default) deletes the chat and its messages for both users (as v1 did); both get
+         *     `chat_deleted`. `scope=me` deletes it only for the caller: the chat leaves their list and its history up to
+         *     now is hidden for them (as `POST /chats/{chat_id}/clear` with `scope: me`); only the caller's devices get
+         *     `chat_deleted`. When a newer message arrives the chat comes back for the caller with only the newer messages.
          *     For groups use `DELETE /groups/{chat_id}` (owner) or `POST /groups/{chat_id}/leave`;
          *     a group here is `422`.
          */
@@ -893,6 +896,37 @@ export interface paths {
         post?: never;
         /** Unpin a chat */
         delete: operations["unpinChat"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/clear": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear the history of a chat
+         * @description Clears every message up to the newest one now. `scope: me` hides them only for the caller (any member).
+         *     `scope: everyone` removes them for every member: in a direct chat either user may do it, in a group the
+         *     owner and admins (`403` for others). The chat itself stays. The caller's devices (`me`) or every member's
+         *     (`everyone`) get `history_cleared`; messages up to `before_message_id` are no longer listed, counted as
+         *     unread, found by search or shown as media.
+         */
+        post: operations["clearChatHistory"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3610,6 +3644,10 @@ export interface components {
             items: components["schemas"]["Chat"][];
             next_cursor: components["schemas"]["Cursor"];
         };
+        ClearHistoryRequest: {
+            /** @enum {string} */
+            scope: "me" | "everyone";
+        };
         PinOrderRequest: {
             chat_ids: components["schemas"]["Id"][];
         };
@@ -5568,7 +5606,9 @@ export interface operations {
     };
     deleteChat: {
         parameters: {
-            query?: never;
+            query?: {
+                scope?: "me" | "everyone";
+            };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
@@ -5652,6 +5692,41 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    clearChatHistory: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearHistoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Cleared */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
     };

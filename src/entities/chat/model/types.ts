@@ -69,6 +69,7 @@ export interface GroupChatResponse {
     is_pinned?: boolean;
     pin_position?: number | null;
     is_archived?: boolean;
+    my_role?: string | null;
   }>;
 }
 

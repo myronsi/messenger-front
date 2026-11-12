@@ -59,6 +59,7 @@ export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => 
       : { type: 'error', message: event.data.message || event.data.code, message_id: event.client_temp_id, code: event.data.code };
     case 'group_updated': return { type: 'group_updated', group: groupModel(event.data.group) };
     case 'chat_deleted': return { type: 'chat_deleted', chat_id: event.chat_id };
+    case 'history_cleared': return { type: 'history_cleared', before_message_id: event.data.before_message_id };
     default: return null;
   }
 };

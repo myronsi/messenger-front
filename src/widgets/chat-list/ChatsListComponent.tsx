@@ -13,6 +13,8 @@ import ChatListBody from './ui/ChatListBody';
 import ChatSearchOverlay from './ui/ChatSearchOverlay';
 import ChatContextMenu from './ui/ChatContextMenu';
 import { useChatListModel } from './model/useChatListModel';
+import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
+import type { Chat } from '@/entities/message';
 import { getMediaSrc, type ChatsListComponentProps } from './model/types';
 
 const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
@@ -33,6 +35,20 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
     void model.refetch();
   });
   const pendingRequests = model.requestInbox?.unread_count || 0;
+  const cleanup = useChatCleanup((request) => {
+    toast(request.kind === 'delete' ? model.translations.chatCleanup.deleted : model.translations.chatCleanup.cleared);
+    if (request.kind === 'delete') props.onChatDeleted?.(request.target.chatId);
+    void model.refetch();
+  }, (message) => model.setModal({ type: 'error', message: message || model.translations.errorLoading }));
+  const menuChat = model.chats.find((chat) => chat.id === model.chatContextMenu?.chatId);
+  const askCleanup = (kind: 'delete' | 'clear', chat?: Chat) => {
+    model.closeChatContextMenu();
+    if (!chat) return;
+    cleanup.open({ kind, target: {
+      chatId: chat.id, name: chat.is_saved ? model.translations.chatOrganizer.savedMessages : chat.display_name || chat.name,
+      isGroup: chat.type === 'group', isSaved: !!chat.is_saved, canClearForEveryone: chat.my_role === 'owner' || chat.my_role === 'admin',
+    } });
+  };
   const openSaved = () => {
     const saved = model.chats.find((chat) => chat.is_saved);
     if (saved) model.handleChatClick(saved);
@@ -114,9 +130,13 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         onMarkAsRead={model.handleMarkChatRead}
         onTogglePinned={model.handleTogglePinnedChat}
         onToggleArchived={model.handleToggleArchived}
+        onClearHistory={() => askCleanup('clear', menuChat)}
+        onDeleteChat={menuChat?.type === 'one-on-one' ? () => askCleanup('delete', menuChat) : undefined}
         onClose={model.closeChatContextMenu}
         onError={(message) => model.setModal({ type: 'error', message })}
       />
+
+      <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
 
       {creatingGroup && (
         <GroupCreateModal currentUsername={model.username} onClose={() => setCreatingGroup(false)} onCreate={createGroup} />

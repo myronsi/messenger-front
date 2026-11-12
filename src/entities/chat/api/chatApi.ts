@@ -89,9 +89,18 @@ export const chatApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Request'],
     }),
 
-    deleteChat: builder.mutation<void, EntityId>({
-      queryFn: (id, { signal }) => apiTask(async () => { contractData(await apiClient.DELETE('/chats/{chat_id}', { params: { path: { chat_id: String(id) } }, signal })); }),
+    deleteChat: builder.mutation<void, { chatId: EntityId; scope: 'me' | 'everyone' }>({
+      queryFn: ({ chatId, scope }, { signal }) => apiTask(async () => {
+        contractData(await apiClient.DELETE('/chats/{chat_id}', { params: { path: { chat_id: String(chatId) }, query: { scope } }, signal }));
+      }),
       invalidatesTags: ['Chat'],
+    }),
+
+    clearChatHistory: builder.mutation<void, { chatId: EntityId; scope: 'me' | 'everyone' }>({
+      queryFn: ({ chatId, scope }, { signal }) => apiTask(async () => {
+        contractData(await apiClient.POST('/chats/{chat_id}/clear', { params: { path: { chat_id: String(chatId) } }, body: { scope }, signal }));
+      }),
+      invalidatesTags: ['Chat', 'Message'],
     }),
 
     setChatPinned: builder.mutation<{ chat_id: EntityId; is_pinned: boolean }, { chatId: EntityId; pinned: boolean }>({
@@ -146,6 +155,7 @@ export const {
   useDeleteChatMutation,
   useSetChatPinnedMutation,
   useSetChatArchivedMutation,
+  useClearChatHistoryMutation,
   useReorderPinnedChatsMutation,
   useMarkChatReadMutation,
 } = chatApi;
