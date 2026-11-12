@@ -1,6 +1,7 @@
 export const recoveryUi = {
   connectionEnded: "Verbindung beendet. Lade neu, um dich wieder zu verbinden.",
   reconnecting: "Verbindung wird wiederhergestellt…",
+  waitingForNetwork: "Warte auf Netzwerk…",
   signInScreen: {
     title: "Willkommen zurück",
     subtitle: "Melde dich an, um den Messenger zu nutzen.",

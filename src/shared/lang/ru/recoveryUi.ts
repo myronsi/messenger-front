@@ -3,6 +3,7 @@ import type { recoveryUi as en } from '../en/recoveryUi';
 export const recoveryUi: typeof en = {
   connectionEnded: "Соединение прервано. Обновите страницу.",
   reconnecting: "Повторное подключение…",
+  waitingForNetwork: "Ожидание сети…",
   signInScreen: {
     title: "С возвращением",
     subtitle: "Войдите, чтобы продолжить работу в мессенджере.",

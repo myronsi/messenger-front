@@ -5,7 +5,7 @@ import { getApiBaseUrl } from './config';
 
 const STORE = 'snapshots';
 const MAX_ENTRIES = 32;
-const MAX_AGE = 24 * 60 * 60 * 1000;
+const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 const sessionScope = () => {
   const token = getAccessToken();
   const account = getTokenSubject(token);

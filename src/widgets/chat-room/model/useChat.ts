@@ -1,3 +1,4 @@
+import { isOffline } from '@/shared/lib/network';
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { ContextMenuState, Message, ModalState, placeFailedMessagesByTime, useConversationMessages } from '@/entities/message';
@@ -103,7 +104,7 @@ export const useChat = (
 
   useChatSocket({
     chatId, token, transport, onEvent: handleSocketEvent,
-    onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
+    onConnectionFailed: () => { if (!isOffline()) setModal({ type: 'error', message: translationsRef.current.webSocketError }); },
     onReconnected: () => { resendUnconfirmed(); void catchUpAfterReconnect(); },
     onOpened: () => { void catchUpAfterReconnect(true); },
   });

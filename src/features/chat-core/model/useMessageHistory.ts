@@ -1,3 +1,4 @@
+import { isOffline } from '@/shared/lib/network';
 import { historySnapshot, useChatSnapshot } from '@/shared/api/chatSnapshots';
 import type { MessageHistoryResponse } from '@/entities/message';
 import { isPersistedId, compareIds } from '@/shared/api/entityId';
@@ -108,6 +109,7 @@ export const useMessageHistory = ({
       onBackRef.current();
       return;
     }
+    if (isOffline()) return;
     setModal({ type: 'error', message: translationsRef.current.errorLoadingMessages });
   }, [onBackRef, setModal, translationsRef]);
 

@@ -1,6 +1,7 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { authFetch, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { getTokenSubject } from '@/shared/auth/tokenClaims';
+import { isOffline } from '@/shared/lib/network';
 
 const STORE_PREFIX = 'media-v1';
 const EXPIRES_HEADER = 'X-Media-Expires';
@@ -127,9 +128,7 @@ const readStored = async (url: string) => {
   const store = await openStore();
   const hit = await store?.match(url).catch(() => undefined);
   if (!hit) return null;
-  if (Number(hit.headers.get(EXPIRES_HEADER)) > Date.now()) return hit.blob();
-  void store?.delete(url).catch(() => undefined);
-  return null;
+  return { blob: await hit.blob(), fresh: Number(hit.headers.get(EXPIRES_HEADER)) > Date.now() };
 };
 
 const trimStore = async (store: Cache) => {
@@ -148,11 +147,15 @@ const writeStored = async (url: string, blob: Blob, lifetime: number) => {
 const download = async (url: string, entry: Entry) => {
   const storable = isStorable(url);
   const stored = storable ? await readStored(url).catch(() => null) : null;
-  if (stored) return stored;
+  if (stored?.fresh || (stored && isOffline())) return stored.blob;
   const done = await takeSlot(entry);
   try {
     const { signal } = entry.controller;
-    const response = await authFetch(url, { signal, priority: entry.priority === 'low' ? 'low' : 'auto' });
+    const response = await authFetch(url, { signal, priority: entry.priority === 'low' ? 'low' : 'auto' }).catch((error: unknown) => {
+      if (stored && !signal.aborted) return null;
+      throw error;
+    });
+    if (!response) return stored!.blob;
     if (!response.ok) throw new Error(`Media request failed (${response.status})`);
     const blob = await response.blob();
     const lifetime = storable && response.status === 200 ? storageLifetime(response.headers.get('Cache-Control')) : 0;

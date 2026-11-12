@@ -99,6 +99,16 @@ describe('useMessageHistory paging', () => {
     expect(onBack).toHaveBeenCalledOnce();
   });
 
+  it('shows no error window when paging fails while the device is offline', async () => {
+    const { hook, setModal } = setup(range(951, 1000).map(message));
+    await waitFor(() => expect(hook.result.current.history.hasMoreMessages).toBe(true));
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    mocks.fetchHistory.mockReturnValue({ unwrap: () => Promise.reject({ status: 'FETCH_ERROR', error: 'TypeError: Failed to fetch' }) });
+    await act(async () => { await hook.result.current.history.loadOlderMessages(); });
+    expect(setModal).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
   it('drops a message deleted on the server when the newest page arrives', async () => {
     mocks.latest = { currentData: page([951, 953], { has_more_before: false }), isLoading: false, error: undefined };
     const { hook } = setup([951, 952, 953].map(message));

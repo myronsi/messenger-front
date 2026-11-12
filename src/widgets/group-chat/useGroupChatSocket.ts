@@ -1,3 +1,4 @@
+import { isOffline } from '@/shared/lib/network';
 import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
@@ -54,7 +55,7 @@ export const useGroupChatSocket = ({
 
   useChatSocket({
     chatId, token, transport, onEvent: handleSocketEvent,
-    onConnectionFailed: () => setModal({ type: 'error', message: translationsRef.current.webSocketError }),
+    onConnectionFailed: () => { if (!isOffline()) setModal({ type: 'error', message: translationsRef.current.webSocketError }); },
     onReconnected: () => {
       onReconnected();
       // Membership or settings may have changed while disconnected.
