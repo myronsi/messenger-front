@@ -12,6 +12,7 @@ import ScrollToBottomButton from './ScrollToBottomButton';
 import { isVisualMediaMessage, Message, MessageItem, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useChatCovered } from '@/shared/contexts/ChatCoveredContext';
 import { useStableCallback } from '@/shared/lib/useStableCallback';
 interface MessageListProps {
   messages: Message[];
@@ -147,7 +148,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
 
   useMessageReadReceipts({
     messages, userId, messageRefs, chatContainerRef, isOwnMessage,
-    onMarkMessagesRead, enabled: isPositioned,
+    onMarkMessagesRead, enabled: !useChatCovered() && isPositioned,
   });
 
   const [playingMessageId, setPlayingMessageIdState] = useState<EntityId | null>(null);

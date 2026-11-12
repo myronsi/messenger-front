@@ -1,3 +1,4 @@
+import { useChatCovered } from '@/shared/contexts/ChatCoveredContext';
 import { realtime } from '@/shared/api/realtime';
 import { endSession } from '@/shared/auth/session';
 import { startNotifications, setNotificationLive } from '@/shared/lib/notifications/runtime';
@@ -47,7 +48,8 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
     if (isSignedIn && currentUserId) return startNotifications(String(currentUserId));
   }, [isSignedIn, currentUserId]);
 
-  useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
+  const chatCovered = useChatCovered();
+  useEffect(() => { activeChatIdRef.current = chatCovered ? undefined : activeChatId; }, [activeChatId, chatCovered]);
   useEffect(() => { usernameRef.current = username; }, [username]);
   useEffect(() => { onChatDeletedRef.current = onChatDeleted; }, [onChatDeleted]);
   useEffect(() => { refetchRef.current = refetch; }, [refetch]);

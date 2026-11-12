@@ -1,3 +1,4 @@
+import { ChatCoveredContext } from '@/shared/contexts/ChatCoveredContext';
 import { RecoverySetupPrompt, RecoveryApprovalPrompt, SecurityNoticeHandler } from '@/widgets/profile-panel';
 import { isGoApi } from '@/shared/api/goSocket';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
@@ -179,92 +180,94 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-background">
-      <Toaster />
-      {isGoApi() && <RecoverySetupPrompt key={username} />}
-      {<RecoveryApprovalPrompt key={`approval:${username}`} />}
-      {<SecurityNoticeHandler key={`security:${username}`} />}
-      {<CallProvider key={`calls:${username}`} openChatId={currentChat ? String(currentChat.id) : null} />}
-      {isGoApi() && <StickerManagerHost linkSlug={stickerLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}
-      {qrRequestId && (
-        <ChunkErrorBoundary key={qrRequestId}>
-          <Suspense fallback={null}>
-            <QrApprovalRoute requestId={qrRequestId} onClose={() => navigate('/', { replace: true })} />
-          </Suspense>
-        </ChunkErrorBoundary>
-      )}
-
-      <div className="mx-0 min-h-screen min-w-screen px-0">
-        {isMobile ? (
-          <div className="fixed inset-x-0 overflow-hidden" style={visualViewportStyle}>
-            <div className="absolute inset-0 overflow-hidden bg-background">
-              <ChatsListComponentRTK
-                username={username}
-                onChatOpen={openChat}
-                setIsProfileOpen={setIsProfileOpen}
-                onOpenRequests={openMessageRequests}
-                activeChatId={currentChat?.id}
-                activeChatName={currentChat?.name}
-                onActiveChatUpdate={updateActiveChatFromList}
-                onChatDeleted={handleChatDeleted}
-              />
-            </div>
-
-            <div
-              className={`absolute inset-0 z-50 overflow-hidden bg-background motion-window-slide ${mobileChatPanelClass}`}
-              style={{ pointerEvents: currentChat ? 'auto' : 'none' }}
-            >
-              {activeChat || (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-muted-foreground">{translations.selectChat}</p>
-                </div>
-              )}
-            </div>
-
-            {renderUserProfile && (
-              <UserProfileLayer isMobile isClosing={isUserProfileClosing} onClose={requestCloseUserProfile}>
-                <UserProfileComponentRTK {...userProfileProps} />
-              </UserProfileLayer>
-            )}
-          </div>
-        ) : (
-          <div className="flex h-screen max-h-screen min-w-full overflow-hidden">
-            <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={
-              <ChatsListComponentRTK
-                username={username}
-                onChatOpen={openChat}
-                setIsProfileOpen={setIsProfileOpen}
-                onOpenRequests={openMessageRequests}
-                activeChatId={currentChat?.id}
-                activeChatName={currentChat?.name}
-                onActiveChatUpdate={updateActiveChatFromList}
-                onChatDeleted={handleChatDeleted}
-              />
-            }>
-              <div className="relative h-full">
-                {activeChat || (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="bg-muted px-3 py-1 rounded-xl">
-                      <p className="text-muted-foreground text-sm">{translations.selectChat}</p>
-                    </div>
-                  </div>
-                )}
-                {ownProfile.mounted && renderOwnProfile('pane')}
-                <CallStage />
-              </div>
-            </DesktopChatLayout>
-
-            {renderUserProfile && (
-              <UserProfileLayer isMobile={false} isClosing={isUserProfileClosing} onClose={requestCloseUserProfile}>
-                <UserProfileComponentRTK {...userProfileProps} />
-              </UserProfileLayer>
-            )}
-          </div>
+    <ChatCoveredContext.Provider value={isProfileOpen}>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 to-background">
+        <Toaster />
+        {isGoApi() && <RecoverySetupPrompt key={username} />}
+        {<RecoveryApprovalPrompt key={`approval:${username}`} />}
+        {<SecurityNoticeHandler key={`security:${username}`} />}
+        {<CallProvider key={`calls:${username}`} openChatId={currentChat ? String(currentChat.id) : null} />}
+        {isGoApi() && <StickerManagerHost linkSlug={stickerLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}
+        {qrRequestId && (
+          <ChunkErrorBoundary key={qrRequestId}>
+            <Suspense fallback={null}>
+              <QrApprovalRoute requestId={qrRequestId} onClose={() => navigate('/', { replace: true })} />
+            </Suspense>
+          </ChunkErrorBoundary>
         )}
 
-        {isMobile && ownProfile.mounted && renderOwnProfile('sheet')}
+        <div className="mx-0 min-h-screen min-w-screen px-0">
+          {isMobile ? (
+            <div className="fixed inset-x-0 overflow-hidden" style={visualViewportStyle}>
+              <div className="absolute inset-0 overflow-hidden bg-background">
+                <ChatsListComponentRTK
+                  username={username}
+                  onChatOpen={openChat}
+                  setIsProfileOpen={setIsProfileOpen}
+                  onOpenRequests={openMessageRequests}
+                  activeChatId={currentChat?.id}
+                  activeChatName={currentChat?.name}
+                  onActiveChatUpdate={updateActiveChatFromList}
+                  onChatDeleted={handleChatDeleted}
+                />
+              </div>
+
+              <div
+                className={`absolute inset-0 z-50 overflow-hidden bg-background motion-window-slide ${mobileChatPanelClass}`}
+                style={{ pointerEvents: currentChat ? 'auto' : 'none' }}
+              >
+                {activeChat || (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-muted-foreground">{translations.selectChat}</p>
+                  </div>
+                )}
+              </div>
+
+              {renderUserProfile && (
+                <UserProfileLayer isMobile isClosing={isUserProfileClosing} onClose={requestCloseUserProfile}>
+                  <UserProfileComponentRTK {...userProfileProps} />
+                </UserProfileLayer>
+              )}
+            </div>
+          ) : (
+            <div className="flex h-screen max-h-screen min-w-full overflow-hidden">
+              <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={
+                <ChatsListComponentRTK
+                  username={username}
+                  onChatOpen={openChat}
+                  setIsProfileOpen={setIsProfileOpen}
+                  onOpenRequests={openMessageRequests}
+                  activeChatId={currentChat?.id}
+                  activeChatName={currentChat?.name}
+                  onActiveChatUpdate={updateActiveChatFromList}
+                  onChatDeleted={handleChatDeleted}
+                />
+              }>
+                <div className="relative h-full">
+                  {activeChat || (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="bg-muted px-3 py-1 rounded-xl">
+                        <p className="text-muted-foreground text-sm">{translations.selectChat}</p>
+                      </div>
+                    </div>
+                  )}
+                  {ownProfile.mounted && renderOwnProfile('pane')}
+                  <CallStage />
+                </div>
+              </DesktopChatLayout>
+
+              {renderUserProfile && (
+                <UserProfileLayer isMobile={false} isClosing={isUserProfileClosing} onClose={requestCloseUserProfile}>
+                  <UserProfileComponentRTK {...userProfileProps} />
+                </UserProfileLayer>
+              )}
+            </div>
+          )}
+
+          {isMobile && ownProfile.mounted && renderOwnProfile('sheet')}
+        </div>
       </div>
-    </div>
+    </ChatCoveredContext.Provider>
   );
 };
 
