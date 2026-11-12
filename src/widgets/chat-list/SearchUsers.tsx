@@ -58,26 +58,21 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
                       type="button"
                       key={u.id}
                       onClick={() => {
-                        if (isSelf) return;
                         if (onOpenPreview) onOpenPreview(u.username);
                       }}
                       data-testid="user-search-result"
                       data-username={u.username}
-                      disabled={isSelf}
-                      className={`flex w-full items-center p-3 text-left rounded-lg transition-all ${isSelf ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'}`}
+                      className="flex w-full items-center p-3 text-left rounded-lg transition-all hover:bg-accent hover:text-accent-foreground cursor-pointer"
                     >
                       <AuthenticatedImage
                         src={resolveMediaUrl(u.avatar_url, DEFAULT_AVATAR)}
                         alt=""
-                        className={`w-10 h-10 rounded-full mr-3 object-cover ${isSelf ? 'opacity-50' : ''}`}
+                        className="w-10 h-10 rounded-full mr-3 object-cover"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{u.display_name || u.username}</div>
+                        <div className="font-medium truncate">{isSelf ? translations.chatOrganizer.savedMessages : u.display_name || u.username}</div>
                         <div className="truncate text-xs text-muted-foreground">@{u.username}</div>
                       </div>
-                      {isSelf && (
-                        <span className="ml-2 text-xs text-muted-foreground">(you)</span>
-                      )}
                     </button>
                   );
                 })}

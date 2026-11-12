@@ -23,9 +23,10 @@ import { drawing } from './drawing';
 import { typingStatus } from './typingStatus';
 import { stickers } from './stickers';
 import { stickerPacks } from './stickerPacks';
+import { chatOrganizer } from './chatOrganizer';
 
 export const de = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
-  ...appearance, ...authLayout, ...notificationSettings, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
+  ...appearance, ...authLayout, ...notificationSettings, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks, ...chatOrganizer,
 };

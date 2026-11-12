@@ -1,11 +1,12 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Bookmark, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { usePresenceLabel } from '@/shared/utils/presenceFormatters';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import type { EntityId } from '@/shared/api/entityId';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
+import { useGetCurrentUserQuery } from '@/features/profile';
 
 interface ChatHeaderProps {
   chatId?: EntityId;
@@ -27,7 +28,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const { translations } = useLanguage();
   const presenceLabel = usePresenceLabel(isOnline, lastSeen);
-  const displayName = chatDisplayName || chatName;
+  const { data: me } = useGetCurrentUserQuery();
+  const saved = !!me?.username && me.username.toLowerCase() === chatName.toLowerCase();
+  const displayName = saved ? translations.chatOrganizer.savedMessages : chatDisplayName || chatName;
   const longPress = useLongPress(onOpenSearch);
 
   return (
@@ -38,10 +41,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             <ArrowLeft className="w-5 h-5" />
           </button>
           <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left md:space-x-0">
-            <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-border object-cover md:hidden" />
+            {saved ? (
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground md:hidden">
+                <Bookmark className="h-5 w-5" aria-hidden="true" />
+              </span>
+            ) : <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-border object-cover md:hidden" />}
             <span className="flex min-w-0 flex-col items-start">
               <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>
-              {!interlocutorDeleted && (
+              {!interlocutorDeleted && !saved && (
                 <span className="text-xs font-normal text-muted-foreground">
                   {presenceLabel}
                 </span>
@@ -50,7 +57,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </button>
         </div>
         <div className="ml-2 flex shrink-0 items-center gap-1">
-          {!interlocutorDeleted && <CallButton chatId={chatId} />}
+          {!interlocutorDeleted && !saved && <CallButton chatId={chatId} />}
           {onOpenSearch && (
             <button
               type="button"

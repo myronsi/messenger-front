@@ -1,6 +1,6 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { useRef, useState } from 'react';
-import { MessageSquarePlus, PenSquare, QrCode, Search, UsersRound } from 'lucide-react';
+import { Bookmark, MessageSquarePlus, PenSquare, QrCode, Search, UsersRound } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui/drawer';
@@ -16,13 +16,14 @@ interface ChatsListHeaderProps {
   onOpenSearch: (rect: DOMRect) => void;
   onNewGroup: () => void;
   onScanQr: () => void;
+  onOpenSaved?: () => void;
   profileIndicatorCount?: number;
 }
 
 type NewAction = { key: string; icon: React.ReactNode; label: string; hint: string; run: () => void };
 
 const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
-  translations, avatarUrl, displayName, onOpenProfile, onOpenSearch, onNewGroup, onScanQr, profileIndicatorCount = 0,
+  translations, avatarUrl, displayName, onOpenProfile, onOpenSearch, onNewGroup, onScanQr, onOpenSaved, profileIndicatorCount = 0,
 }) => {
   const t = translations.appShell;
   const isMobile = useIsMobile();
@@ -39,6 +40,8 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
     { key: 'chat', icon: <MessageSquarePlus className="h-5 w-5 text-primary" />, label: t.newChat, hint: t.newChatHint, run: () => onOpenSearch(rectOf(newButton.current)) },
     { key: 'group', icon: <UsersRound className="h-5 w-5 text-success" />, label: t.newGroup, hint: t.newGroupHint, run: onNewGroup },
     { key: 'qr', icon: <QrCode className="h-5 w-5 text-subtle-foreground" />, label: t.scanQr, hint: t.scanQrHint, run: onScanQr },
+    ...(onOpenSaved ? [{ key: 'saved', icon: <Bookmark className="h-5 w-5 text-primary" />, label: translations.chatOrganizer.savedMessages,
+      hint: translations.chatOrganizer.savedMessagesHint, run: onOpenSaved }] : []),
   ].filter((action) => canScanQr || action.key !== 'qr');
 
   return (

@@ -6,6 +6,7 @@ import { useChatFormatters } from './useChatFormatters';
 import { useChatSearchOverlay } from './useChatSearchOverlay';
 import { useChatListWebSocket } from './useChatListWebSocket';
 import { useChatListActions } from './useChatListActions';
+import { useChatOrganizer } from './useChatOrganizer';
 import type { ChatContextMenuState, ChatListModal, ChatsListComponentProps } from './types';
 
 // Top-level model hook for the chat list widget: composes data fetching,
@@ -44,6 +45,8 @@ export function useChatListModel(props: ChatsListComponentProps) {
     setModal,
     translations,
   });
+
+  const organizer = useChatOrganizer({ chatsByIdRef, setChatOverrides, setChatContextMenu, setModal, refetch, translations });
 
   useChatListWebSocket({
     token,
@@ -126,5 +129,6 @@ export function useChatListModel(props: ChatsListComponentProps) {
     isOwnLastMessageRead,
     ...searchOverlay,
     ...actions,
+    ...organizer,
   };
 }

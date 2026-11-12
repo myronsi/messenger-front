@@ -103,6 +103,21 @@ export const chatApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Chat'],
     }),
 
+    setChatArchived: builder.mutation<void, { chatId: EntityId; archived: boolean }>({
+      queryFn: ({ chatId, archived }, { signal }) => apiTask(async () => {
+        const params = { path: { chat_id: String(chatId) } };
+        contractData(archived ? await apiClient.PUT('/chats/{chat_id}/archive', { params, signal }) : await apiClient.DELETE('/chats/{chat_id}/archive', { params, signal }));
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+
+    reorderPinnedChats: builder.mutation<void, EntityId[]>({
+      queryFn: (ids, { signal }) => apiTask(async () => {
+        contractData(await apiClient.PUT('/chats/pins/order', { body: { chat_ids: ids.map(String) }, signal }));
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+
     markChatRead: builder.mutation<MarkChatReadResponse, MarkChatReadRequest>({
       queryFn: ({ chatId, messageIds = [], markAll = false }, { signal }) => apiTask(async () => {
         const params = { path: { chat_id: String(chatId) } };
@@ -130,5 +145,7 @@ export const {
   useRejectApprovalRequestMutation,
   useDeleteChatMutation,
   useSetChatPinnedMutation,
+  useSetChatArchivedMutation,
+  useReorderPinnedChatsMutation,
   useMarkChatReadMutation,
 } = chatApi;
