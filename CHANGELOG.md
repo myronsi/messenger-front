@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.19](https://github.com/myronsi/messenger-front/compare/v0.6.18...v0.6.19) (2026-11-12)
+
+
+### Features
+
+* **chat:** files tab and failed sends kept on the server ([#201](https://github.com/myronsi/messenger-front/issues/201)) ([dfeba3b](https://github.com/myronsi/messenger-front/commit/dfeba3b9d1cae21d1ca21f31624cc3c222c1ad96))
+* **chat:** keep unsent messages, show drafts in the chat list and open chats at once ([#198](https://github.com/myronsi/messenger-front/issues/198)) ([936f13c](https://github.com/myronsi/messenger-front/commit/936f13ca0361fec78730dfa11108dd979cf5ac7d))
+* **offline:** read saved chats without error windows while offline ([#202](https://github.com/myronsi/messenger-front/issues/202)) ([04ce4a8](https://github.com/myronsi/messenger-front/commit/04ce4a84cb45193dd9d81cf943db1f135a9698ca))
+
+
+### Bug Fixes
+
+* **chat:** second staging UX round: empty files, group picker, search results list ([#200](https://github.com/myronsi/messenger-front/issues/200)) ([6f33c78](https://github.com/myronsi/messenger-front/commit/6f33c78feca4f1ad39f71c814c42fd6253676c3f))
+* **chat:** smooth scrolling, keyboard and sticker switching, and media viewer polish ([#196](https://github.com/myronsi/messenger-front/issues/196)) ([c7f0477](https://github.com/myronsi/messenger-front/commit/c7f0477f67a83175bae847a5aed1c34a999d20ef))
+* **chat:** staging UX findings, download progress and reply/edit drafts ([#199](https://github.com/myronsi/messenger-front/issues/199)) ([7f874a8](https://github.com/myronsi/messenger-front/commit/7f874a880c364537b4b52a52a559005cb62e69c5))
+
 ## [0.6.18](https://github.com/myronsi/messenger-front/compare/v0.6.17...v0.6.18) (2026-11-11)
 
 
