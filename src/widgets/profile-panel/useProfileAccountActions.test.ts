@@ -13,8 +13,9 @@ vi.mock('@/entities/user', () => ({
   userApi: { util: { invalidateTags: (tags: unknown) => ({ type: 'invalidate', tags }) } },
 }));
 vi.mock('@/shared/hooks/redux', () => ({ useAppDispatch: () => dispatch }));
-vi.mock('@/shared/auth/session', () => ({ authFetch, endSession: vi.fn() }));
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: {} }) }));
+const token = `h.${btoa(JSON.stringify({ sub: '1', sid: 's1' })).replace(/=+$/, '')}.s`;
+vi.mock('@/shared/auth/session', () => ({ authFetch, endSession: vi.fn(), getAccessToken: () => token }));
+vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { logoutUnsentMessages: '{count} unsent' } }) }));
 
 const user = (extra: Partial<User> = {}) => ({ id: '1', username: 'ann', display_name: 'Ann', bio: 'hi', ...extra }) as User;
 const args = (userData: User) => ({ userData, refetchCurrentUser: vi.fn(async () => undefined), onClose: vi.fn(), onLogout: vi.fn() });
@@ -57,5 +58,23 @@ describe('useProfileAccountActions', () => {
     const { result } = renderHook((props) => useProfileAccountActions(props), { initialProps: args(user()) });
     await act(() => result.current.handleAvatarUpload(new File(['x'], 'me.png', { type: 'image/png' })));
     expect(dispatch).toHaveBeenCalledWith({ type: 'invalidate', tags: [{ type: 'Avatar', id: 'ann-history' }] });
+  });
+});
+
+describe('useProfileAccountActions logout', () => {
+  it('warns about unsent messages of this account only', () => {
+    sessionStorage.setItem('unsent:1:3', JSON.stringify([{ id: -1 }, { id: -2 }]));
+    sessionStorage.setItem('unsent:1:4', JSON.stringify([{ id: -3 }]));
+    sessionStorage.setItem('unsent:2:3', JSON.stringify([{ id: -4 }]));
+    const { result } = renderHook(() => useProfileAccountActions(args(user())));
+    act(() => result.current.handleLogout());
+    expect(result.current.modal?.consequences).toEqual(['3 unsent']);
+    sessionStorage.clear();
+  });
+
+  it('asks the usual question when nothing is unsent', () => {
+    const { result } = renderHook(() => useProfileAccountActions(args(user())));
+    act(() => result.current.handleLogout());
+    expect(result.current.modal?.consequences).toBeUndefined();
   });
 });
