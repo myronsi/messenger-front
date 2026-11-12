@@ -5,6 +5,7 @@ import {
   appendUniqueMessages,
   mergeFreshHistoryMessages,
   normalizeHistoryMessage,
+  placeFailedMessagesByTime,
   prependOlderPage,
   prependUniqueMessages,
   trimNewestMessages,
@@ -160,5 +161,26 @@ describe('mergeFreshHistoryMessages', () => {
     const result = mergeFreshHistoryMessages(current, [msg('951'), msg('1000')], { hasMoreBefore: false, hasMoreAfter: true });
     expect(ids(result)).toEqual(['951', '1000', -1]);
     expect(ids(mergeFreshHistoryMessages(current, [msg('951'), msg('1000')]))).toEqual(['851', '900', '951', '1000', -1]);
+  });
+});
+
+describe('placeFailedMessagesByTime', () => {
+  const at = (id: Message['id'], timestamp: string, extra: Partial<Message> = {}) =>
+    ({ id, sender: 'me', content: String(id), timestamp, type: 'message', read_by: [], ...extra }) as Message;
+
+  it('keeps failed sends where they were written and newer confirmed messages after them', () => {
+    const order = placeFailedMessagesByTime([
+      at('1', '2026-11-12T10:00:00Z'),
+      at('2', '2026-11-12T10:05:00Z'),
+      at(-1, '2026-11-12T10:01:00Z', { delivery_error: 'slow down' }),
+      at(-2, '2026-11-12T10:02:00Z', { delivery_error: 'slow down' }),
+      at(-3, '2026-11-12T10:06:00Z'),
+    ]);
+    expect(order.map(message => message.id)).toEqual(['1', -1, -2, '2', -3]);
+  });
+
+  it('keeps the same array when nothing failed', () => {
+    const messages = [at('1', '2026-11-12T10:00:00Z'), at(-3, '2026-11-12T10:06:00Z')];
+    expect(placeFailedMessagesByTime(messages)).toBe(messages);
   });
 });
