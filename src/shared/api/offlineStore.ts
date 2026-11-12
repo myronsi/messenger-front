@@ -1,24 +1,12 @@
 import { useEffect, useState } from 'react';
-import { subscribeToAccessToken } from '@/shared/auth/session';
-import { sessionScope } from './chatSnapshots';
+import { indexedStore, keepNewest, scopedKey as storageKey, sessionScope } from './indexedStore';
 
 const STORE = 'values';
 const MAX_ENTRIES = 400;
 const MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const FORGET_STATUSES = new Set([401, 403, 404]);
 
-let database: Promise<IDBDatabase | null> | undefined;
-function openDatabase() {
-  return database ??= new Promise<IDBDatabase | null>((resolve) => {
-    if (typeof indexedDB === 'undefined') return resolve(null);
-    const request = indexedDB.open('messenger-offline-store', 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(STORE).createIndex('savedAt', 'savedAt');
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = request.onblocked = () => resolve(null);
-  }).catch(() => null);
-}
-
-const storageKey = (scope: string, key: string) => JSON.stringify([scope, key]);
+const openDatabase = indexedStore('messenger-offline-store', STORE);
 
 export async function readStored<T>(key: string): Promise<T | undefined> {
   const scope = sessionScope();
@@ -45,10 +33,7 @@ export async function storeValue<T>(key: string, value: T) {
   try {
     const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
     store.put({ value, savedAt: Date.now() }, storageKey(scope, key));
-    const keys = store.index('savedAt').getAllKeys();
-    keys.onsuccess = () => {
-      for (const old of keys.result.slice(0, Math.max(0, keys.result.length - MAX_ENTRIES))) store.delete(old);
-    };
+    keepNewest(store, MAX_ENTRIES);
   } catch {
     return;
   }
@@ -106,14 +91,3 @@ export const userByIdKey = (id: string | number) => `user:id:${id}`;
 export const userByNameKey = (username: string) => `user:name:${username.toLowerCase()}`;
 export const stickerPacksKey = 'sticker-packs';
 export const recentStickersKey = 'sticker-recent';
-
-let previousScope = sessionScope();
-subscribeToAccessToken(() => {
-  const nextScope = sessionScope();
-  if (previousScope && previousScope !== nextScope) {
-    void openDatabase().then((db) => {
-      if (db) db.transaction(STORE, 'readwrite').objectStore(STORE).clear();
-    }).catch(() => undefined);
-  }
-  previousScope = nextScope;
-});
