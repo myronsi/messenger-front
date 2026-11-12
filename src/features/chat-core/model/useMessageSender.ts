@@ -5,6 +5,7 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import { useRef, type MutableRefObject } from 'react';
 import type { Message } from '@/entities/message';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { uploadAbortSignal } from '@/shared/lib/uploadCancellation';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { applyMessageEdit, editableText, mergeIncomingMessage } from './messageUpdates';
@@ -67,7 +68,7 @@ export const useMessageSender = ({
 
   const replyToRef = useRef(replyTo);
   replyToRef.current = replyTo;
-  const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
+  const { uploadSourcesRef, uploadingRef, releasedRef, releaseSource, dropCancelledUpload } = useUnsentMessageRelease(chatId, setMessages, translationsRef);
   const sentRef = useRef(new Map<string, OutgoingPayload>());
   const enqueueUpload = useRef(createUploadQueue()).current;
   const stickers = createStickerSender({
@@ -129,14 +130,17 @@ export const useMessageSender = ({
     formData.append('client_temp_id', String(messageId));
     if (replyToId != null) formData.append('reply_to', String(replyToId));
     if (caption.trim()) formData.append('caption', caption.trim());
+    const signal = uploadAbortSignal(messageId);
     try {
       const created = await uploadWithProgress({
         url: `${BASE_URL}/messages/${voice ? 'vm' : 'upload'}`,
         formData,
+        signal,
         onProgress: (percent) => updateOptimisticUploadProgress(messageId, percent),
       });
       settleOptimisticUpload(messageId, created);
     } catch {
+      if (signal.aborted) return dropCancelledUpload(String(messageId));
       markOptimisticUploadFailed(messageId, translations.errorLoading || 'Upload failed');
       setModal({ type: 'error', message: translations.errorLoading });
     }

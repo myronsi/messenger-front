@@ -5,7 +5,7 @@ import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { applyTypingFrame, clearTypingUsers } from '@/entities/typing';
 import { en } from '@/shared/lang/en';
 import type { Chat } from '@/entities/message';
-import { clearDrafts, writeDraft } from '@/shared/lib/drafts';
+import { clearDrafts, writeDraft, writeDraftContext } from '@/shared/lib/drafts';
 import ChatListItem from './ChatListItem';
 
 let snapshot = { preferences: { enabled: true, sound: true, previews: false }, mutes: [] as { chat_id: string; until: string }[] };
@@ -183,13 +183,32 @@ at noon`));
     expect(screen.getByText('09:30')).toBeInTheDocument();
   });
 
-  it('hides the draft of the open chat and after logout', () => {
-    act(() => writeDraft('u1:chat:7', 'Typing here'));
+  it('keeps the draft the chat was left with while it is open, until it is sent', () => {
+    act(() => writeDraft('u1:chat:7', 'Left here'));
     const { rerender } = render(<ChatListItem {...base} chat={chat} activeChatId="7" />);
+    expect(screen.getByTestId('chat-draft-preview')).toHaveTextContent('Draft: Left here');
+    act(() => writeDraft('u1:chat:7', 'Left here and more'));
+    expect(screen.getByTestId('chat-draft-preview')).toHaveTextContent('Draft: Left here');
+    act(() => writeDraft('u1:chat:7', ''));
     expect(screen.queryByTestId('chat-draft-preview')).not.toBeInTheDocument();
     rerender(<ChatListItem {...base} chat={chat} activeChatId="8" />);
-    expect(screen.getByTestId('chat-draft-preview')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-draft-preview')).not.toBeInTheDocument();
+  });
+
+  it('shows a draft typed in the open chat only after leaving it', () => {
+    const { rerender } = render(<ChatListItem {...base} chat={chat} activeChatId="7" />);
+    act(() => writeDraft('u1:chat:7', 'New thought'));
+    expect(screen.queryByTestId('chat-draft-preview')).not.toBeInTheDocument();
+    rerender(<ChatListItem {...base} chat={chat} activeChatId="8" />);
+    expect(screen.getByTestId('chat-draft-preview')).toHaveTextContent('Draft: New thought');
     act(() => clearDrafts());
     expect(screen.queryByTestId('chat-draft-preview')).not.toBeInTheDocument();
+  });
+
+  it('shows an unfinished edit as Edit:', () => {
+    act(() => writeDraftContext('u1:chat:7', { kind: 'edit', message: { id: '1' }, text: 'fixed text' }));
+    render(<ChatListItem {...base} chat={chat} activeChatId="8" />);
+    expect(screen.getByTestId('chat-draft-preview')).toHaveTextContent('Edit: fixed text');
+    act(() => clearDrafts());
   });
 });

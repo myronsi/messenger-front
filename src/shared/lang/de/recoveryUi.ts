@@ -123,7 +123,6 @@ export const recoveryUi = {
     savedHintLocked: "Lade ihn zuerst herunter oder kopiere ihn.",
     savedHintReady: "Setze das Häkchen, um fortzufahren.",
     continue: "Weiter",
-    skip: "Speichern dieses Schlüssels überspringen",
     skipWarning: "Wenn du den Zugang verlierst, bevor du eine Wiederherstellungsmethode gespeichert hast, kannst du dein Konto verlieren. Dieser Schlüssel kann nicht erneut angezeigt werden. Erstelle in den Sicherheitseinstellungen einen neuen.",
     continueWithoutSaving: "Ohne Speichern fortfahren",
     fileTitle: "MESSENGER-WIEDERHERSTELLUNGSSCHLÜSSEL",

@@ -18,6 +18,9 @@ export const fileTypes = {
   sizeGigabytes: "{size} ГБ",
   selectedAlbumGroup: "Альбом · {count}",
   selectedSeparateFiles: "Отдельными файлами · {count}",
+  captionTargetFile: "Подпись будет отправлена с файлом {name}.",
+  captionTargetAlbum: "Подпись будет отправлена с альбомом.",
   separateFilesLimit: "Можно прикрепить до {max} отдельных файлов за раз.",
   uploadProgress: "Загрузка: {percent}%",
+  downloadProgress: "Скачивание: {percent}%",
 };

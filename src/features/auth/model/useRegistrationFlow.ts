@@ -18,6 +18,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   const [displayName, setDisplayNameValue] = useState('');
   const [displayNameError, setDisplayNameError] = useState<RegisterFieldError | undefined>();
   const [password, setPasswordValue] = useState('');
+  const [passkeyPassword, setPasskeyPassword] = useState('');
   const [message, setMessage] = useState('');
   const [recoveryKey, setRecoveryKey] = useState('');
   const [showQr, setShowQr] = useState(false);
@@ -75,6 +76,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
         setDisplayNameValue(normalizedUsername);
         localStorage.removeItem('device_part');
         localStorage.removeItem('device_parts');
+        setPasskeyPassword(password);
         setPasswordValue('');
         setRecoveryKey(typeof data.recovery_key === 'string' ? data.recovery_key : '');
         setShowQr(Boolean(data.recovery_key));
@@ -102,6 +104,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   }, []);
 
   const finishPasskeyOffer = useCallback(() => {
+    setPasskeyPassword('');
     setShowPasskeyOffer(false);
     setShowProfileSetup(true);
   }, []);
@@ -211,7 +214,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
 
   return {
     avatarCropFile, avatarCropPreview, cancelAvatarCrop, displayName, fieldErrors,
-    finishPasskeyOffer, finishRegistration, handleContinue, handleCroppedAvatar,
+    finishPasskeyOffer, finishRegistration, handleContinue, handleCroppedAvatar, passkeyPassword,
     handleProfileAvatarChange, handleRegister, handleSaveProfileSetup, handleSubmit,
     isSavingProfile, isSubmitting, markTouched, message, password, profileAvatarFile,
     profileAvatarPreview, profileBio, recoveryKey, removeProfileAvatar,

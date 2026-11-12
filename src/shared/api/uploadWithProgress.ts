@@ -9,11 +9,19 @@ interface UploadWithProgressOptions {
   url: string;
   formData: FormData;
   onProgress?: (percent: number) => void;
+  signal?: AbortSignal;
 }
 
-const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithProgressOptions, token: string | null): Promise<T> => (
+const cancelled = () => new Error('Upload cancelled');
+
+const sendUploadRequest = async <T>({ url, formData, onProgress, signal }: UploadWithProgressOptions, token: string | null): Promise<T> => (
   new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(cancelled());
+      return;
+    }
     const xhr = new XMLHttpRequest();
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true });
 
     xhr.open('POST', url);
     applyClientVersionToXhr(xhr);
@@ -49,7 +57,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress }: UploadWithPro
     };
 
     xhr.onerror = () => reject(new Error('Upload failed'));
-    xhr.onabort = () => reject(new Error('Upload cancelled'));
+    xhr.onabort = () => reject(cancelled());
     xhr.send(formData);
   })
 );
@@ -80,8 +88,9 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
       content: (options.formData.get('caption') as string | null) || null, reply_to: (options.formData.get('reply_to') as string | null) || null,
       ...(drawings.length ? { drawings } : {}),
     };
+    if (options.signal?.aborted) throw cancelled();
     const response = await authFetch(`${base}/chats/${options.formData.get('chat_id')}/messages`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(message),
+      method: 'POST', signal: options.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(message),
     });
     if (!response.ok) throw { status: response.status, body: await response.json() };
     options.onProgress?.(100);
@@ -93,7 +102,7 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
     return await sendUploadRequest<T>(options, token);
   } catch (caught) {
     const error = asApiError(caught);
-    if (error?.status !== 401) throw caught;
+    if (error?.status !== 401 || options.signal?.aborted) throw caught;
   }
 
   const refreshedToken = await refreshAccessToken();

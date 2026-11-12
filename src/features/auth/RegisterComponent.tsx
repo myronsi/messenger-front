@@ -38,7 +38,7 @@ const RegisterComponent: FC<RegisterComponentProps> = ({ onLoginSuccess, onBackT
         />
       </>}
       {step === 'recovery' && <RecoveryKeyReceipt recoveryKey={flow.recoveryKey} username={flow.username} onContinue={flow.handleContinue} context="signup" />}
-      {step === 'passkey' && <PasskeyOffer username={flow.username} onDone={flow.finishPasskeyOffer} />}
+      {step === 'passkey' && <PasskeyOffer username={flow.username} knownPassword={flow.passkeyPassword} onDone={flow.finishPasskeyOffer} />}
       {step === 'profile' && (
         <RegisterProfileSetup
           profileAvatarFile={flow.profileAvatarFile}

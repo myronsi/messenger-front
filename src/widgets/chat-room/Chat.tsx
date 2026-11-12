@@ -225,7 +225,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         <div ref={composerRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 motion-composer ${selection.active || isSearchOpen ? 'is-hidden' : ''}`}>
           <MessageComposer
             ref={messageInputRef}
-            draftRef={composerDraftRef}
+            draftRef={composerDraftRef} setReplyTo={setReplyTo} setEditingMessage={setEditingMessage}
             messageInput={isPreview ? previewMessageInput : undefined}
             setMessageInput={isPreview ? setPreviewMessageInput : undefined}
             replyTo={replyTo}

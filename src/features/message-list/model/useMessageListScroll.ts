@@ -192,7 +192,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       updateDistance();
       const movedByUser = Date.now() - lastUserInputAtRef.current < USER_SCROLL_WINDOW_MS;
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (distanceFromBottom <= BOTTOM_TOLERANCE && !pendingBottomRef.current) {
+      const jumping = (current.tempHighlightedMessageId ?? current.highlightedMessageId) != null;
+      if (distanceFromBottom <= BOTTOM_TOLERANCE && !pendingBottomRef.current && (movedByUser || !jumping)) {
         shouldStickToBottomRef.current = true;
         clearUnseen();
       } else if (movedByUser && !isAnimatingRef.current) {

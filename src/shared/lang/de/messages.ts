@@ -51,6 +51,7 @@ export const messages = {
   newerSearchResult: "Neuerer Treffer",
   replyFromYou: "Du",
   chatDraftPrefix: "Entwurf:",
+  chatEditPrefix: "Bearbeiten:",
   voicePreviewPlay: "Aufnahme abspielen",
   voicePreviewPause: "Wiedergabe der Aufnahme pausieren",
   voicePreviewSeek: "Position in der Aufnahme",

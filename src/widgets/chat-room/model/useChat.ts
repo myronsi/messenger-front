@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { useCallback, useRef, useState, type SetStateAction } from 'react';
-import { ContextMenuState, Message, ModalState, useConversationMessages } from '@/entities/message';
+import { useCallback, useMemo, useRef, useState, type SetStateAction } from 'react';
+import { ContextMenuState, Message, ModalState, placeFailedMessagesByTime, useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
@@ -119,10 +119,12 @@ export const useChat = (
     return formatDateLabel(timestamp, language, today, yesterday);
   }, [language]);
 
+  const visibleMessages = useMemo(() => placeFailedMessagesByTime(preview ?? messages), [preview, messages]);
+
   const getMessageTime = useCallback((timestamp: string): string => formatTime(timestamp, language), [language]);
 
   return {
-    messages: preview ?? messages,
+    messages: visibleMessages,
     composerDraftRef,
     setMessageInput,
     contextMenu,

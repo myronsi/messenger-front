@@ -60,13 +60,13 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
       </button>
       <h2 className="min-w-0 flex-1 truncate text-xl font-semibold">{translations.chats}</h2>
       <button ref={searchButton} type="button" onClick={() => onOpenSearch(rectOf(searchButton.current))} aria-label={t.openSearch}
-        className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent">
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent">
         <Search className="h-5 w-5" />
       </button>
       {isMobile ? (
         <>
           <button ref={newButton} type="button" onClick={() => setSheetOpen(true)} aria-label={newMenuLabel}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
             <PenSquare className="h-5 w-5" />
           </button>
           {sheetOpen && <Drawer open onOpenChange={setSheetOpen} shouldScaleBackground={false} autoFocus>
@@ -89,9 +89,9 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button ref={newButton} type="button" aria-label={newMenuLabel}
-              className="flex h-10 items-center gap-1.5 rounded-full bg-primary pl-3 pr-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+              className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 xl:pr-4">
               <PenSquare className="h-4 w-4" />
-              {t.newAction}
+              <span className="hidden xl:inline">{t.newAction}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64" onCloseAutoFocus={(event) => event.preventDefault()}>

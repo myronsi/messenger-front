@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useDeleteAccountMutation, useUpdateUserMutation } from '@/features/profile';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { useLogoutMutation } from '@/features/auth';
-import { authFetch, endSession } from '@/shared/auth/session';
+import { authFetch, endSession, getAccessToken } from '@/shared/auth/session';
+import { getTokenSubject } from '@/shared/auth/tokenClaims';
+import { countUnsentMessages } from '@/shared/lib/unsentMessages';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useDeleteMyAvatarMutation, userApi, type User } from '@/entities/user';
 import { useAppDispatch } from '@/shared/hooks/redux';
@@ -132,19 +134,19 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     setNewBio(bio);
   };
 
-  const handleLogout = () => setModal({
-    type: 'logout',
-    message: translations.logoutConfirm,
-    onConfirm: async () => {
-      try {
-        await logout().unwrap();
-      } catch {
-        // Local logout remains available if the server request fails.
-      }
-      endSession();
-      onLogout();
-    },
-  });
+  const handleLogout = () => {
+    const unsent = countUnsentMessages(getTokenSubject(getAccessToken()));
+    setModal({
+      type: 'logout',
+      message: translations.logoutConfirm,
+      consequences: unsent ? [translations.logoutUnsentMessages.replace('{count}', String(unsent))] : undefined,
+      onConfirm: async () => {
+        await logout().unwrap().catch(() => undefined);
+        endSession();
+        onLogout();
+      },
+    });
+  };
 
   const handleDeleteAccount = () => setModal({
     type: 'deleteAccount',

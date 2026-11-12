@@ -123,7 +123,6 @@ export const recoveryUi = {
     savedHintLocked: "Download or copy it first.",
     savedHintReady: "Tick the box to continue.",
     continue: "Continue",
-    skip: "Skip saving this key",
     skipWarning: "If you lose access before saving a recovery method, you may lose your account. This key cannot be shown again. Create a replacement in Security settings.",
     continueWithoutSaving: "Continue without saving",
     fileTitle: "MESSENGER RECOVERY KEY",

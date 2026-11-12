@@ -1,7 +1,7 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { useCallback, useRef, useState, type SetStateAction } from 'react';
+import { useCallback, useMemo, useRef, useState, type SetStateAction } from 'react';
 import type { Message, ModalState, ReactionInfo } from '@/entities/message';
-import { useConversationMessages } from '@/entities/message';
+import { placeFailedMessagesByTime, useConversationMessages } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAccessToken } from '@/shared/auth/session';
 import { useGetCurrentUserQuery } from '@/features/profile';
@@ -98,6 +98,8 @@ export const useGroupChatScreen = ({
     if (onOpenUserProfile) profilePanel.openMemberProfile(profileUsername);
   };
 
+  const visibleMessages = useMemo(() => placeFailedMessagesByTime(history.preview ?? messages), [history.preview, messages]);
+
   const readIds = new Set((readStatusMessage?.read_by || []).map((read) => read.user_id));
   const unreadParticipants = readStatusMessage
     ? (groupDetails?.participants || []).filter((participant) => participant.id !== readStatusMessage.sender_id && !readIds.has(participant.id))
@@ -106,7 +108,7 @@ export const useGroupChatScreen = ({
   return {
     chatId, username, token, translations, onBack, firstUnreadMessageId,
     currentUserId, groupDetails, currentGroupAvatar, currentGroupName, getAvatarSrc,
-    messages: history.preview ?? messages, wsRef: transport.wsRef, isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime,
+    messages: visibleMessages, wsRef: transport.wsRef, isOwnMessage, canDeleteMessage, getFormattedDateLabel, getMessageTime,
     loadOlderMessages: history.loadOlderMessages,
     hasMoreMessages: history.hasMoreMessages,
     isLoadingOlderMessages: history.isLoadingOlderMessages,

@@ -1,3 +1,6 @@
+import { cancelUpload } from '@/shared/lib/uploadCancellation';
+import { Download } from 'lucide-react';
+import { DownloadButton } from './DownloadButton';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React from 'react';
@@ -96,7 +99,10 @@ const MessageContent: React.FC<MessageContentProps> = ({
     return withCaption(
       <>
         {!isVoiceAttachment(message.content) && fileName && (
-          <div data-testid="audio-file-name" className="mb-0.5 max-w-[260px] truncate text-xs font-medium opacity-90" title={fileName}>{fileName}</div>
+          <div className="mb-0.5 flex max-w-[260px] items-center gap-1">
+            <div data-testid="audio-file-name" className="min-w-0 flex-1 truncate text-xs font-medium opacity-90" title={fileName}>{fileName}</div>
+            {uploadProgress === undefined && <DownloadButton fileUrl={fullFileUrl} fileName={fileName} icon={<Download size={16} />} />}
+          </div>
         )}
         <AudioMessage
           fileUrl={fullFileUrl}
@@ -115,7 +121,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   const isPicture = view === 'image';
   const fileMessage = (
     <FileMessage config={config ?? genericFileType(translations.genericFile)} fileName={fileName} fileUrl={fullFileUrl} isMobile={isMobile}
-      fileSize={message.content.file_size} uploadProgress={uploadProgress} />
+      fileSize={message.content.file_size} uploadProgress={uploadProgress} onCancelUpload={() => cancelUpload(message.id)} />
   );
   if ((mediaBroken && isPicture) || !(isVideo || isPicture)) return withCaption(fileMessage);
   return withCaption(

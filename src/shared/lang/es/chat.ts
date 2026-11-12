@@ -1,6 +1,6 @@
 export const chat = {
   selectChat: "Selecciona un chat para empezar a escribir",
-  writeMessage: "Escribe un mensaje...",
+  writeMessage: "Mensaje",
   deletedUser: "Usuario eliminado",
   loading: "Cargando...",
   chats: "Chats",

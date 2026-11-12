@@ -30,6 +30,21 @@ export const UploadProgressRing: React.FC<{ progress: number }> = ({ progress })
   );
 };
 
+export const ProgressCircle: React.FC<{ progress: number | null; label: string; children?: React.ReactNode }> = ({ progress, label, children }) => {
+  const value = progress === null ? null : clampProgress(progress);
+  return (
+    <span data-testid="progress-circle" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value ?? undefined}
+      className="relative grid size-8 place-items-center">
+      <svg viewBox="0 0 44 44" className={`absolute inset-0 size-full -rotate-90 ${value === null ? 'animate-spin' : ''}`} aria-hidden="true">
+        <circle cx="22" cy="22" r={RADIUS} fill="none" stroke="currentColor" strokeOpacity={0.25} strokeWidth={3} />
+        <circle cx="22" cy="22" r={RADIUS} fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeDasharray={CIRCUMFERENCE}
+          strokeDashoffset={CIRCUMFERENCE * (1 - (value ?? 25) / 100)} className="transition-[stroke-dashoffset] duration-200" />
+      </svg>
+      {children}
+    </span>
+  );
+};
+
 export const UploadProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
   const value = clampProgress(progress);
   const label = useProgressLabel(value);

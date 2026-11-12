@@ -123,7 +123,6 @@ export const recoveryUi = {
     savedHintLocked: "Descárgala o cópiala primero.",
     savedHintReady: "Marca la casilla para continuar.",
     continue: "Continuar",
-    skip: "Omitir el guardado de esta clave",
     skipWarning: "Si pierdes el acceso antes de guardar un método de recuperación, podrías perder tu cuenta. Esta clave no se puede volver a mostrar. Crea una nueva en Ajustes de seguridad.",
     continueWithoutSaving: "Continuar sin guardar",
     fileTitle: "CLAVE DE RECUPERACIÓN DE MESSENGER",
