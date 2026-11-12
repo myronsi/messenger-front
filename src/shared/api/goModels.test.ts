@@ -3,7 +3,7 @@ import { directChatModel, groupChatModel, groupModel, messageModel } from './goM
 
 const user = (id: string, username: string) => ({
   id, username, display_name: username.toUpperCase(), contact_name: null, avatar_url: null, bio: null,
-  is_online: false, last_seen: null, is_deleted: false,
+  is_online: false, last_seen: null, is_deleted: false, profile_version: 0,
 });
 
 describe('groupModel', () => {

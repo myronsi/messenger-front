@@ -1,5 +1,8 @@
-import { StickerImage, useListRecentStickersQuery, useListStickerPacksQuery, type Sticker } from '@/entities/sticker';
+import { StickerImage, useListRecentStickersQuery, useListStickerPacksQuery, type Sticker, type StickerPack } from '@/entities/sticker';
+import { recentStickersKey, stickerPacksKey, useStoredValue } from '@/shared/api/offlineStore';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+
+const STICKERS_FRESH_SECONDS = 60;
 
 interface StickerTabProps {
   onPick: (sticker: Sticker) => void;
@@ -31,8 +34,11 @@ const Section = ({ title, stickers, onPick, label }: SectionProps) => (
 
 export const StickerTab = ({ onPick, onManage, filter }: StickerTabProps) => {
   const { translations } = useLanguage();
-  const packs = useListStickerPacksQuery(undefined, { refetchOnMountOrArgChange: true });
-  const recent = useListRecentStickersQuery(undefined, { refetchOnMountOrArgChange: true });
+  const packs = useListStickerPacksQuery(undefined, { refetchOnMountOrArgChange: STICKERS_FRESH_SECONDS });
+  const recent = useListRecentStickersQuery(undefined, { refetchOnMountOrArgChange: STICKERS_FRESH_SECONDS });
+  const storedPacks = useStoredValue<StickerPack[]>(stickerPacksKey);
+  const storedRecent = useStoredValue<Sticker[]>(recentStickersKey);
+  const packList = packs.currentData ?? storedPacks;
   const label = (emoji: string) => translations.stickerLabel.replace('{emoji}', emoji);
   const manage = onManage && (
     <button type="button" className="rounded-full bg-accent px-3 py-1 text-xs text-accent-foreground hover:bg-accent/80" onClick={onManage}>
@@ -46,12 +52,12 @@ export const StickerTab = ({ onPick, onManage, filter }: StickerTabProps) => {
       {!retry && manage}
     </div>
   );
-  if (!packs.currentData) {
+  if (!packList) {
     return packs.isError && !packs.isFetching ? message(translations.stickersUnavailable, () => { void packs.refetch(); }) : message(translations.loading);
   }
   const keep = (stickers: Sticker[], title: string) => (filter ? stickers.filter((sticker) => filter(sticker, title)) : stickers);
-  const recentStickers = keep(recent.currentData ?? [], '');
-  const filled = packs.currentData.map((pack) => ({ ...pack, stickers: keep(pack.stickers, pack.title) })).filter((pack) => pack.stickers.length > 0);
+  const recentStickers = keep(recent.currentData ?? storedRecent ?? [], '');
+  const filled = packList.map((pack) => ({ ...pack, stickers: keep(pack.stickers, pack.title) })).filter((pack) => pack.stickers.length > 0);
   if (!filled.length && !recentStickers.length) return message(filter ? translations.noSearchResults : translations.noStickerPacks);
   return (
     <div className="h-full overflow-y-auto" data-testid="sticker-tab">

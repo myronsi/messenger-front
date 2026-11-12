@@ -16,7 +16,7 @@ export type SocketSender = Pick<WebSocket, 'readyState' | 'send' | 'close'>;
 
 const eventTypes = new Set(['ack', 'approval_request_created', 'call_keys', 'call_updated', 'chat_created', 'chat_deleted', 'chat_list_update',
   'delete', 'edit', 'error', 'group_created', 'group_updated', 'hello', 'history_cleared', 'message', 'presence',
-  'reaction_add', 'reaction_remove', 'read', 'security_notice', 'security_alert', 'recovery_request', 'typing']);
+  'reaction_add', 'reaction_remove', 'read', 'security_notice', 'security_alert', 'recovery_request', 'typing', 'user_updated']);
 const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export const parseRealtimeEvent = (raw: unknown): ServerEvent | null => {

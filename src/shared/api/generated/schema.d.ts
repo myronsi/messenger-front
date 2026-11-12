@@ -3247,6 +3247,8 @@ export interface components {
         /** @description A user as visible to the requesting user; hidden fields are `null`. */
         User: {
             id: components["schemas"]["Id"];
+            /** @description Grows whenever the username, display name, bio or avatar changes (not with presence). Clients keep a stored profile until a higher version arrives. */
+            profile_version: number;
             username: components["schemas"]["Username"];
             display_name: string;
             /** @description The requesting user's own name for this user, if set. */
@@ -3386,6 +3388,8 @@ export interface components {
         StickerPackSlug: string;
         StickerPack: {
             id: components["schemas"]["Id"];
+            /** @description Grows whenever the title or the stickers of the pack change. */
+            version: number;
             title: string;
             /** @description A built-in pack of the messenger, not made by a user. */
             is_official: boolean;
@@ -4513,6 +4517,13 @@ export interface operations {
                     "application/json": components["schemas"]["Me"];
                 };
             };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             426: components["responses"]["ClientOutdated"];
@@ -5208,6 +5219,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["User"];
                 };
+            };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
@@ -6508,6 +6526,13 @@ export interface operations {
                     "application/json": components["schemas"]["Group"];
                 };
             };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
@@ -6847,6 +6872,13 @@ export interface operations {
                     "application/json": components["schemas"]["StickerPackList"];
                 };
             };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             426: components["responses"]["ClientOutdated"];
@@ -6910,6 +6942,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StickerPack"];
                 };
+            };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
