@@ -4,6 +4,7 @@ export { useMessageEvents } from './model/useMessageEvents';
 export { useMessageSender } from './model/useMessageSender';
 export { useMessageHistory } from './model/useMessageHistory';
 export { useUnsentMessageStorage } from './model/unsentMessageStorage';
+export { useServerOutbox } from './model/serverOutbox';
 export { useLatest } from './model/useLatest';
 export { escapeCurlyBraces, unescapeCurlyBraces } from './model/messageText';
 export { appendMessageFiles, createLocalFileContent, getLocalUploadFileType } from './model/uploadFileType';

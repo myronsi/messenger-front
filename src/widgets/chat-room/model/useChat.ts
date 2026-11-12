@@ -9,7 +9,7 @@ import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 
 import {
   unescapeCurlyBraces, useChatSocket, useChatTransport, useLatest, useMessageEvents, useMessageHistory, useMessageSender,
-  useUnsentMessageStorage,
+  useUnsentMessageStorage, useServerOutbox,
   type ServerEvent,
 } from '@/features/chat-core';
 import type { ComposerDraftHandle } from '@/features/message-composer';
@@ -83,6 +83,7 @@ export const useChat = (
   });
 
   useUnsentMessageStorage({ chatId, messages, setMessages, resend: resendPending, notConfirmed: translations.messageDeliveryNotConfirmed });
+  useServerOutbox({ chatId, setMessages, username, senderId: currentUserId, translationsRef });
 
   const handleDeleteChat = createDeleteChatAction({ chatId, translations, onBack, setModal });
 

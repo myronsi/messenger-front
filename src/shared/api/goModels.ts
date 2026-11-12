@@ -47,6 +47,14 @@ const stickerModel = (sticker: Schema['Sticker']) => ({
 
 const isSticker = (item: { type: Schema['MessageType']; is_deleted: boolean }) => item.type === 'sticker' && !item.is_deleted;
 
+export const unsentModel = (item: Schema['UnsentMessage']) => ({
+  type: item.type === 'file' || item.type === 'voice' ? 'file' as const : 'message' as const,
+  content: item.type === 'sticker'
+    ? item.content || item.sticker?.emoji || ''
+    : contentModel({ attachment: item.attachments[0], attachments: item.attachments.length > 1 ? item.attachments : undefined, content: item.content }),
+  sticker: item.type === 'sticker' && item.sticker ? stickerModel(item.sticker) : undefined,
+});
+
 export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
   id: preview.id,
   sender_id: preview.sender?.id,

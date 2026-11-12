@@ -123,6 +123,16 @@ describe('Go migration transport', () => {
     expect((await response.json()).photos.map((photo: {id: string}) => photo.id)).toEqual([id, '9007199254740994']);
   });
 
+  it('lists the files of a chat from the file media kind', async () => {
+    const attachment = { id: 'a1', kind: 'file', url: '/media/a1', filename: 'route.zip', content_type: 'application/zip', size: 12 };
+    const message = { id, chat_id: '1', sender: user, content: 'pack', attachment, type: 'file',
+      reply_to: null, reactions: [], read_by: [], created_at: '2026-01-01T00:00:00Z', edited_at: null, is_deleted: false };
+    const native = vi.fn().mockResolvedValue(json({ items: [{ message }], next_cursor: null }));
+    const response = await withGoTransport(native, base)(`${base}/messages/files/1`);
+    expect(native.mock.calls[0][0]).toContain('/chats/1/media?kind=file');
+    expect((await response.json()).files).toEqual([expect.objectContaining({ id, file_name: 'route.zip', caption: 'pack', file_size: 12 })]);
+  });
+
   it('keeps messages deleted for everyone as marked tombstones so replies can name them', async () => {
     const message = { id, chat_id: '1', sender: user, content: 'hi', attachment: null, type: 'text',
       reply_to: null, reactions: [], read_by: [], created_at: '2026-01-01T00:00:00Z', edited_at: null, is_deleted: false };

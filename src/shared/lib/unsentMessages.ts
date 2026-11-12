@@ -32,7 +32,8 @@ export const countUnsentMessages = (account: string | null) => {
   try {
     return Object.keys(sessionStorage)
       .filter((key) => key.startsWith(`${UNSENT_PREFIX}${account}:`))
-      .reduce((total, key) => total + readUnsentMessages(key.slice(UNSENT_PREFIX.length)).length, 0);
+      .reduce((total, key) => total + readUnsentMessages<{ server_kept?: boolean }>(key.slice(UNSENT_PREFIX.length))
+        .filter((message) => !message?.server_kept).length, 0);
   } catch {
     return 0;
   }
