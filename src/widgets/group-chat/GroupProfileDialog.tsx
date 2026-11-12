@@ -1,6 +1,6 @@
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useGetChatAudiosQuery, useGetChatFilesQuery, useGetChatPhotosQuery } from '@/entities/message';
+import { useGetChatAudiosQuery, useGetChatFilesQuery, useGetChatLinksQuery, useGetChatPhotosQuery, ProfileLinksPanel } from '@/entities/message';
 import { useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useBackToClose } from '@/shared/lib/useBackToClose';
@@ -50,6 +50,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     skip: !open || !isPersistedId(chatId),
   });
   const files = chatFilesData?.files ?? [];
+  const linksQuery = useGetChatLinksQuery(chatId, { skip: !open || !isPersistedId(chatId) });
   useEffect(() => {
     setIsRoleHistoryOpen(false);
     if (!open) return;
@@ -129,7 +130,9 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const audiosError = audiosQueryError ? mediaError : null;
   const filesError = filesQueryError ? mediaError : null;
   const canShowPhotosAction = photos.length > 0;
-  const canShowAudiosAction = audios.length > 0;
+  const voiceItems = audios.filter((item) => item.kind === 'voice');
+  const audioFiles = audios.filter((item) => item.kind !== 'voice');
+  const canShowAudiosAction = audioFiles.length > 0;
   const canShowFilesAction = files.length > 0;
   const visiblePanelOrder: GroupProfileView[] = [
     'details',
@@ -137,9 +140,10 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     ...(canShowPhotosAction ? (['photos'] as const) : []),
     ...(canShowAudiosAction ? (['audios'] as const) : []),
     ...(canShowFilesAction ? (['files'] as const) : []),
+    ...(linksQuery.data?.length ? (['links'] as const) : []),
+    ...(voiceItems.length ? (['voice'] as const) : []),
   ];
   const canMute = isPersistedId(chatId);
-  const actionColumns = Math.min(visiblePanelOrder.length + (canMute ? 1 : 0), 6);
   const hasGroupChanges = groupForm.name.trim() !== currentGroupName || groupForm.description.trim() !== (groupDetails?.description || '');
 
   const selectView = (view: GroupProfileView) => {
@@ -168,10 +172,11 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
         />
       );
     }
-    if (view === 'audios' && canShowAudiosAction) {
+    if (view === 'links') return <ProfileLinksPanel links={linksQuery.data ?? []} isLoading={linksQuery.isLoading} onJumpToMessage={model.onJumpToMessage} />;
+    if ((view === 'audios' && canShowAudiosAction) || view === 'voice') {
       return (
         <ProfileAudiosPanel
-          audios={audios} isLoading={isLoadingAudios} error={audiosError} currentUsername={currentUsername} onJumpToMessage={model.onJumpToMessage}
+          audios={view === 'voice' ? voiceItems : audioFiles} isLoading={isLoadingAudios} error={audiosError} currentUsername={currentUsername} onJumpToMessage={model.onJumpToMessage}
         />
       );
     }
@@ -203,7 +208,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     chatId={chatId} canMute={canMute}
     open={open} isClosing={isClosing} onOpenChange={onOpenChange}
     currentGroupName={currentGroupName} currentGroupAvatar={currentGroupAvatar}
-    participants={participants} actionColumns={actionColumns}
+    participants={participants} visibleViews={visiblePanelOrder} description={groupDetails?.description} currentRole={currentRole}
     canShowPhotosAction={canShowPhotosAction} canShowAudiosAction={canShowAudiosAction} canShowFilesAction={canShowFilesAction}
     activeView={activeView} panelTransition={panelTransition} onSelectView={selectView}
     renderPanelContent={renderPanelContent} groupConfirm={groupConfirm}

@@ -1,12 +1,16 @@
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { mobileWindowSlide } from '@/shared/ui/windowMotion';
 import { SwipeProfilePanels } from '@/shared/ui/SwipeProfilePanels';
-import { ProfileTabHighlight } from '@/shared/ui/ProfileTabHighlight';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import { ChatMuteAction } from '@/features/chat-mute';
-import { FileText, Image as ImageIcon, Music, UserPlus, Users, X } from 'lucide-react';
+import { Eraser, MoreHorizontal, Search, UserPlus, X } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
+import { ActionTiles, BioBubble, PillTabs, WaveHeader, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
+import { toast } from '@/shared/ui/sonner';
+import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
@@ -15,7 +19,7 @@ import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { getAvatarSrc } from './groupChatUtils';
 import type { GroupProfileConfirmState, GroupParticipant } from './GroupProfileTypes';
 
-type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files';
+type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files' | 'links' | 'voice';
 type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };
 interface Props {
   chatId: EntityId;
@@ -26,7 +30,9 @@ interface Props {
   currentGroupName: string;
   currentGroupAvatar: string;
   participants: GroupParticipant[];
-  actionColumns: number;
+  visibleViews: GroupProfileView[];
+  description?: string;
+  currentRole?: string;
   canShowPhotosAction: boolean;
   canShowAudiosAction: boolean;
   canShowFilesAction?: boolean;
@@ -42,31 +48,43 @@ interface Props {
 }
 
 const GroupProfileDialogShell: React.FC<Props> = ({
-  chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, actionColumns,
-  canShowPhotosAction, canShowAudiosAction, canShowFilesAction = false, activeView, panelTransition, onSelectView, renderPanelContent,
+  chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, visibleViews, description, currentRole,
+  activeView, panelTransition, onSelectView, renderPanelContent,
   groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null,
 }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const requestClose = () => onOpenChange(false);
   const hasCustomAvatar = !!currentGroupAvatar && currentGroupAvatar !== getAvatarSrc(DEFAULT_GROUP_AVATAR);
-  const visibleViews: GroupProfileView[] = ['details', 'participants', ...(canShowPhotosAction ? ['photos' as const] : []), ...(canShowAudiosAction ? ['audios' as const] : []),
-    ...(canShowFilesAction ? ['files' as const] : [])];
-  const actionButton = (view: GroupProfileView, icon: React.ReactNode, label: string) => (
-    <button
-      type="button"
-      data-profile-tab={view}
-      onClick={() => onSelectView(view)}
-      className={`relative isolate flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors ${
-        activeView === view ? 'text-primary' : 'text-subtle-foreground [@media(hover:hover)]:hover:bg-accent'
-      }`}
-    >
-
-      {icon}
-      <span className="text-xs font-medium">{label}</span>
-    </button>
-  );
-
+  const t = rawTranslations.profileRework;
+  const cleanup = useChatCleanup(() => toast(rawTranslations.chatCleanup.cleared), (message) => toast(message || rawTranslations.errorLoading));
+  const online = participants.filter((participant) => participant.is_online).length;
+  const count = String(participants.length);
+  const tabLabels: Record<GroupProfileView, string> = {
+    details: t.info, participants: t.members, photos: t.media, audios: t.audio, files: t.files, links: t.links, voice: t.voice,
+  };
+  const tileClass = (className: string) => className;
+  const tiles: ProfileTile[] = [
+    { key: 'invite', label: t.invite, icon: <UserPlus className="h-5 w-5" />, onClick: () => onSelectView('participants') },
+    { key: 'search', label: t.search, icon: <Search className="h-5 w-5" />, onClick: () => onSelectView('participants') },
+    ...(canMute ? [{ key: 'mute', label: t.mute, render: (className: string) => <ChatMuteAction chatId={chatId} className={`${tileClass(className)} [&>span]:sr-only`} /> }] : []),
+    { key: 'more', label: t.more, render: (className: string) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" aria-label={t.more} className={className}><MoreHorizontal className="h-5 w-5" /></button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="z-[1100] min-w-44">
+          <DropdownMenuItem className="gap-2" onSelect={() => cleanup.open({ kind: 'clear', target: {
+            chatId, name: currentGroupName, isGroup: true, isSaved: false, canClearForEveryone: currentRole === 'owner' || currentRole === 'admin',
+          } })}>
+            <Eraser className="h-4 w-4" />{rawTranslations.chatCleanup.clearHistory}
+          </DropdownMenuItem>
+          <DropdownMenuItem className="gap-2" onSelect={() => onSelectView('details')}>{t.info}</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) },
+  ];
+  const groupAvatar = <AuthenticatedImage src={currentGroupAvatar} alt={currentGroupName} className="h-full w-full object-cover" />;
 
   if (!open) return null;
 
@@ -85,62 +103,20 @@ const GroupProfileDialogShell: React.FC<Props> = ({
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div data-profile-swipe className="flex h-full min-h-0 w-full flex-col bg-background text-foreground" inert={!!subPage}>
-          <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <h2 className="text-base font-semibold">{translations.groupProfile || 'Group profile'}</h2>
-            </div>
-            <button
-              onClick={requestClose}
-              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="Close"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
+          <h2 className="sr-only">{translations.groupProfile || 'Group profile'}</h2>
           <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">
             <div className="flex h-full min-h-0 flex-col">
-              <div className="px-5 pb-3 pt-5 text-center md:pt-4">
-                {hasCustomAvatar ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsAvatarViewerOpen(true)}
-                    className="mx-auto block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    aria-label="View group picture"
-                  >
-                    <AuthenticatedImage
-                      src={currentGroupAvatar}
-                      alt={currentGroupName}
-                      className="h-24 w-24 rounded-full border border-border object-cover shadow-sm transition-opacity hover:opacity-90 md:h-20 md:w-20"
-                    />
-                  </button>
-                ) : (
-                  <AuthenticatedImage
-                    src={currentGroupAvatar}
-                    alt={currentGroupName}
-                    className="mx-auto h-24 w-24 rounded-full border border-border object-cover shadow-sm md:h-20 md:w-20"
-                  />
-                )}
-                <h3 className="mt-3 break-words text-xl font-semibold leading-tight text-foreground">{currentGroupName}</h3>
-              </div>
-
-              <div
-                className="relative isolate grid gap-2 border-y border-border px-4 py-3"
-                style={{ gridTemplateColumns: `repeat(${actionColumns}, minmax(0, 1fr))` }}
-              >
-                <ProfileTabHighlight active={activeView} layoutKey={`${actionColumns}:${visibleViews.join(',')}:${canMute}`} />
-                {actionButton('details', <Users className="h-5 w-5" />, translations.info || 'Info')}
-                {actionButton('participants', <UserPlus className="h-5 w-5" />, translations.participants || 'Participants')}
-                {canShowPhotosAction && actionButton('photos', <ImageIcon className="h-5 w-5" />, translations.photos || 'Photos')}
-                {canShowAudiosAction && actionButton('audios', <Music className="h-5 w-5" />, translations.audios || 'Audios')}
-                {canShowFilesAction && actionButton('files', <FileText className="h-5 w-5" />, translations.chatFilesTab || 'Files')}
-                {canMute && (
-                  <ChatMuteAction
-                    chatId={chatId}
-                    className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors hover:bg-accent disabled:opacity-50"
-                  />
-                )}
+              <div className="shrink-0">
+                <WaveHeader
+                  seed={currentGroupName}
+                  avatar={hasCustomAvatar ? <button type="button" aria-label="View group picture" onClick={() => setIsAvatarViewerOpen(true)} className="block h-full w-full">{groupAvatar}</button> : groupAvatar}
+                  title={<span className="break-words">{currentGroupName}</span>}
+                  status={online ? fillTemplate(t.membersHere, { count, online: String(online) }) : fillTemplate(t.membersCount, { count })}
+                  topRight={<button type="button" onClick={requestClose} aria-label="Close" className="rounded-full bg-black/20 p-1.5 hover:bg-black/35"><X className="h-5 w-5" /></button>}
+                />
+                <ActionTiles tiles={tiles} />
+                {description?.trim() && <BioBubble text={description.trim()} />}
+                <PillTabs tabs={visibleViews.map((key) => ({ key, label: tabLabels[key] }))} active={activeView} onSelect={onSelectView} />
               </div>
 
               <SwipeProfilePanels active={activeView} views={visibleViews} onSelect={onSelectView}
@@ -149,6 +125,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
           </div>
         </div>
         {subPage}
+        <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
         {groupConfirm && (
           <ConfirmModal
             title={groupConfirm.title}

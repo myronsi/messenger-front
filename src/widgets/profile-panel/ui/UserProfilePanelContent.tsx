@@ -1,7 +1,7 @@
 import React from 'react';
 import { SwipeProfilePanels } from '@/shared/ui/SwipeProfilePanels';
 
-export type ProfilePanelView = 'details' | 'photos' | 'audios' | 'files';
+export type ProfilePanelView = 'details' | 'photos' | 'audios' | 'files' | 'links' | 'voice';
 export interface ProfilePanelTransition {
   from: ProfilePanelView;
   to: ProfilePanelView;

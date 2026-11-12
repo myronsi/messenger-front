@@ -25,10 +25,11 @@ import { stickers } from './stickers';
 import { stickerPacks } from './stickerPacks';
 import { chatOrganizer } from './chatOrganizer';
 import { chatCleanup } from './chatCleanup';
+import { profileRework } from './profileRework';
 
 export const ru = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
   ...appearance, ...authLayout, ...notificationSettings, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
-  ...chatOrganizer, ...chatCleanup,
+  ...chatOrganizer, ...chatCleanup, ...profileRework,
 };

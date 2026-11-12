@@ -1,6 +1,8 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import React from 'react';
-import { ChevronDown, Crown, MoreVertical, Trash2, UserPlus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { skipToken } from '@reduxjs/toolkit/query';
+import { useGetGroupMembersQuery } from '@/entities/chat';
+import { ChevronDown, Crown, MoreVertical, Search, Trash2, UserPlus } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
@@ -26,6 +28,15 @@ const GroupParticipantsPanel: React.FC<Props> = ({
     currentUsername, getAvatarSrc, onOpenUserProfile, onRoleChange, onTransferOwner, onRemoveParticipant,
     participantInput, setParticipantInput, onAddParticipant,
   } = model;
+  const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(query.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  const matches = useGetGroupMembersQuery(debounced ? { chatId: model.chatId, q: debounced } : skipToken).data;
+  const matchIds = debounced && matches ? new Set(matches.members.map((member) => String(member.id))) : null;
+  const shownParticipants = matchIds ? sortedParticipants.filter((participant) => matchIds.has(String(participant.id))) : sortedParticipants;
   const renderParticipant = (participant: GroupParticipant) => {
     const isOwner = participant.role === 'owner';
     const isCurrentUser = participant.username === currentUsername;
@@ -191,14 +202,21 @@ const GroupParticipantsPanel: React.FC<Props> = ({
           )}
         </section>
       )}
-      <section className="overflow-hidden rounded-lg border border-border bg-card">
-        {sortedParticipants.length + pendingInvites.length > 0 ? (
+      <label className="flex items-center gap-2 rounded-full bg-muted px-3">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={rawTranslations.profileRework.searchMembers}
+          aria-label={rawTranslations.profileRework.searchMembers} className="h-9 min-w-0 flex-1 bg-transparent text-sm outline-none [&::-webkit-search-cancel-button]:appearance-none" />
+      </label>
+      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+        {shownParticipants.length + (matchIds ? 0 : pendingInvites.length) > 0 ? (
           <>
-            {sortedParticipants.map(renderParticipant)}
-            {pendingInvites.map(renderPendingInvite)}
+            {shownParticipants.map(renderParticipant)}
+            {!matchIds && pendingInvites.map(renderPendingInvite)}
           </>
         ) : (
-          <div className="px-3 py-4 text-center text-sm text-muted-foreground">{translations.noParticipants || 'No participants'}</div>
+          <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+            {matchIds ? rawTranslations.profileRework.noMembers : translations.noParticipants || 'No participants'}
+          </div>
         )}
       </section>
     </div>
