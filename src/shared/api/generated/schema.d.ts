@@ -632,6 +632,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{user_id}/common-groups": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                user_id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Groups the caller and the user are both in
+         * @description Newest activity first. Empty for the caller's own id.
+         */
+        get: operations["listCommonGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{user_id}": {
         parameters: {
             query?: never;
@@ -817,7 +844,7 @@ export interface paths {
         /**
          * My chats with last message and unread count
          * @description One request replaces `GET /chats/list/{username}` and `GET /groups/list/{username}`.
-         *     Pinned chats come first (most recently pinned first), then the others by their last
+         *     Pinned chats come first (by `pin_position`), then the others by their last
          *     message (newest first). `last_message` is the newest message the caller can see; in
          *     direct chats its `read_by` holds the other user once they read it (with read receipts
          *     on), in groups it is empty. `unread_count` stops at 999.
@@ -828,7 +855,9 @@ export interface paths {
          * Start a direct chat
          * @description Respects the other user's `direct_messages` privacy setting. When approval is needed
          *     the answer is `202` with the pending request instead of a chat. Returns the existing
-         *     chat (`200`) if there already is one.
+         *     chat (`200`) if there already is one. `user_id` may be the caller's own id: that opens
+         *     their "Saved Messages" chat, a direct chat with the caller as its only member and as
+         *     its `peer`.
          */
         post: operations["createChat"];
         delete?: never;
@@ -857,7 +886,10 @@ export interface paths {
         post?: never;
         /**
          * Delete a direct chat
-         * @description Deletes the chat and its messages for both users (as v1 did); both get `chat_deleted`.
+         * @description `scope=everyone` (the default) deletes the chat and its messages for both users (as v1 did); both get
+         *     `chat_deleted`. `scope=me` deletes it only for the caller: the chat leaves their list and its history up to
+         *     now is hidden for them (as `POST /chats/{chat_id}/clear` with `scope: me`); only the caller's devices get
+         *     `chat_deleted`. When a newer message arrives the chat comes back for the caller with only the newer messages.
          *     For groups use `DELETE /groups/{chat_id}` (owner) or `POST /groups/{chat_id}/leave`;
          *     a group here is `422`.
          */
@@ -884,12 +916,100 @@ export interface paths {
         get?: never;
         /**
          * Pin a chat
-         * @description At most 10 chats can be pinned (`409` beyond that). Pinning a pinned chat changes nothing.
+         * @description At most 10 chats can be pinned (`409` beyond that). A newly pinned chat goes to the top of the pinned
+         *     chats and leaves the archive. Pinning a pinned chat changes nothing.
          */
         put: operations["pinChat"];
         post?: never;
         /** Unpin a chat */
         delete: operations["unpinChat"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/clear": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear the history of a chat
+         * @description Clears every message up to the newest one now. `scope: me` hides them only for the caller (any member).
+         *     `scope: everyone` removes them for every member: in a direct chat either user may do it, in a group the
+         *     owner and admins (`403` for others). The chat itself stays. The caller's devices (`me`) or every member's
+         *     (`everyone`) get `history_cleared`; messages up to `before_message_id` are no longer listed, counted as
+         *     unread, found by search or shown as media.
+         */
+        post: operations["clearChatHistory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Archive a chat
+         * @description Only for the caller. The chat leaves the pinned chats and stays archived when new messages arrive,
+         *     until `DELETE` unarchives it. Archiving an archived chat changes nothing. The caller's devices get
+         *     `chat_list_update`.
+         */
+        put: operations["archiveChat"];
+        post?: never;
+        /** Move a chat out of the archive */
+        delete: operations["unarchiveChat"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/pins/order": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Order the pinned chats
+         * @description `chat_ids` must name every pinned chat of the caller exactly once (`422` otherwise), in the new order,
+         *     top first. The caller's devices get `chat_list_update` for each pinned chat.
+         */
+        put: operations["reorderPinnedChats"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1049,7 +1169,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Photos, videos, audio or files of a chat
+         * Photos, videos, audio, voice messages, files or links of a chat
          * @description Replaces `GET /messages/photos/{chat_id}` and `GET /messages/audios/{chat_id}`.
          */
         get: operations["listChatMedia"];
@@ -1369,7 +1489,12 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Members of a group, page by page
+         * @description Owner first, then admins, moderators and members, each by display name. `q` keeps members whose username starts
+         *     with it or whose display name contains it (case-insensitive). `total` counts every member that matches.
+         */
+        get: operations["listGroupMembers"];
         put?: never;
         /** Add a participant */
         post: operations["addGroupParticipant"];
@@ -3154,6 +3279,8 @@ export interface components {
         /** @description A user as visible to the requesting user; hidden fields are `null`. */
         User: {
             id: components["schemas"]["Id"];
+            /** @description Grows whenever the username, display name, bio or avatar changes (not with presence). Clients keep a stored profile until a higher version arrives. */
+            profile_version: number;
             username: components["schemas"]["Username"];
             display_name: string;
             /** @description The requesting user's own name for this user, if set. */
@@ -3267,10 +3394,11 @@ export interface components {
             drawing: components["schemas"]["Drawing"];
         };
         /**
-         * @description `image` photos, `visual` photos and videos, `audio` audio files and voice messages, `file` other files (documents, archives).
+         * @description `image` photos, `visual` photos and videos, `audio` audio files and voice messages, `voice` voice messages only,
+         *     `file` other files (documents, archives), `link` messages whose text or caption contains a web link.
          * @enum {string}
          */
-        MediaKind: "image" | "audio" | "visual" | "file";
+        MediaKind: "image" | "audio" | "visual" | "file" | "voice" | "link";
         /** @enum {string} */
         MessageType: "text" | "file" | "voice" | "system" | "sticker";
         /**
@@ -3293,6 +3421,8 @@ export interface components {
         StickerPackSlug: string;
         StickerPack: {
             id: components["schemas"]["Id"];
+            /** @description Grows whenever the title or the stickers of the pack change. */
+            version: number;
             title: string;
             /** @description A built-in pack of the messenger, not made by a user. */
             is_official: boolean;
@@ -3526,9 +3656,13 @@ export interface components {
             /** @description Display name of the peer or the group */
             name: string;
             avatar_url: string | null;
-            /** @description The other user of a direct chat; `null` for groups. */
+            /** @description The other user of a direct chat (the caller in their "Saved Messages" chat); `null` for groups. */
             peer: components["schemas"]["User"] | null;
             is_pinned: boolean;
+            /** @description Order of a pinned chat among the caller's pinned chats, lowest first; `null` when not pinned. */
+            pin_position: number | null;
+            /** @description Whether the caller archived the chat (only for the caller). */
+            is_archived: boolean;
             unread_count: number;
             /**
              * @description The oldest message the caller has not read (the same messages `unread_count` counts: not their own,
@@ -3547,9 +3681,31 @@ export interface components {
             items: components["schemas"]["Chat"][];
             next_cursor: components["schemas"]["Cursor"];
         };
+        ClearHistoryRequest: {
+            /** @enum {string} */
+            scope: "me" | "everyone";
+        };
+        PinOrderRequest: {
+            chat_ids: components["schemas"]["Id"][];
+        };
         CreateChatRequest: {
             user_id: components["schemas"]["Id"];
             initial_message?: string | null;
+        };
+        GroupMemberPage: {
+            items: components["schemas"]["GroupMember"][];
+            next_cursor: components["schemas"]["Cursor"];
+            total: number;
+        };
+        CommonGroup: {
+            id: components["schemas"]["Id"];
+            name: string;
+            avatar_url: string | null;
+            member_count: number;
+        };
+        CommonGroupPage: {
+            items: components["schemas"]["CommonGroup"][];
+            next_cursor: components["schemas"]["Cursor"];
         };
         GroupMember: {
             user: components["schemas"]["User"];
@@ -4409,6 +4565,13 @@ export interface operations {
                     "application/json": components["schemas"]["Me"];
                 };
             };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             426: components["responses"]["ClientOutdated"];
@@ -5080,6 +5243,42 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    listCommonGroups: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque `next_cursor` of the previous page */
+                after?: components["parameters"]["After"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                user_id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of groups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommonGroupPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
     getUser: {
         parameters: {
             query?: never;
@@ -5104,6 +5303,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["User"];
                 };
+            };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
@@ -5387,6 +5593,8 @@ export interface operations {
                 limit?: components["parameters"]["Limit"];
                 /** @description Opaque `next_cursor` of the previous page */
                 after?: components["parameters"]["After"];
+                /** @description `true`: only archived chats, `false`: only chats that are not archived. Without it, every chat. */
+                archived?: boolean;
             };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
@@ -5500,7 +5708,9 @@ export interface operations {
     };
     deleteChat: {
         parameters: {
-            query?: never;
+            query?: {
+                scope?: "me" | "everyone";
+            };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
@@ -5584,6 +5794,130 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    clearChatHistory: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearHistoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Cleared */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    archiveChat: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archived */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    unarchiveChat: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Not archived */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    reorderPinnedChats: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PinOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Reordered */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -6276,6 +6610,13 @@ export interface operations {
                     "application/json": components["schemas"]["Group"];
                 };
             };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
@@ -6383,6 +6724,43 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listGroupMembers: {
+        parameters: {
+            query?: {
+                q?: string;
+                /** @description Page size */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque `next_cursor` of the previous page */
+                after?: components["parameters"]["After"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of members */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupMemberPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -6615,6 +6993,13 @@ export interface operations {
                     "application/json": components["schemas"]["StickerPackList"];
                 };
             };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             426: components["responses"]["ClientOutdated"];
@@ -6678,6 +7063,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StickerPack"];
                 };
+            };
+            /** @description Not modified; the response's `ETag` matches `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
