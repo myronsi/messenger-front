@@ -29,26 +29,26 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
     <>
       <div data-testid="chat-header" {...longPress.handlers}
         className="motion-panel-in flex h-[72px] shrink-0 items-center justify-between border-b border-border pl-1.5 pr-3 sm:px-6">
-        <div className="flex min-w-0 items-center space-x-1 md:space-x-0">
+        <div className="flex min-w-0 flex-1 items-center space-x-1 md:space-x-0">
           <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent md:hidden">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <button
             type="button"
             onClick={() => { if (!longPress.consumeClick()) onOpenProfile(); }}
-            className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 text-left outline-none focus:outline-none md:space-x-0"
+            className="motion-press flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left outline-none focus:outline-none md:space-x-0"
           >
             <AuthenticatedImage src={avatar} alt={name} className="motion-avatar h-9 w-9 rounded-full border border-border object-cover md:hidden" />
             <span className="flex min-w-0 flex-col items-start">
-              <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{name}</span>
-              <span className="max-w-[52vw] truncate text-xs font-normal text-muted-foreground sm:max-w-none">
+              <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{name}</span>
+              <span className="max-w-full truncate text-xs font-normal text-muted-foreground">
                 {participantCountLabel(participantCount, translations, language)}
                 {description ? ` - ${description}` : ''}
               </span>
             </span>
           </button>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-2 flex shrink-0 items-center gap-1">
           <CallButton chatId={chatId} />
           {onOpenSearch && (
             <button

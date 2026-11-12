@@ -97,7 +97,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     if (!field) return;
     const fit = () => {
       field.style.height = 'auto';
-      field.style.height = `${field.scrollHeight}px`;
+      field.style.height = field.value ? `${field.scrollHeight}px` : '';
     };
     fit();
     window.addEventListener('resize', fit);
@@ -271,7 +271,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 onChange={(event) => setMessageInput(event.target.value)}
                 placeholder={disabled ? (translations.waitingForApproval || 'Waiting for user approval') : hasSelectedFile ? (translations.addCaption || 'Add a caption')
                   : editingMessage?.type === 'file' ? translations.writeCaption : translations.writeMessage}
-                className="block max-h-[min(10rem,35vh)] min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 leading-6 text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none"
+                className="block max-h-[min(10rem,35vh)] min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 leading-6 text-foreground transition-colors placeholder:truncate placeholder:text-muted-foreground focus:outline-none"
                 onKeyDown={handleFieldKeyDown}
                 disabled={isDisabled}
               />

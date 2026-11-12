@@ -27,7 +27,7 @@ export function DesktopChatLayout({ chatList, children, resizeLabel }: DesktopCh
     <div ref={root} className="h-full min-w-0 flex-1">
       <ResizablePanelGroup direction="horizontal" autoSaveId="messenger-desktop-chat-layout" keyboardResizeBy={2}>
         <ResizablePanel ref={listPanel} id="chat-list" order={1} defaultSize={25}
-          minSize={Math.min(45, 240 / Math.max(1, width - 1) * 100)} maxSize={45}
+          minSize={Math.min(45, 320 / Math.max(1, width - 1) * 100)} maxSize={45}
           className="min-w-0 rounded-lg bg-background shadow-lg">
           {chatList}
         </ResizablePanel>

@@ -33,14 +33,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   return (
     <>
       <div data-testid="chat-header" {...longPress.handlers} className="motion-panel-in h-[72px] shrink-0 pl-1.5 pr-3 sm:px-6 border-b border-border flex justify-between items-center">
-        <div className="flex min-w-0 items-center space-x-1 md:space-x-0">
+        <div className="flex min-w-0 flex-1 items-center space-x-1 md:space-x-0">
           <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center hover:bg-accent rounded-full transition-colors md:hidden">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 items-center space-x-2 rounded-lg px-1 py-1 md:space-x-0">
+          <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left md:space-x-0">
             <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-border object-cover md:hidden" />
             <span className="flex min-w-0 flex-col items-start">
-              <span className="max-w-[52vw] truncate text-base font-semibold leading-tight sm:max-w-none sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>
+              <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>
               {!interlocutorDeleted && (
                 <span className="text-xs font-normal text-muted-foreground">
                   {presenceLabel}
@@ -49,7 +49,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             </span>
           </button>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-2 flex shrink-0 items-center gap-1">
           {!interlocutorDeleted && <CallButton chatId={chatId} />}
           {onOpenSearch && (
             <button
