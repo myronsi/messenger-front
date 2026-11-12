@@ -41,7 +41,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm,
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
-  const { selection, start: startSelection, clear: clearSelection, intercept } = useMessageSelection(chatId, messages);
+  const { selection, start: startSelection, clear: clearSelection, selectAll, intercept } = useMessageSelection(chatId, messages);
   useBackToClose(selection.active, clearSelection, 'selection');
   useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
   const startReply = useReplyAction({ editingMessage, setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
@@ -266,7 +266,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
 
       <Modal modal={modal} onClose={() => setModal(null)} />
       <SelectionBar chatId={chatId} messages={messages} selection={selection} username={username} canDeleteForEveryone={canDeleteMessage}
-        onClear={clearSelection} />
+        onClear={clearSelection} onSelectAll={selectAll} />
       <ForwardMessageDialog
         open={!!forwardMessage}
         onOpenChange={(open) => {

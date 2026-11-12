@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Forward, Trash2, X } from 'lucide-react';
+import { CheckCheck, Copy, Forward, Trash2, X } from 'lucide-react';
 import type { EntityId } from '@/shared/api/entityId';
 import { useDeleteMessagesMutation, notifyMessageDeletedLocally, type Message, type MessageSelection } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
+import { toast } from '@/shared/ui/sonner';
+import { copyText } from '@/shared/lib/copyText';
 import ForwardMessageDialog from './ForwardMessageDialog';
-import { MAX_FORWARDED_MESSAGES, MAX_SELECTED_MESSAGES, isForwardableMessage } from '../model/useMessageSelection';
+import { MAX_FORWARDED_MESSAGES, MAX_SELECTED_MESSAGES, isForwardableMessage, isSelectableMessage } from '../model/useMessageSelection';
+import { isEditableTarget, selectionCopyText } from '../model/selectionText';
 
 interface SelectionBarProps {
   chatId: EntityId;
@@ -16,9 +19,10 @@ interface SelectionBarProps {
   canDeleteForEveryone: (message: Message) => boolean;
   isDirect?: boolean;
   onClear: () => void;
+  onSelectAll?: () => void;
 }
 
-const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection, username, canDeleteForEveryone, isDirect = false, onClear }) => {
+const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection, username, canDeleteForEveryone, isDirect = false, onClear, onSelectAll }) => {
   const { translations } = useLanguage();
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -36,15 +40,38 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
   const count = ids.length;
   const forEveryone = count > 0 && selected.every(canDeleteForEveryone);
   const canForward = count > 0 && count <= MAX_FORWARDED_MESSAGES && selected.every(isForwardableMessage);
+  const copyable = selection ? selectionCopyText(messages, selection.ids) : '';
+  const selectableCount = Math.min(MAX_SELECTED_MESSAGES, messages.filter(isSelectableMessage).length);
+  const canSelectAll = !!onSelectAll && count < selectableCount;
+
+  const copy = async (text: string) => {
+    if (!text) return;
+    if (await copyText(text)) {
+      toast(translations.messagesCopied);
+      onClear();
+    } else {
+      toast(translations.copyLinkFailed);
+    }
+  };
 
   useEffect(() => {
     if (!selection?.active) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isForwardOpen && !isDeleteOpen) onClear();
+      if (isForwardOpen || isDeleteOpen) return;
+      if (event.key === 'Escape') onClear();
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || isEditableTarget(event.target)) return;
+      const key = event.key.toLowerCase();
+      if (key === 'a' && onSelectAll) {
+        event.preventDefault();
+        onSelectAll();
+      } else if (key === 'c' && copyable && !window.getSelection()?.toString()) {
+        event.preventDefault();
+        void copy(copyable);
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isDeleteOpen, isForwardOpen, onClear, selection]);
+  });
 
   if (!selection?.active && !selection?.closing) return null;
 
@@ -72,6 +99,17 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
             <X className="h-5 w-5" />
           </button>
           <span className="flex-1 text-sm font-medium" aria-live="polite">{fill(translations.selectedMessages, MAX_SELECTED_MESSAGES)}</span>
+          {canSelectAll && (
+            <button type="button" onClick={onSelectAll} aria-label={translations.selectAll} title={translations.selectAll} className={`${iconButton} hover:bg-accent`}>
+              <CheckCheck className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+          {!!copyable && (
+            <button type="button" onClick={() => void copy(copyable)} aria-label={translations.copy} className={`${iconButton} hover:bg-accent`}>
+              <Copy className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline" aria-hidden="true">{translations.copy}</span>
+            </button>
+          )}
           {canForward && (
             <button type="button" onClick={() => setIsForwardOpen(true)} aria-label={translations.forward} className={`${iconButton} motion-selection-check hover:bg-accent`}>
               <Forward className="h-4 w-4" aria-hidden="true" />

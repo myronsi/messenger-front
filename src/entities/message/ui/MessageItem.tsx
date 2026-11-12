@@ -179,7 +179,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         ref={setRowRef}
         className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} ${onToggleSelect || swipe.offset ? 'relative' : ''} ${canSwipe ? 'touch-pan-y' : ''} flex ${isMine ? 'justify-end' : 'justify-start'} ${
           isHighlighted ? 'highlight' : ''
-        } ${isContextHighlighted ? 'context-menu-highlight' : ''} ${
+        } ${isContextHighlighted || isSelected ? 'context-menu-highlight' : ''} ${onToggleSelect ? 'selectable-row' : ''} ${
           message.is_deleting ? (reducedMotion ? 'message-deleting message-deleting-reduced' : 'message-deleting') : ''
         }`}
         style={{
@@ -197,7 +197,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       >
         {onToggleSelect && (
           <button type="button" role="checkbox" aria-checked={isSelected} aria-label={translations.selectMessage}
-            className={`absolute inset-0 z-10 flex items-center rounded-lg pl-1 transition-colors ${isSelected ? 'bg-primary/10' : '[@media(hover:hover)]:hover:bg-accent/40'}`}
+            className="absolute inset-0 z-10 flex items-center pl-1"
             onClick={(event) => { event.stopPropagation(); onToggleSelect(message, event.shiftKey); }}
             onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
             <span className={`motion-selection-check flex h-5 w-5 items-center justify-center rounded-full border-2 ${isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/60 bg-background'}`}>

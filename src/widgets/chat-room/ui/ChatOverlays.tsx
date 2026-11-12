@@ -36,6 +36,7 @@ interface ChatOverlaysProps {
   selection?: MessageSelection;
   onSelect?: (message: Message) => void;
   onClearSelection: () => void;
+  onSelectAll?: () => void;
 }
 
 const mayDeleteForBoth = (userId: EntityId | null) => (message: Message) =>
@@ -45,7 +46,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
   token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, onReply, setModal, closeMenus, onForward,
-  forwardMessage, username, modal, selection, onSelect, onClearSelection,
+  forwardMessage, username, modal, selection, onSelect, onClearSelection, onSelectAll,
 }) => (
   <>
     {contextMenu && userId !== null && (
@@ -103,6 +104,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
       canDeleteForEveryone={mayDeleteForBoth(userId)}
       isDirect
       onClear={onClearSelection}
+      onSelectAll={onSelectAll}
     />
     <Modal modal={modal} onClose={() => setModal(null)} />
   </>

@@ -69,6 +69,8 @@ export const messages = {
   selectMessage: "Seleccionar",
   selectedMessages: "{count} seleccionados",
   cancelSelection: "Cancelar selección",
+  selectAll: "Seleccionar todo",
+  messagesCopied: "Copiado",
   deleteLimit: "Puedes eliminar un máximo de {max} mensajes a la vez",
   deleteMessagesConfirm: "¿Eliminar {count} mensajes?",
   failedToDeleteMessages: "No se pudieron eliminar los mensajes",

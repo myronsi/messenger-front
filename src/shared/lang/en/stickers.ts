@@ -5,6 +5,7 @@ export const stickers = {
   emojiTab: "Emoji",
   emojiAndStickers: "Emoji and stickers",
   searchEmojiAndStickers: "Search emoji and stickers",
+  closeSearch: "Close search",
   expandEmojiPanel: "Expand panel",
   collapseEmojiPanel: "Collapse panel",
   recentStickers: "Recent",

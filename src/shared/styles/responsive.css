@@ -45,6 +45,12 @@
   --row-highlight: hsl(var(--primary) / 0.18);
 }
 
+@media (hover: hover) {
+  .selectable-row:not(.context-menu-highlight):hover {
+    --row-highlight: hsl(var(--accent) / 0.4);
+  }
+}
+
 
 .message-deleting {
   overflow: hidden;
