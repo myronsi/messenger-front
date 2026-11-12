@@ -201,7 +201,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     <div className="absolute inset-0 overflow-x-hidden overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
         <div data-testid="sticky-date" className="sticky top-0 z-50 flex h-0 justify-center overflow-visible pointer-events-none md:w-2/3 md:mx-auto md:px-0">
-          <div ref={dateBadgeRef}
+          <div ref={dateBadgeRef} aria-hidden="true"
             className={`mt-0.5 h-fit px-3 py-1 bg-accent rounded-full text-sm text-accent-foreground transition-opacity duration-300 will-change-transform ${
               isScrolling ? 'opacity-100' : 'opacity-0'
             }`}
