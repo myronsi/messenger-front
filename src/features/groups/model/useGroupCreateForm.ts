@@ -58,7 +58,7 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
     [selectedUsers],
   );
   const dmContactSuggestions = useMemo(() => {
-    const seen = new Set<string>();
+    const seen = new Set((debouncedSearch.length >= 2 ? searchData?.users ?? [] : []).map((user) => user.username.toLowerCase()));
     const query = searchTerm.trim().toLowerCase();
     return (dmChatsData?.chats || [])
       .filter((chat) => !chat.interlocutor_deleted && !!chat.interlocutor_name)
@@ -75,7 +75,7 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
         return !query || usernameKey.includes(query) || (user.display_name || '').toLowerCase().includes(query);
       })
       .slice(0, 6);
-  }, [currentUsername, dmChatsData?.chats, searchTerm, selectedUsernames]);
+  }, [currentUsername, dmChatsData?.chats, searchTerm, selectedUsernames, debouncedSearch, searchData?.users]);
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

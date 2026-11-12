@@ -125,7 +125,8 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                     </span>
                     <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isDmContactsCollapsed ? '-rotate-90' : 'rotate-0'}`} />
                   </button>
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isDmContactsCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
+                  <div inert={isDmContactsCollapsed || undefined} data-testid="dm-contacts"
+                    className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out ${isDmContactsCollapsed ? 'invisible grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className="max-h-52 overflow-y-auto border-t border-border/70 p-1">
                         {dmContactSuggestions.map((user) => (
