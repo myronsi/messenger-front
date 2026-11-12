@@ -43,6 +43,7 @@ export const messages = {
   edited: "bearbeitet",
   uploadFileTooLarge: "Die Datei ist zu groß. Für diesen Typ sind höchstens {size} MB erlaubt.",
   uploadUnsupportedType: "Dieser Dateityp wird nicht unterstützt.",
+  uploadFilesEmpty: "Leere Dateien wurden nicht hinzugefügt: {names}. Wähle sie erneut aus.",
   deleteForMeShort: "Für mich",
   replyUnavailable: "Ursprüngliche Nachricht",
   showInChat: "Im Chat anzeigen",

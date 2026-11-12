@@ -4,6 +4,7 @@ import { addToSelection, canAddToSelection, MAX_SEPARATE_FILES, planUploads, spl
 const texts = {
   uploadFileTooLarge: 'Max {size} MB',
   uploadUnsupportedType: 'Unsupported',
+  uploadFilesEmpty: 'Empty: {names}',
   albumLimit: 'Up to {max} album items',
   separateFilesLimit: 'Up to {max} files',
 };
@@ -64,5 +65,15 @@ describe('file selection', () => {
     const photo = named('a.png');
     expect(planUploads([doc], 'Hi', () => [])).toEqual([{ file: doc, caption: 'Hi', drawings: [] }]);
     expect(planUploads([doc, photo], 'Hi', () => []).map(({ file, caption }) => [file, caption])).toEqual([[photo, 'Hi'], [doc, '']]);
+  });
+
+  it('drops empty files, names them and keeps the rest of the selection', () => {
+    const result = addToSelection([], [named('route.png', 0), named('notes.txt'), named('pack.zip', 0)], true, texts);
+    expect(result.files?.map((file) => file.name)).toEqual(['notes.txt']);
+    expect(result.notice).toBe('Empty: route.png, pack.zip');
+  });
+
+  it('refuses a selection of only empty files with their names', () => {
+    expect(addToSelection([], [named('route.png', 0)], true, texts).error).toBe('Empty: route.png');
   });
 });

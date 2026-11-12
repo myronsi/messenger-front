@@ -25,11 +25,10 @@ describe('useMessageSender cancelled uploads', () => {
     const setMessages = vi.fn((update: Message[] | ((previous: Message[]) => Message[])) => {
       messages = typeof update === 'function' ? update(messages) : update;
     });
-    const setModal = vi.fn();
     const { result } = renderHook(() => useMessageSender({
       chatId: '3', username: 'me', currentUserId: '1', currentUserIdRef: { current: '1' }, translations: en, translationsRef: { current: en },
       transport: transport(),
-      setMessages, setModal, getMessageInput: () => '', setMessageInput: vi.fn(), editingMessage: null, setEditingMessage: vi.fn(), replyTo: null, setReplyTo: vi.fn(),
+      setMessages, getMessageInput: () => '', setMessageInput: vi.fn(), editingMessage: null, setEditingMessage: vi.fn(), replyTo: null, setReplyTo: vi.fn(),
     }));
     let upload: Promise<void> = Promise.resolve();
     act(() => { upload = result.current.handleFileUpload(new File(['x'], 'pack.zip', { type: 'application/zip' })); });
@@ -37,7 +36,19 @@ describe('useMessageSender cancelled uploads', () => {
     expect(messages).toHaveLength(1);
     await act(async () => { cancelUpload(messages[0].id); await upload; });
     expect(messages).toEqual([]);
-    expect(setModal).not.toHaveBeenCalled();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:local');
+  });
+
+  it('does not upload empty files', async () => {
+    vi.mocked(uploadWithProgress).mockReset();
+    const setMessages = vi.fn();
+    const { result } = renderHook(() => useMessageSender({
+      chatId: '3', username: 'me', currentUserId: '1', currentUserIdRef: { current: '1' }, translations: en, translationsRef: { current: en },
+      transport: transport(),
+      setMessages, getMessageInput: () => '', setMessageInput: vi.fn(), editingMessage: null, setEditingMessage: vi.fn(), replyTo: null, setReplyTo: vi.fn(),
+    }));
+    await act(async () => { await result.current.handleFileUpload(new File([], 'empty.zip', { type: 'application/zip' })); });
+    expect(setMessages).not.toHaveBeenCalled();
+    expect(uploadWithProgress).not.toHaveBeenCalled();
   });
 });

@@ -78,7 +78,7 @@ export const useChat = (
     resendPending,
   } = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations, translationsRef, transport,
-    setMessages, setModal, getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
+    setMessages, getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
   });
 
   useUnsentMessageStorage({ chatId, messages, setMessages, resend: resendPending, notConfirmed: translations.messageDeliveryNotConfirmed });

@@ -144,7 +144,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
       setErrorMessage(result.error);
       return;
     }
-    setErrorMessage(null);
+    setErrorMessage(result.notice ?? null);
     setSelectedFiles(result.files);
   };
 

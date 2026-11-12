@@ -63,7 +63,7 @@ export const useGroupChatScreen = ({
 
   const sender = useMessageSender({
     chatId, username, currentUserId, currentUserIdRef, translations: rawTranslations, translationsRef, transport,
-    setMessages, setModal, getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
+    setMessages, getMessageInput, setMessageInput, editingMessage, setEditingMessage, replyTo, setReplyTo,
   });
 
   useUnsentMessageStorage({
