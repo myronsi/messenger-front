@@ -165,8 +165,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
   return (
     <React.Fragment key={message.client_temp_id ?? message.id}>
       {!isMine && showNewMessagesMarker && (
-        <div ref={firstUnreadMarkerRef} className="motion-unread-separator is-visible scroll-mt-2 flex justify-center" style={{ marginTop: 0 }}>
-          <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">{translations.newMessages}</div>
+        <div ref={firstUnreadMarkerRef} data-testid="new-messages-separator" className="motion-unread-separator is-visible scroll-mt-2 flex items-center gap-3 px-2"
+          style={{ marginTop: '0.75rem' }}>
+          <span aria-hidden="true" className="h-px flex-1 bg-primary/40" />
+          <div className="shrink-0 px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">{translations.newMessages}</div>
+          <span aria-hidden="true" className="h-px flex-1 bg-primary/40" />
         </div>
       )}
       {dateSeparator}
