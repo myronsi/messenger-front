@@ -94,6 +94,7 @@ export interface ReadReceiptInfo extends UserMessageMeta {
 export interface Message {
   id: EntityId;
   client_temp_id?: EntityId | null;
+  server_kept?: boolean;
   local_object_url?: string | null;
   upload_status?: 'uploading' | 'failed' | 'lost';
   upload_progress?: number;
@@ -167,6 +168,22 @@ export interface ChatAudio {
 
 export interface ChatAudiosResponse {
   audios: ChatAudio[];
+}
+
+export interface ChatFile {
+  id: EntityId;
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
+  file_size?: number;
+  caption?: string;
+  sender?: string;
+  sender_username?: string | null;
+  timestamp: string;
+}
+
+export interface ChatFilesResponse {
+  files: ChatFile[];
 }
 
 export interface ChatSearchResult {

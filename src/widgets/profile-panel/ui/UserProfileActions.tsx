@@ -1,11 +1,11 @@
 import React from 'react';
-import { Image as ImageIcon, Info, MessageCircle, Music } from 'lucide-react';
+import { FileText, Image as ImageIcon, Info, MessageCircle, Music } from 'lucide-react';
 import type { EntityId } from '@/shared/api/entityId';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { ChatMuteAction } from '@/features/chat-mute';
 import { ProfileTabHighlight } from '@/shared/ui/ProfileTabHighlight';
 
-type ProfilePanelView = 'details' | 'photos' | 'audios';
+type ProfilePanelView = 'details' | 'photos' | 'audios' | 'files';
 
 interface UserProfileActionsProps {
   actionCount: number;
@@ -14,6 +14,7 @@ interface UserProfileActionsProps {
   showMessage: boolean;
   showPhotos: boolean;
   showAudios: boolean;
+  showFiles?: boolean;
   muteChatId?: EntityId;
   activeView: ProfilePanelView;
   onSelectView: (view: ProfilePanelView) => void;
@@ -21,7 +22,7 @@ interface UserProfileActionsProps {
 }
 
 const UserProfileActions: React.FC<UserProfileActionsProps> = ({
-  actionCount, actionColumns, showDetails, showMessage, showPhotos, showAudios,
+  actionCount, actionColumns, showDetails, showMessage, showPhotos, showAudios, showFiles = false,
   muteChatId, activeView, onSelectView, onMessage,
 }) => {
   const { translations } = useLanguage();
@@ -31,11 +32,13 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({
   }`;
   return (
     <div className="relative isolate grid gap-2 border-y border-border px-4 py-3" style={{ gridTemplateColumns: `repeat(${actionColumns}, minmax(0, 1fr))` }}>
-      <ProfileTabHighlight active={activeView} layoutKey={`${actionColumns}:${showDetails}:${showMessage}:${showPhotos}:${showAudios}:${!!muteChatId}`} />
+      <ProfileTabHighlight active={activeView} layoutKey={`${actionColumns}:${showDetails}:${showMessage}:${showPhotos}:${showAudios}:${showFiles}:${!!muteChatId}`} />
       {showDetails && <button data-profile-tab="details" onClick={() => onSelectView('details')} className={buttonClass('details')}><Info className="h-5 w-5" /><span className="text-xs font-medium">{translations.info || 'Info'}</span></button>}
       {showMessage && <button onClick={onMessage} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm text-primary transition-colors hover:bg-accent"><MessageCircle className="h-5 w-5" /><span className="text-xs font-medium">{translations.message || 'Message'}</span></button>}
       {showPhotos && <button data-profile-tab="photos" onClick={() => onSelectView('photos')} className={buttonClass('photos')}><ImageIcon className="h-5 w-5" /><span className="text-xs font-medium">{translations.photos || 'Photos'}</span></button>}
       {showAudios && <button data-profile-tab="audios" onClick={() => onSelectView('audios')} className={buttonClass('audios')}><Music className="h-5 w-5" /><span className="text-xs font-medium">{translations.audios || 'Audios'}</span></button>}
+      {showFiles && <button data-profile-tab="files" onClick={() => onSelectView('files')} className={buttonClass('files')}><FileText className="h-5 w-5" />
+        <span className="text-xs font-medium">{translations.chatFilesTab}</span></button>}
       {muteChatId && <ChatMuteAction chatId={muteChatId} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-sm transition-colors hover:bg-accent disabled:opacity-50" />}
     </div>
   );

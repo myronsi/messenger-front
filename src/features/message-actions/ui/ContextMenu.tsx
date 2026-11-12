@@ -5,7 +5,8 @@ import { copyText } from '@/shared/lib/copyText';
 import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
-import { notifyMessageDeletedLocally } from '@/entities/message';
+import { discardServerUnsent, notifyMessageDeletedLocally } from '@/entities/message';
+import { isPersistedId } from '@/shared/api/entityId';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { makeStickerFrom } from '@/entities/sticker';
 import { isGoApi } from '@/shared/api/goSocket';
@@ -110,7 +111,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       const messageId = contextMenu.messageId;
       closeMenu();
       try {
-        await deleteMessageForMe(messageId).unwrap();
+        if (isPersistedId(messageId)) await deleteMessageForMe(messageId).unwrap();
+        else if (message?.server_kept) await discardServerUnsent(chatId, message.client_temp_id ?? messageId);
         notifyMessageDeletedLocally(chatId, messageId);
       } catch (error) {
         console.error('Failed to delete message for me:', error);

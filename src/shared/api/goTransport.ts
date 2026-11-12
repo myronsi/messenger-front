@@ -159,10 +159,10 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
         url.searchParams.delete(`${direction}_id`);
       }
     }
-    const media = path.match(/^\/messages\/(photos|audios|search)\/(\d+)$/);
+    const media = path.match(/^\/messages\/(photos|audios|files|search)\/(\d+)$/);
     if (media) {
       path = `/chats/${media[2]}/${media[1] === 'search' ? 'messages/search' : 'media'}`;
-      if (media[1] !== 'search') url.searchParams.set('kind', media[1] === 'photos' ? 'visual' : 'audio');
+      if (media[1] !== 'search') url.searchParams.set('kind', ({ photos: 'visual', audios: 'audio', files: 'file' } as Record<string, string>)[media[1]]);
       const items = await allPages<S['Message'] | S['SearchHit']>(path + url.search);
       return jsonResponse(mediaScreenModel(items, media[1]));
     }
