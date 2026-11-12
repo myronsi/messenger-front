@@ -17,9 +17,17 @@ export interface ChatLinkItem {
 
 const LINK = /(?:https?:\/\/|www\.)[^\s<>"']+/i;
 
+const TRAILING = ').,!?';
+const trimTrailing = (value: string) => {
+  let end = value.length;
+  while (end > 0 && TRAILING.includes(value[end - 1])) end -= 1;
+  return value.slice(0, end);
+};
+
 export const linkItem = (message: ApiMessage): ChatLinkItem | null => {
   const text = (message.content ?? '').trim();
-  const found = text.match(LINK)?.[0]?.replace(/[).,!?]+$/, '');
+  const match = text.match(LINK)?.[0];
+  const found = match ? trimTrailing(match) : '';
   if (!found) return null;
   const url = /^https?:\/\//i.test(found) ? found : `https://${found}`;
   return {
