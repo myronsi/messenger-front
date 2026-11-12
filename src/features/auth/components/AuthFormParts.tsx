@@ -19,14 +19,15 @@ interface AuthFieldProps {
   hint?: string;
   error?: string;
   valid?: boolean;
+  alwaysShowHint?: boolean;
   labelAside?: React.ReactNode;
   footer?: (focused: boolean) => React.ReactNode;
   children: React.ReactNode;
 }
 
-export const AuthField: React.FC<AuthFieldProps> = ({ id, label, hint, error, valid, labelAside, footer, children }) => {
+export const AuthField: React.FC<AuthFieldProps> = ({ id, label, hint, error, valid, alwaysShowHint, labelAside, footer, children }) => {
   const [focused, setFocused] = useState(false);
-  const showHint = Boolean(hint) && (focused || valid);
+  const showHint = Boolean(hint) && (alwaysShowHint || focused || valid);
   return (
     <div className="flex flex-col gap-1.5" onFocus={() => setFocused(true)}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) afterPointerRelease(() => setFocused(false)); }}>

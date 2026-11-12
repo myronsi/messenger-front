@@ -48,7 +48,7 @@ export const RegisterCredentialsForm = ({
   });
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <AuthField id="register-username" label={translations.username} hint={t.usernameHint} error={errorText('username')}>
+      <AuthField id="register-username" label={translations.username} hint={t.usernameHint} alwaysShowHint error={errorText('username')}>
         <Input id="register-username" name="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
           maxLength={32} value={username} onChange={(event) => onUsernameChange(event.target.value)}
           className={authInputClass(Boolean(fieldErrors.username))} {...described('register-username', 'username')} />

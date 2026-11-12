@@ -3,6 +3,7 @@ import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { Loader2 } from 'lucide-react';
 import { apiClient } from '@/shared/api/client';
 import { registerPasskey } from '@/shared/api/passkeys';
+import { ApiProblem } from '@/shared/api/problem';
 import { deviceLabel } from '@/shared/lib/deviceLabel';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -11,11 +12,12 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 const passkeyOfferFlag = (username: string) => `passkey_offer_dismissed:${username}`;
 
-export const PasskeyOffer = ({ username, onDone }: { username: string; onDone: () => void }) => {
+export const PasskeyOffer = ({ username, knownPassword = '', onDone }: { username: string; knownPassword?: string; onDone: () => void }) => {
   const t = useLanguage().translations.passkeyOffer;
   const [ready, setReady] = useState(false);
   const [name, setName] = useState(() => deviceLabel(navigator.userAgent));
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(knownPassword);
+  const [askPassword, setAskPassword] = useState(!knownPassword);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const onDoneRef = useRef(onDone);
@@ -42,7 +44,10 @@ export const PasskeyOffer = ({ username, onDone }: { username: string; onDone: (
   const add = async () => {
     setBusy(true); setMessage('');
     try { await registerPasskey({ name, password }); finish(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : t.cancelled); }
+    catch (error) {
+      setMessage(error instanceof Error ? error.message : t.cancelled);
+      if (!askPassword && error instanceof ApiProblem) { setAskPassword(true); setPassword(''); }
+    }
     finally { setBusy(false); }
   };
 
@@ -59,12 +64,12 @@ export const PasskeyOffer = ({ username, onDone }: { username: string; onDone: (
       <Input id="offer-passkey-name" className="h-11 border-input text-[15px]" aria-describedby="offer-passkey-name-hint" maxLength={64} value={name} required onChange={event => setName(event.target.value)} />
       <p id="offer-passkey-name-hint" className="text-xs text-muted-foreground">{t.nameHint}</p>
     </div>
-    <div className="flex flex-col gap-1.5">
+    {askPassword && <div className="flex flex-col gap-1.5">
       <Label htmlFor="offer-passkey-password" className="text-[13px] font-medium text-subtle-foreground">{t.password}</Label>
       <Input id="offer-passkey-password" className="h-11 border-input text-[15px]" aria-describedby="offer-passkey-password-hint" type="password" autoComplete="current-password" value={password}
         required onChange={event => setPassword(event.target.value)} />
       <p id="offer-passkey-password-hint" className="text-xs text-muted-foreground">{t.passwordHint}</p>
-    </div>
+    </div>}
     {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
     <Button className="h-11 w-full text-[15px] font-semibold" disabled={busy || !password}>{busy ? t.waiting : t.submit}</Button>
     <Button type="button" variant="ghost" className="w-full" disabled={busy} onClick={finish}>{t.notNow}</Button>

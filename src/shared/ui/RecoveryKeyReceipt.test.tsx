@@ -131,12 +131,10 @@ describe('RecoveryKeyReceipt', () => {
     expect(JSON.stringify(localStorage)).not.toContain(key);
   });
 
-  it('warns before skipping and stores only a reminder flag', () => {
+  it('warns and skips in one action, storing only a reminder flag', () => {
     const done = vi.fn();
     render(<RecoveryKeyReceipt recoveryKey={key} username="alice" onContinue={done} />);
     expect(screen.getByText(/you may lose your account/)).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Skip saving this key' }));
-    expect(done).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Continue without saving' }));
     expect(done).toHaveBeenCalledOnce();
     expect(localStorage.getItem('recovery_receipt_skipped:alice')).toBe('true');
