@@ -171,3 +171,18 @@ export const mergeFreshHistoryMessages = (currentMessages: Message[], freshMessa
   }
   return sortMessages([...byId.values()]);
 };
+
+export const placeFailedMessagesByTime = (messages: Message[]): Message[] => {
+  const failed = messages.filter(message => !isPersistedId(message.id) && message.delivery_error);
+  if (!failed.length) return messages;
+  const time = (message: Message) => Date.parse(message.timestamp) || 0;
+  const confirmed = messages.filter(message => isPersistedId(message.id));
+  const waiting = messages.filter(message => !isPersistedId(message.id) && !message.delivery_error);
+  const ordered: Message[] = [];
+  let next = 0;
+  for (const message of confirmed) {
+    while (next < failed.length && time(failed[next]) <= time(message)) ordered.push(failed[next++]);
+    ordered.push(message);
+  }
+  return [...ordered, ...failed.slice(next), ...waiting];
+};
