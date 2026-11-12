@@ -27,6 +27,17 @@ export const writeUnsentMessages = <T>(id: string | null, messages: T[]) => {
   }
 };
 
+export const countUnsentMessages = (account: string | null) => {
+  if (!account) return 0;
+  try {
+    return Object.keys(sessionStorage)
+      .filter((key) => key.startsWith(`${UNSENT_PREFIX}${account}:`))
+      .reduce((total, key) => total + readUnsentMessages(key.slice(UNSENT_PREFIX.length)).length, 0);
+  } catch {
+    return 0;
+  }
+};
+
 export const clearUnsentMessages = () => {
   try {
     Object.keys(sessionStorage).filter((key) => key.startsWith(UNSENT_PREFIX)).forEach((key) => sessionStorage.removeItem(key));
