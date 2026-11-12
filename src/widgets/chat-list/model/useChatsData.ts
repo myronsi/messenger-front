@@ -122,6 +122,9 @@ export function useChatsData(username: string) {
       unread_count: chat.unread_count || 0,
       first_unread_message_id: chat.first_unread_message_id || null,
       is_pinned: !!chat.is_pinned,
+      pin_position: chat.pin_position ?? null,
+      is_archived: !!chat.is_archived,
+      is_saved: !!username && chat.interlocutor_name.toLowerCase() === username.toLowerCase(),
       pending_approval_request: !!chat.pending_approval_request,
       pending_request_id: chat.pending_request_id,
     }));
@@ -140,6 +143,8 @@ export function useChatsData(username: string) {
       unread_count: group.unread_count || 0,
       first_unread_message_id: group.first_unread_message_id || null,
       is_pinned: !!group.is_pinned,
+      pin_position: group.pin_position ?? null,
+      is_archived: !!group.is_archived,
     }));
 
     return [...oneOnOneChats, ...groupChats]
@@ -148,13 +153,18 @@ export function useChatsData(username: string) {
         const aPinned = !!a.chat.is_pinned;
         const bPinned = !!b.chat.is_pinned;
         if (aPinned !== bPinned) return aPinned ? -1 : 1;
+        if (aPinned) {
+          const aPosition = a.chat.pin_position ?? Number.MAX_SAFE_INTEGER;
+          const bPosition = b.chat.pin_position ?? Number.MAX_SAFE_INTEGER;
+          if (aPosition !== bPosition) return aPosition - bPosition;
+        }
         const aTime = a.chat.last_message?.timestamp ? parseUtcDate(a.chat.last_message.timestamp).getTime() : 0;
         const bTime = b.chat.last_message?.timestamp ? parseUtcDate(b.chat.last_message.timestamp).getTime() : 0;
         if (aTime !== bTime) return bTime - aTime;
         return a.index - b.index;
       })
       .map(({ chat }) => chat);
-  }, [oneOnOneChatsData, groupChatsData, presenceByUsername, chatOverrides]);
+  }, [oneOnOneChatsData, groupChatsData, presenceByUsername, chatOverrides, username]);
 
   const chatsByIdRef = useRef<Record<EntityId, Chat>>({});
   useEffect(() => {

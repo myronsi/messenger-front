@@ -72,7 +72,7 @@ export interface WebSocketMessage {
   timestamp?: string;
 }
 
-export type ChatOverride = Partial<Pick<Chat, 'last_message' | 'unread_count' | 'first_unread_message_id' | 'is_pinned'>> & {
+export type ChatOverride = Partial<Pick<Chat, 'last_message' | 'unread_count' | 'first_unread_message_id' | 'is_pinned' | 'pin_position' | 'is_archived'>> & {
   // Highest message ID already folded into unread_count; used to ignore duplicate or replayed events.
   last_counted_message_id?: EntityId;
   // When the override was written; overrides older than a server fetch are dropped.
@@ -91,6 +91,7 @@ export interface ChatContextMenuState {
   y: number;
   chatId: EntityId;
   isPinned: boolean;
+  isArchived: boolean;
   unreadCount: number;
 }
 

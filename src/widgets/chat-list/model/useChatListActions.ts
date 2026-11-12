@@ -113,6 +113,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
       y: clientY,
       chatId: chat.id,
       isPinned: !!chat.is_pinned,
+      isArchived: !!chat.is_archived,
       unreadCount: chat.unread_count || 0,
     }));
   };

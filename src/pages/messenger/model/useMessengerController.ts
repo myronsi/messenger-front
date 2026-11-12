@@ -140,7 +140,7 @@ export const useMessengerController = (username: string) => {
     lastSeen?: string | null;
   }) => {
     const targetUsername = target.username.trim();
-    if (!targetUsername || targetUsername.toLowerCase() === username.toLowerCase()) {
+    if (!targetUsername) {
       closeUserProfile();
       return;
     }

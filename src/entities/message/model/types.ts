@@ -221,6 +221,9 @@ export interface Chat {
   unread_count?: number;
   first_unread_message_id?: EntityId | null;
   is_pinned?: boolean;
+  pin_position?: number | null;
+  is_archived?: boolean;
+  is_saved?: boolean;
   pending_approval_request?: boolean;
   pending_request_id?: EntityId;
 }

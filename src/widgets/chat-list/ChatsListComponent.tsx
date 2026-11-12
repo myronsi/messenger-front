@@ -33,6 +33,11 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
     void model.refetch();
   });
   const pendingRequests = model.requestInbox?.unread_count || 0;
+  const openSaved = () => {
+    const saved = model.chats.find((chat) => chat.is_saved);
+    if (saved) model.handleChatClick(saved);
+    else model.onChatOpen(-Date.now(), me?.username || model.username, false, 'one-on-one');
+  };
   const header = (
     <ChatsListHeader
       translations={model.translations}
@@ -41,6 +46,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
       onOpenSearch={model.handleOpenSearch}
       onNewGroup={() => setCreatingGroup(true)}
       onScanQr={() => setScanning(true)}
+      onOpenSaved={openSaved}
       profileIndicatorCount={pendingRequests}
       onOpenProfile={() => setIsProfileOpen(true)}
     />
@@ -95,6 +101,10 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         onStartChat={model.handleOpenSearch}
         onChatClick={model.handleChatClick}
         onChatContextMenu={model.handleChatContextMenu}
+        onOpenChatMenuAt={model.openChatMenuAt}
+        onCloseChatMenu={model.closeChatContextMenu}
+        onToggleArchived={model.handleToggleArchived}
+        onReorderPinned={model.handleReorderPinned}
       />
 
       <ChatContextMenu
@@ -103,6 +113,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         translations={model.translations}
         onMarkAsRead={model.handleMarkChatRead}
         onTogglePinned={model.handleTogglePinnedChat}
+        onToggleArchived={model.handleToggleArchived}
         onClose={model.closeChatContextMenu}
         onError={(message) => model.setModal({ type: 'error', message })}
       />

@@ -9,7 +9,7 @@ import { useChatListActions } from './useChatListActions';
 it.each(['1', '2'])('dismisses the menu first when tapping chat %s, then opens it on the next tap', id => {
   const onChatOpen = vi.fn();
   const { result } = renderHook(() => {
-    const [menu, setMenu] = useState<ChatContextMenuState | null>({ chatId: '1', x: 0, y: 0, isPinned: false, unreadCount: 0 });
+    const [menu, setMenu] = useState<ChatContextMenuState | null>({ chatId: '1', x: 0, y: 0, isPinned: false, isArchived: false, unreadCount: 0 });
     const actions = useChatListActions({
       username: 'alice', chatContextMenu: menu, onChatOpen,
       createChat: () => ({ unwrap: async () => ({}) }),

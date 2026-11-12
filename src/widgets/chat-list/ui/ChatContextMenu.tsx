@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { CheckCheck, Pin, PinOff } from 'lucide-react';
+import { Archive, ArchiveRestore, CheckCheck, Pin, PinOff } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChatMuteMenuItems } from '@/features/chat-mute';
 import type { ChatContextMenuState } from '../model/types';
@@ -15,13 +15,15 @@ interface ChatContextMenuProps {
   translations: Translations;
   onMarkAsRead: (chatId: EntityId) => void;
   onTogglePinned: (chatId: EntityId) => void;
+  onToggleArchived: (chatId: EntityId) => void;
   onClose: () => void;
   onError: (message: string) => void;
 }
 
 type MenuView = { chatId: EntityId | null; name: 'main' | 'mute'; direction: 'forward' | 'back' | null };
 
-const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, translations, onMarkAsRead, onTogglePinned, onClose, onError }) => {
+const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, translations, onMarkAsRead, onTogglePinned,
+  onToggleArchived, onClose, onError }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   useDismissFirstMenu(!!menu, menuRef, onClose);
   const [shown, setShown] = useState(menu);
@@ -108,6 +110,14 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
             >
               {shown.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
               <span>{shown.isPinned ? translations.unpin : translations.pin}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleArchived(shown.chatId)}
+              className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              {shown.isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+              <span>{shown.isArchived ? translations.chatOrganizer.unarchive : translations.chatOrganizer.archive}</span>
             </button>
           </>
         )}

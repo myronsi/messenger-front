@@ -192,7 +192,7 @@ export const useMessengerRouteSync = ({
       }
 
       const targetUsername = directIdentifier.value;
-      if (!targetUsername || targetUsername.toLowerCase() === username.toLowerCase()) {
+      if (!targetUsername) {
         navigate('/', { replace: true });
         return;
       }
