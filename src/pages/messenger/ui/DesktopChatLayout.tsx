@@ -23,18 +23,21 @@ export function DesktopChatLayout({ chatList, children, resizeLabel }: DesktopCh
     return () => observer.disconnect();
   }, []);
 
+  const percentOf = (pixels: number) => pixels / Math.max(1, width - 1) * 100;
+  const listMinSize = Math.min(40, percentOf(280));
+  const listDefaultSize = Math.max(listMinSize, Math.min(30, percentOf(360)));
+
   return (
     <div ref={root} className="h-full min-w-0 flex-1">
-      <ResizablePanelGroup direction="horizontal" autoSaveId="messenger-desktop-chat-layout" keyboardResizeBy={2}>
-        <ResizablePanel ref={listPanel} id="chat-list" order={1} defaultSize={25}
-          minSize={Math.min(45, 320 / Math.max(1, width - 1) * 100)} maxSize={45}
+      <ResizablePanelGroup direction="horizontal" autoSaveId="messenger-desktop-chat-layout-v2" keyboardResizeBy={2}>
+        <ResizablePanel ref={listPanel} id="chat-list" order={1} defaultSize={listDefaultSize} minSize={listMinSize} maxSize={45}
           className="min-w-0 rounded-lg bg-background shadow-lg">
           {chatList}
         </ResizablePanel>
         <ResizableHandle aria-label={resizeLabel} title={resizeLabel}
-          onDoubleClick={() => listPanel.current?.resize(25)}
+          onDoubleClick={() => listPanel.current?.resize(listDefaultSize)}
           className="z-10 cursor-col-resize transition-colors hover:bg-primary/50 data-[resize-handle-state=drag]:bg-primary" />
-        <ResizablePanel id="active-chat" order={2} defaultSize={75} minSize={55}
+        <ResizablePanel id="active-chat" order={2} defaultSize={100 - listDefaultSize} minSize={55}
           className="min-w-0 overflow-hidden rounded-lg bg-background shadow-lg">
           {children}
         </ResizablePanel>
