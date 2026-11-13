@@ -1,6 +1,7 @@
 import { apiClient } from '@/shared/api/client';
 import { messengerApi } from '@/shared/api/baseApi';
 import { apiTask, contractData } from '@/shared/api/tasks';
+import { recentStickersKey, stickerPacksKey, withStoredFallback } from '@/shared/api/offlineStore';
 import type { Sticker, StickerPack, StickerPackRef } from '../model/types';
 
 const PACKS = { type: 'Sticker' as const, id: 'packs' };
@@ -15,11 +16,11 @@ const loadPack = async ({ packId, slug }: StickerPackRef, signal: AbortSignal) =
 export const stickerApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
     listStickerPacks: builder.query<StickerPack[], void>({
-      queryFn: (_, { signal }) => apiTask(async () => contractData(await apiClient.GET('/stickers/packs', { signal })).items),
+      queryFn: (_, { signal }) => apiTask(() => withStoredFallback(stickerPacksKey, async () => contractData(await apiClient.GET('/stickers/packs', { signal })).items)),
       providesTags: [PACKS],
     }),
     listRecentStickers: builder.query<Sticker[], void>({
-      queryFn: (_, { signal }) => apiTask(async () => contractData(await apiClient.GET('/stickers/recent', { signal })).items),
+      queryFn: (_, { signal }) => apiTask(() => withStoredFallback(recentStickersKey, async () => contractData(await apiClient.GET('/stickers/recent', { signal })).items)),
       providesTags: [RECENT],
     }),
     getStickerPack: builder.query<StickerPack, StickerPackRef>({

@@ -1,4 +1,5 @@
 import { isPersistedId } from '@/shared/api/entityId';
+import { useStoredValue, userByNameKey } from '@/shared/api/offlineStore';
 import type { EntityId } from '@/shared/api/entityId';
 import { asApiError } from '@/shared/lib/apiError';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -54,13 +55,15 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const [isEditingContactName, setIsEditingContactName] = useState(false);
   const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
   const [isDeleteChatConfirmOpen, setIsDeleteChatConfirmOpen] = useState(false);
+  const storedUser = useStoredValue<typeof fetchedUser>(username ? userByNameKey(username) : null);
 
   // Use username-based query instead of user ID
   const {
-    data: userData,
+    data: fetchedUser,
     error,
     isLoading
   } = useGetUserByUsernameQuery(username);
+  const userData = fetchedUser ?? storedUser;
   const { data: currentUser } = useGetCurrentUserQuery();
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
   const [blockUser, { isLoading: isBlockingUser }] = useBlockUserMutation();

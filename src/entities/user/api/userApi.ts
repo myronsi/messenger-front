@@ -4,6 +4,7 @@ import { resolveUsername, userProfileByUsername } from '@/shared/api/users';
 import { userModel } from '@/shared/api/goModels';
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
+import { userByIdKey, userByNameKey, withStoredFallback } from '@/shared/api/offlineStore';
 import type { BlockedUsersResponse, User, UserAvatarHistoryResponse } from '../model/types';
 
 export const userApi = messengerApi.injectEndpoints({
@@ -16,14 +17,14 @@ export const userApi = messengerApi.injectEndpoints({
     }),
 
     getUserByUsername: builder.query<User, string>({
-      queryFn: (username, { signal }) => apiTask(() => userProfileByUsername(username, signal)),
+      queryFn: (username, { signal }) => apiTask(() => withStoredFallback(userByNameKey(username), () => userProfileByUsername(username, signal))),
       providesTags: (result, error, username) => [{ type: 'User', id: username }],
     }),
 
     getUserById: builder.query<User, EntityId>({
-      queryFn: (id, { signal }) => apiTask(async () => userModel(contractData(await apiClient.GET('/users/{user_id}', {
+      queryFn: (id, { signal }) => apiTask(() => withStoredFallback(userByIdKey(id), async () => userModel(contractData(await apiClient.GET('/users/{user_id}', {
         params: { path: { user_id: String(id) } }, signal,
-      })))),
+      }))))),
       providesTags: (result, error, id) => [{ type: 'User', id }],
     }),
 

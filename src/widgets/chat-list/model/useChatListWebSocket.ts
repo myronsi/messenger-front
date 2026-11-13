@@ -14,7 +14,7 @@ import { useAppDispatch } from '@/shared/hooks/redux';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 
 const CHAT_LIST_REFETCH_DELAY_MS = 750;
-const GO_CHAT_LIST_EVENTS = ['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence', 'history_cleared'];
+const GO_CHAT_LIST_EVENTS = ['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence', 'history_cleared', 'user_updated'];
 
 interface UseChatListWebSocketParams {
   token: string | null | undefined;
@@ -84,6 +84,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
         notifyMessageFrame(frame, activeChatIdRef.current);
         if (GO_CHAT_LIST_EVENTS.includes(frame.type)) listRefetch.schedule();
         if (frame.type === 'approval_request_created') refetchRequestInboxRef.current();
+        if (frame.type === 'user_updated') dispatch(chatApi.util.invalidateTags(['User', 'Avatar']));
         if (frame.type === 'chat_deleted' && frame.chat_id) onChatDeletedRef.current?.(frame.chat_id);
       },
     });
