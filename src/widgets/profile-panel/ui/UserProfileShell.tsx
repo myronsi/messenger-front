@@ -11,16 +11,11 @@ interface UserProfileShellProps {
 export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, onClose }) => {
   const { translations } = useLanguage();
   return (
-    <div className="flex h-full min-h-0 w-full flex-col bg-background text-foreground">
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-        <div className="flex items-center gap-2">
-          <UserRound className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-base font-semibold">{translations.userProfile}</h2>
-        </div>
-        <button onClick={onClose} className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" aria-label="Close">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+    <div className="relative flex h-full min-h-0 w-full flex-col bg-background text-foreground">
+      <h2 className="sr-only">{translations.userProfile}</h2>
+      <button onClick={onClose} className="absolute right-3 top-3 z-20 rounded-full bg-black/20 p-1.5 text-white transition-colors hover:bg-black/35" aria-label="Close">
+        <X className="h-5 w-5" />
+      </button>
       <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">{children}</div>
     </div>
   );

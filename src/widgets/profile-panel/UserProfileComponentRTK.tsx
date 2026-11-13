@@ -7,15 +7,14 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useGetCurrentUserQuery } from '@/features/profile';
-import { useGetChatAudiosQuery, useGetChatFilesQuery, useGetChatPhotosQuery } from '@/entities/message';
+import { useGetChatAudiosQuery, useGetChatFilesQuery, useGetChatLinksQuery, useGetChatPhotosQuery } from '@/entities/message';
 import {
   useGetUserByUsernameQuery, useUpdateContactDisplayNameMutation, useDeleteContactDisplayNameMutation,
   useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation,
 } from '@/entities/user';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import UserProfileInfoPanel from './ui/UserProfileInfoPanel';
-import UserProfileHeader from './ui/UserProfileHeader';
-import UserProfileActions from './ui/UserProfileActions';
+import UserProfileHero from './ui/UserProfileHero';
 import { UserProfileShell, UserProfileState } from './ui/UserProfileShell';
 import UserProfileConfirmations from './ui/UserProfileConfirmations';
 import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanelContent';
@@ -90,6 +89,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     skip: !directChatId || !isPersistedId(directChatId),
   });
   const dmFiles = chatFilesData?.files ?? [];
+  const linksQuery = useGetChatLinksQuery(directChatId || 0, { skip: !directChatId || !isPersistedId(directChatId) });
   const profileDisplayName = userData?.display_name || username;
   const accountDisplayName = userData?.account_display_name || username;
   const contactDisplayName = userData?.contact_display_name?.trim();
@@ -197,17 +197,18 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const canShowCreatedAt = !!userData.created_at && !hasBlockedRelationship;
   const canShowMessageAction = !hideMessageAction && !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
   const canShowPhotosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmPhotos.length > 0;
-  const canShowAudiosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmAudios.length > 0;
+  const voiceItems = dmAudios.filter((item) => item.kind === 'voice');
+  const audioFiles = dmAudios.filter((item) => item.kind !== 'voice');
+  const canShowAudiosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && audioFiles.length > 0;
   const canShowFilesAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmFiles.length > 0;
   const canShowDmSections = !!directChatId && isPersistedId(directChatId) && !isCurrentUser;
-  const actionCount = [canShowMessageAction, canShowDmSections, canShowPhotosAction, canShowAudiosAction, canShowFilesAction, canShowDmSections]
-    .filter(Boolean).length;
-  const actionColumns = Math.min(Math.max(actionCount, 1), 6);
   const visiblePanelOrder: ProfilePanelView[] = [
     'details',
     ...(canShowPhotosAction ? (['photos'] as const) : []),
     ...(canShowAudiosAction ? (['audios'] as const) : []),
     ...(canShowFilesAction ? (['files'] as const) : []),
+    ...(canShowDmSections && linksQuery.data?.length ? (['links'] as const) : []),
+    ...(canShowDmSections && voiceItems.length ? (['voice'] as const) : []),
   ];
   const selectView = (view: ProfilePanelView) => transitionToView(view, visiblePanelOrder);
 
@@ -215,7 +216,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     <UserProfileInfoPanel
       username={username}
       language={language}
-      bio={bio}
+      userId={userData.id}
       actionError={actionError}
       isCurrentUser={isCurrentUser}
       isBlocked={isBlocked}
@@ -233,7 +234,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     <UserProfilePanelView
       view={view} canShowPhotos={canShowPhotosAction} canShowAudios={canShowAudiosAction}
       canShowFiles={canShowFilesAction} files={dmFiles} isLoadingFiles={isLoadingDmFiles} filesError={dmFilesError}
-      photos={dmPhotos} audios={dmAudios}
+      photos={dmPhotos} audios={audioFiles} voice={voiceItems} links={linksQuery.data} isLoadingLinks={linksQuery.isLoading}
       isLoadingPhotos={isLoadingDmPhotos} isLoadingAudios={isLoadingDmAudios}
       photosError={dmPhotosError} audiosError={dmAudiosError} infoPanel={infoPanel} currentUsername={currentUser?.username}
       onJumpToMessage={onJumpToMessage}
@@ -243,22 +244,18 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   return (
     <UserProfileShell onClose={onClose}>
       <div data-profile-swipe className="flex h-full min-h-0 flex-col">
-        <UserProfileHeader
-          avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName}
+        <UserProfileHero
+          userId={userData.id} username={username} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName}
           isCurrentUser={isCurrentUser} isEditingContactName={isEditingContactName} customNameInput={customNameInput}
           setCustomNameInput={setCustomNameInput} onSaveContactName={handleSaveContactName}
           onCancelContactNameEdit={handleCancelContactNameEdit}
           onEditContactName={() => { setCustomNameInput(contactDisplayName || ''); setIsEditingContactName(true); }}
           isSavingContactName={isSavingContactName} accountDisplayName={accountDisplayName}
           isOnline={!!userData.is_online} lastSeen={userData.last_seen} onAvatarHistory={() => setIsAvatarViewerOpen(true)}
-        />
-
-        <UserProfileActions
-          actionCount={actionCount} actionColumns={actionColumns}
-          showDetails={canShowDmSections} showMessage={canShowMessageAction}
-          showPhotos={canShowPhotosAction} showAudios={canShowAudiosAction} showFiles={canShowFilesAction}
-          muteChatId={canShowDmSections ? directChatId : undefined} activeView={activeView}
-          onSelectView={selectView} onMessage={handleMessage}
+          bio={bio} createdAt={canShowCreatedAt ? userData.created_at ?? undefined : undefined} directChatId={canShowDmSections ? directChatId : undefined}
+          canMessage={canShowMessageAction} isBlocked={isBlocked} canDeleteChat={!!onDeleteChat} tabs={visiblePanelOrder} activeView={activeView}
+          onSelectView={selectView} onMessage={handleMessage} onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
+          onBlock={isBlocked ? handleBlockToggle : () => setIsBlockConfirmOpen(true)}
         />
 
         <UserProfilePanelContent activeView={activeView} visibleViews={visiblePanelOrder} onSelectView={selectView}

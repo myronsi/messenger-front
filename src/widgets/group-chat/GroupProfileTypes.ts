@@ -12,6 +12,7 @@ export interface GroupParticipant {
   role: GroupRole;
   is_owner?: boolean;
   is_admin?: boolean;
+  is_online?: boolean;
 }
 
 export interface GroupPendingInvite {
@@ -89,5 +90,5 @@ export interface GroupProfileDialogProps {
 }
 
 
-export type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files';
+export type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files' | 'links' | 'voice';
 export type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };

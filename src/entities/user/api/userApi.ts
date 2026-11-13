@@ -21,6 +21,14 @@ export const userApi = messengerApi.injectEndpoints({
       providesTags: (result, error, username) => [{ type: 'User', id: username }],
     }),
 
+    getCommonGroups: builder.query<{ id: string; name: string; avatar_url: string | null; member_count: number }[], EntityId>({
+      queryFn: (id, { signal }) => apiTask(async () => contractData(await apiClient.GET('/users/{user_id}/common-groups', {
+        params: { path: { user_id: String(id) }, query: { limit: 100 } }, signal,
+      })).items),
+      keepUnusedDataFor: 300,
+      providesTags: (result, error, id) => [{ type: 'User', id: `common-${id}` }],
+    }),
+
     getUserById: builder.query<User, EntityId>({
       queryFn: (id, { signal }) => apiTask(() => withStoredFallback(userByIdKey(id), async () => userModel(contractData(await apiClient.GET('/users/{user_id}', {
         params: { path: { user_id: String(id) } }, signal,
@@ -142,6 +150,7 @@ export const {
   useGetUserByUsernameQuery,
   useLazyGetUserByUsernameQuery,
   useGetUserByIdQuery,
+  useGetCommonGroupsQuery,
   useUpdateContactDisplayNameMutation,
   useDeleteContactDisplayNameMutation,
   useGetUserAvatarQuery,

@@ -5,6 +5,9 @@ import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { listChats, resolveUsername } from '@/shared/api/users';
 import { directChatModel, groupChatModel, groupModel, userModel } from '@/shared/api/goModels';
+import type { components } from '@/shared/api/generated/schema';
+
+const groupMemberModel = ({ user, role, joined_at }: components['schemas']['GroupMember']) => ({ ...userModel(user), role, joined_at });
 import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { ApprovalRequestInboxResponse, CreateChatResponse, GroupChatResponse, GroupRoleLog, MarkChatReadRequest, MarkChatReadResponse, OneOnOneChatResponse, RawGroupDetails } from '../model/types';
@@ -47,6 +50,17 @@ export const chatApi = messengerApi.injectEndpoints({
       queryFn: (id, { signal }) => apiTask(async () => groupModel(contractData(await apiClient.GET('/groups/{chat_id}', { params: { path: { chat_id: String(id) } }, signal })))),
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-details-${chatId}` }],
+    }),
+
+    getGroupMembers: builder.query<{ members: ReturnType<typeof groupMemberModel>[]; total: number }, { chatId: EntityId; q: string }>({
+      queryFn: ({ chatId, q }, { signal }) => apiTask(async () => {
+        const page = contractData(await apiClient.GET('/groups/{chat_id}/participants', {
+          params: { path: { chat_id: String(chatId) }, query: { limit: 100, ...(q.trim() ? { q: q.trim() } : {}) } }, signal,
+        }));
+        return { members: page.items.map(groupMemberModel), total: page.total };
+      }),
+      keepUnusedDataFor: 60,
+      providesTags: (result, error, { chatId }) => [{ type: 'Chat', id: `group-members-${chatId}` }],
     }),
 
     getGroupRoleLog: builder.query<GroupRoleLog, EntityId>({
@@ -155,6 +169,7 @@ export const {
   useDeleteChatMutation,
   useSetChatPinnedMutation,
   useSetChatArchivedMutation,
+  useGetGroupMembersQuery,
   useClearChatHistoryMutation,
   useReorderPinnedChatsMutation,
   useMarkChatReadMutation,
