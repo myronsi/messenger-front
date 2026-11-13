@@ -224,6 +224,7 @@ export interface Chat {
   pin_position?: number | null;
   is_archived?: boolean;
   is_saved?: boolean;
+  my_role?: string | null;
   pending_approval_request?: boolean;
   pending_request_id?: EntityId;
 }

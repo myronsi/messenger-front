@@ -1,4 +1,5 @@
-import { getApiBaseUrl } from '@/shared/api/config';
+import { apiClient } from '@/shared/api/client';
+import { contractData } from '@/shared/api/tasks';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useState } from 'react';
@@ -9,11 +10,8 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { MESSAGE_HISTORY_FRESH_SECONDS, messageApi } from '@/entities/message';
 import { useAppDispatch } from '@/shared/hooks/redux';
-import { authFetch } from '@/shared/auth/session';
 import { useMessengerMobileNavigation } from './useMessengerMobileNavigation';
 import { useMessengerRouteSync } from './useMessengerRouteSync';
-
-const BASE_URL = getApiBaseUrl();
 
 export const useMessengerController = (username: string) => {
   const dispatch = useAppDispatch();
@@ -193,14 +191,11 @@ export const useMessengerController = (username: string) => {
     }
   };
 
-  const handleDeleteCurrentChat = async () => {
+  const handleDeleteCurrentChat = async (scope: 'me' | 'everyone' = 'everyone') => {
     if (!currentChat || currentChat.type !== 'one-on-one' || !isPersistedId(currentChat.id)) return;
 
     try {
-      const response = await authFetch(`${BASE_URL}/chats/delete/${currentChat.id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error(await response.text());
+      contractData(await apiClient.DELETE('/chats/{chat_id}', { params: { path: { chat_id: String(currentChat.id) }, query: { scope } } }));
       setCurrentChat(null);
       navigate('/');
     } catch (err) {

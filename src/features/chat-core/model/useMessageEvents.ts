@@ -73,6 +73,9 @@ export const useMessageEvents = ({
       case 'delete':
         removeMessageAnimated(setMessages, event.message_id);
         return;
+      case 'history_cleared':
+        setMessages((previous) => previous.filter((message) => !isPersistedId(message.id) || BigInt(message.id) > BigInt(event.before_message_id)));
+        return;
       case 'reaction_add':
         setMessages((previous) => addReaction(previous, event.message_id, {
           user_id: event.user_id,

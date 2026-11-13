@@ -97,6 +97,11 @@ export interface ChatDeletedEvent {
   chat_id?: EntityId;
 }
 
+export interface HistoryClearedEvent {
+  type: 'history_cleared';
+  before_message_id: EntityId;
+}
+
 export interface PresenceUpdateEvent {
   type: 'presence_update';
   username?: string;
@@ -132,6 +137,7 @@ export type ServerEvent =
   | ReadBatchEvent
   | ErrorEvent
   | ChatDeletedEvent
+  | HistoryClearedEvent
   | PresenceUpdateEvent
   | GroupUpdatedEvent
   | GroupInviteEvent
@@ -141,7 +147,7 @@ const KNOWN_TYPES = new Set<string>([
   'ack',
   'message', 'file', 'edit', 'delete', 'reaction_add', 'reaction_remove', 'is_read', 'chat_list_read',
   'chat_read_batch', 'error', 'chat_deleted', 'presence_update', 'group_updated', 'group_invite_rejected',
-  'group_invite_approved',
+  'group_invite_approved', 'history_cleared',
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (

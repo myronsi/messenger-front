@@ -145,6 +145,7 @@ export function useChatsData(username: string) {
       is_pinned: !!group.is_pinned,
       pin_position: group.pin_position ?? null,
       is_archived: !!group.is_archived,
+      my_role: group.my_role ?? null,
     }));
 
     return [...oneOnOneChats, ...groupChats]

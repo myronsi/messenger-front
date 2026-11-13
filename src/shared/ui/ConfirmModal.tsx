@@ -21,6 +21,7 @@ interface ConfirmModalProps {
   details?: React.ReactNode;
   overlayClassName?: string;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
+  checkbox?: { label: string; checked: boolean; onChange: (checked: boolean) => void };
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -36,7 +37,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isDestructive = false,
   contained = false,
   requirePassword = false,
-  details, overlayClassName, returnFocusRef,
+  details, overlayClassName, returnFocusRef, checkbox,
 }) => {
   const { translations } = useLanguage();
   const [password, setPassword] = React.useState('');
@@ -68,6 +69,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </ul>
         )}
         {!consequences?.length && <div className="mb-4" />}
+        {checkbox && (
+          <label className="mb-4 flex cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" checked={checkbox.checked} onChange={event => checkbox.onChange(event.target.checked)} className="h-4 w-4 accent-destructive" />
+            <span>{checkbox.label}</span>
+          </label>
+        )}
         {requirePassword && (
           <label className="mb-4 block text-sm">
             {translations.password}

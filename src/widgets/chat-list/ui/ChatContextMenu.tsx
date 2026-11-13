@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { Archive, ArchiveRestore, CheckCheck, Pin, PinOff } from 'lucide-react';
+import { Archive, ArchiveRestore, CheckCheck, Eraser, Pin, PinOff, Trash2 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChatMuteMenuItems } from '@/features/chat-mute';
 import type { ChatContextMenuState } from '../model/types';
@@ -16,6 +16,8 @@ interface ChatContextMenuProps {
   onMarkAsRead: (chatId: EntityId) => void;
   onTogglePinned: (chatId: EntityId) => void;
   onToggleArchived: (chatId: EntityId) => void;
+  onClearHistory: (chatId: EntityId) => void;
+  onDeleteChat?: (chatId: EntityId) => void;
   onClose: () => void;
   onError: (message: string) => void;
 }
@@ -23,7 +25,7 @@ interface ChatContextMenuProps {
 type MenuView = { chatId: EntityId | null; name: 'main' | 'mute'; direction: 'forward' | 'back' | null };
 
 const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, translations, onMarkAsRead, onTogglePinned,
-  onToggleArchived, onClose, onError }) => {
+  onToggleArchived, onClearHistory, onDeleteChat, onClose, onError }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   useDismissFirstMenu(!!menu, menuRef, onClose);
   const [shown, setShown] = useState(menu);
@@ -119,6 +121,24 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
               {shown.isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
               <span>{shown.isArchived ? translations.chatOrganizer.unarchive : translations.chatOrganizer.archive}</span>
             </button>
+            <button
+              type="button"
+              onClick={() => onClearHistory(shown.chatId)}
+              className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <Eraser className="h-4 w-4" />
+              <span>{translations.chatCleanup.clearHistory}</span>
+            </button>
+            {onDeleteChat && (
+              <button
+                type="button"
+                onClick={() => onDeleteChat(shown.chatId)}
+                className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>{translations.chatCleanup.deleteChat}</span>
+              </button>
+            )}
           </>
         )}
         <ChatMuteMenuItems
