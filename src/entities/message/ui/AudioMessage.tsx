@@ -1,20 +1,21 @@
 import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
 import type { EntityId } from '@/shared/api/entityId';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { nextPlaybackSpeed, usePlaybackSpeed } from '../model/playbackSpeed';
-import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, getAudioDuration, isValidWaveform, normalizeWaveform } from '../model/audioMessageHelpers';
+import { audioPosition, pauseAudio, seekAudio, useAudioPlayer } from '../model/audioPlayer';
+import { analyzeAudio, FALLBACK_WAVEFORM, formatAudioTime, isValidWaveform, normalizeWaveform } from '../model/audioMessageHelpers';
+import AudioProgress from './AudioProgress';
 
 interface AudioMessageProps {
   fileUrl: string;
   messageId: EntityId;
   duration?: number;
   waveform?: number[];
-  isPlaying: boolean;
   isMine?: boolean;
-  setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
+  variant?: 'voice' | 'music';
+  onPlay: (startAt?: number) => void;
 }
-
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 300;
@@ -22,164 +23,67 @@ const DEFAULT_WIDTH = 240;
 
 const isUsableDuration = (value: number | undefined): value is number => !!value && Number.isFinite(value) && value > 0;
 
-// Playback progress lives here, so a timeupdate re-renders only this player. The parent
-// only knows which message is playing. Duration and waveform come from the API when present;
-// the audio file is fetched on first play (or just its metadata when the API has no duration).
 const AudioMessage: React.FC<AudioMessageProps> = ({
   fileUrl: sourceFileUrl,
   messageId,
   duration: metadataDuration,
   waveform: metadataWaveform,
-  isPlaying,
   isMine = false,
-  setPlayingMessageId,
+  variant = 'voice',
+  onPlay,
 }) => {
   const speed = usePlaybackSpeed();
   const seekingRef = useRef(false);
-  const [mediaRequested, setMediaRequested] = useState(false);
-  const fileUrl = useAuthenticatedMedia(sourceFileUrl, undefined, mediaRequested) || '';
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(isUsableDuration(metadataDuration) ? metadataDuration : 0);
-  const [loadError, setLoadError] = useState(false);
-  const [isDurationUnknown, setIsDurationUnknown] = useState(false);
+  const active = useAudioPlayer((player) => player.track?.id === messageId);
+  const isPlaying = useAudioPlayer((player) => player.track?.id === messageId && (player.playing || player.loading));
+  const ticking = useAudioPlayer((player) => player.track?.id === messageId && player.playing);
+  const playerTime = useAudioPlayer((player) => (player.track?.id === messageId ? player.time : 0));
+  const playerDuration = useAudioPlayer((player) => (player.track?.id === messageId ? player.duration : 0));
+  const loadError = useAudioPlayer((player) => player.track?.id === messageId && player.error);
+  const [smoothTime, setSmoothTime] = useState<number | null>(null);
   const hasMetadataWaveform = isValidWaveform(metadataWaveform);
-  const [analyzedWaveform, setAnalyzedWaveform] = useState<number[] | null>(null);
-  const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
-  const waveform = normalizeWaveform(hasMetadataWaveform ? metadataWaveform : analyzedWaveform ?? FALLBACK_WAVEFORM);
-  const isWaveformReady = hasMetadataWaveform || analyzedWaveform !== null;
-  const isAnalyzingWaveform = !hasMetadataWaveform && hasStartedPlaying && analyzedWaveform === null;
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-  const stopVoicePlayerPropagation = (event: React.SyntheticEvent) => {
-    event.stopPropagation();
-  };
-
-  const playMessage = () => {
-    const audio = audioRef.current;
-    if (loadError || !audio) return;
-    setHasStartedPlaying(true);
-    setMediaRequested(true);
-    if (fileUrl) audio.play().catch(() => setPlayingMessageId(null));
-    setPlayingMessageId(messageId);
-  };
+  const needsAnalysis = variant === 'voice' && !hasMetadataWaveform;
+  const [analyzed, setAnalyzed] = useState<{ waveform: number[]; duration?: number } | null>(null);
+  const analysisUrl = useAuthenticatedMedia(sourceFileUrl, undefined, needsAnalysis && active) || '';
+  const waveform = normalizeWaveform(hasMetadataWaveform ? metadataWaveform : analyzed?.waveform ?? FALLBACK_WAVEFORM);
+  const duration = isUsableDuration(playerDuration) ? playerDuration
+    : isUsableDuration(metadataDuration) ? metadataDuration : analyzed?.duration ?? 0;
+  const currentTime = active ? smoothTime ?? playerTime : 0;
+  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   useEffect(() => {
-    if (!isPlaying || loadError) return;
-    setHasStartedPlaying(true);
-    setMediaRequested(true);
-  }, [isPlaying, loadError]);
-
-  useEffect(() => {
-    if (fileUrl && isPlaying) void audioRef.current?.play().catch(() => setPlayingMessageId(null));
-  }, [fileUrl, isPlaying, setPlayingMessageId]);
-
-  const pauseMessage = () => {
-    audioRef.current?.pause();
-    setPlayingMessageId(null);
-  };
-
-  // Another message started playing (or this one was stopped from outside).
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!isPlaying && audio && !audio.paused) audio.pause();
-  }, [isPlaying]);
-
-  useEffect(() => {
-    setDuration(isUsableDuration(metadataDuration) ? metadataDuration : 0);
-    setCurrentTime(0);
-    setLoadError(false);
-    setIsDurationUnknown(false);
-  }, [fileUrl, metadataDuration]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    if (!needsAnalysis || !analysisUrl || analyzed) return;
     let isMounted = true;
-
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime || 0);
-    const handleLoadedMetadata = () => {
-      if (isUsableDuration(audio.duration)) {
-        setDuration(audio.duration);
-        setIsDurationUnknown(false);
-        return;
-      }
-      // Recorded webm/ogg often reports Infinity until decoded.
-      void getAudioDuration(fileUrl).then((decoded) => {
-        if (!isMounted) return;
-        if (isUsableDuration(decoded)) setDuration(decoded);
-        else setIsDurationUnknown(true);
-      });
-    };
-    const handleError = () => {
-      setLoadError(true);
-      setIsDurationUnknown(false);
-    };
-    const handleEnded = () => {
-      setPlayingMessageId(null, messageId);
-      setCurrentTime(0);
-      audio.currentTime = 0;
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('ended', handleEnded);
-    return () => {
-      isMounted = false;
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [fileUrl, messageId, setPlayingMessageId]);
-
-  // Fallback only: without a stored waveform the file has to be downloaded and decoded,
-  // so it is deferred until the user actually plays the message.
-  useEffect(() => {
-    if (hasMetadataWaveform || !hasStartedPlaying || !fileUrl) return;
-    let isMounted = true;
-    analyzeAudio(fileUrl)
+    analyzeAudio(analysisUrl)
       .then(({ duration: analyzedDuration, waveform: bars }) => {
-        if (!isMounted) return;
-        setAnalyzedWaveform(bars);
-        if (isUsableDuration(analyzedDuration)) {
-          setDuration((current) => current || analyzedDuration);
-          setIsDurationUnknown(false);
-        }
+        if (isMounted) setAnalyzed({ waveform: bars, duration: isUsableDuration(analyzedDuration) ? analyzedDuration : undefined });
       })
       .catch(() => {
-        if (isMounted) setAnalyzedWaveform(FALLBACK_WAVEFORM);
+        if (isMounted) setAnalyzed({ waveform: FALLBACK_WAVEFORM });
       });
-    return () => {
-      isMounted = false;
-    };
-  }, [fileUrl, hasMetadataWaveform, hasStartedPlaying]);
+    return () => { isMounted = false; };
+  }, [analysisUrl, analyzed, needsAnalysis]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!isPlaying || !audio) return undefined;
+    if (!ticking) {
+      setSmoothTime(null);
+      return undefined;
+    }
     let frame = requestAnimationFrame(function tick() {
-      setCurrentTime(audio.currentTime || 0);
+      setSmoothTime(audioPosition());
       frame = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(frame);
-  }, [isPlaying, fileUrl]);
+  }, [ticking]);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.defaultPlaybackRate = speed;
-    audio.playbackRate = speed;
-  }, [speed, fileUrl]);
+  const stopPropagation = (event: React.SyntheticEvent) => event.stopPropagation();
 
   const seekTo = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!audioRef.current || !duration) return;
+    if (!duration) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
-    const nextTime = ratio * duration;
-    audioRef.current.currentTime = nextTime;
-    setCurrentTime(nextTime);
+    if (active) seekAudio(ratio * duration);
+    else onPlay(ratio * duration);
   };
 
   const startSeek = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -194,23 +98,22 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   };
 
   const width = duration > 0 ? Math.round(MIN_WIDTH + Math.min(1, Math.max(0, (duration - 2) / 28)) * (MAX_WIDTH - MIN_WIDTH)) : DEFAULT_WIDTH;
-
-  const shownTime = loadError ? '--:--' : isPlaying || currentTime > 0
+  const shownTime = loadError ? '--:--' : active && (isPlaying || currentTime > 0)
     ? formatAudioTime(currentTime)
-    : isDurationUnknown || !duration ? '--:--' : formatAudioTime(duration);
+    : duration ? formatAudioTime(duration) : '--:--';
+  const label = variant === 'music' ? 'audio' : 'voice message';
 
   return (
     <div
       className="voice-message-player flex max-w-full min-w-0 items-center gap-2.5 py-0.5"
       style={{ width }}
-      onClick={stopVoicePlayerPropagation}
-      onContextMenu={stopVoicePlayerPropagation}
+      onClick={stopPropagation}
+      onContextMenu={stopPropagation}
     >
       <button
         type="button"
-        onClick={() => (isPlaying ? pauseMessage() : playMessage())}
-        disabled={loadError}
-        aria-label={isPlaying ? 'Pause voice message' : 'Play voice message'}
+        onClick={() => (isPlaying ? pauseAudio() : onPlay())}
+        aria-label={`${isPlaying ? 'Pause' : 'Play'} ${label}`}
         className={`motion-press relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-sm transition-colors disabled:opacity-50 ${
           isMine ? 'bg-primary-foreground text-primary hover:bg-primary-foreground/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
         }`}
@@ -222,37 +125,23 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
           <Play className="ml-0.5 h-5 w-5 fill-current" />
         </span>
       </button>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className={`flex min-w-0 flex-1 ${variant === 'music' ? 'items-center gap-2' : 'flex-col gap-1'}`}>
         <button
           type="button"
           onPointerDown={startSeek}
-          onPointerMove={(event) => { if (seekingRef.current) seekTo(event); }}
+          onPointerMove={(event) => { if (seekingRef.current && active) seekTo(event); }}
           onPointerUp={() => { seekingRef.current = false; }}
           onPointerCancel={() => { seekingRef.current = false; }}
-          onClick={stopVoicePlayerPropagation}
+          onClick={stopPropagation}
           disabled={loadError || !duration}
-          aria-label="Seek voice message"
-          className={`relative h-7 w-full min-w-0 touch-none overflow-hidden disabled:cursor-default ${isMine ? 'text-primary-foreground' : 'text-primary'}`}
+          aria-label={`Seek ${label}`}
+          className={`relative h-7 min-w-0 shrink-0 touch-none overflow-hidden disabled:cursor-default ${variant === 'music' ? 'flex-1' : 'w-full'} ${
+            isMine ? 'text-primary-foreground' : 'text-primary'}`}
         >
-          {[false, true].map((played) => (
-            <span
-              key={played ? 'played' : 'rest'}
-              aria-hidden={played}
-              className={`absolute inset-0 flex items-center gap-[2px] ${played ? '' : 'opacity-35'}`}
-              style={played ? { clipPath: `inset(0 ${100 - progress}% 0 0)` } : undefined}
-            >
-              {waveform.map((barHeight, index) => (
-                <span
-                  key={`${messageId}-waveform-${index}`}
-                  data-testid={played ? undefined : 'waveform-bar'}
-                  className={`block min-w-[2px] flex-1 rounded-full bg-current ${isAnalyzingWaveform && !isWaveformReady ? 'animate-pulse' : ''}`}
-                  style={{ height: `${Math.round(3 + barHeight * 22)}px` }}
-                />
-              ))}
-            </span>
-          ))}
+          <AudioProgress variant={variant} messageId={messageId} waveform={waveform} progress={progress}
+            pulse={needsAnalysis && active && !analyzed} />
         </button>
-        <div className="flex h-4 items-center gap-2 text-[11px] leading-none">
+        <div className={`flex h-4 shrink-0 items-center gap-2 text-[11px] leading-none ${variant === 'music' ? 'flex-row-reverse' : ''}`}>
           <span className="tabular-nums opacity-80">{shownTime}</span>
           <button
             type="button"
@@ -271,7 +160,6 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
           </button>
         </div>
       </div>
-      <audio ref={audioRef} src={fileUrl} preload={isUsableDuration(metadataDuration) ? 'none' : 'metadata'} />
     </div>
   );
 };

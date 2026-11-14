@@ -5,14 +5,17 @@ import type { EntityId } from '@/shared/api/entityId';
 import { useMediaPreload } from '@/shared/api/useMediaPreload';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { Archive, ArchiveRestore, BellOff, Bookmark, Check, CheckCheck, Pin, Users } from 'lucide-react';
+import { BellOff, Check, CheckCheck, Pin, Users } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import { useChatMuteStatus } from '@/features/chat-mute';
 import { TypingLabel, useTypingUsers } from '@/entities/typing';
 import { useChatDraft } from '@/shared/hooks/useChatDraft';
 import { isContentLabel } from '../model/useChatFormatters';
 import { CallPreviewIcon } from './CallPreviewIcon';
-import { useSwipeAction } from '@/shared/lib/useSwipeAction';
+import { ROW_COLLAPSE_MS, ROW_SETTLE_MS, ROW_SLIDE_MS, useRowSwipe } from '../model/useRowSwipe';
+import SwipeArchiveBackdrop from './SwipeArchiveBackdrop';
+import { REORDER_SETTLE_MS } from '../model/usePinnedReorder';
+import { selfName } from '@/shared/lib/selfName';
 
 type RowBinding = Omit<HTMLAttributes<HTMLElement>, 'ref'> & { ref?: Ref<HTMLElement> };
 const isCoarsePointer = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
@@ -31,6 +34,8 @@ interface ChatListItemProps {
   binding?: RowBinding;
   dragOffset?: number;
   isDragging?: boolean;
+  isSettling?: boolean;
+  noTransition?: boolean;
   onSwipeArchive?: (chat: Chat) => void;
 }
 
@@ -48,9 +53,18 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   binding,
   dragOffset = 0,
   isDragging = false,
+  isSettling = false,
+  noTransition = false,
   onSwipeArchive,
 }) => {
-  const swipe = useSwipeAction(-1, onSwipeArchive ? () => onSwipeArchive(chat) : undefined);
+  const [entered, setEntered] = useState(false);
+  const swipe = useRowSwipe(onSwipeArchive ? () => onSwipeArchive(chat) : undefined);
+  const leaving = swipe.phase === 'leaving';
+  const swiping = swipe.phase !== 'idle';
+  const rowTransform = swipe.offset ? `translateX(${swipe.offset}px)` : undefined;
+  const rowTransition = swipe.phase === 'dragging' ? 'none'
+    : leaving ? `transform ${ROW_SLIDE_MS}ms cubic-bezier(0.4, 0, 1, 1)`
+      : swipe.phase === 'settling' ? `transform ${ROW_SETTLE_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1)` : undefined;
   const saved = !!chat.is_saved;
   const ownLastMessage = isOwnLastMessage(chat.last_message);
   const ownLastMessageRead = isOwnLastMessageRead(chat.last_message);
@@ -81,17 +95,27 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const { ref: bindingRef, ...bindingHandlers } = binding ?? {};
   return (
     <div ref={bindingRef as Ref<HTMLDivElement>} {...bindingHandlers} data-dragging={isDragging || undefined}
-      className={`relative ${isDragging ? 'z-20 shadow-lg' : ''}`}
-      style={{ transform: dragOffset ? `translateY(${dragOffset}px)` : undefined, transition: isDragging ? 'none' : 'transform 160ms ease-out' }}>
-    {swipe.offset !== 0 && (
-      <div aria-hidden="true" className="absolute inset-0 flex items-center justify-end rounded-xl bg-primary px-5 text-primary-foreground">
-        {chat.is_archived ? <ArchiveRestore className="h-5 w-5" /> : <Archive className="h-5 w-5" />}
-      </div>
+      data-leaving={leaving || undefined}
+      className={`relative grid grid-cols-[minmax(0,1fr)] ${leaving ? 'overflow-hidden' : ''} ${
+        isDragging ? 'z-20 rounded-xl bg-card shadow-xl ring-1 ring-border' : ''}`}
+      style={{
+        transform: dragOffset || isDragging ? `translateY(${dragOffset}px) scale(${isDragging && !isSettling ? 1.02 : 1})` : undefined,
+        gridTemplateRows: leaving ? '0fr' : '1fr',
+        transition: noTransition || (isDragging && !isSettling) ? 'none'
+          : `transform ${REORDER_SETTLE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1), grid-template-rows ${ROW_COLLAPSE_MS}ms ease-in-out ${ROW_SLIDE_MS - 40}ms`,
+      }}>
+    {swiping && (
+      <SwipeArchiveBackdrop offset={swipe.offset} progress={swipe.progress} armed={swipe.armed} phase={swipe.phase} isArchived={!!chat.is_archived}
+        label={chat.is_archived ? translations.chatOrganizer.unarchive : translations.chatOrganizer.archive} />
     )}
+    <div data-testid="chat-swipe-surface" className="relative min-h-0" style={{ transform: rowTransform, transition: rowTransition }}>
     <div
       data-testid="chat-list-item"
       data-chat-name={chat.name}
       data-context-selected={isContextSelected || undefined}
+      data-entered={entered || undefined}
+      style={entered ? { animation: 'none' } : undefined}
+      onAnimationEnd={(event) => { if (event.target === event.currentTarget) setEntered(true); }}
       onClick={() => onClick(chat)}
       {...preloadHandlers}
       {...swipe.handlers}
@@ -102,26 +126,19 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         }
         onContextMenu(event, chat);
       }}
-      style={{ transform: swipe.offset ? `translateX(${swipe.offset}px)` : undefined }}
-      className={`motion-list-item motion-press relative flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer touch-pan-y select-none ${swipe.offset ? 'bg-background' : ''} ${
+      className={`motion-list-item motion-press relative flex min-h-0 items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer touch-pan-y select-none ${swiping ? 'bg-background' : ''} ${
         isActive ? `md:bg-primary md:text-primary-foreground ${isContextSelected ? 'max-md:bg-accent max-md:text-accent-foreground' : ''}`
           : isContextSelected ? 'bg-accent text-accent-foreground'
             : '[@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground'
       }`}
     >
       <div className="relative shrink-0">
-        {saved ? (
-          <span data-testid="saved-messages-avatar" className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Bookmark className="h-6 w-6" aria-hidden="true" />
-          </span>
-        ) : (
         <AuthenticatedImage
           src={chat.avatar_url}
           fallbackSrc={chat.type === 'group' ? DEFAULT_GROUP_AVATAR : DEFAULT_AVATAR}
           alt={chat.display_name || chat.name}
           className={`motion-avatar h-12 w-12 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}
         />
-        )}
         {chat.type === 'one-on-one' && !saved && !chat.interlocutor_deleted && chat.is_online && (
           <span data-testid="chat-online-dot" className="motion-presence absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-success" />
         )}
@@ -132,7 +149,8 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           <div className={`flex min-w-0 flex-1 items-center gap-1.5 text-[15px] leading-5 ${unreadCount ? 'font-semibold' : 'font-medium'}`}>
             {chat.type === 'group' && <Users aria-label={translations.group} className={`h-4 w-4 shrink-0 ${muted}`} />}
             <span className="truncate">
-              {saved ? translations.chatOrganizer.savedMessages : chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
+              {saved ? selfName(chat.display_name || chat.name, translations)
+                : chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
             </span>
             {isMuted && (
               <BellOff data-testid="chat-muted-icon" aria-label={translations.mutedForever} className={`h-3.5 w-3.5 shrink-0 ${muted}`} />
@@ -180,6 +198,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           </span>
         </div>
       </div>
+    </div>
     </div>
     </div>
   );

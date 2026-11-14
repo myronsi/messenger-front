@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { closeStickerManager, openStickerPacks, StickerPackDialog, useStickerManagerRequest } from '@/entities/sticker';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog';
+import { BackToClose } from '@/shared/ui/BackToClose';
 import { MyStickerPacks } from './MyStickerPacks';
 import { StickerMaker } from './StickerMaker';
 import { StickerPackEditor } from './StickerPackEditor';
@@ -22,6 +23,7 @@ export const StickerManagerHost = ({ linkSlug, onLinkClose }: StickerManagerHost
 
   return (
     <>
+      {request && <BackToClose flag="stickerManager" onClose={closeStickerManager} />}
       {linkSlug && <StickerPackDialog pack={{ slug: linkSlug }} onClose={() => onLinkClose?.()} />}
       {request?.kind === 'packs' && (
         <Dialog open onOpenChange={(open) => { if (!open) closeStickerManager(); }}>

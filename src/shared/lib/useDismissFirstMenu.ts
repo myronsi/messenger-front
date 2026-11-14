@@ -25,7 +25,10 @@ function consumeRemainingGesture(original: Event) {
 export function useDismissFirstMenu(open: boolean, menu: RefObject<HTMLElement | null>, close: () => void) {
   useEffect(() => {
     if (!open) return;
+    let newGesture = false;
     const outside = (event: Event) => {
+      if (event.type === 'pointerdown') newGesture = true;
+      if (!newGesture) return;
       if (!(event.target instanceof Node) || menu.current?.contains(event.target)) return;
       consume(event);
       if (event.type === 'pointerdown') consumeRemainingGesture(event);

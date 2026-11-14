@@ -94,19 +94,11 @@ export function useChatListModel(props: ChatsListComponentProps) {
   useEffect(() => {
     if (!chatContextMenu) return;
 
-    const closeMenu = () => setChatContextMenu(null);
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMenu();
+      if (event.key === 'Escape') setChatContextMenu(null);
     };
-
-    document.addEventListener('click', closeMenu);
-    document.addEventListener('contextmenu', closeMenu);
     document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('click', closeMenu);
-      document.removeEventListener('contextmenu', closeMenu);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [chatContextMenu]);
 
   return {

@@ -5,9 +5,9 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import { ChatMuteAction } from '@/features/chat-mute';
-import { Eraser, MoreHorizontal, Search, UserPlus, X } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
-import { ActionTiles, BioBubble, PillTabs, WaveHeader, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { ArrowLeft, Eraser, UserPlus } from 'lucide-react';
+import { CallButton, useCallsAvailable } from '@/features/calls';
+import { ProfileActions, ProfileBanner, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { toast } from '@/shared/ui/sonner';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
@@ -48,7 +48,7 @@ interface Props {
 }
 
 const GroupProfileDialogShell: React.FC<Props> = ({
-  chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, visibleViews, description, currentRole,
+  chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, visibleViews, currentRole,
   activeView, panelTransition, onSelectView, renderPanelContent,
   groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null,
 }) => {
@@ -57,33 +57,27 @@ const GroupProfileDialogShell: React.FC<Props> = ({
   const requestClose = () => onOpenChange(false);
   const hasCustomAvatar = !!currentGroupAvatar && currentGroupAvatar !== getAvatarSrc(DEFAULT_GROUP_AVATAR);
   const t = rawTranslations.profileRework;
+  const callsAvailable = useCallsAvailable();
   const cleanup = useChatCleanup(() => toast(rawTranslations.chatCleanup.cleared), (message) => toast(message || rawTranslations.errorLoading));
   const online = participants.filter((participant) => participant.is_online).length;
   const count = String(participants.length);
   const tabLabels: Record<GroupProfileView, string> = {
     details: t.info, participants: t.members, photos: t.media, audios: t.audio, files: t.files, links: t.links, voice: t.voice,
   };
-  const tileClass = (className: string) => className;
   const tiles: ProfileTile[] = [
-    { key: 'invite', label: t.invite, icon: <UserPlus className="h-5 w-5" />, onClick: () => onSelectView('participants') },
-    { key: 'search', label: t.search, icon: <Search className="h-5 w-5" />, onClick: () => onSelectView('participants') },
-    ...(canMute ? [{ key: 'mute', label: t.mute, render: (className: string) => <ChatMuteAction chatId={chatId} className={`${tileClass(className)} [&>span]:sr-only`} /> }] : []),
-    { key: 'more', label: t.more, render: (className: string) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button type="button" aria-label={t.more} className={className}><MoreHorizontal className="h-5 w-5" /></button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="z-[1100] min-w-44">
-          <DropdownMenuItem className="gap-2" onSelect={() => cleanup.open({ kind: 'clear', target: {
-            chatId, name: currentGroupName, isGroup: true, isSaved: false, canClearForEveryone: currentRole === 'owner' || currentRole === 'admin',
-          } })}>
-            <Eraser className="h-4 w-4" />{rawTranslations.chatCleanup.clearHistory}
-          </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2" onSelect={() => onSelectView('details')}>{t.info}</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ) },
+    ...(callsAvailable ? [{
+      key: 'call', label: t.call, render: (className: string) => <span className={`${className} [&>button]:h-full [&>button]:w-full [&>button]:rounded-xl`}><CallButton chatId={chatId} /></span>,
+    }] : []),
+    ...(currentRole === 'owner' || currentRole === 'admin' ? [
+      { key: 'invite', label: t.invite, primary: !canMute, icon: <UserPlus className="h-5 w-5" />, onClick: () => onSelectView('participants') },
+    ] : []),
+    ...(canMute ? [{ key: 'mute', label: t.mute, primary: true, render: (className: string) => <ChatMuteAction chatId={chatId} className={className} /> }] : []),
   ];
+  const menu: ProfileMenuItem[] = [{
+    key: 'clear', label: rawTranslations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: () => cleanup.open({ kind: 'clear', target: {
+      chatId, name: currentGroupName, isGroup: true, isSaved: false, canClearForEveryone: currentRole === 'owner' || currentRole === 'admin',
+    } }),
+  }];
   const groupAvatar = <AuthenticatedImage src={currentGroupAvatar} alt={currentGroupName} className="h-full w-full object-cover" />;
 
   if (!open) return null;
@@ -107,16 +101,15 @@ const GroupProfileDialogShell: React.FC<Props> = ({
           <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">
             <div className="flex h-full min-h-0 flex-col">
               <div className="shrink-0">
-                <WaveHeader
+                <ProfileBanner
                   seed={currentGroupName}
                   avatar={hasCustomAvatar ? <button type="button" aria-label="View group picture" onClick={() => setIsAvatarViewerOpen(true)} className="block h-full w-full">{groupAvatar}</button> : groupAvatar}
-                  title={<span className="break-words">{currentGroupName}</span>}
-                  status={online ? fillTemplate(t.membersHere, { count, online: String(online) }) : fillTemplate(t.membersCount, { count })}
-                  topRight={<button type="button" onClick={requestClose} aria-label="Close" className="rounded-full bg-black/20 p-1.5 hover:bg-black/35"><X className="h-5 w-5" /></button>}
+                  actions={<ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
+                  title={<h3 className="break-words">{currentGroupName}</h3>}
+                  subtitle={<span>{online ? fillTemplate(t.membersHere, { count, online: String(online) }) : fillTemplate(t.membersCount, { count })}</span>}
+                  topLeft={<button type="button" onClick={requestClose} aria-label={rawTranslations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"><ArrowLeft className="h-5 w-5" /></button>}
                 />
-                <ActionTiles tiles={tiles} />
-                {description?.trim() && <BioBubble text={description.trim()} />}
-                <PillTabs tabs={visibleViews.map((key) => ({ key, label: tabLabels[key] }))} active={activeView} onSelect={onSelectView} />
+                <ProfileTabs tabs={visibleViews.map((key) => ({ key, label: tabLabels[key] }))} active={activeView} onSelect={onSelectView} />
               </div>
 
               <SwipeProfilePanels active={activeView} views={visibleViews} onSelect={onSelectView}

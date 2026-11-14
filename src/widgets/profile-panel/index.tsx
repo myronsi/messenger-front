@@ -4,3 +4,4 @@ export { RecoveryApprovalPrompt } from './ui/RecoveryApprovalPrompt';
 export { SecurityNoticeHandler } from './ui/SecurityNoticeHandler';
 export { default as UserProfileComponentRTK } from './UserProfileComponentRTK';
 export { UserProfileLayer } from './ui/UserProfileLayer';
+export { default as OwnProfileEditor } from './OwnProfileEditor';

@@ -24,7 +24,6 @@ export const getAvatarSrc = (avatarUrl?: string | null, fallback = DEFAULT_AVATA
 export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreateFormOptions) => {
   const { translations } = useLanguage();
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<1 | 2>(1);
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -32,7 +31,6 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
-  const [isDmContactsCollapsed, setIsDmContactsCollapsed] = useState(true);
   const [rejectedParticipants, setRejectedParticipants] = useState<Record<string, string>>({});
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -57,9 +55,9 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
     () => new Set(selectedUsers.map((user) => user.username.toLowerCase())),
     [selectedUsers],
   );
-  const dmContactSuggestions = useMemo(() => {
-    const seen = new Set((debouncedSearch.length >= 2 ? searchData?.users ?? [] : []).map((user) => user.username.toLowerCase()));
-    const query = searchTerm.trim().toLowerCase();
+  const recentContacts = useMemo(() => {
+    const seen = new Set<string>();
+    const query = searchTerm.trim().toLowerCase().replace(/^@/, '');
     return (dmChatsData?.chats || [])
       .filter((chat) => !chat.interlocutor_deleted && !!chat.interlocutor_name)
       .map((chat) => ({
@@ -70,12 +68,21 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
       } as User))
       .filter((user) => {
         const usernameKey = user.username.toLowerCase();
-        if (usernameKey === currentUsername.toLowerCase() || selectedUsernames.has(usernameKey) || seen.has(usernameKey)) return false;
+        if (usernameKey === currentUsername.toLowerCase() || seen.has(usernameKey)) return false;
         seen.add(usernameKey);
         return !query || usernameKey.includes(query) || (user.display_name || '').toLowerCase().includes(query);
       })
-      .slice(0, 6);
-  }, [currentUsername, dmChatsData?.chats, searchTerm, selectedUsernames, debouncedSearch, searchData?.users]);
+      .slice(0, 8);
+  }, [currentUsername, dmChatsData?.chats, searchTerm]);
+
+  const searchResults = useMemo(() => {
+    if (debouncedSearch.length < 2) return [];
+    const recent = new Set(recentContacts.map((user) => user.username.toLowerCase()));
+    return (searchData?.users || []).filter((user) => {
+      const usernameKey = user.username.toLowerCase();
+      return usernameKey !== currentUsername.toLowerCase() && !recent.has(usernameKey);
+    });
+  }, [currentUsername, debouncedSearch, recentContacts, searchData?.users]);
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -112,6 +119,15 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
     });
   };
 
+  const toggleUser = (user: User) => {
+    if (selectedUsernames.has(user.username.toLowerCase())) {
+      const selected = selectedUsers.find((item) => item.username.toLowerCase() === user.username.toLowerCase());
+      if (selected) handleRemoveUser(selected.username);
+      return;
+    }
+    handleSelectUser(user);
+  };
+
   const handleCreate = async () => {
     if (!groupName.trim() || selectedUsers.length === 0 || isCreating) return;
     setCreateError(null);
@@ -139,10 +155,9 @@ export const useGroupCreateForm = ({ currentUsername, onCreate }: UseGroupCreate
 
   return {
     avatarFile, avatarInputRef, avatarPreview, createError, debouncedSearch, description,
-    dmContactSuggestions, groupName, handleAvatarChange, handleCreate, handleRemoveAvatar,
-    handleRemoveUser, handleSelectUser, isCreating, isDmContactsCollapsed,
-    isSearching, rejectedParticipants, searchData, searchTerm, selectedUsers,
-    selectedUsernames, setDescription, setGroupName, setIsDmContactsCollapsed,
-    setRejectedParticipants, setSearchTerm, setStep, step, translations,
+    groupName, handleAvatarChange, handleCreate, handleRemoveAvatar, handleRemoveUser,
+    handleSelectUser, isCreating, isSearching, recentContacts, rejectedParticipants, searchResults,
+    searchTerm, selectedUsers, selectedUsernames, setDescription, setGroupName,
+    setRejectedParticipants, setSearchTerm, toggleUser, translations,
   };
 };

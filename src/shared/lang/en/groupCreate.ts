@@ -1,0 +1,22 @@
+export const groupCreate = {
+  groupCreate: {
+    title: "Create group",
+    groupName: "Group name",
+    groupNamePlaceholder: "Name your group",
+    addDescription: "Add description",
+    optional: "(optional)",
+    description: "Description",
+    addPeople: "Add people",
+    searchPlaceholder: "Search by name or @username",
+    recentChats: "Recent chats",
+    searchResults: "Search results",
+    noResults: "No users found",
+    typeToSearch: "Type at least 2 characters to find more people",
+    selected: "{count} selected",
+    create: "Create group",
+    choosePhoto: "Choose group photo",
+    removePhoto: "Remove photo",
+    removePerson: "Remove {name}",
+    close: "Close",
+  },
+};

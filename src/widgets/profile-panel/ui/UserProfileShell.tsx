@@ -1,20 +1,21 @@
 import React from 'react';
-import { UserRound, X } from 'lucide-react';
+import { ArrowLeft, UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { UserProfileSkeleton } from '@/shared/ui/messenger-skeletons';
 
 interface UserProfileShellProps {
   children: React.ReactNode;
   onClose: () => void;
+  hideBackOnMobile?: boolean;
 }
 
-export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, onClose }) => {
+export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, onClose, hideBackOnMobile = false }) => {
   const { translations } = useLanguage();
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col bg-background text-foreground">
       <h2 className="sr-only">{translations.userProfile}</h2>
-      <button onClick={onClose} className="absolute right-3 top-3 z-20 rounded-full bg-black/20 p-1.5 text-white transition-colors hover:bg-black/35" aria-label="Close">
-        <X className="h-5 w-5" />
+      <button type="button" onClick={onClose} className={`absolute left-1.5 top-3 z-20 text-white motion-press ${hideBackOnMobile ? 'max-md:hidden' : ''} flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20`} aria-label={translations.back || 'Back'}>
+        <ArrowLeft className="h-5 w-5" />
       </button>
       <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">{children}</div>
     </div>
@@ -25,11 +26,12 @@ interface UserProfileStateProps {
   isLoading: boolean;
   unavailable: boolean;
   onClose: () => void;
+  hideBackOnMobile?: boolean;
 }
 
-export const UserProfileState: React.FC<UserProfileStateProps> = ({ isLoading, unavailable, onClose }) => {
+export const UserProfileState: React.FC<UserProfileStateProps> = ({ isLoading, unavailable, onClose, hideBackOnMobile }) => {
   const { translations } = useLanguage();
-  if (isLoading) return <UserProfileShell onClose={onClose}><UserProfileSkeleton /></UserProfileShell>;
+  if (isLoading) return <UserProfileShell onClose={onClose} hideBackOnMobile={hideBackOnMobile}><UserProfileSkeleton /></UserProfileShell>;
   if (!unavailable) return null;
   return (
     <UserProfileShell onClose={onClose}>

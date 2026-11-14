@@ -22,22 +22,23 @@ interface SettingsSectionNavProps {
   onSelect: (page: SettingsPage) => void;
   onLogout: () => void;
   isLoggingOut: boolean;
+  fill?: boolean;
 }
 
 export const SettingsSectionNav: React.FC<SettingsSectionNavProps> = ({
-  avatarUrl, displayName, username, sections, active, onSelect, onLogout, isLoggingOut,
+  avatarUrl, displayName, username, sections, active, onSelect, onLogout, isLoggingOut, fill = false,
 }) => {
   const { translations } = useLanguage();
   const t = translations.appShell;
   return (
-    <nav aria-label={t.settingsSections} className="flex w-[260px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 py-5">
-      <div className="flex items-center gap-3 px-2 pb-4">
+    <nav aria-label={t.settingsSections} className={`flex shrink-0 flex-col gap-0.5 overflow-y-auto px-3 py-5 ${fill ? 'h-full w-full' : 'w-[260px] border-r border-border'}`}>
+      {!fill && <div className="flex items-center gap-3 px-2 pb-4">
         <AuthenticatedImage src={avatarUrl} alt="" initialsFrom={displayName} className="h-12 w-12 shrink-0 rounded-full border border-border object-cover" />
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-[15px] font-semibold text-foreground">{displayName}</span>
           <span className="truncate text-[13px] text-muted-foreground">@{username}</span>
         </span>
-      </div>
+      </div>}
       {sections.map(({ page, label, icon: Icon, badge = 0, hint }) => {
         const current = page === active;
         return (

@@ -22,6 +22,8 @@ import { CallProvider, CallStage } from '@/features/calls';
 import { Button } from '@/shared/ui/button';
 import { ChatRoomSkeleton } from '@/shared/ui/messenger-skeletons';
 import { ChunkErrorBoundary } from '@/shared/ui/ChunkErrorBoundary';
+import { MainNav, useMainTab } from '@/widgets/main-nav';
+import { MainTabPanes } from './ui/MainTabPanes';
 
 const Chat = lazy(() => import('@/widgets/chat-room'));
 const GroupComponent = lazy(() => import('@/widgets/group-chat'));
@@ -36,6 +38,8 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     currentChat,
     isProfileOpen,
     setIsProfileOpen,
+    isMeOpen,
+    showRouteTab,
     openMessageRequests,
     isUserProfileOpen,
     setIsUserProfileOpen,
@@ -47,6 +51,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     openUserProfile,
     closeUserProfile,
     openDirectChatFromProfile,
+    openGroupFromProfile,
     handleDirectChatCreated,
     backToChats,
     handleChatDeleted,
@@ -62,6 +67,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
       : undefined,
     onClose: closeUserProfile,
     onMessage: openDirectChatFromProfile,
+    onOpenGroup: openGroupFromProfile,
     hideMessageAction: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
     onDeleteChat: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? handleDeleteCurrentChat
@@ -76,6 +82,11 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
   useVisualViewport(isMobile);
   const ownProfile = useDelayedUnmount(isProfileOpen, WINDOW_MOTION_MS);
+  const [settingsNavTarget, setSettingsNavTarget] = useState<HTMLDivElement | null>(null);
+  const mainTab = useMainTab({ routeTab: isProfileOpen ? 'settings' : isMeOpen ? 'profile' : null, showRouteTab });
+  const openChatFromList: typeof openChat = (...args) => { mainTab.showChats(); return openChat(...args); };
+  const tabPanes = <MainTabPanes tab={mainTab.active} username={username} onShowChats={() => mainTab.select('chats')} onOpenGroup={openGroupFromProfile}
+    isEditingProfile={mainTab.isEditingProfile} setEditingProfile={mainTab.setEditingProfile} />;
   const location = useLocation();
   const navigate = useNavigate();
   const qrRequestId = qrLoginRequestId(location.pathname);
@@ -165,10 +176,12 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     </ChunkErrorBoundary>
   );
 
-  const renderOwnProfile = (layout: 'sheet' | 'pane') => (
+  const renderOwnProfile = (layout: 'sheet' | 'pane', embedded = false) => (
     <ProfileComponentRTK
       username={username}
       layout={layout}
+      embedded={embedded}
+      navTarget={layout === 'pane' ? settingsNavTarget : undefined}
       isClosing={ownProfile.closing}
       onClose={() => setIsProfileOpen(false)}
       onLogout={() => {
@@ -199,10 +212,10 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
         <div className="mx-0 min-h-screen min-w-screen px-0">
           {isMobile ? (
             <div className="fixed inset-x-0 overflow-hidden" style={visualViewportStyle}>
-              <div className="absolute inset-0 overflow-hidden bg-background">
+              <div className="absolute inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] overflow-hidden bg-background">
                 <ChatsListComponentRTK
                   username={username}
-                  onChatOpen={openChat}
+                  onChatOpen={openChatFromList}
                   setIsProfileOpen={setIsProfileOpen}
                   onOpenRequests={openMessageRequests}
                   activeChatId={currentChat?.id}
@@ -210,7 +223,10 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
                   onActiveChatUpdate={updateActiveChatFromList}
                   onChatDeleted={handleChatDeleted}
                 />
+                {tabPanes}
+                {ownProfile.mounted && renderOwnProfile('sheet', true)}
               </div>
+              <MainNav variant="bar" active={mainTab.active} onSelect={mainTab.select} className="absolute inset-x-0 bottom-0" />
 
               <div
                 className={`absolute inset-0 z-50 overflow-hidden bg-background motion-window-slide ${mobileChatPanelClass}`}
@@ -231,10 +247,11 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
             </div>
           ) : (
             <div className="flex h-screen max-h-screen min-w-full overflow-hidden">
-              <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={
+              <MainNav variant="rail" active={mainTab.active} onSelect={mainTab.select} />
+              <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={<div className="relative h-full">
                 <ChatsListComponentRTK
                   username={username}
-                  onChatOpen={openChat}
+                  onChatOpen={openChatFromList}
                   setIsProfileOpen={setIsProfileOpen}
                   onOpenRequests={openMessageRequests}
                   activeChatId={currentChat?.id}
@@ -242,7 +259,8 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
                   onActiveChatUpdate={updateActiveChatFromList}
                   onChatDeleted={handleChatDeleted}
                 />
-              }>
+                <div ref={setSettingsNavTarget} className="absolute inset-0 z-30 flex rounded-lg bg-background empty:hidden" />
+              </div>}>
                 <div className="relative h-full">
                   {activeChat || (
                     <div className="h-full flex items-center justify-center">
@@ -251,6 +269,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
                       </div>
                     </div>
                   )}
+                  {tabPanes}
                   {ownProfile.mounted && renderOwnProfile('pane')}
                   <CallStage />
                 </div>
@@ -264,7 +283,6 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
             </div>
           )}
 
-          {isMobile && ownProfile.mounted && renderOwnProfile('sheet')}
         </div>
       </div>
     </ChatCoveredContext.Provider>

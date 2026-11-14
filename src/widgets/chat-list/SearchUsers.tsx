@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useSearchUsersQuery } from '@/entities/user';
+import { selfName } from '@/shared/lib/selfName';
 
 
 interface SearchUsersProps {
@@ -70,7 +71,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
                         className="w-10 h-10 rounded-full mr-3 object-cover"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{isSelf ? translations.chatOrganizer.savedMessages : u.display_name || u.username}</div>
+                        <div className="font-medium truncate">{isSelf ? selfName(u.display_name || u.username, translations) : u.display_name || u.username}</div>
                         <div className="truncate text-xs text-muted-foreground">@{u.username}</div>
                       </div>
                     </button>

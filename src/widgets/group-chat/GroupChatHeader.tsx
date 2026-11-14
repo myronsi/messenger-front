@@ -5,6 +5,7 @@ import { useLongPress } from '@/shared/lib/useLongPress';
 import type { GroupTranslations } from './groupChatTypes';
 import type { EntityId } from '@/shared/api/entityId';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
+import { AudioPlayerBar } from '@/features/audio-player';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { participantCountLabel } from './groupChatUtils';
 
@@ -63,6 +64,7 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
           )}
         </div>
       </div>
+      <AudioPlayerBar />
       <OngoingCallBanner chatId={chatId} />
     </>
   );

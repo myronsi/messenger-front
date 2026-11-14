@@ -8,6 +8,7 @@ vi.mock('@/entities/chat', () => ({
   useGetOneOnOneChatsQuery: () => ({ data: { chats: [
     { id: 1, interlocutor_name: 'ada', interlocutor_display_name: 'Ada' },
     { id: 2, interlocutor_name: 'ben', interlocutor_display_name: 'Ben' },
+    { id: 3, interlocutor_name: 'me', interlocutor_display_name: 'Me' },
   ] } }),
 }));
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: {} }) }));
@@ -15,13 +16,26 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ tran
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-describe('useGroupCreateForm contacts', () => {
-  it('lists a direct-message contact only once while searching', () => {
-    search.users = [{ id: '10', username: 'ada' }];
-    const { result } = renderHook(() => useGroupCreateForm({ currentUsername: 'me', onCreate: vi.fn() }));
-    expect(result.current.dmContactSuggestions.map((user) => user.username)).toEqual(['ada', 'ben']);
-    act(() => result.current.setSearchTerm('ad'));
+const renderForm = () => renderHook(() => useGroupCreateForm({ currentUsername: 'me', onCreate: vi.fn() }));
+
+describe('useGroupCreateForm people', () => {
+  it('shows recent chats first and only new people in search results', () => {
+    search.users = [{ id: '10', username: 'ada' }, { id: '11', username: 'adam' }, { id: '12', username: 'me' }];
+    const { result } = renderForm();
+    expect(result.current.recentContacts.map((user) => user.username)).toEqual(['ada', 'ben']);
+    act(() => result.current.setSearchTerm('@ad'));
     act(() => vi.advanceTimersByTime(300));
-    expect(result.current.dmContactSuggestions).toEqual([]);
+    expect(result.current.recentContacts.map((user) => user.username)).toEqual(['ada']);
+    expect(result.current.searchResults.map((user) => user.username)).toEqual(['adam']);
+  });
+
+  it('keeps selected people in the list and toggles them off again', () => {
+    const { result } = renderForm();
+    const ada = result.current.recentContacts[0];
+    act(() => result.current.toggleUser(ada));
+    expect(result.current.selectedUsers.map((user) => user.username)).toEqual(['ada']);
+    expect(result.current.recentContacts.map((user) => user.username)).toContain('ada');
+    act(() => result.current.toggleUser(ada));
+    expect(result.current.selectedUsers).toEqual([]);
   });
 });

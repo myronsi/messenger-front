@@ -35,6 +35,9 @@ interface UserProfileComponentRTKProps {
   onDeleteChat?: (scope: 'me' | 'everyone') => void;
   hideMessageAction?: boolean;
   onJumpToMessage?: (messageId: EntityId) => void;
+  onOpenGroup?: (group: { id: EntityId; name: string; avatarUrl?: string }) => void;
+  onEditProfile?: () => void;
+  hideBackOnMobile?: boolean;
 }
 
 const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
@@ -45,8 +48,11 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   onDeleteChat,
   hideMessageAction = false,
   onJumpToMessage,
+  onOpenGroup,
+  onEditProfile,
+  hideBackOnMobile = false,
 }) => {
-  const { translations, language } = useLanguage();
+  const { translations } = useLanguage();
   const { activeView, panelTransition, selectView: transitionToView } = useProfilePanelTransition(directChatId, username);
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -186,7 +192,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   };
 
   if (isLoading || !!error || !userData) {
-    return <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose} />;
+    return <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose} hideBackOnMobile={hideBackOnMobile} />;
   }
 
   const avatarUrl = getAvatarUrl(userData.avatar_url);
@@ -196,12 +202,12 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const hasBlockedRelationship = isBlocked || userData.direct_message_reason === 'blocked';
   const canShowCreatedAt = !!userData.created_at && !hasBlockedRelationship;
   const canShowMessageAction = !hideMessageAction && !isCurrentUser && !!onMessage && (!!userData.can_message || !!userData.direct_chat_id);
-  const canShowPhotosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmPhotos.length > 0;
+  const canShowPhotosAction = !!directChatId && isPersistedId(directChatId) && dmPhotos.length > 0;
   const voiceItems = dmAudios.filter((item) => item.kind === 'voice');
   const audioFiles = dmAudios.filter((item) => item.kind !== 'voice');
-  const canShowAudiosAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && audioFiles.length > 0;
-  const canShowFilesAction = !!directChatId && isPersistedId(directChatId) && !isCurrentUser && dmFiles.length > 0;
-  const canShowDmSections = !!directChatId && isPersistedId(directChatId) && !isCurrentUser;
+  const canShowAudiosAction = !!directChatId && isPersistedId(directChatId) && audioFiles.length > 0;
+  const canShowFilesAction = !!directChatId && isPersistedId(directChatId) && dmFiles.length > 0;
+  const canShowDmSections = !!directChatId && isPersistedId(directChatId);
   const visiblePanelOrder: ProfilePanelView[] = [
     'details',
     ...(canShowPhotosAction ? (['photos'] as const) : []),
@@ -214,19 +220,11 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
 
   const infoPanel = (
     <UserProfileInfoPanel
-      username={username}
-      language={language}
       userId={userData.id}
       actionError={actionError}
       isCurrentUser={isCurrentUser}
-      isBlocked={isBlocked}
-      isBlockActionLoading={isBlockActionLoading}
-      canShowCreatedAt={canShowCreatedAt}
-      createdAt={userData.created_at ?? undefined}
-      canDeleteChat={!!onDeleteChat}
-      onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
-      onBlockToggle={handleBlockToggle}
-      onConfirmBlock={() => setIsBlockConfirmOpen(true)}
+      onOpenGroup={onOpenGroup}
+      bio={bio}
     />
   );
 
@@ -242,7 +240,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   );
 
   return (
-    <UserProfileShell onClose={onClose}>
+    <UserProfileShell onClose={onClose} hideBackOnMobile={hideBackOnMobile}>
       <div data-profile-swipe className="flex h-full min-h-0 flex-col">
         <UserProfileHero
           userId={userData.id} username={username} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName}
@@ -255,7 +253,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           bio={bio} createdAt={canShowCreatedAt ? userData.created_at ?? undefined : undefined} directChatId={canShowDmSections ? directChatId : undefined}
           canMessage={canShowMessageAction} isBlocked={isBlocked} canDeleteChat={!!onDeleteChat} tabs={visiblePanelOrder} activeView={activeView}
           onSelectView={selectView} onMessage={handleMessage} onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
-          onBlock={isBlocked ? handleBlockToggle : () => setIsBlockConfirmOpen(true)}
+          onBlock={isBlocked ? handleBlockToggle : () => setIsBlockConfirmOpen(true)} onEditProfile={onEditProfile}
         />
 
         <UserProfilePanelContent activeView={activeView} visibleViews={visiblePanelOrder} onSelectView={selectView}

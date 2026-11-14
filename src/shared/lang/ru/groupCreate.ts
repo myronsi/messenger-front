@@ -1,0 +1,22 @@
+export const groupCreate = {
+  groupCreate: {
+    title: "Создать группу",
+    groupName: "Название группы",
+    groupNamePlaceholder: "Придумайте название группы",
+    addDescription: "Добавить описание",
+    optional: "(необязательно)",
+    description: "Описание",
+    addPeople: "Добавить людей",
+    searchPlaceholder: "Поиск по имени или @username",
+    recentChats: "Недавние чаты",
+    searchResults: "Результаты поиска",
+    noResults: "Пользователи не найдены",
+    typeToSearch: "Введите минимум 2 символа, чтобы найти других людей",
+    selected: "Выбрано: {count}",
+    create: "Создать группу",
+    choosePhoto: "Выбрать фото группы",
+    removePhoto: "Удалить фото",
+    removePerson: "Убрать {name}",
+    close: "Закрыть",
+  },
+};

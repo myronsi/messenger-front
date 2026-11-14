@@ -1,40 +1,44 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ActionTiles, BioBubble, PillTabs, WaveHeader } from './ProfileHero';
+import { ProfileActions, ProfileBanner, ProfileTabs } from './ProfileHero';
 import { profileHue } from './profileHue';
 
 describe('profile hero parts', () => {
-  it('gives the same name the same wave color', () => {
+  it('gives the same name the same banner color', () => {
     expect(profileHue('Anna')).toBe(profileHue('Anna'));
     expect(profileHue('Anna')).toBeGreaterThanOrEqual(0);
     expect(profileHue('Anna')).toBeLessThan(360);
   });
 
-  it('shows the name, the status and the online dot', () => {
-    render(<WaveHeader seed="anna" online avatar={<img alt="Anna" />} title="Anna" status="online now" />);
+  it('shows the name, the subtitle, the actions and the online dot', () => {
+    render(<ProfileBanner seed="anna" online avatar={<img alt="Anna" />} title="Anna" subtitle="@anna · online now"
+      actions={<button type="button">Mute</button>} />);
     expect(screen.getByText('Anna')).toBeInTheDocument();
-    expect(screen.getByText('online now')).toBeInTheDocument();
+    expect(screen.getByText('@anna · online now')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument();
     expect(screen.getByTestId('profile-online-dot')).toBeInTheDocument();
   });
 
-  it('runs a tile action and switches pill tabs', () => {
-    const onChat = vi.fn();
-    const onSelect = vi.fn();
-    render(<>
-      <ActionTiles tiles={[{ key: 'chat', label: 'Chat', icon: <span />, onClick: onChat }]} />
-      <BioBubble text="hello" />
-      <PillTabs tabs={[{ key: 'media', label: 'Media' }, { key: 'links', label: 'Links' }]} active="media" onSelect={onSelect} />
-    </>);
-    fireEvent.click(screen.getByRole('button', { name: 'Chat' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Links' }));
-    expect(onChat).toHaveBeenCalled();
-    expect(onSelect).toHaveBeenCalledWith('links');
-    expect(screen.getByRole('tab', { name: 'Media' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByTestId('profile-bio-bubble')).toHaveTextContent('hello');
+  it('puts the labeled primary action first and keeps the others as icon buttons', () => {
+    const onBlock = vi.fn();
+    render(<ProfileActions tiles={[
+      { key: 'block', label: 'Block', icon: <span />, danger: true, onClick: onBlock },
+      { key: 'chat', label: 'Chat', icon: <span />, primary: true },
+    ]} />);
+    const buttons = within(screen.getByTestId('profile-action-tiles')).getAllByRole('button');
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual(['Chat', 'Block']);
+    expect(buttons[0]).toHaveTextContent('Chat');
+    expect(buttons[1]).toHaveTextContent('');
+    expect(buttons[1]).toHaveClass('text-destructive');
+    fireEvent.click(buttons[1]);
+    expect(onBlock).toHaveBeenCalledOnce();
   });
 
-  it('hides the tab row when there is only one tab', () => {
-    render(<PillTabs tabs={[{ key: 'details', label: 'Info' }]} active="details" onSelect={vi.fn()} />);
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  it('switches underline tabs', () => {
+    const onSelect = vi.fn();
+    render(<ProfileTabs tabs={[{ key: 'details', label: 'Info' }, { key: 'links', label: 'Links' }]} active="details" onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Links' }));
+    expect(onSelect).toHaveBeenCalledWith('links');
+    expect(screen.getByRole('tab', { name: 'Info' })).toHaveAttribute('aria-selected', 'true');
   });
 });

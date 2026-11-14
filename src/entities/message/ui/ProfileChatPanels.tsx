@@ -1,4 +1,5 @@
 import { isVideoAttachment } from '../model/videoAttachment';
+import { playAudio, type AudioTrack } from '../model/audioPlayer';
 import MediaTile from './MediaTile';
 import ProfileAudioRow from './ProfileAudioRow';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
@@ -70,6 +71,14 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
     .filter((photo) => !!photo.url)
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 );
+
+const profileAudioTrack = (audio: ProfileAudioItem, voiceTitle: string): AudioTrack => ({
+  id: audio.id,
+  src: audio.url,
+  title: audio.kind === 'voice' ? [audio.sender, voiceTitle].filter(Boolean).join(' · ') : audio.name,
+  kind: audio.kind === 'voice' ? 'voice' : 'music',
+  duration: audio.duration,
+});
 
 export const toProfileAudios = (audios: ChatAudio[] = [], fallbackName: string): ProfileAudioItem[] => (
   audios
@@ -229,10 +238,11 @@ export const ProfileAudiosPanel: React.FC<{
   onJumpToMessage?: (messageId: EntityId) => void;
 }> = ({ audios, isLoading, error, currentUsername, onJumpToMessage }) => {
   const { translations } = useLanguage();
-  const [playingId, setPlayingId] = useState<EntityId | null>(null);
-  const setPlaying = (id: EntityId | null, endedId?: EntityId) => {
-    const ended = endedId == null ? -1 : audios.findIndex((audio) => audio.id === endedId);
-    setPlayingId(id === null && ended >= 0 ? audios[ended + 1]?.id ?? null : id);
+  const play = (id: EntityId, startAt?: number) => {
+    const tracks = audios.map((audio) => profileAudioTrack(audio, translations.voiceMessage));
+    const index = tracks.findIndex((track) => track.id === id);
+    if (index < 0) return;
+    playAudio(tracks[index], tracks.slice(index + 1).filter((track) => track.kind === tracks[index].kind), startAt);
   };
 
   return (
@@ -256,7 +266,7 @@ export const ProfileAudiosPanel: React.FC<{
         <div className="space-y-3">
           {audios.map((audio) => (
             <ProfileAudioRow
-              key={audio.id} audio={audio} isPlaying={playingId === audio.id} setPlayingMessageId={setPlaying}
+              key={audio.id} audio={audio} onPlay={(startAt) => play(audio.id, startAt)}
               onShowInChat={onJumpToMessage && isPersistedId(audio.id) ? () => onJumpToMessage(audio.id) : undefined}
               isMine={!!currentUsername && audio.senderUsername?.toLowerCase() === currentUsername.toLowerCase()}
             />

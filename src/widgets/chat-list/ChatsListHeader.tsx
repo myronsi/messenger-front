@@ -1,29 +1,24 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { useRef, useState } from 'react';
 import { Bookmark, MessageSquarePlus, PenSquare, QrCode, Search, UsersRound } from 'lucide-react';
-import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { TabHeader } from '@/shared/ui/TabHeader';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui/drawer';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useCanScanQr } from '@/shared/hooks/useCanScanQr';
-import { fillTemplate } from '@/shared/lib/fillTemplate';
 
 interface ChatsListHeaderProps {
   translations: Translations;
-  avatarUrl?: string;
-  displayName?: string;
-  onOpenProfile: () => void;
   onOpenSearch: (rect: DOMRect) => void;
   onNewGroup: () => void;
   onScanQr: () => void;
   onOpenSaved?: () => void;
-  profileIndicatorCount?: number;
 }
 
 type NewAction = { key: string; icon: React.ReactNode; label: string; hint: string; run: () => void };
 
 const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
-  translations, avatarUrl, displayName, onOpenProfile, onOpenSearch, onNewGroup, onScanQr, onOpenSaved, profileIndicatorCount = 0,
+  translations, onOpenSearch, onNewGroup, onScanQr, onOpenSaved,
 }) => {
   const t = translations.appShell;
   const isMobile = useIsMobile();
@@ -33,9 +28,6 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
   const newButton = useRef<HTMLButtonElement | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const rectOf = (element: HTMLElement | null) => element?.getBoundingClientRect() ?? new DOMRect();
-  const count = profileIndicatorCount > 99 ? '99+' : String(profileIndicatorCount);
-  const profileLabel = profileIndicatorCount === 1 ? t.openSettingsWithRequest
-    : profileIndicatorCount > 0 ? fillTemplate(t.openSettingsWithRequests, { count }) : t.openSettings;
   const actions: NewAction[] = [
     { key: 'chat', icon: <MessageSquarePlus className="h-5 w-5 text-primary" />, label: t.newChat, hint: t.newChatHint, run: () => onOpenSearch(rectOf(newButton.current)) },
     { key: 'group', icon: <UsersRound className="h-5 w-5 text-success" />, label: t.newGroup, hint: t.newGroupHint, run: onNewGroup },
@@ -45,23 +37,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
   ].filter((action) => canScanQr || action.key !== 'qr');
 
   return (
-    <div className="flex h-[72px] shrink-0 items-center gap-2 border-b border-border px-4">
-      <button
-        type="button"
-        onClick={onOpenProfile}
-        aria-label={profileLabel}
-        title={t.openSettings}
-        className="relative h-10 w-10 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      >
-        <AuthenticatedImage src={avatarUrl} initialsFrom={displayName || '?'} alt="" className="h-10 w-10 rounded-full border border-border object-cover" />
-        {profileIndicatorCount > 0 && (
-          <span aria-hidden="true"
-            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
-            {count}
-          </span>
-        )}
-      </button>
-      <h2 className="min-w-0 flex-1 truncate text-xl font-semibold">{translations.chats}</h2>
+    <TabHeader title={translations.chats} actions={<>
       <button ref={searchButton} type="button" onClick={() => onOpenSearch(rectOf(searchButton.current))} aria-label={t.openSearch}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent">
         <Search className="h-5 w-5" />
@@ -111,7 +87,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-    </div>
+    </>} />
   );
 };
 

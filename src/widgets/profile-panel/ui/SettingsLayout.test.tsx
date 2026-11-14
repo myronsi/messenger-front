@@ -16,20 +16,17 @@ vi.mock('@/entities/user', () => ({ useGetUserAvatarHistoryQuery: () => ({ data:
 const t = en.appShell;
 
 describe('settings layout', () => {
-  it('shows the phone home with a profile card, setting rows and log out', () => {
+  it('shows the phone home with setting rows and log out, without the personal info card', () => {
     const privacy = vi.fn();
-    const edit = vi.fn();
     const logout = vi.fn();
-    render(<ProfileHomePage username="myron" avatarUrl="" hasCustomAvatar={false} displayName="Myron" bio=""
-      isUploadingAvatar={false} onPickAvatar={vi.fn()} onOpenAvatar={vi.fn()} onEditProfile={edit} handleLogout={logout} isLoggingOut={false}
+    render(<ProfileHomePage handleLogout={logout} isLoggingOut={false}
       sections={[[{ label: 'Privacy', description: '', icon: Shield, onClick: privacy }], [{ label: 'Language', description: 'English', icon: Globe }]]} />);
-    expect(screen.getByText('@myron')).toBeInTheDocument();
-    expect(screen.getByText(t.addBio)).toBeInTheDocument();
-    expect(screen.getByText(t.deleteAccountLocation)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: t.editProfile }));
+    expect(screen.queryByText(t.addBio)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t.editProfile })).not.toBeInTheDocument();
+    expect(screen.queryByText(t.deleteAccountLocation)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Privacy/ }));
     fireEvent.click(screen.getByRole('button', { name: t.logOut }));
-    expect([edit, privacy, logout].map((fn) => fn.mock.calls.length)).toEqual([1, 1, 1]);
+    expect([privacy, logout].map((fn) => fn.mock.calls.length)).toEqual([1, 1]);
     expect(screen.queryByRole('button', { name: /Create Group|Scan QR|Delete Account/ })).not.toBeInTheDocument();
   });
 

@@ -1,15 +1,12 @@
 import React from 'react';
-import { Ban, Eraser, MessageCircle, MoreHorizontal, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Ban, Eraser, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
-import { ActionTiles, BioBubble, InfoChips, PillTabs, WaveHeader, type ProfileChip, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { ProfileActions, ProfileBanner, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { usePresenceLabel } from '@/shared/utils/presenceFormatters';
-import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { copyText } from '@/shared/lib/copyText';
 import { toast } from '@/shared/ui/sonner';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
-import { useGetCommonGroupsQuery } from '@/entities/user';
 import { ChatMuteAction } from '@/features/chat-mute';
 import { CallButton, useCallsAvailable } from '@/features/calls';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
@@ -39,6 +36,7 @@ interface UserProfileHeroProps extends HeadingProps {
   onClose?: () => void;
   onDeleteChat: () => void;
   onBlock: () => void;
+  onEditProfile?: () => void;
 }
 
 const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
@@ -49,66 +47,54 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
   const callsAvailable = useCallsAvailable();
   const cleanup = useChatCleanup(() => toast(translations.chatCleanup.cleared), (message) => toast(message || translations.errorLoading));
   const clearHistory = () => props.directChatId && cleanup.open({ kind: 'clear', target: {
-    chatId: props.directChatId, name: props.displayName, isGroup: false, isSaved: false, canClearForEveryone: false,
+    chatId: props.directChatId, name: props.displayName, isGroup: false, isSaved: props.isCurrentUser, canClearForEveryone: false,
   } });
-  const common = useGetCommonGroupsQuery(props.userId ?? '', { skip: !props.userId || props.isCurrentUser }).data ?? [];
   const avatar = <AuthenticatedImage src={props.avatarUrl} alt={props.displayName} className="h-full w-full object-cover" />;
   const tabLabels: Record<ProfilePanelView, string> = {
     details: t.info, photos: t.media, audios: t.audio, files: t.files, links: t.links, voice: t.voice,
   };
 
   const tiles: ProfileTile[] = [
-    ...(props.canMessage ? [{ key: 'chat', label: t.chat, icon: <MessageCircle className="h-5 w-5" />, onClick: props.onMessage }] : []),
-    ...(hasChat && callsAvailable ? [
-      { key: 'call', label: t.call, render: (className: string) => <span className={`${className} [&>button]:h-12 [&>button]:w-12`}><CallButton chatId={props.directChatId} /></span> },
+    ...(props.isCurrentUser && props.onEditProfile ? [
+      { key: 'edit', label: translations.editProfileAction, primary: true, icon: <Pencil className="h-5 w-5" />, onClick: props.onEditProfile },
     ] : []),
-    ...(hasChat ? [
-      { key: 'mute', label: t.mute, render: (className: string) => <ChatMuteAction chatId={props.directChatId!} className={`${className} [&>span]:sr-only`} /> },
+    ...(props.canMessage ? [{ key: 'chat', label: t.chat, primary: true, icon: <MessageCircle className="h-5 w-5" />, onClick: props.onMessage }] : []),
+    ...(hasChat && callsAvailable && !props.isCurrentUser ? [
+      { key: 'call', label: t.call, render: (className: string) => <span className={`${className} [&>button]:h-full [&>button]:w-full [&>button]:rounded-xl`}><CallButton chatId={props.directChatId} /></span> },
     ] : []),
+    ...(hasChat && !props.isCurrentUser ? [
+      { key: 'mute', label: t.mute, primary: !props.canMessage, render: (className: string) => <ChatMuteAction chatId={props.directChatId!} className={className} /> },
+    ] : []),
+  ];
+  const menu: ProfileMenuItem[] = [
+    ...(!props.isCurrentUser ? [{ key: 'rename', label: t.rename, icon: <Pencil className="h-4 w-4" />, onSelect: props.onEditContactName }] : []),
+    ...(hasChat ? [{ key: 'clear', label: translations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: clearHistory }] : []),
+    ...(props.canDeleteChat ? [{ key: 'delete', label: translations.chatCleanup.deleteChat, danger: true, icon: <Trash2 className="h-4 w-4" />, onSelect: props.onDeleteChat }] : []),
     ...(!props.isCurrentUser ? [{
-      key: 'more', label: t.more, render: (className: string) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" aria-label={t.more} className={className}><MoreHorizontal className="h-5 w-5" /></button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="min-w-44">
-            {hasChat && (
-              <DropdownMenuItem onSelect={clearHistory} className="gap-2"><Eraser className="h-4 w-4" />{translations.chatCleanup.clearHistory}</DropdownMenuItem>
-            )}
-            {props.canDeleteChat && (
-              <DropdownMenuItem onSelect={props.onDeleteChat} className="gap-2 text-destructive"><Trash2 className="h-4 w-4" />{translations.chatCleanup.deleteChat}</DropdownMenuItem>
-            )}
-            <DropdownMenuItem onSelect={props.onBlock} className="gap-2 text-destructive">
-              <Ban className="h-4 w-4" />{props.isBlocked ? translations.unblock || 'Unblock' : translations.block || 'Block'}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      key: 'block', label: props.isBlocked ? t.unblock : t.block, danger: !props.isBlocked, icon: <Ban className="h-4 w-4" />, onSelect: props.onBlock,
     }] : []),
   ];
 
-  const chips: ProfileChip[] = [
-    { key: 'username', label: `@${props.username}`, onClick: () => void copyText(`@${props.username}`).then((ok) => { if (ok) toast(translations.messagesCopied); }) },
-    ...(common.length ? [{ key: 'groups', label: common.length === 1 ? t.oneGroupTogether : fillTemplate(t.groupsTogether, { count: String(common.length) }) }] : []),
-    ...(props.createdAt ? [{ key: 'since', label: fillTemplate(t.hereSince, { year: String(new Date(props.createdAt).getFullYear()) }) }] : []),
-  ];
+  const copyUsername = () => void copyText(`@${props.username}`).then((ok) => { if (ok) toast(translations.messagesCopied); });
 
   return (
     <div className="shrink-0">
-      <WaveHeader
+      <ProfileBanner
         seed={props.username}
         online={props.isOnline}
         avatar={props.hasCustomAvatar ? <button type="button" onClick={props.onAvatarHistory} className="block h-full w-full">{avatar}</button> : avatar}
+        actions={(tiles.length > 0 || menu.length > 0) && <ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
         title={<ContactNameHeading {...props} />}
-        status={props.isOnline ? t.onlineNow : presence}
-        topRight={props.onClose && (
-          <button type="button" onClick={props.onClose} aria-label={translations.close} className="rounded-full p-1.5 hover:bg-white/20"><X className="h-5 w-5" /></button>
+        subtitle={<>
+          <button type="button" onClick={copyUsername} className="font-medium text-primary hover:underline">@{props.username}</button>
+          <span aria-hidden="true">·</span>
+          <span className="min-w-0 truncate">{props.isOnline ? t.onlineNow : presence}</span>
+        </>}
+        topLeft={props.onClose && (
+          <button type="button" onClick={props.onClose} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"><ArrowLeft className="h-5 w-5" /></button>
         )}
       />
-      {tiles.length > 0 && <ActionTiles tiles={tiles} />}
-      {props.bio && <BioBubble text={props.bio} />}
-      <InfoChips chips={chips} />
-      <PillTabs tabs={props.tabs.map((key) => ({ key, label: tabLabels[key] }))} active={props.activeView} onSelect={props.onSelectView} />
+      <ProfileTabs tabs={props.tabs.map((key) => ({ key, label: tabLabels[key] }))} active={props.activeView} onSelect={props.onSelectView} />
       <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
     </div>
   );
