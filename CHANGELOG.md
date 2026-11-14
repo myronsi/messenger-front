@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.20](https://github.com/myronsi/messenger-front/compare/v0.6.19...v0.6.20) (2026-11-14)
+
+
+### Features
+
+* **app:** main navigation, own profile tab, shared audio player and chat list polish ([#210](https://github.com/myronsi/messenger-front/issues/210)) ([3058ad3](https://github.com/myronsi/messenger-front/commit/3058ad35048b02ecf22b53830e807df0290ecb69))
+* **cache:** keep profiles and sticker packs offline and update profiles live ([#208](https://github.com/myronsi/messenger-front/issues/208)) ([478cb12](https://github.com/myronsi/messenger-front/commit/478cb122832c077e5b7e2d6398ae5b1a6aaecde7))
+* **chat:** archived chats, drag to reorder pinned chats and Saved Messages ([#206](https://github.com/myronsi/messenger-front/issues/206)) ([6177285](https://github.com/myronsi/messenger-front/commit/6177285dc6fa884b6b14ff0a55c49ca8abbd1da8))
+* **chat:** delete a chat for me or both and clear history ([#207](https://github.com/myronsi/messenger-front/issues/207)) ([9984ff6](https://github.com/myronsi/messenger-front/commit/9984ff622537ffd964c989e3197ca5806feca4b7))
+* **chat:** select all, copy selected messages and a search button in the sticker picker ([#203](https://github.com/myronsi/messenger-front/issues/203)) ([2af9a16](https://github.com/myronsi/messenger-front/commit/2af9a16c0b84996404317dcb71128a8bf3f13428))
+* **chat:** sticker and upload statuses and a separate last seen setting ([#205](https://github.com/myronsi/messenger-front/issues/205)) ([5c97afc](https://github.com/myronsi/messenger-front/commit/5c97afc45dcb2cea5a8c9f0f2605d7b24dcf4ca6))
+* **profiles:** playful design D for user and group profiles ([#209](https://github.com/myronsi/messenger-front/issues/209)) ([cdb700f](https://github.com/myronsi/messenger-front/commit/cdb700f42766f60f3995ea878afe3d388e46b2f8))
+
 ## [0.6.19](https://github.com/myronsi/messenger-front/compare/v0.6.18...v0.6.19) (2026-11-12)
 
 
