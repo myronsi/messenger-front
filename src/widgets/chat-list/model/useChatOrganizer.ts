@@ -1,7 +1,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Chat } from '@/entities/message';
-import { useReorderPinnedChatsMutation, useSetChatArchivedMutation } from '@/entities/chat';
+import { useReorderPinnedChatsMutation, useSetChatArchivedMutation, useSetChatPinnedMutation } from '@/entities/chat';
 import { asApiError } from '@/shared/lib/apiError';
 import { toast } from '@/shared/ui/sonner';
 import type { ChatContextMenuState, ChatListModal, ChatOverride, ChatOverrideMap, Translations } from './types';
@@ -18,6 +18,7 @@ interface ChatOrganizerOptions {
 export function useChatOrganizer({ chatsByIdRef, setChatOverrides, setChatContextMenu, setModal, refetch, translations }: ChatOrganizerOptions) {
   const [setChatArchived] = useSetChatArchivedMutation();
   const [reorderPinnedChats] = useReorderPinnedChatsMutation();
+  const [setChatPinned] = useSetChatPinnedMutation();
   const override = (chatId: EntityId, patch: ChatOverride) =>
     setChatOverrides((prev) => ({ ...prev, [chatId]: { ...(prev[chatId] || {}), ...patch } }));
   const fail = (caught: unknown) => {
@@ -25,14 +26,40 @@ export function useChatOrganizer({ chatsByIdRef, setChatOverrides, setChatContex
     setModal({ type: 'error', message: error?.data?.detail || error?.message || translations.errorLoading });
   };
 
+  const pinnedOrder = () => Object.values(chatsByIdRef.current)
+    .filter((item) => item.is_pinned && !item.is_archived)
+    .sort((a, b) => (a.pin_position ?? 0) - (b.pin_position ?? 0))
+    .map((item) => item.id);
+
+  const restore = async (chatId: EntityId, previous: Chat | undefined, order: EntityId[]) => {
+    const wasArchived = !!previous?.is_archived;
+    const wasPinned = !!previous?.is_pinned;
+    override(chatId, { is_archived: wasArchived, is_pinned: wasPinned, pin_position: previous?.pin_position ?? null });
+    try {
+      await setChatArchived({ chatId, archived: wasArchived }).unwrap();
+      if (wasPinned && !wasArchived) {
+        await setChatPinned({ chatId, pinned: true }).unwrap();
+        if (order.length > 1) await reorderPinnedChats(order).unwrap();
+      }
+      refetch();
+    } catch (caught) {
+      fail(caught);
+    }
+  };
+
   const handleToggleArchived = async (chatId: EntityId) => {
     const chat = chatsByIdRef.current[chatId];
+    const previous = chat ? { ...chat } : undefined;
+    const order = pinnedOrder();
     const archived = !chat?.is_archived;
     setChatContextMenu(null);
     override(chatId, archived ? { is_archived: true, is_pinned: false, pin_position: null } : { is_archived: false });
     try {
       await setChatArchived({ chatId, archived }).unwrap();
-      toast(archived ? translations.chatOrganizer.archived : translations.chatOrganizer.unarchived);
+      toast(archived ? translations.chatOrganizer.archived : translations.chatOrganizer.unarchived, {
+        duration: 8000,
+        action: { label: translations.chatOrganizer.undo, onClick: () => void restore(chatId, previous, order) },
+      });
       refetch();
     } catch (caught) {
       override(chatId, { is_archived: !!chat?.is_archived, is_pinned: !!chat?.is_pinned, pin_position: chat?.pin_position ?? null });

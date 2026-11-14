@@ -1,5 +1,4 @@
 import React from 'react';
-import type { EntityId } from '@/shared/api/entityId';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import AudioMessage from './AudioMessage';
@@ -8,12 +7,11 @@ import type { ProfileAudioItem } from './ProfileChatPanels';
 interface ProfileAudioRowProps {
   audio: ProfileAudioItem;
   isMine: boolean;
-  isPlaying: boolean;
-  setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
+  onPlay: (startAt?: number) => void;
   onShowInChat?: () => void;
 }
 
-const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, isMine, isPlaying, setPlayingMessageId, onShowInChat }) => {
+const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, isMine, onPlay, onShowInChat }) => {
   const { translations, language } = useLanguage();
   const today = new Date();
   const yesterday = new Date(today);
@@ -30,9 +28,9 @@ const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, isMine, isPlay
           messageId={audio.id}
           duration={audio.duration}
           waveform={audio.waveform}
-          isPlaying={isPlaying}
           isMine={isMine}
-          setPlayingMessageId={setPlayingMessageId}
+          variant={audio.kind === 'voice' ? 'voice' : 'music'}
+          onPlay={onPlay}
         />
       </div>
       <div className="mt-1 flex max-w-full items-center gap-2 px-1 text-[11px] text-muted-foreground">

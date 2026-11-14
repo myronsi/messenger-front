@@ -21,7 +21,7 @@ export const useMessengerController = (username: string) => {
   const navigate = useNavigate();
   const location = useLocation();
   const urlOverlay = useUrlOverlay();
-  const { overlay, open: openOverlay, close: closeOverlay } = urlOverlay;
+  const { overlay, open: openOverlay, close: closeOverlay, replace: replaceOverlay } = urlOverlay;
   const routeDirect = parseDmIdentifier(urlOverlay.base);
   const routeChatUsername = routeDirect?.type === 'username' ? routeDirect.value : currentChat?.type === 'one-on-one' ? currentChat.name : null;
   const isProfileOpen = overlay?.kind === 'settings';
@@ -35,6 +35,17 @@ export const useMessengerController = (username: string) => {
     else if (isProfileOpen && marks.settingsOpened && marks.settingsChain === marks.settingsDepth) navigate(-((marks.settingsChain ?? 0) + 1));
     else if (isProfileOpen) closeOverlay();
   }, [closeOverlay, isProfileOpen, navigate, openOverlay]);
+  const isMeOpen = overlay?.kind === 'me';
+  const showRouteTab = useCallback((tab: 'settings' | 'profile' | null) => {
+    if (tab === 'settings') {
+      if (isMeOpen) replaceOverlay({ kind: 'settings', page: 'profile' });
+      else setIsProfileOpen(true);
+    } else if (tab === 'profile') {
+      if (isProfileOpen) replaceOverlay({ kind: 'me' });
+      else if (!isMeOpen) openOverlay({ kind: 'me' });
+    } else if (isProfileOpen) setIsProfileOpen(false);
+    else if (isMeOpen) closeOverlay();
+  }, [closeOverlay, isMeOpen, isProfileOpen, openOverlay, replaceOverlay, setIsProfileOpen]);
   const openMessageRequests = useCallback(() => {
     openOverlay({ kind: 'settings', page: 'requests' }, { settingsOpened: true, settingsDepth: 0, settingsChain: 0 });
   }, [openOverlay]);
@@ -153,6 +164,13 @@ export const useMessengerController = (username: string) => {
     });
   };
 
+  const openGroupFromProfile = (group: { id: EntityId; name: string; avatarUrl?: string }) => {
+    closeUserProfile();
+    navigate(`/chat/${group.id}`, {
+      state: { chatName: group.name, chatDisplayName: group.name, avatarUrl: group.avatarUrl, type: 'group', chatId: group.id },
+    });
+  };
+
   const handleDirectChatCreated = (newId: EntityId, newName: string) => {
     const nextChat = {
       id: newId,
@@ -207,6 +225,8 @@ export const useMessengerController = (username: string) => {
     currentChat,
     isProfileOpen,
     setIsProfileOpen,
+    isMeOpen,
+    showRouteTab,
     openMessageRequests,
     isUserProfileOpen,
     setIsUserProfileOpen,
@@ -218,6 +238,7 @@ export const useMessengerController = (username: string) => {
     openUserProfile,
     closeUserProfile,
     openDirectChatFromProfile,
+    openGroupFromProfile,
     handleDirectChatCreated,
     backToChats,
     handleChatDeleted,

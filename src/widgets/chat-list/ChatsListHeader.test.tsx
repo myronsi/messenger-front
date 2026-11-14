@@ -10,20 +10,19 @@ vi.mock('@/shared/hooks/useCanScanQr', () => ({ useCanScanQr: () => touch.value 
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => null }));
 
 const t = en.appShell;
-const setup = (count = 0) => {
-  const handlers = { onOpenProfile: vi.fn(), onOpenSearch: vi.fn(), onNewGroup: vi.fn(), onScanQr: vi.fn() };
-  render(<ChatsListHeader translations={en} avatarUrl="/a.png" displayName="Myron" profileIndicatorCount={count} {...handlers} />);
+const setup = () => {
+  const handlers = { onOpenSearch: vi.fn(), onNewGroup: vi.fn(), onScanQr: vi.fn() };
+  render(<ChatsListHeader translations={en} {...handlers} />);
   return handlers;
 };
 
 describe('ChatsListHeader', () => {
   beforeEach(() => { mobile.value = false; touch.value = false; });
 
-  it('opens settings from the avatar and announces waiting requests', () => {
-    const handlers = setup(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Your profile and settings, 2 message requests' }));
-    expect(handlers.onOpenProfile).toHaveBeenCalledOnce();
-    expect(screen.queryByRole('button', { name: /menu/i })).not.toBeInTheDocument();
+  it('uses the shared tab header with the Chats title and no avatar button', () => {
+    setup();
+    expect(screen.getByTestId('tab-header')).toHaveTextContent(en.chats);
+    expect(screen.queryByRole('button', { name: t.openSettings })).not.toBeInTheDocument();
   });
 
   it('offers new chat and new group but no QR scanner from the New menu on desktop', async () => {

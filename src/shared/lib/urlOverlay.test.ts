@@ -72,3 +72,13 @@ describe('stacked profiles', () => {
     expect(parentOverlay({ kind: 'profile' })).toBeNull();
   });
 });
+
+describe('own profile route', () => {
+  it('opens /me at the root or over a chat and builds it back', () => {
+    expect(splitOverlayPath('/me')).toEqual({ base: '/', overlay: { kind: 'me' } });
+    expect(splitOverlayPath('/chat/5/me')).toEqual({ base: '/chat/5', overlay: { kind: 'me' } });
+    expect(splitOverlayPath('/dm/me')).toEqual({ base: '/dm/me', overlay: null });
+    expect(joinOverlayPath('/', { kind: 'me' })).toBe('/me');
+    expect(joinOverlayPath('/chat/5', { kind: 'me' })).toBe('/chat/5/me');
+  });
+});

@@ -27,7 +27,7 @@ const fileMessage = (attachment: Partial<MessageAttachment>, extra: Partial<Mess
 
 const renderContent = (message: Message, getFileTypeConfig: (name: string) => FileTypeConfig | undefined = () => undefined) => render(
   <MessageContent message={message} isMobile={false} translations={en} getFileTypeConfig={getFileTypeConfig} isOwnMessage={() => false}
-    renderMessageContent={() => ''} isAudioPlaying={false} setPlayingMessageId={vi.fn()} />,
+    renderMessageContent={() => ''} onPlayAudio={vi.fn()} />,
 );
 
 describe('MessageContent attachments', () => {

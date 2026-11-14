@@ -6,10 +6,10 @@ import { useMessageListScroll } from '../model/useMessageListScroll';
 import { bottomInsetPadding } from '../model/useBottomInset';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
 import { isIgnoredTap } from '../model/tapFilter';
-import { nextVoiceMessageId } from '../model/nextVoiceMessage';
+import { audioQueueFor } from '../model/audioQueue';
 import { TypingBubble } from '@/entities/typing';
 import ScrollToBottomButton from './ScrollToBottomButton';
-import { isVisualMediaMessage, Message, MessageItem, ReactionInfo, type MessageSelection } from '@/entities/message';
+import { isVisualMediaMessage, Message, MessageItem, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useChatCovered } from '@/shared/contexts/ChatCoveredContext';
@@ -151,9 +151,9 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     onMarkMessagesRead, enabled: !useChatCovered() && isPositioned,
   });
 
-  const [playingMessageId, setPlayingMessageIdState] = useState<EntityId | null>(null);
-  const setPlayingMessageId = useStableCallback((id: EntityId | null, endedId?: EntityId) => {
-    setPlayingMessageIdState(id === null && endedId != null ? nextVoiceMessageId(messages, endedId) : id);
+  const onPlayAudio = useStableCallback((id: EntityId, startAt?: number) => {
+    const queue = audioQueueFor(messages, id, translations.voiceMessage);
+    if (queue) playAudio(queue.track, queue.upcoming, startAt);
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -253,8 +253,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
               isOwnMessage={isOwnMessage}
               getFileTypeConfig={stableGetFileTypeConfig}
               renderMessageContent={stableRenderMessageContent}
-              isAudioPlaying={playingMessageId === message.id}
-              setPlayingMessageId={setPlayingMessageId}
+              onPlayAudio={onPlayAudio}
               onMessageClick={stableOnMessageClick}
               onClick={handleMessageClick}
               isSelected={!!props.selection?.ids.has(message.id)}

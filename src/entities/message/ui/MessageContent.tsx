@@ -28,8 +28,7 @@ interface MessageContentProps {
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   isOwnMessage: (message: Message) => boolean;
   renderMessageContent: (message: Message) => React.ReactNode;
-  isAudioPlaying: boolean;
-  setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
+  onPlayAudio: (id: EntityId, startAt?: number) => void;
   trailing?: React.ReactNode;
   mediaBroken?: boolean;
   onMediaBroken?: () => void;
@@ -42,8 +41,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   getFileTypeConfig,
   isOwnMessage,
   renderMessageContent,
-  isAudioPlaying,
-  setPlayingMessageId,
+  onPlayAudio,
   trailing,
   mediaBroken = false,
   onMediaBroken,
@@ -109,9 +107,9 @@ const MessageContent: React.FC<MessageContentProps> = ({
           messageId={message.id}
           duration={audioMetadata?.duration}
           waveform={audioMetadata?.waveform}
-          isPlaying={isAudioPlaying}
           isMine={isOwnMessage(message)}
-          setPlayingMessageId={setPlayingMessageId}
+          variant={isVoiceAttachment(message.content) ? 'voice' : 'music'}
+          onPlay={(startAt) => onPlayAudio(message.id, startAt)}
         />
       </>,
     );

@@ -1,10 +1,9 @@
+import React, { useState } from 'react';
+import { Loader2, Plus, X } from 'lucide-react';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
-import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import React from 'react';
-import { Camera, Check, ChevronDown, ChevronLeft, Loader2, Search, UserPlus, X } from 'lucide-react';
-import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
-import { useGroupCreateForm, getAvatarSrc, type GroupCreatePayload } from '../model/useGroupCreateForm';
-
+import { useGroupCreateForm, type GroupCreatePayload } from '../model/useGroupCreateForm';
+import GroupAvatarPicker from './GroupAvatarPicker';
+import GroupPeoplePicker from './GroupPeoplePicker';
 
 interface GroupCreateModalProps {
   currentUsername: string;
@@ -13,265 +12,99 @@ interface GroupCreateModalProps {
 }
 
 const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, onClose, onCreate }) => {
-  const {
-    avatarFile, avatarInputRef, avatarPreview, createError, debouncedSearch, description,
-    dmContactSuggestions, groupName, handleAvatarChange, handleCreate, handleRemoveAvatar,
-    handleRemoveUser, handleSelectUser, isCreating, isDmContactsCollapsed,
-    isSearching, rejectedParticipants, searchData, searchTerm, selectedUsers,
-    selectedUsernames, setDescription, setGroupName, setIsDmContactsCollapsed,
-    setSearchTerm, setStep, step, translations,
-  } = useGroupCreateForm({ currentUsername, onCreate });
+  const form = useGroupCreateForm({ currentUsername, onCreate });
+  const text = form.translations.groupCreate;
+  const [showDescription, setShowDescription] = useState(false);
+  const canCreate = !!form.groupName.trim() && form.selectedUsers.length > 0 && !form.isCreating;
 
   return (
-    <ModalSurface label={translations.createGroup || 'Create group'} className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="relative flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
-          <div>
-            <h2 className="text-lg font-semibold">{translations.createGroup || 'Create group'}</h2>
-            <p className="text-xs text-muted-foreground">
-              {step === 1
-                ? translations.groupInfo || 'Group info'
-                : translations.addParticipants || 'Add participants'}
-            </p>
-          </div>
-          <button onClick={onClose} className="motion-press rounded-full p-2 hover:bg-accent" aria-label="Close">
+    <ModalSurface label={text.title} className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in sm:p-4">
+      <div
+        className="relative flex h-dvh w-full flex-col overflow-hidden bg-card sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:border-border sm:shadow-lg">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-6 sm:py-4">
+          <h2 className="text-xl font-bold">{text.title}</h2>
+          <button type="button" onClick={onClose} className="motion-press rounded-full p-2 hover:bg-accent" aria-label={text.close}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-border px-5 py-3 text-xs font-medium">
-          <div className={`transition-all duration-200 rounded-full px-3 py-1.5 text-center ${step === 1 ? 'scale-[1.02] bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
-            1. {translations.group || 'Group'}
-          </div>
-          <div className={`transition-all duration-200 rounded-full px-3 py-1.5 text-center ${step === 2 ? 'scale-[1.02] bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
-            2. {translations.participants || 'Participants'}
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-          {step === 1 ? (
-            <div className="space-y-5">
-              <div className="flex items-center gap-4">
-                <AuthenticatedImage
-                  src={avatarPreview || DEFAULT_GROUP_AVATAR}
-                  alt={groupName || translations.createGroup || 'Create group'}
-                  className="h-20 w-20 rounded-full border border-border object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    className="motion-press inline-flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-accent"
-                  >
-                    <Camera className="h-4 w-4" />
-                    {avatarFile ? translations.changeAvatar || 'Change avatar' : translations.chooseAvatar || 'Choose avatar'}
-                  </button>
-                  {avatarFile && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveAvatar}
-                      className="motion-press ml-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-                    >
-                      {translations.remove || 'Remove'}
-                    </button>
-                  )}
-                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                </div>
-              </div>
-
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+          <div className="flex items-start gap-5">
+            <GroupAvatarPicker
+              groupName={form.groupName}
+              avatarPreview={form.avatarPreview}
+              inputRef={form.avatarInputRef}
+              onChange={form.handleAvatarChange}
+              onRemove={form.handleRemoveAvatar}
+              chooseLabel={text.choosePhoto}
+              removeLabel={text.removePhoto}
+            />
+            <label className="min-w-0 flex-1 pt-1">
+              <span className="mb-2 block text-sm font-semibold text-muted-foreground">{text.groupName}</span>
               <input
-                value={groupName}
-                onChange={(event) => setGroupName(event.target.value)}
-                placeholder={translations.groupName || 'Group name'}
+                value={form.groupName}
+                onChange={(event) => form.setGroupName(event.target.value)}
+                placeholder={text.groupNamePlaceholder}
                 maxLength={80}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
+                autoFocus
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 outline-none focus:ring-2 focus:ring-ring"
               />
+            </label>
+          </div>
+
+          {showDescription ? (
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-muted-foreground">{text.description}</span>
               <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder={translations.groupDescription || 'Group description'}
-                rows={4}
+                value={form.description}
+                onChange={(event) => form.setDescription(event.target.value)}
+                rows={3}
                 maxLength={500}
-                className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
+                autoFocus
+                className="w-full resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
-            </div>
+            </label>
           ) : (
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={translations.searchUsers || 'Search users'}
-                  className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
+            <button type="button" onClick={() => setShowDescription(true)} className="motion-press inline-flex items-center gap-1 text-sm">
+              <Plus className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-primary">{text.addDescription}</span>
+              <span className="text-muted-foreground">{text.optional}</span>
+            </button>
+          )}
 
-              {dmContactSuggestions.length > 0 && (
-                <div className="overflow-hidden rounded-md border border-dashed border-border bg-muted/25">
-                  <button
-                    type="button"
-                    onClick={() => setIsDmContactsCollapsed((collapsed) => !collapsed)}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-accent/50"
-                    aria-expanded={!isDmContactsCollapsed}
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium text-foreground">
-                        {translations.directMessages || 'Direct messages'}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {dmContactSuggestions.length} {translations.available || 'available'}
-                      </span>
-                    </span>
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isDmContactsCollapsed ? '-rotate-90' : 'rotate-0'}`} />
-                  </button>
-                  <div inert={isDmContactsCollapsed || undefined} data-testid="dm-contacts"
-                    className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out ${isDmContactsCollapsed ? 'invisible grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'}`}>
-                    <div className="min-h-0 overflow-hidden">
-                      <div className="max-h-52 overflow-y-auto border-t border-border/70 p-1">
-                        {dmContactSuggestions.map((user) => (
-                          <button
-                            key={user.username}
-                            type="button"
-                            onClick={() => handleSelectUser(user)}
-                            className="motion-list-item motion-press flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-background"
-                          >
-                            <AuthenticatedImage src={getAvatarSrc(user.avatar_url)} alt={user.username} className="motion-avatar h-9 w-9 rounded-full object-cover" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate font-medium">{user.display_name || user.username}</span>
-                              <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
-                            </span>
-                            <UserPlus className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+          <GroupPeoplePicker
+            text={text}
+            searchTerm={form.searchTerm}
+            onSearchChange={form.setSearchTerm}
+            selectedUsers={form.selectedUsers}
+            selectedUsernames={form.selectedUsernames}
+            recentContacts={form.recentContacts}
+            searchResults={form.searchResults}
+            debouncedSearch={form.debouncedSearch}
+            isSearching={form.isSearching}
+            rejectedParticipants={form.rejectedParticipants}
+            onToggle={form.toggleUser}
+            onRemove={form.handleRemoveUser}
+          />
 
-              <div className="rounded-md border border-border">
-                {isSearching ? (
-                  <div className="flex items-center justify-center gap-2 px-3 py-8 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {translations.loading || 'Loading...'}
-                  </div>
-                ) : debouncedSearch.length >= 2 && (searchData?.users || []).length === 0 ? (
-                  <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                    {translations.noUsersFound || 'No users found'}
-                  </div>
-                ) : debouncedSearch.length < 2 ? (
-                  <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                    {translations.searchUsers || 'Search users'}
-                  </div>
-                ) : (
-                  <div className="max-h-64 overflow-y-auto">
-                    {(searchData?.users || []).map((user) => {
-                      const usernameKey = user.username.toLowerCase();
-                      const isSelf = usernameKey === currentUsername.toLowerCase();
-                      const isSelected = selectedUsernames.has(usernameKey);
-                      const isDisabled = isSelf || isSelected;
-                      return (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={() => handleSelectUser(user)}
-                          disabled={isDisabled}
-                          className="motion-list-item motion-press flex w-full items-center gap-3 border-b border-border px-3 py-3 text-left last:border-b-0 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-55"
-                        >
-                          <AuthenticatedImage src={getAvatarSrc(user.avatar_url)} alt={user.username} className="motion-avatar h-10 w-10 rounded-full object-cover" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium">{user.display_name || user.username}</span>
-                            <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
-                          </span>
-                          {isSelected ? (
-                            <Check className="h-4 w-4 text-primary" />
-                          ) : (
-                            <UserPlus className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="mb-2 text-sm font-medium">
-                  {translations.selectedParticipants || 'Selected participants'} ({selectedUsers.length})
-                </div>
-                {selectedUsers.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-border px-3 py-8 text-center text-sm text-muted-foreground">
-                    {translations.noParticipantsSelected || 'No participants selected'}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedUsers.map((user) => (
-                      <div key={user.id} className="motion-list-item flex items-center gap-3 rounded-md border border-border px-3 py-2">
-                        <AuthenticatedImage src={getAvatarSrc(user.avatar_url)} alt={user.username} className="motion-avatar h-9 w-9 rounded-full object-cover" />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{user.display_name || user.username}</div>
-                          <div className="truncate text-xs text-muted-foreground">@{user.username}</div>
-                          {rejectedParticipants[user.username] && (
-                            <div className="motion-error-in mt-1 text-xs text-destructive">{rejectedParticipants[user.username]}</div>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveUser(user.username)}
-                          className="motion-press rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                          aria-label={translations.delete || 'Delete'}
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {createError && (
-                <div className="motion-error-in rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {createError}
-                </div>
-              )}
+          {form.createError && (
+            <div className="motion-error-in rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {form.createError}
             </div>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-between border-t border-border px-5 py-4">
-          {step === 2 ? (
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="motion-press inline-flex items-center gap-2 rounded-md border border-input px-4 py-2 text-sm hover:bg-accent"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              {translations.back || 'Back'}
-            </button>
-          ) : (
-            <span />
-          )}
-          {step === 1 ? (
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              disabled={!groupName.trim()}
-              className="motion-press rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {translations.next || 'Next'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={!groupName.trim() || selectedUsers.length === 0 || isCreating}
-              className="motion-press inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
-              {translations.create || 'Create'}
-            </button>
-          )}
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-4">
+          <span className="text-sm text-muted-foreground">{text.selected.replace('{count}', String(form.selectedUsers.length))}</span>
+          <button
+            type="button"
+            onClick={form.handleCreate}
+            disabled={!canCreate}
+            className="motion-press inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {form.isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
+            {text.create}
+          </button>
         </div>
       </div>
     </ModalSurface>

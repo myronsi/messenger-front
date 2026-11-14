@@ -20,12 +20,13 @@ interface ChatContextMenuProps {
   onDeleteChat?: (chatId: EntityId) => void;
   onClose: () => void;
   onError: (message: string) => void;
+  canMute?: boolean;
 }
 
 type MenuView = { chatId: EntityId | null; name: 'main' | 'mute'; direction: 'forward' | 'back' | null };
 
 const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, translations, onMarkAsRead, onTogglePinned,
-  onToggleArchived, onClearHistory, onDeleteChat, onClose, onError }) => {
+  onToggleArchived, onClearHistory, onDeleteChat, onClose, onError, canMute = true }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   useDismissFirstMenu(!!menu, menuRef, onClose);
   const [shown, setShown] = useState(menu);
@@ -141,14 +142,16 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
             )}
           </>
         )}
-        <ChatMuteMenuItems
-          key={String(shown.chatId)}
-          chatId={shown.chatId}
-          isChoosing={isChoosingMute}
-          onChoosingChange={showMuteChoice}
-          onDone={onClose}
-          onError={onError}
-        />
+        {canMute && (
+          <ChatMuteMenuItems
+            key={String(shown.chatId)}
+            chatId={shown.chatId}
+            isChoosing={isChoosingMute}
+            onChoosingChange={showMuteChoice}
+            onDone={onClose}
+            onError={onError}
+          />
+        )}
       </div>
     </div>
   );

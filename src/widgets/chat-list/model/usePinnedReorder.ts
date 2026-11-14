@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, type MouseEvent, type PointerEvent as Reac
 import type { EntityId } from '@/shared/api/entityId';
 
 export const REORDER_HOLD_MS = 450;
+export const REORDER_SETTLE_MS = 200;
 const SLOP = 6;
+const TOUCH_SLOP = 12;
 
 interface Press {
   id: EntityId;
@@ -21,6 +23,7 @@ interface Drag {
   dy: number;
   height: number;
   middles: number[];
+  settling?: boolean;
 }
 
 export const moveItem = <T,>(items: T[], from: number, to: number) => {
@@ -51,12 +54,17 @@ export const usePinnedReorder = ({ pinnedIds, onCommit, onHold, onDragStart }: P
   const press = useRef<Press | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const suppressClick = useRef(false);
+  const lastTouch = useRef(false);
+  const held = useRef<EntityId | null>(null);
   const detach = useRef<(() => void) | null>(null);
   const [drag, setDragState] = useState<Drag | null>(null);
+  const [snapping, setSnapping] = useState(false);
+  const settleTimer = useRef<number | undefined>(undefined);
   const latest = useRef({ pinnedIds, onCommit, onHold, onDragStart });
   latest.current = { pinnedIds, onCommit, onHold, onDragStart };
 
   const setDrag = (next: Drag | null) => {
+    if (next && dragRef.current && !next.settling && next.to !== dragRef.current.to) navigator.vibrate?.(5);
     dragRef.current = next;
     setDragState(next);
   };
@@ -76,6 +84,7 @@ export const usePinnedReorder = ({ pinnedIds, onCommit, onHold, onDragStart }: P
     return () => {
       document.removeEventListener('touchmove', block);
       detach.current?.();
+      window.clearTimeout(settleTimer.current);
     };
   }, []);
 
@@ -98,12 +107,13 @@ export const usePinnedReorder = ({ pinnedIds, onCommit, onHold, onDragStart }: P
     const dx = event.clientX - current.x;
     const dy = event.clientY - current.y;
     const active = dragRef.current;
+    if (active?.settling) return;
     if (active) {
       setDrag({ ...active, dy, to: targetIndex(active.middles, active.from, active.middles[active.from] + dy) });
       return;
     }
     if (!current.armed) {
-      if (Math.hypot(dx, dy) > SLOP) end();
+      if (Math.hypot(dx, dy) > (current.touch ? TOUCH_SLOP : SLOP)) end();
       return;
     }
     if (current.draggable && Math.abs(dy) > SLOP) {
@@ -115,14 +125,27 @@ export const usePinnedReorder = ({ pinnedIds, onCommit, onHold, onDragStart }: P
   const onUp = () => {
     const active = dragRef.current;
     end();
-    if (!active) return;
-    setDrag(null);
-    if (active.from !== active.to) latest.current.onCommit(moveItem(latest.current.pinnedIds, active.from, active.to));
+    if (!active || active.settling) return;
+    setDrag({ ...active, dy: active.middles[active.to] - active.middles[active.from], settling: true });
+    settleTimer.current = window.setTimeout(() => {
+      setSnapping(true);
+      setDrag(null);
+      if (active.from !== active.to) latest.current.onCommit(moveItem(latest.current.pinnedIds, active.from, active.to));
+      requestAnimationFrame(() => requestAnimationFrame(() => setSnapping(false)));
+    }, REORDER_SETTLE_MS);
   };
 
   const onCancel = () => {
     end();
-    if (dragRef.current) setDrag(null);
+    if (dragRef.current && !dragRef.current.settling) setDrag(null);
+  };
+
+  const hold = (id: EntityId, x: number, y: number) => {
+    if (held.current === id) return;
+    held.current = id;
+    suppressClick.current = true;
+    navigator.vibrate?.(15);
+    latest.current.onHold(id, x, y);
   };
 
   const bind = (id: EntityId) => ({
@@ -132,16 +155,17 @@ export const usePinnedReorder = ({ pinnedIds, onCommit, onHold, onDragStart }: P
     },
     onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      if (dragRef.current?.settling) return;
       end();
       const touch = event.pointerType !== 'mouse';
+      lastTouch.current = touch;
+      held.current = null;
       const draggable = latest.current.pinnedIds.includes(id) && latest.current.pinnedIds.length > 1;
       const current: Press = { id, x: event.clientX, y: event.clientY, touch, armed: !touch, draggable };
       if (touch) {
         current.timer = window.setTimeout(() => {
           current.armed = true;
-          suppressClick.current = true;
-          navigator.vibrate?.(15);
-          latest.current.onHold(id, current.x, current.y);
+          hold(id, current.x, current.y);
         }, REORDER_HOLD_MS);
       }
       press.current = current;
@@ -153,6 +177,16 @@ export const usePinnedReorder = ({ pinnedIds, onCommit, onHold, onDragStart }: P
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('pointercancel', onCancel);
       };
+    },
+    onContextMenu: (event: MouseEvent) => {
+      if (!lastTouch.current) return;
+      event.preventDefault();
+      const current = press.current;
+      if (current?.id === id) {
+        if (current.timer) window.clearTimeout(current.timer);
+        current.armed = true;
+      }
+      hold(id, event.clientX, event.clientY);
     },
     onClickCapture: (event: MouseEvent) => {
       if (!suppressClick.current) return;
@@ -172,5 +206,5 @@ export const usePinnedReorder = ({ pinnedIds, onCommit, onHold, onDragStart }: P
     return 0;
   };
 
-  return { bind, offsetOf, draggingId: drag?.id ?? null };
+  return { bind, offsetOf, draggingId: drag?.id ?? null, isSettling: !!drag?.settling, isSnapping: snapping };
 };

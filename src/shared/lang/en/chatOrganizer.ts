@@ -1,5 +1,6 @@
 export const chatOrganizer = {
   chatOrganizer: {
+    undo: "Undo",
     archive: "Archive",
     unarchive: "Unarchive",
     archived: "Chat archived",
@@ -8,6 +9,7 @@ export const chatOrganizer = {
     backToChats: "Back to chats",
     savedMessages: "Saved Messages",
     savedMessagesHint: "Notes, links and files for yourself",
+    selfName: "{name} (you)",
     pullForArchive: "Pull down to see archived chats",
     dragToReorder: "Drag to reorder",
   },

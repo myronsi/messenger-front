@@ -22,3 +22,10 @@ it('opens the direct chat search with a long press on the header', () => {
   expect(onOpenSearch).toHaveBeenCalledOnce();
   expect(onOpenProfile).not.toHaveBeenCalled();
 });
+
+it('names the chat with yourself after you without presence', () => {
+  render(<ChatHeader chatName="me" chatDisplayName="Mia Stone" isOnline interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+    onOpenProfile={vi.fn()} interlocutorAvatar="/me.png" />);
+  expect(screen.getByText('Mia Stone (you)')).toBeInTheDocument();
+  expect(screen.queryByText(/online/i)).not.toBeInTheDocument();
+});

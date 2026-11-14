@@ -85,22 +85,36 @@ const MessengerAppSkeleton = ({ isMobile = false }: { isMobile?: boolean }) => {
 };
 
 const UserProfileSkeleton = () => (
-  <div className="flex min-h-full flex-col">
-    <div className="px-5 pb-3 pt-5 text-center md:pt-4">
-      <Skeleton className="mx-auto h-24 w-24 rounded-full md:h-20 md:w-20" />
-      <Skeleton className="mx-auto mt-3 h-5 w-36" />
-      <Skeleton className="mx-auto mt-2 h-3 w-24" />
-      <Skeleton className="mx-auto mt-3 h-7 w-32 rounded-full" />
+  <div data-testid="user-profile-skeleton" className="flex min-h-full flex-col">
+    <Skeleton className="h-32 w-full rounded-none" />
+    <div className="flex items-start justify-between gap-3 px-5">
+      <div className="-mt-14 h-28 w-28 shrink-0 rounded-full bg-background p-1">
+        <Skeleton className="h-full w-full rounded-full" />
+      </div>
+      <div className="flex gap-2 pt-3">
+        <Skeleton className="h-10 w-24 rounded-xl" />
+        <Skeleton className="h-10 w-10 rounded-xl" />
+      </div>
     </div>
-    <div className="grid grid-cols-3 gap-2 border-y border-border px-4 py-3">
-      <Skeleton className="h-12 rounded-md" />
-      <Skeleton className="h-12 rounded-md" />
-      <Skeleton className="h-12 rounded-md" />
+    <div className="px-5 pt-2">
+      <Skeleton className="h-7 w-44" />
+      <Skeleton className="mt-2 h-4 w-36" />
     </div>
-    <div className="flex-1 space-y-3 px-5 py-4 md:py-3">
-      <Skeleton className="h-24 rounded-lg" />
-      <Skeleton className="h-28 rounded-lg" />
-      <Skeleton className="h-11 rounded-lg" />
+    <div className="mx-5 mt-3 flex gap-6 border-b border-border pb-2.5 pt-1">
+      <Skeleton className="h-4 w-10" />
+      <Skeleton className="h-4 w-12" />
+      <Skeleton className="h-4 w-10" />
+    </div>
+    <div className="flex-1 space-y-5 px-5 py-4">
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-10" />
+        <Skeleton className="h-4 w-3/4" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-14 w-full rounded-xl" />
+        <Skeleton className="h-14 w-full rounded-xl" />
+      </div>
     </div>
   </div>
 );

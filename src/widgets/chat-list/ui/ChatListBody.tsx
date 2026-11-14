@@ -6,6 +6,7 @@ import type { Chat, ChatLastMessage } from '@/entities/message';
 import { Button } from '@/shared/ui/button';
 import ChatListItem from './ChatListItem';
 import { usePinnedReorder } from '../model/usePinnedReorder';
+import { selfName } from '@/shared/lib/selfName';
 
 const PULL_TO_REVEAL = 64;
 const isCoarsePointer = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
@@ -38,7 +39,7 @@ const ArchivedRow = ({ chats, translations, onOpen }: { chats: Chat[]; translati
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-medium leading-5">{translations.chatOrganizer.archivedChats}</span>
-        <span className="block truncate text-sm text-muted-foreground">{chats.map((chat) => chat.is_saved ? translations.chatOrganizer.savedMessages : chat.display_name || chat.name).join(', ')}</span>
+        <span className="block truncate text-sm text-muted-foreground">{chats.map((chat) => chat.is_saved ? selfName(chat.display_name || chat.name, translations) : chat.display_name || chat.name).join(', ')}</span>
       </span>
       {unread > 0 && (
         <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-muted-foreground px-1.5 text-xs font-semibold text-background">
@@ -73,6 +74,7 @@ const ChatListBody: React.FC<ChatListBodyProps> = ({
   const listRef = useRef<HTMLDivElement | null>(null);
   const archived = chats.filter((chat) => chat.is_archived);
   const main = chats.filter((chat) => !chat.is_archived);
+  if (showArchived && archived.length === 0) setShowArchived(false);
   const inArchive = showArchived && archived.length > 0;
   const shown = inArchive ? archived : main;
   const pinnedIds = inArchive ? [] : main.filter((chat) => chat.is_pinned).map((chat) => chat.id);
@@ -138,6 +140,8 @@ const ChatListBody: React.FC<ChatListBodyProps> = ({
           binding={reorder.bind(chat.id)}
           dragOffset={reorder.offsetOf(chat.id)}
           isDragging={reorder.draggingId === chat.id}
+          isSettling={reorder.isSettling}
+          noTransition={reorder.isSnapping}
           onSwipeArchive={onToggleArchived && !chat.pending_approval_request ? (target) => onToggleArchived(target.id) : undefined}
         />
       ))}

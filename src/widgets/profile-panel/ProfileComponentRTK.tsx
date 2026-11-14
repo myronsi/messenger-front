@@ -1,5 +1,6 @@
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { mobileWindowSlide } from '@/shared/ui/windowMotion';
+import { createPortal } from 'react-dom';
 import React, { forwardRef, useCallback, useRef, useState, type ReactNode } from 'react';
 import type { SettingsPage } from '@/shared/lib/urlOverlay';
 import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
@@ -7,15 +8,16 @@ import BlockedUsersSection from './ui/BlockedUsersSection';
 import NotificationSettingsPanel from './ui/NotificationSettingsPanel';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
-import PersonalInfoPage from './ui/PersonalInfoPage';
 import LanguageSettingsPage from './ui/LanguageSettingsPage';
 import AppearanceSettingsPage from './ui/AppearanceSettingsPage';
 import AboutPage from './ui/AboutPage';
 import { SettingsSectionNav, type SettingsSection } from './ui/SettingsSectionNav';
 import { LANGUAGE_NAMES } from './languageNames';
-import { ArrowLeft, Bell, Globe, Inbox, Info, Loader2, Palette, Shield, Smartphone, UserRound, X } from 'lucide-react';
+import { ArrowLeft, Bell, Globe, Inbox, Info, Loader2, Palette, Shield, Smartphone, X } from 'lucide-react';
 import ProfileHomePage from './ui/ProfileHomePage';
 import ProfilePanelDialogs from './ui/ProfilePanelDialogs';
+import { SheetFrame } from './ui/SheetFrame';
+import { TabHeader } from '@/shared/ui/TabHeader';
 import type { ProfileSettingsRow } from './ui/ProfileSettingsRows';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useAppearance } from '@/shared/contexts/AppearanceContext';
@@ -31,10 +33,12 @@ interface ProfileComponentRTKProps {
   onLogout: () => void;
   isClosing?: boolean;
   layout?: SettingsLayout;
+  embedded?: boolean;
+  navTarget?: HTMLElement | null;
 }
 
 const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>(({
-  onClose, onLogout, isClosing = false, layout = 'sheet',
+  onClose, onLogout, isClosing = false, layout = 'sheet', embedded = false, navTarget,
 }, ref) => {
   const dismissBlockedRef = useRef(false);
   const [dismissBlocked, setDismissBlocked] = useState(false);
@@ -48,21 +52,9 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const t = translations.appShell;
   const { theme } = useAppearance();
   const {
-    avatarFile, setAvatarFile, avatarCropUrl, setAvatarCropUrl, isUploading, bio, newBio, setNewBio,
-    displayName, newDisplayName, setNewDisplayName, isSavingPersonalInfo, isAvatarViewerOpen, setIsAvatarViewerOpen, isVisible,
-    modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete,
-    handleSavePersonalInfo, discardPersonalInfo, handleLogout, handleDeleteAccount, handleClose, displayNameChanged,
-    displayNameInvalid,
+    avatarFile, setAvatarFile, avatarCropUrl, setAvatarCropUrl, isUploading, displayName, isAvatarViewerOpen, setIsAvatarViewerOpen,
+    isVisible, modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete, handleLogout, handleDeleteAccount, handleClose,
   } = useProfileAccountActions({ userData, refetchCurrentUser, onClose: safeClose, onLogout });
-  const [avatarStart, setAvatarStart] = useState(0);
-  const openAvatar = (index: number) => {
-    setAvatarStart(index);
-    setIsAvatarViewerOpen(true);
-  };
-  const pickAvatar = (file: File) => {
-    setAvatarFile(file);
-    setAvatarCropUrl(URL.createObjectURL(file));
-  };
   const panelData = useProfilePanelData({ setModal });
   const {
     activeProfilePage, setActiveProfilePage, blockedUsers, requestInbox, pendingRequestCount, isApprovingRequest, isRejectingRequest,
@@ -71,7 +63,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const shown = isVisible && !isClosing;
   const pane = layout === 'pane';
   const closeSafely = () => { if (!dismissBlockedRef.current) handleClose(); };
-  const frame = (content: ReactNode) => (pane
+  const frame = (content: ReactNode) => (pane || embedded
     ? <div role="region" aria-label={t.settings} className="absolute inset-0 z-50 flex items-center justify-center bg-background p-4">{content}</div>
     : <ModalSurface label="Profile" className="fixed inset-0 z-[1000] flex items-center justify-center bg-background p-4 sm:bg-background/80 sm:backdrop-blur-sm">{content}</ModalSurface>);
 
@@ -88,7 +80,6 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const avatarUrl = getProfileAvatarUrl(userData.avatar_url);
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
   const sections: SettingsSection[] = [
-    { page: 'personal', label: translations.profile || 'Profile', icon: UserRound },
     { page: 'requests', label: t.messageRequests, icon: Inbox, badge: pendingRequestCount },
     { page: 'privacy', label: translations.privacy || 'Privacy', icon: Shield },
     { page: 'security', label: translations.securityDevices || 'Security & devices', icon: Smartphone },
@@ -103,7 +94,8 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const pick = (...pages: SettingsPage[]) => sections.filter((section) => pages.includes(section.page)).map(toRow);
   const homeSections = [pick('requests'), pick('privacy', 'security', 'notifications', 'appearance', 'language'), pick('about')]
     .filter((rows) => rows.length > 0);
-  const current: SettingsPage = pane && activeProfilePage === 'profile' ? 'personal' : activeProfilePage;
+  const requested: SettingsPage = activeProfilePage === 'personal' ? 'profile' : activeProfilePage;
+  const current: SettingsPage = pane && requested === 'profile' ? 'requests' : requested;
   const back = () => setActiveProfilePage('profile');
   const slot = (page: SettingsPage, node: ReactNode) => {
     const active = current === page;
@@ -116,13 +108,6 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
       onApprove={handleApproveRequest} onReject={handleRejectRequest} onBack={back} getMediaUrl={getProfileMediaUrl} />),
     slot('appearance', <AppearanceSettingsPage onBack={back} />),
     slot('language', <LanguageSettingsPage language={language} onChange={(next) => { setLanguage(next); window.location.reload(); }} onBack={back} />),
-    slot('personal', <PersonalInfoPage avatarUrl={avatarUrl} displayName={displayName} isUploadingAvatar={isUploading} onPickAvatar={pickAvatar}
-      newDisplayName={newDisplayName} displayNameChanged={displayNameChanged} displayNameInvalid={displayNameInvalid}
-      isSaving={isSavingPersonalInfo}
-      onDisplayNameChange={setNewDisplayName} bio={bio} newBio={newBio}
-      onBioChange={setNewBio} onSaveAll={handleSavePersonalInfo} onDiscard={discardPersonalInfo} onBack={back}
-      username={userData.username} createdAt={userData.created_at} hasCustomAvatar={hasCustomAvatar}
-      onOpenAvatar={openAvatar} />),
     slot('privacy', <PrivacySettingsPanel isActive={current === 'privacy'} detail={panelData.privacyDetail} showExceptions={panelData.privacyExceptions}
       onOpenDetail={panelData.openPrivacyDetail} onOpenRequests={() => setActiveProfilePage('requests')} onBack={back}>
       <BlockedUsersSection blockedUsers={blockedUsers} handleUnblockUser={handleUnblockUser} isUnblockingUser={isUnblockingUser} />
@@ -144,9 +129,15 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         setAvatarCropUrl(null);
         setAvatarFile(null);
       }}
-      isAvatarViewerOpen={isAvatarViewerOpen} avatarViewerIndex={avatarStart} onCloseAvatarViewer={() => setIsAvatarViewerOpen(false)}
+      isAvatarViewerOpen={isAvatarViewerOpen} avatarViewerIndex={0} onCloseAvatarViewer={() => setIsAvatarViewerOpen(false)}
       onDeleteAvatar={handleAvatarDelete} />
   );
+
+  const sectionNav = (fill: boolean) => {
+    const nav = <SettingsSectionNav avatarUrl={avatarUrl} displayName={displayName} username={userData.username} sections={sections} active={current}
+      onSelect={setActiveProfilePage} onLogout={handleLogout} isLoggingOut={isLoggingOut} fill={fill} />;
+    return fill ? <div className="flex h-full w-full flex-col"><TabHeader title={t.settings} /><div className="min-h-0 flex-1">{nav}</div></div> : nav;
+  };
 
   if (pane) {
     return (
@@ -154,8 +145,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
         <div ref={ref} role="region" aria-label={t.settings}
           onKeyDown={(event) => { if (event.key === 'Escape' && !event.defaultPrevented) closeSafely(); }}
           className={`motion-sheet-in absolute inset-0 z-50 flex bg-background transition-opacity duration-200 ${shown ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-          <SettingsSectionNav avatarUrl={avatarUrl} displayName={displayName} username={userData.username} sections={sections} active={current}
-            onSelect={setActiveProfilePage} onLogout={handleLogout} isLoggingOut={isLoggingOut} />
+          {navTarget ? createPortal(sectionNav(true), navTarget) : sectionNav(false)}
           <div className="relative min-w-0 flex-1">
             {pages}
             <button type="button" onClick={closeSafely} disabled={dismissBlocked} aria-label={t.closeSettings} title={t.closeSettings}
@@ -171,15 +161,14 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
 
   return (
     <SettingsLayoutContext.Provider value="sheet">
-      <ModalSurface label="Profile"
-        onPointerDown={(event) => { if (event.target === event.currentTarget) closeSafely(); }}
-        className={`fixed inset-0 z-[1000] flex items-stretch justify-stretch bg-transparent p-0 sm:items-center sm:justify-center sm:bg-black/40 sm:px-4 sm:py-6 sm:transition-opacity sm:duration-200 ${shown ? 'sm:opacity-100' : 'pointer-events-none sm:opacity-0'}`}
-      >
+      <SheetFrame embedded={embedded} label={t.settings} shown={shown} onBackdrop={closeSafely}>
         <div ref={ref}
-          className={`relative flex h-[100dvh] w-full max-w-none transform flex-col overflow-hidden border-0 bg-background text-foreground shadow-none sm:h-[min(760px,calc(100vh-3rem))] sm:max-w-xl sm:rounded-lg sm:border sm:border-border sm:shadow-2xl sm:transition-all sm:duration-200 sm:ease-out ${mobileWindowSlide(shown)} ${shown ? 'sm:translate-y-0 sm:scale-100 sm:opacity-100' : 'sm:translate-y-2 sm:scale-95 sm:opacity-0'}`}
+          className={embedded ? 'relative flex h-full w-full flex-col overflow-hidden bg-background text-foreground'
+            : `relative flex h-[100dvh] w-full max-w-none transform flex-col overflow-hidden border-0 bg-background text-foreground shadow-none sm:h-[min(760px,calc(100vh-3rem))] sm:max-w-xl sm:rounded-lg sm:border sm:border-border sm:shadow-2xl sm:transition-all sm:duration-200 sm:ease-out ${mobileWindowSlide(shown)} ${shown ? 'sm:translate-y-0 sm:scale-100 sm:opacity-100' : 'sm:translate-y-2 sm:scale-95 sm:opacity-0'}`}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          {current === 'profile' && <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2">
+          {current === 'profile' && embedded && <TabHeader title={t.settings} />}
+          {current === 'profile' && !embedded && <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2">
             <button type="button" onClick={closeSafely} disabled={dismissBlocked} aria-label={t.backToChats} title={t.backToChats}
               className="rounded-full p-2 text-subtle-foreground transition-colors hover:bg-accent hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
@@ -189,15 +178,13 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
           <div className="relative min-h-0 flex-1 overflow-hidden supports-[overflow:clip]:overflow-clip">
             <div aria-hidden={current !== 'profile'} inert={current !== 'profile'}
               className={`absolute inset-0 overflow-y-auto bg-muted/50 motion-window-slide ${current === 'profile' ? 'pointer-events-auto translate-x-0' : 'pointer-events-none -translate-x-full'}`}>
-              <ProfileHomePage username={userData.username} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName} bio={bio}
-                isUploadingAvatar={isUploading} onPickAvatar={pickAvatar} onOpenAvatar={openAvatar} onEditProfile={() => setActiveProfilePage('personal')}
-                sections={homeSections} handleLogout={handleLogout} isLoggingOut={isLoggingOut} />
+              <ProfileHomePage sections={homeSections} handleLogout={handleLogout} isLoggingOut={isLoggingOut} />
             </div>
             {pages}
           </div>
         </div>
         {dialogs}
-      </ModalSurface>
+      </SheetFrame>
     </SettingsLayoutContext.Provider>
   );
 });

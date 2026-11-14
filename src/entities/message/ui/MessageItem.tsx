@@ -76,8 +76,7 @@ interface MessageItemProps {
   isOwnMessage: (message: Message) => boolean;
   getFileTypeConfig: (fileName: string) => FileTypeConfig | undefined;
   renderMessageContent: (message: Message) => React.ReactNode;
-  isAudioPlaying: boolean;
-  setPlayingMessageId: (id: EntityId | null, endedId?: EntityId) => void;
+  onPlayAudio: (id: EntityId, startAt?: number) => void;
   onMessageClick: (event: React.MouseEvent, message: Message) => void;
   onClick: (event: React.MouseEvent, message: Message) => void;
   onAvatarClick: (username: string) => void;
@@ -96,7 +95,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage: isImageMessage, isMobile, showNewMessagesMarker,
   nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
   firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
-  renderMessageContent, isAudioPlaying, setPlayingMessageId,
+  renderMessageContent, onPlayAudio,
   onMessageClick, onClick, onAvatarClick, onReplyClick,
   setTempHighlightedMessageId, wsRef, onOpenReadStatus, onOpenReactionDetails, onResendMessage, isSelected = false, onToggleSelect, onLongPress, onSwipeReply,
 }) => {
@@ -246,8 +245,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   getFileTypeConfig={getFileTypeConfig}
                   isOwnMessage={isOwnMessage}
                   renderMessageContent={renderMessageContent}
-                  isAudioPlaying={isAudioPlaying}
-                  setPlayingMessageId={setPlayingMessageId}
+                  onPlayAudio={onPlayAudio}
                   trailing={trailing}
                 />
                 {isText && hasTime && (

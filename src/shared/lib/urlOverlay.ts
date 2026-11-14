@@ -12,6 +12,7 @@ export type SecurityDetail = typeof SECURITY_DETAILS[number];
 export type UrlOverlay =
   | { kind: 'settings'; page: SettingsPage; detail?: PrivacyDetail; exceptions?: 'allow' | 'deny'; securityDetail?: SecurityDetail }
   | { kind: 'profile' }
+  | { kind: 'me' }
   | { kind: 'user'; username: string; overProfile?: boolean };
 
 const isSettingsPage = (value: string): value is SettingsPage => (SETTINGS_PAGES as readonly string[]).includes(value);
@@ -45,6 +46,9 @@ export const splitOverlayPath = (pathname: string): { base: string; overlay: Url
     return { base: settings[1] || '/', overlay: { kind: 'settings', page: (settings[2] as SettingsPage | undefined) || 'profile' } };
   }
 
+  const me = path.match(/^(.*?)\/me$/);
+  if (me && (!me[1] || isChatBase(me[1]))) return { base: me[1] || '/', overlay: { kind: 'me' } };
+
   const profile = path.match(/^(.+)\/profile$/);
   if (profile && isChatBase(profile[1])) return { base: profile[1], overlay: { kind: 'profile' } };
 
@@ -70,6 +74,7 @@ export const joinOverlayPath = (base: string, overlay: UrlOverlay | null) => {
     return `${prefix}/settings${overlay.page === 'profile' ? '' : `/${overlay.page}`}${detail}`;
   }
   if (overlay.kind === 'profile') return `${prefix}/profile`;
+  if (overlay.kind === 'me') return `${prefix}/me`;
   return `${prefix}${overlay.overProfile ? '/profile' : ''}/@${encodeURIComponent(overlay.username.replace(/^@/, ''))}`;
 };
 

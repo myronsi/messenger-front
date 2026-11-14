@@ -15,10 +15,12 @@ import ChatContextMenu from './ui/ChatContextMenu';
 import { useChatListModel } from './model/useChatListModel';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
 import type { Chat } from '@/entities/message';
-import { getMediaSrc, type ChatsListComponentProps } from './model/types';
+import type { ChatsListComponentProps } from './model/types';
+import { selfName } from '@/shared/lib/selfName';
+import { AudioPlayerBar } from '@/features/audio-player';
 
 const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
-  const { setIsProfileOpen, onOpenRequests } = props;
+  const { onOpenRequests } = props;
   const model = useChatListModel(props);
   useAppWorkerRegistration(!model.isLoading);
   const { data: me } = useGetCurrentUserQuery();
@@ -45,7 +47,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
     model.closeChatContextMenu();
     if (!chat) return;
     cleanup.open({ kind, target: {
-      chatId: chat.id, name: chat.is_saved ? model.translations.chatOrganizer.savedMessages : chat.display_name || chat.name,
+      chatId: chat.id, name: chat.is_saved ? selfName(chat.display_name || chat.name, model.translations) : chat.display_name || chat.name,
       isGroup: chat.type === 'group', isSaved: !!chat.is_saved, canClearForEveryone: chat.my_role === 'owner' || chat.my_role === 'admin',
     } });
   };
@@ -57,16 +59,13 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const header = (
     <ChatsListHeader
       translations={model.translations}
-      avatarUrl={getMediaSrc(me?.avatar_url)}
-      displayName={me?.display_name || me?.username || model.username}
       onOpenSearch={model.handleOpenSearch}
       onNewGroup={() => setCreatingGroup(true)}
       onScanQr={() => setScanning(true)}
       onOpenSaved={openSaved}
-      profileIndicatorCount={pendingRequests}
-      onOpenProfile={() => setIsProfileOpen(true)}
     />
   );
+  const playerBar = <AudioPlayerBar className={props.activeChatId ? 'md:hidden' : ''} />;
 
   if (model.isLoading) {
     return (
@@ -80,6 +79,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   return (
     <div ref={model.containerRef} className="h-full bg-background text-foreground flex flex-col relative">
       {header}
+      {playerBar}
       {pendingRequests > 0 && onOpenRequests && (
         <button type="button" onClick={onOpenRequests}
           className="mx-3 mb-1 mt-2.5 flex items-center gap-3 rounded-xl bg-primary/10 px-3.5 py-3 text-left text-primary transition-colors hover:bg-primary/15 md:hidden">
@@ -132,6 +132,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         onToggleArchived={model.handleToggleArchived}
         onClearHistory={() => askCleanup('clear', menuChat)}
         onDeleteChat={menuChat?.type === 'one-on-one' ? () => askCleanup('delete', menuChat) : undefined}
+        canMute={!menuChat?.is_saved}
         onClose={model.closeChatContextMenu}
         onError={(message) => model.setModal({ type: 'error', message })}
       />

@@ -20,7 +20,7 @@ const item = (message: Message) => (
     showNewMessagesMarker={false} nextShowsNewMessagesMarker={false} translations={en} interlocutorDeleted={false} isHighlighted={false}
     isContextHighlighted={false} messageRefs={{ current: {} }} firstUnreadMarkerRef={{ current: null }} getFormattedDateLabel={() => 'Today'}
     getMessageTime={() => '19:19'} isOwnMessage={(message) => message.sender_id === '1'} getFileTypeConfig={() => undefined}
-    renderMessageContent={(message) => message.content as string} isAudioPlaying={false} setPlayingMessageId={vi.fn()} onMessageClick={vi.fn()}
+    renderMessageContent={(message) => message.content as string} onPlayAudio={vi.fn()} onMessageClick={vi.fn()}
     onClick={vi.fn()} onAvatarClick={vi.fn()} onReplyClick={vi.fn()} setTempHighlightedMessageId={vi.fn()} wsRef={{ current: null }}
   />
 );
