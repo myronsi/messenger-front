@@ -1,7 +1,6 @@
 import { expect, type Browser, type BrowserContext, type Page, type Locator } from '@playwright/test';
 
 const MESSENGER_HEADING = 'Chats';
-const PROFILE_BUTTON_NAME = /^Your profile and settings/;
 const LOGIN_BUTTON_NAME = 'Sign in';
 
 export interface SmokeUser {
@@ -11,6 +10,9 @@ export interface SmokeUser {
 }
 
 const uniquePart = () => `${Date.now().toString(36)}${crypto.randomUUID().slice(0, 4)}`;
+
+const mainNav = (page: Page) => page.getByRole('navigation', { name: 'Main navigation', exact: true });
+const mainNavButton = (page: Page, label: 'Chats' | 'Settings' | 'Profile') => mainNav(page).getByRole('button', { name: new RegExp(label) });
 
 const chatListItemSelector = (chatName: string) => `[data-testid="chat-list-item"][data-chat-name="${chatName}"]`;
 const searchResultSelector = (username: string) => `[data-testid="user-search-result"][data-username="${username}"]`;
@@ -36,7 +38,7 @@ export const createEnglishContext = async (browser: Browser): Promise<BrowserCon
 
 export const waitForMessenger = async (page: Page) => {
   await expect(page.getByRole('heading', { name: MESSENGER_HEADING })).toBeVisible();
-  await expect(page.getByRole('button', { name: PROFILE_BUTTON_NAME })).toBeVisible();
+  await expect(mainNavButton(page, 'Settings')).toBeVisible();
 };
 
 export const waitForLoginPage = async (page: Page) => {
@@ -101,15 +103,20 @@ export const loginUser = async (page: Page, user: SmokeUser) => {
 };
 
 export const openProfile = async (page: Page) => {
-  await page.getByRole('button', { name: PROFILE_BUTTON_NAME }).click();
+  await mainNavButton(page, 'Settings').click();
   await expect(settingsSurface(page)).toBeVisible();
+};
+
+export const openOwnProfile = async (page: Page) => {
+  await mainNavButton(page, 'Profile').click();
+  await expect(page).toHaveURL(/\/me$/);
 };
 
 export const settingsSurface = (page: Page) => page.getByRole('dialog', { name: 'Profile', exact: true })
   .or(page.getByRole('region', { name: 'Settings', exact: true }));
 
 export const closeProfile = async (page: Page) => {
-  await page.getByRole('button', { name: /^(Close settings|Back to chats)$/ }).first().click();
+  await mainNavButton(page, 'Chats').click();
   await expect(settingsSurface(page)).not.toBeVisible();
 };
 
