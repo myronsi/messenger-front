@@ -41,6 +41,8 @@ npm run build
 npm run test:smoke
 ```
 
+While working, `npm run test:fast` (optionally with file names) runs the unit tests in one shared jsdom per worker, about 7 times faster than `npm test`. Files that fail there are rerun isolated, so only failures that also happen in isolation are reported. `npm test` stays the isolated run for CI and before a push. `npm run lint` keeps a cache in `node_modules/.cache/eslint`, so repeated runs check only changed files.
+
 Smoke tests need the local backend. They create synthetic users and data; use isolated test environments. `npm run dev:mock` serves the HTTP contract through Prism; it does not mock WebSocket delivery.
 
 ## Deployment and documentation
