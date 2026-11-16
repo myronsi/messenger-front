@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Ban, Eraser, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Cake, Eraser, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { ProfileActions, ProfileBanner, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -12,6 +12,7 @@ import { CallButton, useCallsAvailable } from '@/features/calls';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
 import { ContactNameHeading } from './ContactNameHeading';
 import type { ProfilePanelView } from './UserProfilePanelContent';
+import type { ProfileBackground } from '@/entities/user';
 
 type HeadingProps = React.ComponentProps<typeof ContactNameHeading>;
 
@@ -37,6 +38,9 @@ interface UserProfileHeroProps extends HeadingProps {
   onDeleteChat: () => void;
   onBlock: () => void;
   onEditProfile?: () => void;
+  pronouns?: string | null;
+  background?: ProfileBackground | null;
+  birthdayToday?: boolean;
 }
 
 const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
@@ -81,12 +85,15 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
     <div className="shrink-0">
       <ProfileBanner
         seed={props.username}
+        background={props.background}
         online={props.isOnline}
         avatar={props.hasCustomAvatar ? <button type="button" onClick={props.onAvatarHistory} className="block h-full w-full">{avatar}</button> : avatar}
         actions={(tiles.length > 0 || menu.length > 0) && <ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
         title={<ContactNameHeading {...props} />}
         subtitle={<>
           <button type="button" onClick={copyUsername} className="font-medium text-primary hover:underline">@{props.username}</button>
+          {props.pronouns && <><span aria-hidden="true">·</span><span data-testid="profile-pronouns">{props.pronouns}</span></>}
+          {props.birthdayToday && <Cake data-testid="profile-birthday-today" className="h-4 w-4 text-primary" aria-label={translations.profileExtras.birthdayToday} />}
           <span aria-hidden="true">·</span>
           <span className="min-w-0 truncate">{props.isOnline ? t.onlineNow : presence}</span>
         </>}

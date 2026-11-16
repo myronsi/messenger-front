@@ -1,6 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { ChatLastMessage } from '@/entities/message';
 import type { User } from '@/entities/user';
+import type { components } from '@/shared/api/generated/schema';
 
 export interface ApiChat {
   id: EntityId;
@@ -129,6 +130,7 @@ export interface RawGroupDetails {
   chat_id: EntityId; name?: string; description?: string; avatar_url?: string; owner_id?: EntityId;
   owner_username?: string; admin_id?: EntityId; admin_username?: string; current_user_role?: GroupRole;
   participants?: RawGroupParticipant[]; pending_invites?: RawGroupPendingInvite[];
+  background?: components['schemas']['ProfileBackground'] | null;
 }
 export interface GroupRoleLogUser { id: EntityId; username: string; display_name: string }
 export interface GroupRoleEvent { id: EntityId; actor: GroupRoleLogUser | null; target: GroupRoleLogUser; role: GroupRole; created_at: string }

@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { useSettingsLayout } from '../model/settingsLayout';
+import { useSettingsLayout } from '../model/settingsLayout';
+import { TimeZoneSetting } from '@/features/profile';
 import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import { AlertCircle, Bell, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -65,6 +66,7 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
     ['enabled', t.messageNotifications, t.messageNotificationsHint],
     ['sound', t.sound, t.soundHint],
     ['previews', t.previews, t.previewsHint],
+    ['birthday_reminders', translations.profileExtras.birthdayReminders, translations.profileExtras.birthdayRemindersHint],
   ] as const;
 
   const deviceDescription = !supported
@@ -127,9 +129,11 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
                   <span className="block text-sm font-medium text-foreground">{label}</span>
                   <span className="block text-xs text-muted-foreground">{description}</span>
                 </span>
-                <Checkbox aria-label={label} checked={settings.preferences[key]} disabled={busy} onCheckedChange={(checked) => toggle(key, checked === true)} />
+                <Checkbox aria-label={label} checked={settings.preferences[key] ?? true} disabled={busy}
+                  onCheckedChange={(checked) => toggle(key, checked === true)} />
               </label>
             ))}
+            <TimeZoneSetting />
 
             <div className="flex flex-col gap-3 rounded-md border border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">

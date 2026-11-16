@@ -55,6 +55,7 @@ export const useGroupDetails = ({
       permissions: permissionsForRole(currentRole),
       participants,
       pending_invites: pendingInvites,
+      background: raw.background ?? null,
     };
   }, [groupName, username]);
 
