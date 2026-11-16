@@ -12,6 +12,7 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { localeOf } from '@/shared/lang/languages';
 import { cn } from '@/shared/lib/utils';
 import { ProfileMusicCard } from './ProfileMusicCard';
+import UserProfileConnections from './UserProfileConnections';
 
 interface UserProfileInfoPanelProps {
   userId?: EntityId;
@@ -51,6 +52,7 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
         </p>
       )}
       {music && <ProfileMusicCard music={music} ownerName={ownerName} />}
+      <UserProfileConnections userId={userId} />
       {groups.length > 0 && (
         <section data-testid="profile-common-groups">
           <p className="text-sm text-muted-foreground">{translations.profileRework.mutualGroups}</p>
