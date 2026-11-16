@@ -3,6 +3,7 @@ import type { Message } from '@/entities/message';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MessageInput from './MessageInput';
 
+vi.mock('@/entities/emoji', async () => (await import('@/test/emojiMock')).emojiEntityMock());
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: {
   saveMessageEdit: 'Save edit',
   writeMessage: 'Write a message', writeCaption: 'Write a caption...', attachFile: 'Attach file', dropFileToAttach: 'Drop a file to attach it', attachDisabledWhileEditing: 'Not while editing',

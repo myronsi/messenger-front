@@ -16,6 +16,7 @@ import { ROW_COLLAPSE_MS, ROW_SETTLE_MS, ROW_SLIDE_MS, useRowSwipe } from '../mo
 import SwipeArchiveBackdrop from './SwipeArchiveBackdrop';
 import { REORDER_SETTLE_MS } from '../model/usePinnedReorder';
 import { selfName } from '@/shared/lib/selfName';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 type RowBinding = Omit<HTMLAttributes<HTMLElement>, 'ref'> & { ref?: Ref<HTMLElement> };
 const isCoarsePointer = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
@@ -150,7 +151,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
             {chat.type === 'group' && <Users aria-label={translations.group} className={`h-4 w-4 shrink-0 ${muted}`} />}
             <span className="truncate">
               {saved ? selfName(chat.display_name || chat.name, translations)
-                : chat.interlocutor_deleted ? translations.deletedUser : chat.display_name || chat.name}
+                : chat.interlocutor_deleted ? translations.deletedUser : <EmojiText text={chat.display_name || chat.name} />}
             </span>
             {isMuted && (
               <BellOff data-testid="chat-muted-icon" aria-label={translations.mutedForever} className={`h-3.5 w-3.5 shrink-0 ${muted}`} />
@@ -175,10 +176,10 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
             ) : showDraft ? (
               <span data-testid="chat-draft-preview">
                 <span className="text-destructive">{draft.kind === 'edit' ? translations.chatEditPrefix : translations.chatDraftPrefix} </span>
-                {draft.text.replace(/\s+/g, ' ')}
+                <EmojiText text={draft.text.replace(/\s+/g, ' ')} />
               </span>
             ) : (<>
-              {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}>{sender}: </span>}
+              {showSender && sender && <span className={isActive ? 'text-foreground md:text-primary-foreground' : 'text-foreground'}><EmojiText text={sender} />: </span>}
               {isNotice || isContentLabel(chat.last_message)
                 ? (
                   <span data-testid={isNotice ? 'chat-system-preview' : 'chat-label-preview'} className="italic">
@@ -186,7 +187,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
                     {getLastMessagePreview(chat.last_message)}
                   </span>
                 )
-                : getLastMessagePreview(chat.last_message)}
+                : <EmojiText text={getLastMessagePreview(chat.last_message)} />}
             </>)}
           </div>
           {chat.is_pinned && !unreadCount && <Pin aria-label={translations.pinned} className={`h-3.5 w-3.5 shrink-0 rotate-45 ${muted}`} />}

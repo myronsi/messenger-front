@@ -4,6 +4,8 @@ import { formatAudioTime, type Message } from '@/entities/message';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 
 interface ReplyEditBarProps {
   message: Message;
@@ -62,7 +64,7 @@ const ReplyEditBar: React.FC<ReplyEditBarProps> = ({ message, mode, translations
         <div className="truncate text-xs font-medium text-primary">
           {label}{author ? ` ${author}` : ''}
         </div>
-        <div className="truncate text-sm text-foreground" title={text}>{text}</div>
+        <div className="truncate text-sm text-foreground" title={plainEmoji(text)}><EmojiText text={text} /></div>
       </div>
       {showCancel && (
         <button

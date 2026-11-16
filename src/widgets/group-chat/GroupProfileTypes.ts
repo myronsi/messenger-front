@@ -90,5 +90,5 @@ export interface GroupProfileDialogProps {
 }
 
 
-export type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files' | 'links' | 'voice';
+export type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files' | 'links' | 'voice' | 'emoji';
 export type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };

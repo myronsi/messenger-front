@@ -14,6 +14,7 @@ import {
 } from '@/features/chat-core';
 import type { ComposerDraftHandle } from '@/features/message-composer';
 import { createDeleteChatAction } from './useChatActions';
+import { useShortcodeEncoder } from '@/entities/emoji';
 
 const renderMessageContent = (message: Message) => (
   message.type === 'message' && typeof message.content === 'string' ? unescapeCurlyBraces(message.content) : undefined
@@ -33,7 +34,8 @@ export const useChat = (
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const composerDraftRef = useRef<ComposerDraftHandle | null>(null);
-  const getMessageInput = useCallback(() => composerDraftRef.current?.get() ?? '', []);
+  const encodeEmoji = useShortcodeEncoder();
+  const getMessageInput = useCallback(() => encodeEmoji(composerDraftRef.current?.get() ?? ''), [encodeEmoji]);
   const setMessageInput = useCallback((value: SetStateAction<string>) => composerDraftRef.current?.set(value), []);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -154,7 +156,7 @@ export const useChat = (
     handleSendMessage,
     handleSendSticker,
     handleResendMessage,
-    handleFileUpload,
+    handleFileUpload: (file: File | File[], caption?: string, drawings?: Parameters<typeof handleFileUpload>[2]) => handleFileUpload(file, encodeEmoji(caption ?? ''), drawings),
     createOptimisticUploadMessage,
     updateOptimisticUploadProgress,
     markOptimisticUploadFailed,

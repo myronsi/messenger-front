@@ -7,6 +7,9 @@ import { EMOJI_SETS } from '@/shared/lib/emojiSets';
 import { emojiMatches, normalizeSearch, searchEmoji } from '../model/emojiSearch';
 import { useEmojiIndex } from '../model/useEmojiIndex';
 import { StickerTab } from './StickerTab';
+import { CustomEmojiSections } from './CustomEmojiSections';
+import { matchesShortcode } from '../model/emojiAutocomplete';
+import { rememberEmoji, useEmojiPacks } from '@/entities/emoji';
 
 interface EmojiStickerPanelProps {
   onEmoji: (emoji: string) => void;
@@ -40,6 +43,9 @@ export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone, onStickersVisibl
   const searching = normalizeSearch(query) !== '';
   const index = useEmojiIndex(searching);
   const results = searching && index ? searchEmoji(index, query) : null;
+  const packs = useEmojiPacks();
+  const customFound = searching && packs.some((pack) => pack.emoji.some((emoji) => matchesShortcode(emoji, query)));
+  const pickEmoji = (emoji: string) => { rememberEmoji(emoji); onEmoji(emoji); };
   const matchesSticker = (sticker: Sticker, packTitle: string) =>
     normalizeSearch(packTitle).includes(normalizeSearch(query)) || (!!index && emojiMatches(index, sticker.emoji, query));
   const stickerFilter = searching ? matchesSticker : undefined;
@@ -74,13 +80,14 @@ export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone, onStickersVisibl
         )}
       </div>
       <TabsContent value="emoji" className="mt-0 min-h-0 flex-1 overflow-y-auto">
+        <CustomEmojiSections query={searching ? query : ''} onInsert={onEmoji} onDone={onDone} />
         {results === null && !searching && EMOJI_SETS.map((set) => (
           <section key={set.label} className="px-3 pb-2">
             <h3 className="sticky top-0 z-10 bg-popover py-1.5 text-xs font-medium text-muted-foreground">{translations[set.label]}</h3>
-            <EmojiGrid emoji={set.emoji} onEmoji={onEmoji} />
+            <EmojiGrid emoji={set.emoji} onEmoji={pickEmoji} />
           </section>
         ))}
-        {results !== null && (results.length ? <section className="px-3 pb-2"><EmojiGrid emoji={results} onEmoji={onEmoji} /></section> : empty)}
+        {results !== null && (results.length ? <section className="px-3 pb-2"><EmojiGrid emoji={results} onEmoji={pickEmoji} /></section> : !customFound && empty)}
       </TabsContent>
       <TabsContent value="stickers" className="mt-0 min-h-0 flex-1">
         {onSticker && (

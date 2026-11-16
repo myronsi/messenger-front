@@ -21,6 +21,7 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import { bubbleClass } from '../model/bubbleClass';
 import { AlertCircle, Check } from 'lucide-react';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 const PARTICLE_COUNT = 36;
 
 const DissolveParticles: React.FC = () => {
@@ -226,7 +227,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 event.stopPropagation();
                 onAvatarClick(message.sender_username || message.sender);
               }} className="motion-press mb-1 max-w-[220px] truncate rounded px-1 text-sm text-muted-foreground hover:text-foreground">
-                {message.sender}
+                <EmojiText text={message.sender} />
               </button>
             )}
             <div className={bubbleClass({ isMine, showTail, isImage, isText, isSticker, hasReactions, deleting: message.is_deleting })}>

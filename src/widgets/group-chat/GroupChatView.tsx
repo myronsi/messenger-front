@@ -15,6 +15,7 @@ import GroupChatHeader from './GroupChatHeader';
 
 import type { GroupChatViewModel } from './groupChatTypes';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
+import { ReactionEmoji } from '@/entities/emoji';
 
 const renderMessageContent = (message: Message) => message.type === 'message' && typeof message.content === 'string'
   ? unescapeCurlyBraces(message.content)
@@ -248,7 +249,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
       <Dialog open={!!reactionDetails} onOpenChange={(open) => !open && setReactionDetails(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{reactionDetails?.reaction} {translations.reactions || 'Reactions'}</DialogTitle>
+            <DialogTitle>{reactionDetails && <ReactionEmoji reaction={reactionDetails.reaction} />} {translations.reactions || 'Reactions'}</DialogTitle>
           </DialogHeader>
           <div className="max-h-[50vh] space-y-2 overflow-y-auto">
             {reactionDetails?.reactions.map((reaction) => (

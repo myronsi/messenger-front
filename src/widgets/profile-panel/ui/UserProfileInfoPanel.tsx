@@ -6,6 +6,7 @@ import { useGetCommonGroupsQuery } from '@/entities/user';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface UserProfileInfoPanelProps {
   userId?: EntityId;
@@ -26,7 +27,7 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
       {bio && (
         <section data-testid="profile-about">
           <p className="text-sm text-muted-foreground">{translations.profileRework.bio}</p>
-          <p className="mt-0.5 whitespace-pre-wrap break-words text-[17px] leading-6 text-foreground">{bio}</p>
+          <p className="mt-0.5 whitespace-pre-wrap break-words text-[17px] leading-6 text-foreground"><EmojiText text={bio} /></p>
         </section>
       )}
       {groups.length > 0 && (

@@ -9,6 +9,7 @@ import { CallButton, OngoingCallBanner } from '@/features/calls';
 import { AudioPlayerBar } from '@/features/audio-player';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { selfName } from '@/shared/lib/selfName';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ChatHeaderProps {
   chatId?: EntityId;
@@ -45,7 +46,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left md:space-x-0">
             <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-border object-cover md:hidden" />
             <span className="flex min-w-0 flex-col items-start">
-              <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : displayName}</span>
+              <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : <EmojiText text={displayName} />}</span>
               {!interlocutorDeleted && !saved && (
                 <span className="text-xs font-normal text-muted-foreground">
                   {presenceLabel}

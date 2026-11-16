@@ -2,6 +2,8 @@ import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Message, ContextMenuState } from '@/entities/message';
+import { ReactionEmoji, useRecentEmoji } from '@/entities/emoji';
+import { BASE_REACTIONS, recentCustomReactions } from '../model/customReactions';
 
 interface ReactionMenuProps {
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean };
@@ -21,7 +23,7 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
     const [adjustedX, setAdjustedX] = useState(reactionMenu.x);
     const [adjustedY, setAdjustedY] = useState(reactionMenu.y);
     const [isAnimated, setIsAnimated] = useState(false);
-    const reactions = ['👍', '🥰', '😠', '😂', '😢'];
+    const reactions = [...BASE_REACTIONS, ...recentCustomReactions(useRecentEmoji())];
 
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -122,7 +124,7 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
               className="text-2xl hover:scale-110 transition-transform"
               onClick={() => handleReaction(reaction)}
             >
-              {reaction}
+              <ReactionEmoji reaction={reaction} />
             </button>
           ))}
         </div>

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lastKeyboardHeight } from '@/shared/lib/composerFocus';
 import EmojiStickerButton from './EmojiStickerButton';
 
+vi.mock('@/entities/emoji', async () => (await import('@/test/emojiMock')).emojiEntityMock());
 vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({ translations: new Proxy({}, { get: (_target, key) => String(key) }), language: 'en' }),
 }));

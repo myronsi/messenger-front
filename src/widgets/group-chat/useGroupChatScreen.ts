@@ -16,6 +16,7 @@ import { useGroupMessageHelpers } from './useGroupMessageHelpers';
 import { useGroupMessageMenus } from './useGroupMessageMenus';
 import { useGroupProfilePanel } from './useGroupProfilePanel';
 import type { GroupChatViewModel, GroupComponentProps, GroupTranslations } from './groupChatTypes';
+import { useShortcodeEncoder } from '@/entities/emoji';
 
 export const useGroupChatScreen = ({
   chatId, groupName, username, firstUnreadMessageId, onBack, onOpenUserProfile, messageJumpRequest = null,
@@ -29,7 +30,8 @@ export const useGroupChatScreen = ({
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const composerDraftRef = useRef<ComposerDraftHandle | null>(null);
-  const getMessageInput = useCallback(() => composerDraftRef.current?.get() ?? '', []);
+  const encodeEmoji = useShortcodeEncoder();
+  const getMessageInput = useCallback(() => encodeEmoji(composerDraftRef.current?.get() ?? ''), [encodeEmoji]);
   const setMessageInput = useCallback((value: SetStateAction<string>) => composerDraftRef.current?.set(value), []);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
@@ -128,7 +130,7 @@ export const useGroupChatScreen = ({
     handleSendMessage: sender.handleSendMessage,
     handleSendSticker: sender.handleSendSticker,
     handleResendMessage: sender.handleResendMessage,
-    handleFileUpload: sender.handleFileUpload,
+    handleFileUpload: (file: File | File[], caption?: string) => sender.handleFileUpload(file, encodeEmoji(caption ?? '')),
     createOptimisticUploadMessage: sender.createOptimisticUploadMessage,
     updateOptimisticUploadProgress: sender.updateOptimisticUploadProgress,
     markOptimisticUploadFailed: sender.markOptimisticUploadFailed,

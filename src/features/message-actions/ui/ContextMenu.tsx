@@ -11,6 +11,7 @@ import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { makeStickerFrom } from '@/entities/sticker';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 
 interface ContextMenuProps {
   contextMenu: ContextMenuState;
@@ -91,7 +92,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const handleEdit = () => {
       if (message && canEdit) {
         setEditingMessage(message);
-        setMessageInput(typeof message.content === 'string' ? message.content : fileContent?.caption || '');
+        setMessageInput(plainEmoji(typeof message.content === 'string' ? message.content : fileContent?.caption || ''));
         setReplyTo(null);
         focusComposer(messageInputRef.current);
       }

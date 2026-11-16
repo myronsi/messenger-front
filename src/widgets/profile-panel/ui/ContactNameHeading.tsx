@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface Props {
   displayName: string;
@@ -48,7 +49,7 @@ export function ContactNameHeading(props: Props) {
               className="absolute inset-0 min-w-0 w-full border-0 bg-transparent p-0 text-left text-2xl font-bold leading-tight tracking-tight outline-none placeholder:text-muted-foreground focus:ring-0"
             />
           </div>
-        ) : <h3 className="min-w-0 break-words text-left">{props.displayName}</h3>}
+        ) : <h3 className="min-w-0 break-words text-left"><EmojiText text={props.displayName} /></h3>}
         <span aria-hidden="true" className={`pointer-events-none absolute -bottom-1 left-0 h-px w-full origin-center bg-primary/50 transition-transform duration-200 ease-out motion-reduce:transition-none ${editing ? 'scale-x-100' : 'scale-x-0'}`} />
         {!props.isCurrentUser && (
           <div className="absolute left-full top-1/2 ml-1 h-6 w-12 -translate-y-1/2">

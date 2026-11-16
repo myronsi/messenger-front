@@ -25,6 +25,7 @@ import { addToSelection, canAddToSelection, planUploads } from '../model/fileSel
 import type { Drawing } from '@/shared/ui/drawing';
 import type { Sticker } from '@/entities/sticker';
 import EmojiStickerButton from './EmojiStickerButton';
+import { EmojiAutocomplete } from './EmojiAutocomplete';
 
 interface MessageInputProps {
   messageInput: string;
@@ -62,10 +63,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   disableVoice = false,
   isSending = false,
   disabled = false,
-  onVoiceUploadStart,
-  onVoiceUploadProgress,
-  onVoiceUploadError,
-  onVoiceUploadComplete,
+  onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete,
 }, ref) => {
   const { translations } = useLanguage();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -241,7 +239,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             drawings={fileDrawings.drawings} onDrawingChange={isGoApi() ? fileDrawings.setDrawing : undefined} />
         )}</ComposerReveal>
         <div className="flex items-end gap-2">
-          <div className="flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 backdrop-blur-2xl">
+          <div className="relative flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 backdrop-blur-2xl">
             {!isRecording && !voicePreview && (
               <button
                 type="button"
@@ -276,6 +274,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 disabled={isDisabled}
               />
             )}
+            {!isRecording && !voicePreview && <EmojiAutocomplete inputRef={inputRef} value={messageInput} onChange={setMessageInput} />}
             {!isRecording && !voicePreview && <EmojiStickerButton inputRef={inputRef} value={messageInput} onChange={setMessageInput}
               disabled={isDisabled} dock={emojiDock} onStickersVisible={setChoosingSticker}
               onSticker={onSendSticker && !isEditing && !hasSelectedFile ? onSendSticker : undefined} />}

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { EmojiStickerPanel } from './EmojiStickerPanel';
 
+vi.mock('@/entities/emoji', async () => (await import('@/test/emojiMock')).emojiEntityMock());
 vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({ translations: new Proxy({}, { get: (_target, key) => String(key) }), language: 'en' }),
 }));

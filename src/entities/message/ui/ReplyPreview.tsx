@@ -6,6 +6,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
 import { attachmentAspect } from '../model/drawAction';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ReplyPreviewProps {
   replyMessage: Message | undefined;
@@ -59,11 +60,11 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isRep
       )}
       <span className="min-w-0 flex-1">
         {sender && (
-          <span className={`block truncate text-xs font-semibold ${isMine ? 'text-primary-foreground' : 'text-primary'}`}>{sender}</span>
+          <span className={`block truncate text-xs font-semibold ${isMine ? 'text-primary-foreground' : 'text-primary'}`}><EmojiText text={sender} /></span>
         )}
         {(content.text || !sender) && (
           <span className={`block truncate text-[13px] leading-snug ${content.muted ? 'italic opacity-70' : ''} ${isMine ? 'text-primary-foreground/85' : 'text-foreground/80'}`}>
-            {content.text || translations.image}
+            {content.text ? <EmojiText text={content.text} /> : translations.image}
           </span>
         )}
       </span>
