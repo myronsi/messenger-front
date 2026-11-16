@@ -7,6 +7,7 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({ translations: new Proxy({}, { get: (_target, key) => String(key) }), language: 'en' }),
 }));
 vi.mock('./StickerTab', () => ({ StickerTab: () => null }));
+vi.mock('@/shared/lib/emojiSets', () => ({ EMOJI_SETS: [{ label: 'emojiSmileys', emoji: ['😀', '😃'] }] }));
 
 describe('EmojiStickerPanel search', () => {
   it('shows only a magnifier until it is pressed, then a focused field that closes and clears', () => {
