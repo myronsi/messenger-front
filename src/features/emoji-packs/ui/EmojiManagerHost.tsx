@@ -13,7 +13,7 @@ const DIALOG = 'flex h-[100dvh] max-h-[100dvh] max-w-none flex-col gap-3 overflo
 const MyEmojiPacks = ({ onOpen }: { onOpen: (packId: string) => void }) => {
   const { translations } = useLanguage();
   const t = translations.customEmoji;
-  const packs = useEmojiPacks().filter((pack) => pack.is_mine || pack.is_installed);
+  const packs = useEmojiPacks().filter((pack) => !pack.chat_id && (pack.is_mine || pack.is_installed));
   const [title, setTitle] = useState('');
   const [create, { isLoading }] = useCreateEmojiPackMutation();
   const submit = async () => {
