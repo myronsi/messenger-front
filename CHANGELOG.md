@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.23](https://github.com/myronsi/messenger-front/compare/v0.6.22...v0.6.23) (2026-11-16)
+
+
+### Features
+
+* **emoji:** custom emoji in messages, reactions, names and the picker ([#217](https://github.com/myronsi/messenger-front/issues/217)) ([6c15b71](https://github.com/myronsi/messenger-front/commit/6c15b7120e97a0ecfdb666a8dccad3e75d30ca33))
+
 ## [0.6.22](https://github.com/myronsi/messenger-front/compare/v0.6.21...v0.6.22) (2026-11-16)
 
 
