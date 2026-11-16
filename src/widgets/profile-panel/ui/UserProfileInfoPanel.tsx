@@ -6,6 +6,7 @@ import { useGetCommonGroupsQuery } from '@/entities/user';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import UserProfileConnections from './UserProfileConnections';
 
 interface UserProfileInfoPanelProps {
   userId?: EntityId;
@@ -29,6 +30,7 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
           <p className="mt-0.5 whitespace-pre-wrap break-words text-[17px] leading-6 text-foreground">{bio}</p>
         </section>
       )}
+      <UserProfileConnections userId={userId} />
       {groups.length > 0 && (
         <section data-testid="profile-common-groups">
           <p className="text-sm text-muted-foreground">{translations.profileRework.mutualGroups}</p>

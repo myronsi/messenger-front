@@ -7,6 +7,7 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
   return { useLanguage: () => ({ language: 'en', translations: en }) };
 });
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
+vi.mock('./UserProfileConnections', () => ({ default: () => <div data-testid="profile-connections-slot" /> }));
 vi.mock('@/entities/user', () => ({
   useGetCommonGroupsQuery: vi.fn(() => ({ data: [{ id: '12', name: 'Design crew', avatar_url: null, member_count: 3 }] })),
 }));
