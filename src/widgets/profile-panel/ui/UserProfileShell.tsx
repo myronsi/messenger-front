@@ -2,17 +2,21 @@ import React from 'react';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { UserProfileSkeleton } from '@/shared/ui/messenger-skeletons';
+import { ProfilePageBackdrop } from '@/shared/ui/profile/ProfileBackgroundFill';
+import type { ProfileBackground } from '@/entities/user';
 
 interface UserProfileShellProps {
   children: React.ReactNode;
   onClose: () => void;
   hideBackOnMobile?: boolean;
+  background?: ProfileBackground | null;
 }
 
-export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, onClose, hideBackOnMobile = false }) => {
+export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, onClose, hideBackOnMobile = false, background }) => {
   const { translations } = useLanguage();
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-col bg-background text-foreground">
+    <div className="relative isolate flex h-full min-h-0 w-full flex-col bg-background text-foreground">
+      <ProfilePageBackdrop background={background} />
       <h2 className="sr-only">{translations.userProfile}</h2>
       <button type="button" onClick={onClose} className={`absolute left-1.5 top-3 z-20 text-white motion-press ${hideBackOnMobile ? 'max-md:hidden' : ''} flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20`} aria-label={translations.back || 'Back'}>
         <ArrowLeft className="h-5 w-5" />

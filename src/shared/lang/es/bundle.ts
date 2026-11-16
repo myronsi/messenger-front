@@ -27,6 +27,7 @@ import { stickerPacks } from './stickerPacks';
 import { chatOrganizer } from './chatOrganizer';
 import { chatCleanup } from './chatCleanup';
 import { profileRework } from './profileRework';
+import { profileExtras } from './profileExtras';
 import { audioPlayer } from './audioPlayer';
 import { groupCreate } from './groupCreate';
 import { mainNav } from './mainNav';
@@ -35,5 +36,5 @@ export const es = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
   ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
-  ...chatOrganizer, ...chatCleanup, ...profileRework, ...audioPlayer, ...groupCreate, ...mainNav,
+  ...chatOrganizer, ...chatCleanup, ...profileRework, ...profileExtras, ...audioPlayer, ...groupCreate, ...mainNav,
 };

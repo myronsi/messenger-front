@@ -21,6 +21,7 @@ import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanel
 import UserProfilePanelView from './ui/UserProfilePanelView';
 import { useProfilePanelTransition } from './useProfilePanelTransition';
 import { toProfileAudios, toProfilePhotos } from '@/entities/message';
+import { isBirthdayToday } from '@/shared/ui/profile/birthday';
 
 interface UserProfileComponentRTKProps {
   username: string;
@@ -225,6 +226,9 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
       isCurrentUser={isCurrentUser}
       onOpenGroup={onOpenGroup}
       bio={bio}
+      birthday={userData.birthday}
+      music={userData.music}
+      ownerName={displayName}
     />
   );
 
@@ -240,7 +244,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   );
 
   return (
-    <UserProfileShell onClose={onClose} hideBackOnMobile={hideBackOnMobile}>
+    <UserProfileShell onClose={onClose} hideBackOnMobile={hideBackOnMobile} background={userData.background}>
       <div data-profile-swipe className="flex h-full min-h-0 flex-col">
         <UserProfileHero
           userId={userData.id} username={username} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName}
@@ -254,6 +258,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           canMessage={canShowMessageAction} isBlocked={isBlocked} canDeleteChat={!!onDeleteChat} tabs={visiblePanelOrder} activeView={activeView}
           onSelectView={selectView} onMessage={handleMessage} onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
           onBlock={isBlocked ? handleBlockToggle : () => setIsBlockConfirmOpen(true)} onEditProfile={onEditProfile}
+          pronouns={userData.pronouns} background={userData.background} birthdayToday={isBirthdayToday(userData.birthday)}
         />
 
         <UserProfilePanelContent activeView={activeView} visibleViews={visiblePanelOrder} onSelectView={selectView}

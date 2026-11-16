@@ -1,11 +1,17 @@
 import React from 'react';
-import { Users } from 'lucide-react';
+import { Cake, Users } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { EntityId } from '@/shared/api/entityId';
 import { useGetCommonGroupsQuery } from '@/entities/user';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import type { Birthday, ProfileMusic } from '@/entities/user';
+import { formatBirthday, isBirthdayToday } from '@/shared/ui/profile/birthday';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
+import { localeOf } from '@/shared/lang/languages';
+import { cn } from '@/shared/lib/utils';
+import { ProfileMusicCard } from './ProfileMusicCard';
 import UserProfileConnections from './UserProfileConnections';
 
 interface UserProfileInfoPanelProps {
@@ -14,12 +20,16 @@ interface UserProfileInfoPanelProps {
   isCurrentUser: boolean;
   onOpenGroup?: (group: { id: EntityId; name: string; avatarUrl?: string }) => void;
   bio?: string;
+  birthday?: Birthday | null;
+  music?: ProfileMusic | null;
+  ownerName?: string;
 }
 
 const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
-  userId, actionError, isCurrentUser, onOpenGroup, bio,
+  userId, actionError, isCurrentUser, onOpenGroup, bio, birthday, music, ownerName = '',
 }) => {
-  const { translations } = useLanguage();
+  const { translations, language } = useLanguage();
+  const today = isBirthdayToday(birthday);
   const groups = useGetCommonGroupsQuery(userId ?? '', { skip: !userId || isCurrentUser }).data ?? [];
   return (
     <div className="min-h-full space-y-4 px-5 py-4 md:py-3">
@@ -30,6 +40,18 @@ const UserProfileInfoPanel: React.FC<UserProfileInfoPanelProps> = ({
           <p className="mt-0.5 whitespace-pre-wrap break-words text-[17px] leading-6 text-foreground">{bio}</p>
         </section>
       )}
+      {birthday && (
+        <p data-testid="profile-birthday" className={cn(
+          'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm',
+          today ? 'bg-primary/15 font-medium text-primary' : 'bg-muted text-muted-foreground',
+        )}>
+          <Cake className="h-4 w-4" aria-hidden="true" />
+          {today
+            ? translations.profileExtras.birthdayToday
+            : fillTemplate(translations.profileExtras.birthdayOn, { date: formatBirthday(birthday, localeOf(language)) })}
+        </p>
+      )}
+      {music && <ProfileMusicCard music={music} ownerName={ownerName} />}
       <UserProfileConnections userId={userId} />
       {groups.length > 0 && (
         <section data-testid="profile-common-groups">

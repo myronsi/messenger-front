@@ -2,6 +2,8 @@ import type { EntityId } from '@/shared/api/entityId';
 import type * as React from 'react';
 
 import type { GroupRole } from '@/entities/chat';
+import type { ProfileBackground } from '@/entities/user';
+import type { SetBackgroundBody } from '@/features/profile';
 export type { GroupRole };
 
 export interface GroupParticipant {
@@ -46,6 +48,7 @@ export interface GroupDetails {
   permissions: GroupPermissions;
   participants: GroupParticipant[];
   pending_invites?: GroupPendingInvite[];
+  background?: ProfileBackground | null;
 }
 
 export type GroupProfileConfirmState = {
@@ -76,6 +79,7 @@ export interface GroupProfileDialogProps {
   groupAvatarInputRef: React.RefObject<HTMLInputElement | null>;
   getAvatarSrc: (avatarUrl?: string | null) => string;
   onAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSaveBackground: (body: SetBackgroundBody | null) => Promise<void>;
   onSaveGroup: () => void;
   onAddParticipant: (usernameOverride?: string) => void;
   onRemoveParticipant: (username: string) => void;

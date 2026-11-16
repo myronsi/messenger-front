@@ -81,7 +81,7 @@ export const useGroupChatScreen = ({
 
   const {
     handleSaveGroup, handleGroupAvatarUpload, handleAddParticipant, handleRemoveParticipant,
-    handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup,
+    handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, handleGroupBackground,
   } = useGroupManagement({
     chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput,
     setParticipantInput, refreshGroupDetails, setGroupConfirm: profilePanel.setGroupConfirm, groupDetails,
@@ -137,6 +137,6 @@ export const useGroupChatScreen = ({
     readStatusMessage, setReadStatusMessage, reactionDetails, setReactionDetails, unreadParticipants,
     groupForm, setGroupForm, participantInput, setParticipantInput, isSavingGroup, groupAvatarInputRef,
     handleGroupAvatarUpload, handleSaveGroup, handleAddParticipant, handleRemoveParticipant, handleRoleChange,
-    handleTransferOwner, handleLeaveGroup, handleDeleteGroup,
+    handleTransferOwner, handleLeaveGroup, handleDeleteGroup, handleGroupBackground,
   };
 };
