@@ -3,6 +3,7 @@ import { useGetUserByIdQuery } from '@/entities/user';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getTypingLabel } from '../model/typingLabel';
 import type { TypingUser } from '../model/typingStore';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface TypingLabelProps {
   users: TypingUser[];
@@ -17,5 +18,5 @@ export const TypingLabel = ({ users, isGroup, className }: TypingLabelProps) => 
   const secondUser = useGetUserByIdQuery(isGroup && second && users.length === 2 ? second.userId : skipToken).data;
   const names = [firstUser?.display_name, secondUser?.display_name];
   const label = getTypingLabel(users.map((user, index) => ({ action: user.action, name: names[index] })), isGroup, translations.typingStatus, language);
-  return <span data-testid="typing-label" className={className}>{label}</span>;
+  return <span data-testid="typing-label" className={className}><EmojiText text={label} /></span>;
 };

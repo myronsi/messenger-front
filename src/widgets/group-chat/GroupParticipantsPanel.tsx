@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel, roleTone } from './groupProfileHelpers';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ContactSuggestion { username: string; display_name: string; avatar_url?: string | null; }
 interface Props {
@@ -47,7 +48,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
         </button>
         <button type="button" onClick={() => onOpenUserProfile(participant.username)} className="min-w-0 flex-1 text-left">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-medium text-foreground">{participant.display_name || participant.username}</span>
+            <span className="truncate text-sm font-medium text-foreground"><EmojiText text={participant.display_name || participant.username} /></span>
             {isCurrentUser && (
               <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium leading-none text-primary">
                 {translations.me || 'Me'}
@@ -124,7 +125,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
         <AuthenticatedImage src={getAvatarSrc(invite.avatar_url)} alt={invite.username} className="h-10 w-10 rounded-full object-cover opacity-80" />
       </button>
       <button type="button" onClick={() => onOpenUserProfile(invite.username)} className="min-w-0 flex-1 text-left">
-        <div className="truncate text-sm font-medium text-foreground">{invite.display_name || invite.username}</div>
+        <div className="truncate text-sm font-medium text-foreground"><EmojiText text={invite.display_name || invite.username} /></div>
         <div className="truncate text-xs text-muted-foreground">@{invite.username}</div>
       </button>
       <span className="shrink-0 rounded-full bg-warning-soft px-2 py-1 text-xs font-medium text-warning">
@@ -189,7 +190,7 @@ const GroupParticipantsPanel: React.FC<Props> = ({
                       >
                         <AuthenticatedImage src={getAvatarSrc(contact.avatar_url)} alt={contact.username} className="h-8 w-8 rounded-full object-cover" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium text-foreground">{contact.display_name}</span>
+                          <span className="block truncate font-medium text-foreground"><EmojiText text={contact.display_name} /></span>
                           <span className="block truncate text-xs text-muted-foreground">@{contact.username}</span>
                         </span>
                         <UserPlus className="h-4 w-4 text-muted-foreground" />

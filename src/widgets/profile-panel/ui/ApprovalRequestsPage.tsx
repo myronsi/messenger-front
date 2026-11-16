@@ -8,6 +8,8 @@ import { Check, Inbox, MessageSquare, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { ApprovalRequestInboxResponse, ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 
 
 interface ApprovalRequestsPageProps {
@@ -63,11 +65,11 @@ const ApprovalRequestsPage: React.FC<ApprovalRequestsPageProps> = ({
               return (
                 <div key={request.id} className="rounded-lg border border-border bg-card p-3 shadow-sm">
                   <div className="flex gap-3">
-                    <AuthenticatedImage src={avatar} alt={subject} className="h-11 w-11 rounded-full object-cover" />
+                    <AuthenticatedImage src={avatar} alt={plainEmoji(subject)} className="h-11 w-11 rounded-full object-cover" />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium uppercase text-muted-foreground">{title}</div>
-                      <div className="truncate text-sm font-semibold text-foreground">{subject}</div>
-                      <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
+                      <div className="truncate text-sm font-semibold text-foreground"><EmojiText text={subject} /></div>
+                      <div className="truncate text-xs text-muted-foreground"><EmojiText text={subtitle} /></div>
                       {isDm && request.message_text && <div className="mt-2 rounded-md bg-muted px-3 py-2 text-sm text-foreground">{request.message_text}</div>}
                     </div>
                   </div>

@@ -13,8 +13,10 @@ const DEFAULT_AVATAR_PATH = /\/static\/avatars\/(?:default\.jpg|group\.png)(?:[?
 
 export const isDefaultAvatar = (url?: string | null) => !!url && DEFAULT_AVATAR_PATH.test(url);
 
+const EMOJI_TOKEN = /<a?:[a-z0-9_]{2,32}:[0-9]{1,19}>/g;
+
 export const avatarInitial = (name: string) => {
-  const first = Array.from(name.trim().replace(/^@+/, ''))[0];
+  const first = Array.from(name.replace(EMOJI_TOKEN, '').trim().replace(/^@+/, ''))[0];
   return first ? first.toLocaleUpperCase() : '?';
 };
 

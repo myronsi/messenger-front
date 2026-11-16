@@ -3,12 +3,13 @@ import CopyableUsername from '@/shared/ui/CopyableUsername';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { useSettingsLayout } from '../model/settingsLayout';
 import { PageBackHeader } from '@/shared/ui/PageBackHeader';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { UserRound } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { ProfileHero } from './ProfileHero';
 import { LeaveUnsavedDialog, UnsavedChangesBar } from './UnsavedChanges';
 import { localeOf } from '@/shared/lang/languages';
+import { EmojiAutocomplete } from '@/features/message-composer';
 
 interface PersonalInfoPageProps {
   avatarUrl: string;
@@ -41,6 +42,8 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
 }) => {
   const { translations, language } = useLanguage();
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const bioRef = useRef<HTMLTextAreaElement>(null);
   const hasUnsavedChanges = displayNameChanged || newBio !== bio;
   const requestBack = () => (hasUnsavedChanges ? setConfirmLeave(true) : onBack());
   const pane = useSettingsLayout() === 'pane';
@@ -74,7 +77,8 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">{translations.displayName || 'Display name'}</label>
             <div className="relative">
-              <input type="text" value={newDisplayName} onChange={(event) => onDisplayNameChange(event.target.value)} maxLength={50} className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.displayNameHint || 'Display name (3-50 characters)'} />
+              <input ref={nameRef} type="text" value={newDisplayName} onChange={(event) => onDisplayNameChange(event.target.value)} maxLength={50} className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.displayNameHint || 'Display name (3-50 characters)'} />
+              <EmojiAutocomplete inputRef={nameRef} value={newDisplayName} onChange={onDisplayNameChange} className="top-full bottom-auto mt-1 mb-0" />
             </div>
             {displayNameInvalid && <p className="text-sm text-destructive">{translations.displayNameError || 'Display name must be between 3 and 50 characters'}</p>}
           </div>
@@ -86,7 +90,8 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
               <span className="shrink-0 text-xs text-muted-foreground">{newBio.length}/500</span>
             </div>
             <div className="relative">
-              <textarea value={newBio} onChange={(event) => onBioChange(event.target.value)} maxLength={500} className="h-28 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.bio} />
+              <textarea ref={bioRef} value={newBio} onChange={(event) => onBioChange(event.target.value)} maxLength={500} className="h-28 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring" placeholder={translations.bio} />
+              <EmojiAutocomplete inputRef={bioRef} value={newBio} onChange={onBioChange} className="top-full bottom-auto mt-1 mb-0" />
             </div>
           </div>
         </section>

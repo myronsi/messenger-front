@@ -6,6 +6,7 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { cn } from '@/shared/lib/utils';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { buildAvatarList } from '../avatarHistoryList';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 const STRIP_SIZE = 3;
 
@@ -90,7 +91,7 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
         </div>
       )}
       <div className="flex min-w-0 max-w-full flex-col items-center gap-0.5">
-        <span className="max-w-full truncate text-[22px] font-semibold text-foreground">{displayName}</span>
+        <span className="max-w-full truncate text-[22px] font-semibold text-foreground"><EmojiText text={displayName} /></span>
         {subtitle}
       </div>
       {children}

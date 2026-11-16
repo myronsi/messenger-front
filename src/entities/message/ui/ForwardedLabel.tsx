@@ -2,6 +2,7 @@ import React from 'react';
 import { Forward } from 'lucide-react';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { Message } from '../model/types';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ForwardedLabelProps {
   forwardedFrom: NonNullable<Message['forwarded_from']>;
@@ -20,7 +21,7 @@ const ForwardedLabel: React.FC<ForwardedLabelProps> = ({ forwardedFrom, translat
     >
       <Forward className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       <span className="min-w-0 truncate">
-        {before.trimEnd()} <span className={`font-semibold ${isMine ? 'text-primary-foreground' : 'text-primary'}`}>{sender}</span>{after}
+        {before.trimEnd()} <span className={`font-semibold ${isMine ? 'text-primary-foreground' : 'text-primary'}`}><EmojiText text={sender} /></span>{after}
       </span>
     </div>
   );

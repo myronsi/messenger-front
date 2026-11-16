@@ -14,6 +14,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 import { ImageViewer } from '@/shared/ui/image-viewer';
 import type { Drawing } from '@/shared/ui/drawing';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 
 
@@ -158,7 +159,7 @@ export const ProfileSearchPanel: React.FC<{
                 className="flex w-full flex-col gap-1 border-b border-border px-3 py-3 text-left last:border-b-0 hover:bg-accent/60"
               >
                 <div className="flex max-w-full items-center justify-between gap-3">
-                  <span className="truncate text-sm font-medium text-foreground">{result.sender}</span>
+                  <span className="truncate text-sm font-medium text-foreground"><EmojiText text={result.sender} /></span>
                   <span className="shrink-0 text-xs text-muted-foreground">{formatTime(result.timestamp, language)}</span>
                 </div>
                 <span className="line-clamp-2 text-sm text-muted-foreground">{text}</span>

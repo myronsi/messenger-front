@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button';
 import ChatListItem from './ChatListItem';
 import { usePinnedReorder } from '../model/usePinnedReorder';
 import { selfName } from '@/shared/lib/selfName';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 
 const PULL_TO_REVEAL = 64;
 const isCoarsePointer = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
@@ -39,7 +40,7 @@ const ArchivedRow = ({ chats, translations, onOpen }: { chats: Chat[]; translati
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-medium leading-5">{translations.chatOrganizer.archivedChats}</span>
-        <span className="block truncate text-sm text-muted-foreground">{chats.map((chat) => chat.is_saved ? selfName(chat.display_name || chat.name, translations) : chat.display_name || chat.name).join(', ')}</span>
+        <span className="block truncate text-sm text-muted-foreground">{chats.map((chat) => chat.is_saved ? selfName(chat.display_name || chat.name, translations) : plainEmoji(chat.display_name || chat.name)).join(', ')}</span>
       </span>
       {unread > 0 && (
         <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-muted-foreground px-1.5 text-xs font-semibold text-background">

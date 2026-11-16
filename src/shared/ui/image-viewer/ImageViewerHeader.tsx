@@ -5,6 +5,7 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import { localeOf } from '@/shared/lang/languages';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 export interface ViewerImageInfo {
   sender: string;
@@ -55,7 +56,7 @@ const ImageViewerHeader: React.FC<ImageViewerHeaderProps> = ({ info, index, tota
       <div data-testid="image-viewer-info" aria-live="polite" className="flex min-w-0 items-center gap-2.5 rounded-full bg-black/30 py-1 pl-1 pr-3 text-white backdrop-blur-sm">
         <AuthenticatedImage src={resolveMediaUrl(info.avatarUrl)} alt="" initialsFrom={info.avatarName || info.sender} className="h-8 w-8 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 leading-tight">
-          <div className="truncate text-sm font-semibold">{info.sender}</div>
+          <div className="truncate text-sm font-semibold"><EmojiText text={info.sender} /></div>
           {(sentAt || counter) && <div className="truncate text-xs text-white/75">{[sentAt, counter].filter(Boolean).join(' · ')}</div>}
         </div>
       </div>

@@ -33,7 +33,7 @@ export default function OwnProfileEditor({ onBack }: OwnProfileEditorProps) {
 
   return (
     <>
-      <PersonalInfoPage avatarUrl={avatarUrl} displayName={account.displayName} isUploadingAvatar={account.isUploading}
+      <PersonalInfoPage avatarUrl={avatarUrl} displayName={userData.display_name || account.displayName} isUploadingAvatar={account.isUploading}
         onPickAvatar={(file) => { account.setAvatarFile(file); account.setAvatarCropUrl(URL.createObjectURL(file)); }}
         newDisplayName={account.newDisplayName} displayNameChanged={account.displayNameChanged} displayNameInvalid={account.displayNameInvalid}
         isSaving={account.isSavingPersonalInfo} onDisplayNameChange={account.setNewDisplayName} bio={account.bio} newBio={account.newBio}

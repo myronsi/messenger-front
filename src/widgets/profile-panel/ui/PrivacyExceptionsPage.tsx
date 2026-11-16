@@ -3,6 +3,7 @@ import { Loader2, Plus, Search, X } from 'lucide-react';
 import type { User } from '@/entities/user';
 import type { useLanguage } from '@/shared/contexts/LanguageContext';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 type Translations = ReturnType<typeof useLanguage>['translations'];
 type Person = Partial<Pick<User, 'id' | 'display_name' | 'avatar_url'>> & { username: string };
@@ -28,7 +29,7 @@ const PersonRow: React.FC<{ person: Person; getAvatarSrc: (url?: string | null) 
   <div className="flex items-center gap-3 px-4 py-2.5">
     <AuthenticatedImage src={getAvatarSrc(person.avatar_url)} alt={person.username} className="h-9 w-9 shrink-0 rounded-full object-cover" />
     <span className="min-w-0 flex-1">
-      <span className="block truncate text-sm font-medium text-foreground">{person.display_name || person.username}</span>
+      <span className="block truncate text-sm font-medium text-foreground"><EmojiText text={person.display_name || person.username} /></span>
       <span className="block truncate text-xs text-muted-foreground">@{person.username}</span>
     </span>
     {action}

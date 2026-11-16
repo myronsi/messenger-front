@@ -16,6 +16,7 @@ import GroupChatHeader from './GroupChatHeader';
 import type { GroupChatViewModel } from './groupChatTypes';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
 import { ReactionEmoji } from '@/entities/emoji';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 const renderMessageContent = (message: Message) => message.type === 'message' && typeof message.content === 'string'
   ? unescapeCurlyBraces(message.content)
@@ -214,7 +215,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
                     <button key={read.user_id} type="button" onClick={() => read.username && handleOpenUserProfile(read.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
                       <AuthenticatedImage src={getAvatarSrc(read.avatar_url)} alt={read.display_name || read.username || ''} className="h-8 w-8 rounded-full object-cover" />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{read.display_name || read.username}</div>
+                        <div className="truncate text-sm font-medium"><EmojiText text={read.display_name || read.username} /></div>
                         {read.username && <div className="truncate text-xs text-muted-foreground">@{read.username}</div>}
                       </div>
                     </button>
@@ -232,7 +233,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
                     <button key={participant.id} type="button" onClick={() => handleOpenUserProfile(participant.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
                       <AuthenticatedImage src={getAvatarSrc(participant.avatar_url)} alt={participant.username} className="h-8 w-8 rounded-full object-cover" />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{participant.display_name || participant.username}</div>
+                        <div className="truncate text-sm font-medium"><EmojiText text={participant.display_name || participant.username} /></div>
                         <div className="truncate text-xs text-muted-foreground">@{participant.username}</div>
                       </div>
                     </button>
@@ -256,7 +257,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
               <button key={`${reaction.user_id}-${reaction.reaction}`} type="button" onClick={() => reaction.username && handleOpenUserProfile(reaction.username)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-accent">
                 <AuthenticatedImage src={getAvatarSrc(reaction.avatar_url)} alt={reaction.display_name || reaction.username || ''} className="h-8 w-8 rounded-full object-cover" />
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{reaction.display_name || reaction.username}</div>
+                  <div className="truncate text-sm font-medium"><EmojiText text={reaction.display_name || reaction.username} /></div>
                   {reaction.username && <div className="truncate text-xs text-muted-foreground">@{reaction.username}</div>}
                 </div>
               </button>

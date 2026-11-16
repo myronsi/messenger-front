@@ -7,12 +7,13 @@ import { cn } from '@/shared/lib/utils';
 import { applySuggestion, shortcodeQuery, suggestEmoji } from '../model/emojiAutocomplete';
 
 interface Props {
-  inputRef: RefObject<HTMLTextAreaElement | null>;
+  inputRef: RefObject<HTMLTextAreaElement | HTMLInputElement | null>;
+  className?: string;
   value: string;
   onChange: (value: string) => void;
 }
 
-export const EmojiAutocomplete = ({ inputRef, value, onChange }: Props) => {
+export const EmojiAutocomplete = ({ inputRef, value, onChange, className }: Props) => {
   const { translations } = useLanguage();
   const packs = useEmojiPacks();
   const all = useMemo(() => packs.filter((pack) => !pack.is_hidden || pack.is_mine).flatMap((pack) => pack.emoji), [packs]);
@@ -44,6 +45,7 @@ export const EmojiAutocomplete = ({ inputRef, value, onChange }: Props) => {
   useEffect(() => {
     const field = inputRef.current;
     if (!field) return undefined;
+    const element: HTMLElement = field;
     const onKey = (event: KeyboardEvent) => {
       const { suggestions: list, active: index } = state.current;
       if (!list.length || event.isComposing) return;
@@ -61,18 +63,18 @@ export const EmojiAutocomplete = ({ inputRef, value, onChange }: Props) => {
     };
     const track = () => setCaret(field.selectionStart);
     const events = ['input', 'change', 'keyup', 'click', 'select'] as const;
-    field.addEventListener('keydown', onKey);
-    events.forEach((name) => field.addEventListener(name, track));
+    element.addEventListener('keydown', onKey);
+    events.forEach((name) => element.addEventListener(name, track));
     return () => {
-      field.removeEventListener('keydown', onKey);
-      events.forEach((name) => field.removeEventListener(name, track));
+      element.removeEventListener('keydown', onKey);
+      events.forEach((name) => element.removeEventListener(name, track));
     };
   }, [inputRef]);
 
   if (!suggestions.length) return null;
   return (
     <div role="listbox" aria-label={translations.customEmoji.suggestions} data-testid="emoji-suggestions"
-      className="absolute bottom-full left-0 z-30 mb-2 w-64 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg">
+      className={cn('absolute bottom-full left-0 z-30 mb-2 w-64 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg', className)}>
       {suggestions.map((emoji, index) => (
         <button key={emoji.id} type="button" role="option" aria-selected={index === active}
           onMouseDown={(event) => { event.preventDefault(); select(index); }}
