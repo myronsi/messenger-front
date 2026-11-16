@@ -16,6 +16,7 @@ import { DesktopChatLayout } from './ui/DesktopChatLayout';
 import { useJumpRequest } from './model/useJumpRequest';
 import { QrApprovalRoute } from './ui/QrApprovalRoute';
 import { StickerManagerHost, stickerLinkSlug } from '@/features/sticker-packs';
+import { EmojiManagerHost, emojiLinkSlug } from '@/features/emoji-packs';
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CallProvider, CallStage } from '@/features/calls';
@@ -201,6 +202,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
         {<SecurityNoticeHandler key={`security:${username}`} />}
         {<CallProvider key={`calls:${username}`} openChatId={currentChat ? String(currentChat.id) : null} />}
         {isGoApi() && <StickerManagerHost linkSlug={stickerLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}
+        {isGoApi() && <EmojiManagerHost linkSlug={emojiLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}
         {qrRequestId && (
           <ChunkErrorBoundary key={qrRequestId}>
             <Suspense fallback={null}>

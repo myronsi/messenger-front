@@ -4,6 +4,7 @@ import { splitByQuery } from '@/shared/lib/searchHighlight';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import { matchingSearchText, searchExcerpt } from '../model/searchText';
 import type { ChatSearchResult } from '../model/types';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ChatSearchResultsListProps {
   results: ChatSearchResult[];
@@ -28,7 +29,7 @@ export const ChatSearchResultsList: React.FC<ChatSearchResultsListProps> = ({ re
           className={`flex w-full flex-col gap-0.5 border-b border-border/60 px-4 py-2.5 text-left last:border-b-0 hover:bg-accent/60 sm:px-6 ${
             index === activeIndex ? 'bg-accent' : ''}`}>
           <span className="flex max-w-full items-center justify-between gap-3">
-            <span className="truncate text-sm font-medium text-foreground">{result.sender}</span>
+            <span className="truncate text-sm font-medium text-foreground"><EmojiText text={result.sender} /></span>
             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
               {formatDateLabel(result.timestamp, language, today, yesterday)}, {formatTime(result.timestamp, language)}
             </span>

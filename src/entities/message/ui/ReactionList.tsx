@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { ReactionInfo } from '../model/types';
 import { ReactionGroup, groupAndSortReactions, splitVisibleReactions } from '../model/reactions';
 import { ReactionCount } from './ReactionCount';
+import { ReactionEmoji } from '@/entities/emoji';
 
 interface ReactionListProps {
   reactions: ReactionInfo[];
@@ -201,7 +202,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
               }}
               {...detailHandlers(group)}
             >
-              <span>{group.reaction}</span>
+              <span><ReactionEmoji reaction={group.reaction} /></span>
               {group.count > 1 && <ReactionCount count={group.count} />}
             </button>
           );
@@ -271,7 +272,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
                   }}
                   {...detailHandlers(group)}
                 >
-                  <span>{group.reaction}</span>
+                  <span><ReactionEmoji reaction={group.reaction} /></span>
                   <span className="text-xs font-medium tabular-nums">{group.count}</span>
                 </button>
               );

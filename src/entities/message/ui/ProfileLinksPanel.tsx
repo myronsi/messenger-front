@@ -4,6 +4,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel } from '@/shared/utils/dateFormatters';
 import type { ChatLinkItem } from '../api/chatLinksApi';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ProfileLinksPanelProps {
   links: ChatLinkItem[];
@@ -37,7 +38,7 @@ export const ProfileLinksPanel: React.FC<ProfileLinksPanelProps> = ({ links, isL
           <button type="button" onClick={() => onJumpToMessage?.(link.id)} className="min-w-0 flex-1 text-left">
             <span className="block truncate text-sm font-medium">{hostOf(link.url)}</span>
             <span className="block truncate text-xs text-muted-foreground">{link.text}</span>
-            <span className="block text-[11px] text-muted-foreground">{link.sender} · {formatDateLabel(link.timestamp, language, today, yesterday)}</span>
+            <span className="block text-[11px] text-muted-foreground"><EmojiText text={link.sender} /> · {formatDateLabel(link.timestamp, language, today, yesterday)}</span>
           </button>
           <a href={link.url} target="_blank" rel="noreferrer noopener" aria-label={translations.profileRework.openLink}
             className="rounded-full p-2 text-muted-foreground hover:bg-accent hover:text-foreground">

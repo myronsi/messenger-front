@@ -14,6 +14,7 @@ import DeviceSelect from './DeviceSelect';
 import SecurityCodePanel from './SecurityCodePanel';
 import { useCallAvatar, useCallTitle, useGroupInfo, useUserName } from './callHooks';
 import { useCallStatus } from './useCallStatus';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ActiveCallPanelProps {
   call: Call | null;
@@ -59,7 +60,7 @@ const ActiveCallPanel: React.FC<ActiveCallPanelProps> = ({ call, session, userId
           <AuthenticatedImage src={avatar} initialsFrom={name} alt="" loading="eager"
             className="h-28 w-28 rounded-full border border-border object-cover shadow-md" />
           <div className="flex flex-col items-center gap-1 text-center">
-            <p className="max-w-full truncate text-2xl font-semibold">{name}</p>
+            <p className="max-w-full truncate text-2xl font-semibold"><EmojiText text={name} /></p>
             <p className="flex items-center gap-1 text-sm text-muted-foreground">
               {poorNetwork && <WifiOff className="h-4 w-4" aria-hidden="true" />}
               {timer && <span className="tabular-nums">{timer}</span>}

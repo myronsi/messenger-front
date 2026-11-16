@@ -21,7 +21,7 @@ import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { getAvatarSrc } from './groupChatUtils';
 import type { GroupProfileConfirmState, GroupParticipant } from './GroupProfileTypes';
 
-type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files' | 'links' | 'voice';
+type GroupProfileView = 'details' | 'participants' | 'photos' | 'audios' | 'files' | 'links' | 'voice' | 'emoji';
 type GroupProfileTransition = { from: GroupProfileView; to: GroupProfileView; direction: 'forward' | 'back'; key: number; };
 interface Props {
   chatId: EntityId;
@@ -66,6 +66,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
   const count = String(participants.length);
   const tabLabels: Record<GroupProfileView, string> = {
     details: t.info, participants: t.members, photos: t.media, audios: t.audio, files: t.files, links: t.links, voice: t.voice,
+    emoji: rawTranslations.customEmoji.groupEmoji,
   };
   const tiles: ProfileTile[] = [
     ...(callsAvailable ? [{

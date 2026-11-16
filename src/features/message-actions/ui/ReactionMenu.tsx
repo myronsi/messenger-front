@@ -2,6 +2,11 @@ import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Message, ContextMenuState } from '@/entities/message';
+import { ReactionEmoji, useRecentEmoji } from '@/entities/emoji';
+import { BASE_REACTIONS, recentCustomReactions } from '../model/customReactions';
+import { Plus } from 'lucide-react';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { ReactionPicker } from './ReactionPicker';
 
 interface ReactionMenuProps {
   reactionMenu: { message: Message; x: number; y: number; isClosing?: boolean };
@@ -21,7 +26,9 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
     const [adjustedX, setAdjustedX] = useState(reactionMenu.x);
     const [adjustedY, setAdjustedY] = useState(reactionMenu.y);
     const [isAnimated, setIsAnimated] = useState(false);
-    const reactions = ['👍', '🥰', '😠', '😂', '😢'];
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const { translations } = useLanguage();
+    const reactions = [...BASE_REACTIONS, ...recentCustomReactions(useRecentEmoji())];
 
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -56,7 +63,7 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
         setAdjustedX(Math.max(EDGE, Math.min(left, window.innerWidth - bar.offsetWidth - EDGE)));
         setAdjustedY(Math.max(EDGE, top));
       }
-    }, [reactionMenu.x, reactionMenu.y, openLeft, ref]);
+    }, [reactionMenu.x, reactionMenu.y, openLeft, ref, pickerOpen]);
 
     useEffect(() => {
       if (!reactionMenu.isClosing) {
@@ -104,7 +111,7 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
     return (
       <div
         ref={ref}
-        className="fixed flex items-center justify-center z-50"
+        className="fixed z-50 flex flex-col items-center gap-2"
         style={{
           top: adjustedY,
           left: adjustedX,
@@ -122,10 +129,15 @@ const ReactionMenu = forwardRef<HTMLDivElement, ReactionMenuProps>(
               className="text-2xl hover:scale-110 transition-transform"
               onClick={() => handleReaction(reaction)}
             >
-              {reaction}
+              <ReactionEmoji reaction={reaction} />
             </button>
           ))}
+          <button type="button" aria-label={translations.customEmoji.moreReactions} aria-expanded={pickerOpen} onClick={(event) => { event.nativeEvent.stopPropagation(); setPickerOpen((open) => !open); }}
+            className="flex h-8 w-8 items-center justify-center self-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
+        {pickerOpen && <ReactionPicker onPick={handleReaction} />}
       </div>
     );
   }

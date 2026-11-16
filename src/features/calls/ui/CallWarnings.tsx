@@ -4,6 +4,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import type { CallSession } from '../model/stores';
 import { useUserName } from './callHooks';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 const WARNING = 'flex gap-2 rounded-lg bg-warning-soft p-2 text-warning';
 
@@ -13,7 +14,7 @@ const KeyChangeNotice: React.FC<{ userId: string }> = ({ userId }) => {
   return (
     <p role="alert" className={WARNING}>
       <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-      {fillTemplate(translations.callKeyChanged, { name: name || userId })}
+      <EmojiText text={fillTemplate(translations.callKeyChanged, { name: name || userId })} />
     </p>
   );
 };

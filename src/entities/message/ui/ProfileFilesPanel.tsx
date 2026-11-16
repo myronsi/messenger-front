@@ -8,6 +8,7 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import type { ChatFile } from '../model/types';
 import FileMessage from './FileMessage';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ProfileFilesPanelProps {
   files: ChatFile[];
@@ -53,7 +54,7 @@ export const ProfileFilesPanel: React.FC<ProfileFilesPanelProps> = ({ files, isL
                   {file.caption && <div className="mt-1 line-clamp-2 text-sm">{file.caption}</div>}
                 </div>
                 <div className="mt-1 flex max-w-full items-center gap-2 px-1 text-[11px] text-muted-foreground">
-                  <span className="min-w-0 truncate">{[isMine ? translations.replyFromYou : file.sender, when].filter(Boolean).join(' · ')}</span>
+                  <span className="min-w-0 truncate"><EmojiText text={[isMine ? translations.replyFromYou : file.sender, when].filter(Boolean).join(' · ')} /></span>
                   {onJumpToMessage && isPersistedId(file.id) && (
                     <button type="button" onClick={() => onJumpToMessage(file.id)} className="shrink-0 font-medium text-primary hover:underline">
                       {translations.showInChat}

@@ -5,6 +5,7 @@ import { useProfileAccountActions } from './useProfileAccountActions';
 
 const mutation = vi.hoisted(() => [() => ({ unwrap: () => Promise.resolve() }), { isLoading: false }]);
 const updateUser = vi.hoisted(() => vi.fn());
+vi.mock('@/entities/emoji', async () => (await import('@/test/emojiMock')).emojiEntityMock());
 vi.mock('@/features/profile', () => ({ useDeleteAccountMutation: () => mutation, useUpdateUserMutation: () => [updateUser, { isLoading: false }] }));
 vi.mock('@/features/auth', () => ({ useLogoutMutation: () => mutation }));
 const { dispatch, authFetch } = vi.hoisted(() => ({ dispatch: vi.fn(), authFetch: vi.fn() }));

@@ -4,6 +4,7 @@ import { Loader2, LogOut } from 'lucide-react';
 import type { SettingsPage } from '@/shared/lib/urlOverlay';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 export interface SettingsSection {
   page: SettingsPage;
@@ -35,7 +36,7 @@ export const SettingsSectionNav: React.FC<SettingsSectionNavProps> = ({
       {!fill && <div className="flex items-center gap-3 px-2 pb-4">
         <AuthenticatedImage src={avatarUrl} alt="" initialsFrom={displayName} className="h-12 w-12 shrink-0 rounded-full border border-border object-cover" />
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-[15px] font-semibold text-foreground">{displayName}</span>
+          <span className="truncate text-[15px] font-semibold text-foreground"><EmojiText text={displayName} /></span>
           <span className="truncate text-[13px] text-muted-foreground">@{username}</span>
         </span>
       </div>}

@@ -12,6 +12,7 @@ import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';
 import GroupProfileDialogShell from './GroupProfileDialogShell';
 import GroupRoleHistoryPage from './GroupRoleHistoryPage';
+import { GroupEmojiPanel } from '@/features/emoji-packs';
 export type { GroupRole, GroupParticipant, GroupPendingInvite, GroupPermissions, GroupDetails, GroupProfileConfirmState } from './GroupProfileTypes';
 
 const emptyParticipants: GroupParticipant[] = [];
@@ -142,6 +143,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     ...(canShowFilesAction ? (['files'] as const) : []),
     ...(linksQuery.data?.length ? (['links'] as const) : []),
     ...(voiceItems.length ? (['voice'] as const) : []),
+    ...(isPersistedId(chatId) ? (['emoji'] as const) : []),
   ];
   const canMute = isPersistedId(chatId);
   const hasGroupChanges = groupForm.name.trim() !== currentGroupName || groupForm.description.trim() !== (groupDetails?.description || '');
@@ -165,6 +167,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   };
 
   const renderPanelContent = (view: GroupProfileView) => {
+    if (view === 'emoji') return <GroupEmojiPanel chatId={String(chatId)} />;
     if (view === 'photos' && canShowPhotosAction) {
       return (
         <ProfilePhotosPanel

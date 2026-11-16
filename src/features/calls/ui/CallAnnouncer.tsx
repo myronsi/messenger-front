@@ -3,6 +3,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import type { Call } from '../api/callsApi';
 import { useCallTitle } from './callHooks';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 
 const ANNOUNCE_DELAY_MS = 150;
 
@@ -33,7 +34,7 @@ const CallAnnouncer: React.FC<CallAnnouncerProps> = ({ incoming, inCall, userId 
     setUrgent('');
     const timer = window.setTimeout(() => {
       announced.current = incomingId;
-      setUrgent(fillTemplate(translations.callAnnounceIncoming, { name }));
+      setUrgent(fillTemplate(translations.callAnnounceIncoming, { name: plainEmoji(name) }));
     }, ANNOUNCE_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [incomingId, name, translations.callAnnounceIncoming]);

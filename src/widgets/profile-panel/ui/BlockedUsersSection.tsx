@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { User } from '@/entities/user';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 export interface BlockedUsersSectionProps {
   blockedUsers: Array<Pick<User, 'username' | 'display_name'>>;
@@ -17,7 +18,7 @@ const BlockedUsersSection: React.FC<BlockedUsersSectionProps> = ({ blockedUsers,
         {blockedUsers.length ? blockedUsers.map((blockedUser) => (
           <div key={blockedUser.username} className="flex items-center gap-3 px-4 py-3">
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-foreground">{blockedUser.display_name || blockedUser.username}</span>
+              <span className="block truncate text-sm font-medium text-foreground"><EmojiText text={blockedUser.display_name || blockedUser.username} /></span>
               <span className="block truncate text-xs text-muted-foreground">@{blockedUser.username}</span>
             </span>
             <button

@@ -10,6 +10,8 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useDeleteMyAvatarMutation, userApi, type User } from '@/entities/user';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import type { EntityId } from '@/shared/api/entityId';
+import { plainEmoji } from '@/shared/lib/customEmoji';
+import { useShortcodeEncoder } from '@/entities/emoji';
 import { useProfileExtrasDraft } from './model/useProfileExtrasDraft';
 
 const BASE_URL = getApiBaseUrl();
@@ -65,13 +67,14 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const [modal, setModal] = useState<ProfileModalState | null>(null);
 
   const savedRef = useRef({ bio: '', displayName: '' });
+  const encodeEmoji = useShortcodeEncoder();
   const extras = useProfileExtrasDraft(userData);
 
   useEffect(() => {
     setIsVisible(true);
     if (userData) {
       const previous = savedRef.current;
-      const saved = { bio: userData.bio || '', displayName: userData.display_name || userData.username };
+      const saved = { bio: plainEmoji(userData.bio || ''), displayName: plainEmoji(userData.display_name || userData.username) };
       savedRef.current = saved;
       setBio(saved.bio);
       setNewBio((draft) => (draft === previous.bio ? saved.bio : draft));
@@ -116,12 +119,12 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     try {
       const saved = await updateUser({
         id: userData.id,
-        ...(normalized !== displayName ? { display_name: normalized } : {}),
-        ...(newBio !== bio ? { bio: newBio } : {}),
+        ...(normalized !== displayName ? { display_name: encodeEmoji(normalized) } : {}),
+        ...(newBio !== bio ? { bio: encodeEmoji(newBio) } : {}),
         ...extras.patch(),
       }).unwrap();
-      const savedName = saved.display_name || saved.username;
-      const savedBio = saved.bio || '';
+      const savedName = plainEmoji(saved.display_name || saved.username);
+      const savedBio = plainEmoji(saved.bio || '');
       savedRef.current = { displayName: savedName, bio: savedBio };
       setDisplayName(savedName);
       setBio(savedBio);

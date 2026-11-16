@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import PersonalInfoPage from './PersonalInfoPage';
 
+vi.mock('@/entities/emoji', async () => (await import('@/test/emojiMock')).emojiEntityMock());
 vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     translations: {

@@ -7,6 +7,7 @@ import { MessageList } from '@/features/message-list';
 import { MessageComposer, type ComposerDraftHandle } from '@/features/message-composer';
 
 const translations = { writeMessage: 'Write a message', newMessages: 'New messages', loading: 'Loading' };
+vi.mock('@/entities/emoji', async () => (await import('@/test/emojiMock')).emojiEntityMock());
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations, language: 'en' }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 const listRenders = vi.hoisted(() => ({ count: 0 }));
