@@ -11,6 +11,8 @@ interface ErrorTexts {
   failed: string;
   shortcodeTaken: string;
   limitReached: string;
+  imageTooLarge: string;
+  imageUnsupported: string;
 }
 
 const statusOf = (error: unknown) => (typeof error === 'object' && error !== null && 'status' in error ? (error as { status: unknown }).status : null);
@@ -21,6 +23,9 @@ const codeOf = (error: unknown) => {
 };
 
 export const addEmojiError = (error: unknown, t: ErrorTexts) => {
-  if (statusOf(error) === 409) return codeOf(error) === 'limit_reached' ? t.limitReached : t.shortcodeTaken;
+  const status = statusOf(error);
+  if (status === 409) return codeOf(error) === 'limit_reached' ? t.limitReached : t.shortcodeTaken;
+  if (status === 413) return t.imageTooLarge;
+  if (status === 415) return t.imageUnsupported;
   return t.failed;
 };

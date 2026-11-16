@@ -11,7 +11,7 @@ export const customEmoji = {
     shortcode: "Shortcode",
     shortcodeHint: "2 to 32 lowercase letters, digits or _",
     chooseImage: "Choose image",
-    imageHint: "PNG, JPEG, WebP or GIF, up to 256 KB",
+    imageHint: "PNG, JPEG, WebP or GIF up to 8 MB, scaled to 128 px",
     copyLink: "Copy link",
     linkCopied: "Link copied",
     deletePack: "Delete pack",
@@ -35,6 +35,8 @@ export const customEmoji = {
     deleteEmoji: "Delete emoji",
     moreReactions: "More reactions",
     searchCustom: "Search custom emoji",
+    imageTooLarge: "This image is too large. Use a file under 8 MB; long GIFs may need fewer frames.",
+    imageUnsupported: "Use a PNG, JPEG, WebP or GIF image.",
     suggestions: "Emoji suggestions",
   },
 };

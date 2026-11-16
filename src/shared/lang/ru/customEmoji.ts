@@ -11,7 +11,7 @@ export const customEmoji = {
     shortcode: "Код",
     shortcodeHint: "От 2 до 32 строчных букв, цифр или _",
     chooseImage: "Выбрать картинку",
-    imageHint: "PNG, JPEG, WebP или GIF, до 256 КБ",
+    imageHint: "PNG, JPEG, WebP или GIF до 8 МБ, уменьшается до 128 px",
     copyLink: "Копировать ссылку",
     linkCopied: "Ссылка скопирована",
     deletePack: "Удалить набор",
@@ -35,6 +35,8 @@ export const customEmoji = {
     deleteEmoji: "Удалить эмодзи",
     moreReactions: "Другие реакции",
     searchCustom: "Искать свои эмодзи",
+    imageTooLarge: "Картинка слишком большая. Нужен файл до 8 МБ; длинным GIF может понадобиться меньше кадров.",
+    imageUnsupported: "Нужна картинка PNG, JPEG, WebP или GIF.",
     suggestions: "Подсказки эмодзи",
   },
 };

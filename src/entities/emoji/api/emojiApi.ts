@@ -2,7 +2,7 @@ import { apiClient } from '@/shared/api/client';
 import { messengerApi } from '@/shared/api/baseApi';
 import { apiUrl } from '@/shared/api/config';
 import type { components } from '@/shared/api/generated/schema';
-import { apiTask, contractData } from '@/shared/api/tasks';
+import { apiTask, contractData, ContractProblem } from '@/shared/api/tasks';
 import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import type { CustomEmoji, EmojiPack, EmojiReportReason } from '../model/types';
 
@@ -17,7 +17,12 @@ export const uploadEmojiImage = (image: Blob, onProgress?: (percent: number) => 
   form.set('file', image);
   form.set('purpose', 'emoji');
   form.set('kind', 'image');
-  return uploadWithProgress<components['schemas']['Attachment']>({ url: apiUrl('/attachments'), formData: form, onProgress });
+  return uploadWithProgress<components['schemas']['Attachment']>({ url: apiUrl('/attachments'), formData: form, onProgress }).catch((error: unknown) => {
+    if (typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number') {
+      throw new ContractProblem(error.status, 'body' in error ? error.body : undefined);
+    }
+    throw error;
+  });
 };
 
 export const emojiApi = messengerApi.injectEndpoints({

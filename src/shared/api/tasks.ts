@@ -1,6 +1,6 @@
 import type { FetchBaseQueryError, QueryReturnValue } from '@reduxjs/toolkit/query';
 
-class ContractProblem extends Error {
+export class ContractProblem extends Error {
   constructor(readonly status: number, readonly data: unknown) { super('The server rejected this request.'); }
 }
 

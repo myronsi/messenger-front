@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addEmojiError, isShortcode, shortcodeFromFile } from './emojiForm';
 import { emojiLinkSlug } from './emojiLink';
 
-const texts = { failed: 'failed', shortcodeTaken: 'taken', limitReached: 'full' };
+const texts = { failed: 'failed', shortcodeTaken: 'taken', limitReached: 'full', imageTooLarge: 'big', imageUnsupported: 'type' };
 
 describe('emoji form helpers', () => {
   it('checks and suggests shortcodes', () => {
@@ -15,6 +15,9 @@ describe('emoji form helpers', () => {
   it('explains add errors', () => {
     expect(addEmojiError({ status: 409, data: { code: 'limit_reached' } }, texts)).toBe('full');
     expect(addEmojiError({ status: 409, data: { code: 'conflict' } }, texts)).toBe('taken');
+    expect(addEmojiError({ status: 413 }, texts)).toBe('big');
+    expect(addEmojiError({ status: 415 }, texts)).toBe('type');
+    expect(addEmojiError({ status: 'FETCH_ERROR' }, texts)).toBe('failed');
     expect(addEmojiError({ status: 422 }, texts)).toBe('failed');
   });
 
