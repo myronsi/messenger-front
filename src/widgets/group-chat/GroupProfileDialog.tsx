@@ -216,7 +216,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     activeView={activeView} panelTransition={panelTransition} onSelectView={selectView}
     renderPanelContent={renderPanelContent} groupConfirm={groupConfirm}
     onCloseGroupConfirm={onCloseGroupConfirm} isAvatarViewerOpen={isAvatarViewerOpen}
-    setIsAvatarViewerOpen={setIsAvatarViewerOpen}
+    setIsAvatarViewerOpen={setIsAvatarViewerOpen} background={groupDetails?.background}
     subPage={roleHistoryPage.mounted ? (
       <GroupRoleHistoryPage chatId={chatId} rolesKey={participants.map((participant) => `${participant.id}:${participant.role}`).join(',')}
         onBack={() => setIsRoleHistoryOpen(false)} closing={roleHistoryPage.closing} />

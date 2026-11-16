@@ -5,6 +5,7 @@ import type { Message, ModalState, ReactionInfo } from '@/entities/message';
 import type { GroupRole } from '@/entities/chat';
 import type { ComposerDraftHandle } from '@/features/message-composer';
 import type { Sticker } from '@/entities/sticker';
+import type { SetBackgroundBody } from '@/features/profile';
 import type { GroupDetails, GroupParticipant, GroupProfileConfirmState } from './GroupProfileTypes';
 
 export type { RawGroupDetails, RawGroupParticipant, RawGroupPendingInvite } from '@/entities/chat';
@@ -103,6 +104,7 @@ export interface GroupChatViewModel {
   groupAvatarInputRef: React.RefObject<HTMLInputElement | null>;
   getAvatarSrc: (avatarUrl?: string | null) => string;
   handleGroupAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
+  handleGroupBackground: (body: SetBackgroundBody | null) => Promise<void>;
   handleSaveGroup: () => void | Promise<void>;
   handleAddParticipant: (usernameOverride?: string) => void | Promise<void>;
   handleRemoveParticipant: (username: string) => void;

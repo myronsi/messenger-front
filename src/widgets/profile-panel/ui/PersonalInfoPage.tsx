@@ -10,6 +10,8 @@ import { ProfileHero } from './ProfileHero';
 import { LeaveUnsavedDialog, UnsavedChangesBar } from './UnsavedChanges';
 import { localeOf } from '@/shared/lang/languages';
 import { EmojiAutocomplete } from '@/features/message-composer';
+import { ProfileExtrasFields } from './ProfileExtrasFields';
+import type { ProfileExtrasDraft } from '../model/useProfileExtrasDraft';
 
 interface PersonalInfoPageProps {
   avatarUrl: string;
@@ -31,6 +33,8 @@ interface PersonalInfoPageProps {
   createdAt?: string | null;
   hasCustomAvatar?: boolean;
   onOpenAvatar?: (index: number) => void;
+  extras?: ProfileExtrasDraft;
+  extraSections?: React.ReactNode;
 }
 
 const memberSince = (value: string, language: string) => new Date(value).toLocaleDateString(localeOf(language), { month: 'long', year: 'numeric' });
@@ -38,13 +42,14 @@ const memberSince = (value: string, language: string) => new Date(value).toLocal
 const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
   avatarUrl, displayName, isUploadingAvatar, onPickAvatar, newDisplayName, displayNameChanged, displayNameInvalid, isSaving, onDisplayNameChange,
   bio, newBio, onBioChange, onSaveAll, onDiscard, onBack,
-  username = '', createdAt, hasCustomAvatar = false, onOpenAvatar = () => undefined,
+  username = '', createdAt, hasCustomAvatar = false, onOpenAvatar = () => undefined, extras, extraSections,
 }) => {
   const { translations, language } = useLanguage();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const bioRef = useRef<HTMLTextAreaElement>(null);
-  const hasUnsavedChanges = displayNameChanged || newBio !== bio;
+  const hasUnsavedChanges = displayNameChanged || newBio !== bio || !!extras?.changed;
+  const canSave = !displayNameInvalid && !extras?.birthdayInvalid;
   const requestBack = () => (hasUnsavedChanges ? setConfirmLeave(true) : onBack());
   const pane = useSettingsLayout() === 'pane';
   const saveAll = async () => {
@@ -95,12 +100,14 @@ const PersonalInfoPage: React.FC<PersonalInfoPageProps> = ({
             </div>
           </div>
         </section>
+        {extras && <ProfileExtrasFields extras={extras} />}
+        {extraSections}
       </div>
       {hasUnsavedChanges && (
-        <UnsavedChangesBar isSaving={isSaving} canSave={!displayNameInvalid} onSave={() => void saveAll()} onDiscard={onDiscard} />
+        <UnsavedChangesBar isSaving={isSaving} canSave={canSave} onSave={() => void saveAll()} onDiscard={onDiscard} />
       )}
       <LeaveUnsavedDialog
-        open={confirmLeave} text={translations.leaveUnsavedText} isSaving={isSaving} canSave={!displayNameInvalid} onSave={() => void saveAll()}
+        open={confirmLeave} text={translations.leaveUnsavedText} isSaving={isSaving} canSave={canSave} onSave={() => void saveAll()}
         onDiscard={() => { setConfirmLeave(false); onDiscard(); onBack(); }} onStay={() => setConfirmLeave(false)}
       />
     </div>

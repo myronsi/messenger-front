@@ -39,7 +39,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      settleOptimisticUpload, contextMenuRef, setContextMenu, setModal, isClosing, setForwardMessage,
      reactionMenuRef, setReactionMenu, renderGroupProfile, isGroupProfileClosing, requestCloseGroupProfile,
      groupForm, setGroupForm, participantInput, setParticipantInput, isSavingGroup, groupAvatarInputRef,
-     getAvatarSrc, handleGroupAvatarUpload, handleSaveGroup, handleAddParticipant, handleRemoveParticipant,
+     getAvatarSrc, handleGroupAvatarUpload, handleGroupBackground, handleSaveGroup, handleAddParticipant, handleRemoveParticipant,
      handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm,
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
@@ -189,6 +189,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         groupAvatarInputRef={groupAvatarInputRef}
         getAvatarSrc={getAvatarSrc}
         onAvatarUpload={handleGroupAvatarUpload}
+        onSaveBackground={handleGroupBackground}
         onSaveGroup={handleSaveGroup}
         onAddParticipant={handleAddParticipant}
         onRemoveParticipant={handleRemoveParticipant}

@@ -6,6 +6,7 @@ import type { SettingsPage } from '@/shared/lib/urlOverlay';
 import PrivacySettingsPanel from './ui/PrivacySettingsDialog';
 import BlockedUsersSection from './ui/BlockedUsersSection';
 import NotificationSettingsPanel from './ui/NotificationSettingsPanel';
+import ConnectionsSettingsPage from './ui/ConnectionsSettingsPage';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
 import LanguageSettingsPage from './ui/LanguageSettingsPage';
@@ -13,7 +14,7 @@ import AppearanceSettingsPage from './ui/AppearanceSettingsPage';
 import AboutPage from './ui/AboutPage';
 import { SettingsSectionNav, type SettingsSection } from './ui/SettingsSectionNav';
 import { LANGUAGE_NAMES } from './languageNames';
-import { ArrowLeft, Bell, Globe, Inbox, Info, Loader2, Palette, Shield, Smartphone, X } from 'lucide-react';
+import { ArrowLeft, Bell, Globe, Inbox, Info, Link2, Loader2, Palette, Shield, Smartphone, X } from 'lucide-react';
 import ProfileHomePage from './ui/ProfileHomePage';
 import ProfilePanelDialogs from './ui/ProfilePanelDialogs';
 import { SheetFrame } from './ui/SheetFrame';
@@ -84,6 +85,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     { page: 'privacy', label: translations.privacy || 'Privacy', icon: Shield },
     { page: 'security', label: translations.securityDevices || 'Security & devices', icon: Smartphone },
     { page: 'notifications', label: translations.notifications, icon: Bell },
+    { page: 'connections', label: translations.connections.title, icon: Link2 },
     { page: 'appearance', label: translations.appearance.title, icon: Palette, hint: translations.appearance.themes[theme] },
     { page: 'language', label: translations.language || 'Language', icon: Globe, hint: LANGUAGE_NAMES[language] },
     { page: 'about', label: t.aboutHelp, icon: Info },
@@ -92,7 +94,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     label: section.label, description: section.hint ?? '', icon: section.icon, indicatorCount: section.badge, onClick: () => setActiveProfilePage(section.page),
   });
   const pick = (...pages: SettingsPage[]) => sections.filter((section) => pages.includes(section.page)).map(toRow);
-  const homeSections = [pick('requests'), pick('privacy', 'security', 'notifications', 'appearance', 'language'), pick('about')]
+  const homeSections = [pick('requests'), pick('privacy', 'security', 'notifications', 'connections', 'appearance', 'language'), pick('about')]
     .filter((rows) => rows.length > 0);
   const requested: SettingsPage = activeProfilePage === 'personal' ? 'profile' : activeProfilePage;
   const current: SettingsPage = pane && requested === 'profile' ? 'requests' : requested;
@@ -113,6 +115,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
       <BlockedUsersSection blockedUsers={blockedUsers} handleUnblockUser={handleUnblockUser} isUnblockingUser={isUnblockingUser} />
     </PrivacySettingsPanel>),
     slot('notifications', <NotificationSettingsPanel isActive={current === 'notifications'} onBack={back} />),
+    slot('connections', <ConnectionsSettingsPage isActive={current === 'connections'} onBack={back} />),
     slot('security', <SecuritySettingsPanel username={userData.username} isActive={current === 'security'} detail={panelData.securityDetail}
       onOpenDetail={(detail) => { if (!dismissBlockedRef.current) panelData.openSecurityDetail(detail); }}
       onBack={() => { if (!dismissBlockedRef.current) back(); }} onLoggedOut={onLogout} onDismissSafetyChange={onDismissSafetyChange}

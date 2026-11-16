@@ -1,4 +1,11 @@
 import type { EntityId } from '@/shared/api/entityId';
+import type { components } from '@/shared/api/generated/schema';
+
+type Schema = components['schemas'];
+export type Birthday = Schema['Birthday'];
+export type ProfileMusic = Schema['ProfileMusic'];
+export type ProfileBackground = Schema['ProfileBackground'];
+
 export interface User {
   id: EntityId;
   username: string;
@@ -14,6 +21,10 @@ export interface User {
   can_message?: boolean;
   direct_chat_id?: EntityId | null;
   direct_message_reason?: 'self' | 'blocked' | 'privacy' | null;
+  pronouns?: string | null;
+  birthday?: Birthday | null;
+  music?: ProfileMusic | null;
+  background?: ProfileBackground | null;
 }
 
 export interface UserAvatarHistoryItem {

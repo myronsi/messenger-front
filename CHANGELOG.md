@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.22](https://github.com/myronsi/messenger-front/compare/v0.6.21...v0.6.22) (2026-11-16)
+
+
+### Features
+
+* **profile:** connected accounts settings page and profile chips ([#216](https://github.com/myronsi/messenger-front/issues/216)) ([2458f04](https://github.com/myronsi/messenger-front/commit/2458f0422dad74e6f5240ca84551d6a2f08fa221))
+
+## [0.6.21](https://github.com/myronsi/messenger-front/compare/v0.6.20...v0.6.21) (2026-11-16)
+
+
+### Features
+
+* **profiles:** pronouns, birthdays, profile music and backgrounds ([#215](https://github.com/myronsi/messenger-front/issues/215)) ([601e82e](https://github.com/myronsi/messenger-front/commit/601e82e3359dfe0a41e1551c7c1a8bae3d34432a))
+
+
+### Performance Improvements
+
+* **test:** add test:fast and cache eslint results ([#212](https://github.com/myronsi/messenger-front/issues/212)) ([39e1ba0](https://github.com/myronsi/messenger-front/commit/39e1ba02ac7f109a811b8aa22a444f1d5dc2d7d1))
+
 ## [0.6.20](https://github.com/myronsi/messenger-front/compare/v0.6.19...v0.6.20) (2026-11-14)
 
 

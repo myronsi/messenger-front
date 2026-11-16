@@ -12,6 +12,7 @@ import { useAppDispatch } from '@/shared/hooks/redux';
 import type { EntityId } from '@/shared/api/entityId';
 import { plainEmoji } from '@/shared/lib/customEmoji';
 import { useShortcodeEncoder } from '@/entities/emoji';
+import { useProfileExtrasDraft } from './model/useProfileExtrasDraft';
 
 const BASE_URL = getApiBaseUrl();
 const BIO_MAX_LENGTH = 500;
@@ -67,6 +68,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
 
   const savedRef = useRef({ bio: '', displayName: '' });
   const encodeEmoji = useShortcodeEncoder();
+  const extras = useProfileExtrasDraft(userData);
 
   useEffect(() => {
     setIsVisible(true);
@@ -111,13 +113,15 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     if (!userData || isSavingPersonalInfo) return false;
     const normalized = normalizeDisplayName(newDisplayName);
     if (normalized !== displayName && !isValidDisplayName(normalized)) return false;
-    if (normalized === displayName && newBio === bio) return true;
+    if (extras.birthdayInvalid) return false;
+    if (normalized === displayName && newBio === bio && !extras.changed) return true;
 
     try {
       const saved = await updateUser({
         id: userData.id,
         ...(normalized !== displayName ? { display_name: encodeEmoji(normalized) } : {}),
         ...(newBio !== bio ? { bio: encodeEmoji(newBio) } : {}),
+        ...extras.patch(),
       }).unwrap();
       const savedName = plainEmoji(saved.display_name || saved.username);
       const savedBio = plainEmoji(saved.bio || '');
@@ -135,6 +139,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const discardPersonalInfo = () => {
     setNewDisplayName(displayName);
     setNewBio(bio);
+    extras.discard();
   };
 
   const handleLogout = () => {
@@ -180,5 +185,6 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
     displayNameChanged: normalizeDisplayName(newDisplayName) !== displayName,
     displayNameInvalid: normalizeDisplayName(newDisplayName) !== displayName && !isValidDisplayName(newDisplayName),
     bioMaxLength: BIO_MAX_LENGTH,
+    extras,
   };
 };

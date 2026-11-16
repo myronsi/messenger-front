@@ -2,6 +2,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { profileHue } from './profileHue';
+import { hasVisibleBackground, type ProfileBackgroundValue } from './backgroundPresets';
+import { ProfileBackgroundFill } from './ProfileBackgroundFill';
 
 const ARC_COUNT = 10;
 const OUTLINE_BUTTON = 'motion-press flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border bg-transparent transition-colors hover:bg-accent';
@@ -14,16 +16,24 @@ interface ProfileBannerProps {
   subtitle?: ReactNode;
   actions?: ReactNode;
   topLeft?: ReactNode;
+  background?: ProfileBackgroundValue | null;
 }
 
-export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, actions, topLeft }: ProfileBannerProps) => (
+export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, actions, topLeft, background }: ProfileBannerProps) => (
   <div data-testid="profile-banner" style={{ '--wave-h': String(profileHue(seed)) } as CSSProperties}>
     <div className="relative h-32 overflow-hidden bg-[hsl(var(--wave-h)_42%_40%)] dark:bg-[hsl(var(--wave-h)_38%_30%)]">
-      <svg aria-hidden="true" viewBox="0 0 400 128" preserveAspectRatio="xMaxYMin slice" className="absolute inset-0 h-full w-full text-white/10">
-        {Array.from({ length: ARC_COUNT }, (_, index) => (
-          <circle key={index} cx="330" cy="-10" r={28 + index * 24} fill="none" stroke="currentColor" strokeWidth="1.25" />
-        ))}
-      </svg>
+      {hasVisibleBackground(background) ? (
+        <>
+          <ProfileBackgroundFill background={background} className="absolute inset-0 h-full w-full" />
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/30" aria-hidden="true" />
+        </>
+      ) : (
+        <svg aria-hidden="true" viewBox="0 0 400 128" preserveAspectRatio="xMaxYMin slice" className="absolute inset-0 h-full w-full text-white/10">
+          {Array.from({ length: ARC_COUNT }, (_, index) => (
+            <circle key={index} cx="330" cy="-10" r={28 + index * 24} fill="none" stroke="currentColor" strokeWidth="1.25" />
+          ))}
+        </svg>
+      )}
       {topLeft && <div className="absolute left-1.5 top-3 text-white">{topLeft}</div>}
     </div>
     <div className="flex items-start justify-between gap-3 px-5">

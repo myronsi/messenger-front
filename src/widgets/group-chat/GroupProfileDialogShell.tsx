@@ -8,6 +8,8 @@ import { ChatMuteAction } from '@/features/chat-mute';
 import { ArrowLeft, Eraser, UserPlus } from 'lucide-react';
 import { CallButton, useCallsAvailable } from '@/features/calls';
 import { ProfileActions, ProfileBanner, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { ProfilePageBackdrop } from '@/shared/ui/profile/ProfileBackgroundFill';
+import type { ProfileBackground } from '@/entities/user';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { toast } from '@/shared/ui/sonner';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
@@ -45,12 +47,13 @@ interface Props {
   isAvatarViewerOpen: boolean;
   setIsAvatarViewerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   subPage?: React.ReactNode;
+  background?: ProfileBackground | null;
 }
 
 const GroupProfileDialogShell: React.FC<Props> = ({
   chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, visibleViews, currentRole,
   activeView, panelTransition, onSelectView, renderPanelContent,
-  groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null,
+  groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null, background,
 }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
@@ -97,13 +100,15 @@ const GroupProfileDialogShell: React.FC<Props> = ({
         }`}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div data-profile-swipe className="flex h-full min-h-0 w-full flex-col bg-background text-foreground" inert={!!subPage}>
+        <div data-profile-swipe className="relative isolate flex h-full min-h-0 w-full flex-col bg-background text-foreground" inert={!!subPage}>
+          <ProfilePageBackdrop background={background} />
           <h2 className="sr-only">{translations.groupProfile || 'Group profile'}</h2>
           <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">
             <div className="flex h-full min-h-0 flex-col">
               <div className="shrink-0">
                 <ProfileBanner
                   seed={currentGroupName}
+                  background={background}
                   avatar={hasCustomAvatar ? <button type="button" aria-label="View group picture" onClick={() => setIsAvatarViewerOpen(true)} className="block h-full w-full">{groupAvatar}</button> : groupAvatar}
                   actions={<ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
                   title={<h3 className="break-words">{currentGroupName}</h3>}

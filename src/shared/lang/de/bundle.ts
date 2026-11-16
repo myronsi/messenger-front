@@ -18,6 +18,7 @@ import { appShell } from './appShell';
 import { appearance } from './appearance';
 import { authLayout } from './authLayout';
 import { notificationSettings } from './notificationSettings';
+import { connections } from './connections';
 import { presence } from './presence';
 import { drawing } from './drawing';
 import { typingStatus } from './typingStatus';
@@ -26,6 +27,7 @@ import { stickerPacks } from './stickerPacks';
 import { chatOrganizer } from './chatOrganizer';
 import { chatCleanup } from './chatCleanup';
 import { profileRework } from './profileRework';
+import { profileExtras } from './profileExtras';
 import { customEmoji } from './customEmoji';
 import { audioPlayer } from './audioPlayer';
 import { groupCreate } from './groupCreate';
@@ -34,6 +36,6 @@ import { mainNav } from './mainNav';
 export const de = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
-  ...appearance, ...authLayout, ...notificationSettings, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
-  ...chatOrganizer, ...chatCleanup, ...profileRework, ...customEmoji, ...audioPlayer, ...groupCreate, ...mainNav,
+  ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
+  ...chatOrganizer, ...chatCleanup, ...profileRework, ...profileExtras, ...customEmoji, ...audioPlayer, ...groupCreate, ...mainNav,
 };
