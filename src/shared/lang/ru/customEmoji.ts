@@ -33,6 +33,8 @@ export const customEmoji = {
     shortcodeTaken: "Такой код уже есть в наборе",
     limitReached: "Набор заполнен",
     deleteEmoji: "Удалить эмодзи",
+    moreReactions: "Другие реакции",
+    searchCustom: "Искать свои эмодзи",
     suggestions: "Подсказки эмодзи",
   },
 };

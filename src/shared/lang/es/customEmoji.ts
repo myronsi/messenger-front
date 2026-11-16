@@ -33,6 +33,8 @@ export const customEmoji = {
     shortcodeTaken: "Este código ya está en el paquete",
     limitReached: "Este paquete está lleno",
     deleteEmoji: "Eliminar emoji",
+    moreReactions: "Más reacciones",
+    searchCustom: "Buscar emoji personalizados",
     suggestions: "Sugerencias de emoji",
   },
 };
