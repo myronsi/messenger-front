@@ -20,7 +20,10 @@ export const TimeZoneSetting = () => {
   const [setTimeZone, { isLoading }] = useSetMyTimeZoneMutation();
   const device = deviceTimeZone();
   const current = me?.time_zone ?? 'UTC';
-  const options = useMemo(() => Array.from(new Set(['UTC', current, ...(device ? [device] : []), ...zones()])).sort(), [current, device]);
+  const options = useMemo(
+    () => Array.from(new Set(['UTC', current, ...(device ? [device] : []), ...zones()])).sort((a, b) => a.localeCompare(b)),
+    [current, device],
+  );
   const save = async (zone: string) => {
     if (zone === current) return;
     await setTimeZone(zone).unwrap().catch(() => undefined);
