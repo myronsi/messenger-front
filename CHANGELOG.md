@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.22](https://github.com/myronsi/messenger-front/compare/v0.6.21...v0.6.22) (2026-11-16)
+
+
+### Features
+
+* **profile:** connected accounts settings page and profile chips ([#216](https://github.com/myronsi/messenger-front/issues/216)) ([2458f04](https://github.com/myronsi/messenger-front/commit/2458f0422dad74e6f5240ca84551d6a2f08fa221))
+
 ## [0.6.21](https://github.com/myronsi/messenger-front/compare/v0.6.20...v0.6.21) (2026-11-16)
 
 
