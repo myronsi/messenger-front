@@ -258,3 +258,25 @@ describe('background notification worker', () => {
     expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Alex: one\nAlex: two', icon: '/pwa-192x192.png' })]);
   });
 });
+describe('birthday pushes', () => {
+  it('hides the name without previews and names the person with them', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ kind: 'birthday', message_id: '', title: 'Messenger', body: 'x' });
+    expect(w.registration.showNotification).toHaveBeenLastCalledWith('Messenger', expect.objectContaining({
+      body: 'Someone you chat with has a birthday today', tag: 'birthday-7',
+    }));
+    await w.push({ kind: 'birthday', message_id: '', title: 'Anna', preview: true, sender_id: '5' });
+    const [title, options] = w.registration.showNotification.mock.lastCall!;
+    expect(title).toBe('Anna');
+    expect(options).toEqual(expect.objectContaining({ body: 'Anna has a birthday today', tag: 'birthday-7' }));
+    expect(options.actions).toBeUndefined();
+  });
+
+  it('opens the direct chat when clicked', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ kind: 'birthday', message_id: '' });
+    const options = w.registration.showNotification.mock.lastCall![1];
+    await w.dispatch('notificationclick', { action: '', notification: { close: w.close, data: options.data, tag: options.tag } });
+    expect(w.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'open-chat', chatId: '7' }));
+  });
+});

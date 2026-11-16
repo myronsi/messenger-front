@@ -27,6 +27,7 @@ export const usePrivacySettings = (isActive: boolean) => {
     profile_visibility: '',
     presence_visibility: '',
     last_seen_visibility: '',
+    birthday_visibility: '',
     group_invites: '',
     direct_messages: '',
     search_visibility: '',

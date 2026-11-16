@@ -5,6 +5,8 @@ import type { GroupDetails, GroupProfileConfirmState, GroupRole } from './GroupP
 import type { GroupTranslations, RawGroupDetails } from './groupChatTypes';
 import type { ModalState } from '@/entities/message';
 import { authFetch } from '@/shared/auth/session';
+import { groupModel } from '@/shared/api/goModels';
+import { setGroupBackground, type SetBackgroundBody } from '@/features/profile';
 
 const BASE_URL = getApiBaseUrl();
 interface Args {
@@ -61,6 +63,10 @@ export const useGroupManagement = ({
     } finally {
       event.target.value = '';
     }
+  };
+
+  const handleGroupBackground = async (body: SetBackgroundBody | null) => {
+    applyGroupDetails(groupModel(await setGroupBackground(String(chatId), body)));
   };
 
   const handleAddParticipant = async (usernameOverride?: string) => {
@@ -223,6 +229,6 @@ export const useGroupManagement = ({
 
   return {
     handleSaveGroup, handleGroupAvatarUpload, handleAddParticipant, handleRemoveParticipant,
-    handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup,
+    handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, handleGroupBackground,
   };
 };

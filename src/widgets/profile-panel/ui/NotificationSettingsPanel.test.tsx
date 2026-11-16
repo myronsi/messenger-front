@@ -8,6 +8,7 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en } = await import('@/shared/lang/en');
   return { useLanguage: () => ({ language: 'en', translations: en }) };
 });
+vi.mock('@/features/profile', () => ({ TimeZoneSetting: () => <div data-testid="time-zone-setting" /> }));
 vi.mock('@/shared/lib/notifications/api', () => ({
   subscribeNotifications: () => () => undefined,
   notificationSnapshot: () => state,
@@ -39,4 +40,13 @@ it('points to the chat list and chat profile for muting a conversation', () => {
   render(<NotificationSettingsPanel isActive onBack={vi.fn()} />);
   expect(screen.getByText(/open its profile and select Mute/)).toBeInTheDocument();
   expect(screen.queryByText('Mute a conversation')).not.toBeInTheDocument();
+});
+
+it('saves birthday reminders and shows the time zone setting', async () => {
+  render(<NotificationSettingsPanel isActive onBack={vi.fn()} />);
+  expect(await screen.findByTestId('time-zone-setting')).toBeInTheDocument();
+  const reminders = screen.getByLabelText('Birthday reminders');
+  expect(reminders).toHaveAttribute('data-state', 'checked');
+  fireEvent.click(reminders);
+  await waitFor(() => expect(saveNotifications).toHaveBeenCalledWith({ enabled: true, sound: false, previews: false, birthday_reminders: false }));
 });

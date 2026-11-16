@@ -8,18 +8,22 @@ const ACTION_TITLES = {
   en: {
     reply: 'Reply', read: 'Mark as read', many: (n) => `${n} new messages`, call: 'Incoming call', groupCall: 'Incoming group call',
     missed: 'Missed call', ended: 'Call ended', answered: 'Answered on another device',
+    birthday: (name) => `${name} has a birthday today`, someoneBirthday: 'Someone you chat with has a birthday today',
   },
   ru: {
     reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}`, call: 'Входящий звонок', groupCall: 'Входящий групповой звонок',
     missed: 'Пропущенный звонок', ended: 'Звонок завершён', answered: 'Принят на другом устройстве',
+    birthday: (name) => `У ${name} сегодня день рождения`, someoneBirthday: 'У одного из собеседников сегодня день рождения',
   },
   es: {
     reply: 'Responder', read: 'Marcar como leído', many: (n) => `${n} mensajes nuevos`, call: 'Llamada entrante', groupCall: 'Llamada grupal entrante',
     missed: 'Llamada perdida', ended: 'Llamada finalizada', answered: 'Respondida en otro dispositivo',
+    birthday: (name) => `${name} cumple años hoy`, someoneBirthday: 'Alguien con quien chateas cumple años hoy',
   },
   de: {
     reply: 'Antworten', read: 'Als gelesen markieren', many: (n) => `${n} neue Nachrichten`, call: 'Eingehender Anruf', groupCall: 'Eingehender Gruppenanruf',
     missed: 'Verpasster Anruf', ended: 'Anruf beendet', answered: 'Auf einem anderen Gerät angenommen',
+    birthday: (name) => `${name} hat heute Geburtstag`, someoneBirthday: 'Jemand, mit dem du schreibst, hat heute Geburtstag',
   },
 };
 const CALL_MAX_RING_MS = 120000;
@@ -89,6 +93,20 @@ function stackedLine(entry, fallback) {
     return { from, sender: String(entry.sender || from), text: String(entry.text || '') };
   }
   return { from: fallback, sender: fallback, text: String(entry || '') };
+}
+async function showBirthdayNotification(data) {
+  const user = String(data.user_id);
+  const settings = await notificationSettings();
+  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+  const preview = data.preview === true && typeof data.title === 'string' && data.title;
+  const avatar = preview && typeof data.avatar_token === 'string' && settings.api
+    ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
+  if (user !== await notificationAccount()) return;
+  await self.registration.showNotification(preview ? data.title : 'Messenger', {
+    body: preview ? titles.birthday(data.title) : titles.someoneBirthday,
+    icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png', tag: `birthday-${data.chat_id}`, renotify: false, silent: !data.sound,
+    data: { chat_id: String(data.chat_id), user_id: user, kind: 'birthday' },
+  });
 }
 async function showChatNotification(data) {
   const tag = `chat-${data.chat_id}`;
@@ -241,6 +259,10 @@ self.addEventListener('push', (event) => {
     }
     if (!/^\d+$/.test(String(data.chat_id))) return;
     if (!Number.isFinite(data.expires_at) || data.expires_at * 1000 < Date.now()) return;
+    if (data.kind === 'birthday') {
+      await showBirthdayNotification(data);
+      return;
+    }
     await inChatOrder(String(data.chat_id), () => showChatNotification(data));
   })()]));
 });

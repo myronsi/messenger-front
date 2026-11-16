@@ -66,6 +66,7 @@ export const profile = {
     profile_visibility: { allow: "Estas personas siempre ven tu biografía.", deny: "Estas personas nunca ven tu biografía." },
     presence_visibility: { allow: "Estas personas siempre ven cuándo estás en línea.", deny: "Estas personas nunca ven cuándo estás en línea." },
     last_seen_visibility: { allow: "Estas personas siempre ven tu última conexión.", deny: "Estas personas nunca ven tu última conexión." },
+    birthday_visibility: { allow: "Estas personas siempre ven tu cumpleaños y reciben un recordatorio.", deny: "Estas personas nunca ven tu cumpleaños." },
     direct_messages: { allow: "Estas personas pueden iniciar un chat contigo sin pedir permiso.", deny: "Estas personas no pueden iniciar un chat contigo." },
     group_invites: { allow: "Estas personas pueden añadirte a grupos sin pedir permiso.", deny: "Estas personas no pueden añadirte a grupos." },
     search_visibility: { allow: "Estas personas siempre pueden encontrarte en la búsqueda.", deny: "Estas personas nunca te encuentran en la búsqueda." },

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { currentUserApi, type CurrentUser } from '@/shared/api/currentUserApi';
+import { syncTimeZone } from '@/shared/api/syncTimeZone';
 import { readSignedInUser } from '@/shared/auth/signedInUser';
 import { getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
@@ -70,6 +71,7 @@ export function SessionEntry() {
       onUser: user => {
         setUsername(user.username);
         setChecking(false);
+        void syncTimeZone(user.time_zone);
       },
       onSignedOut: signedOut,
     });

@@ -19,6 +19,14 @@ describe('profile hero parts', () => {
     expect(screen.getByTestId('profile-online-dot')).toBeInTheDocument();
   });
 
+  it('shows a chosen background instead of the arcs', () => {
+    const { container, rerender } = render(<ProfileBanner seed="anna" avatar={<img alt="" />} title="Anna" />);
+    expect(container.querySelector('svg circle')).not.toBeNull();
+    rerender(<ProfileBanner seed="anna" avatar={<img alt="" />} title="Anna" background={{ kind: 'preset', preset: 'ocean' }} />);
+    expect(screen.getByTestId('profile-background-fill').style.backgroundImage).toContain('linear-gradient');
+    expect(container.querySelector('svg circle')).toBeNull();
+  });
+
   it('puts the labeled primary action first and keeps the others as icon buttons', () => {
     const onBlock = vi.fn();
     render(<ProfileActions tiles={[

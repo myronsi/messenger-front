@@ -6,6 +6,7 @@ import type { GroupTranslations } from './groupChatTypes';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel } from './groupProfileHelpers';
 import GroupRoleHistoryRow from './GroupRoleHistoryRow';
+import { ProfileBackgroundEditor } from '@/features/profile';
 
 interface Props {
   model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
@@ -82,7 +83,11 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
             {translations.save || 'Save'}
           </button>
         </section>
-      ) : (
+      ) : null}
+      {canEdit && (
+        <ProfileBackgroundEditor title={rawTranslations.profileExtras.groupBackground} background={groupDetails?.background} onSave={model.onSaveBackground} />
+      )}
+      {canEdit ? null : (
         <>
           {groupDetails?.description && (
             <section className="rounded-lg border border-border bg-card p-3">

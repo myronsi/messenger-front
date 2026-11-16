@@ -315,6 +315,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/music": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the profile music
+         * @description Upload the file with `POST /attachments` (`purpose: profile_music`) first.
+         */
+        put: operations["setMyMusic"];
+        post?: never;
+        /** Remove the profile music */
+        delete: operations["deleteMyMusic"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/background": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the profile background */
+        put: operations["setMyBackground"];
+        post?: never;
+        /** Remove the profile background */
+        delete: operations["deleteMyBackground"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/password": {
         parameters: {
             query?: never;
@@ -518,7 +567,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "group_invites" | "direct_messages" | "search_visibility";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -1470,6 +1519,37 @@ export interface paths {
         put: operations["setGroupAvatar"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{chat_id}/background": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the group background
+         * @description Owner and admins. For `media`, the caller uploads the file with purpose `profile_background` first.
+         */
+        put: operations["setGroupBackground"];
+        post?: never;
+        /**
+         * Remove the group background
+         * @description Owner and admins.
+         */
+        delete: operations["deleteGroupBackground"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3001,6 +3081,11 @@ export interface components {
             enabled: boolean;
             sound: boolean;
             previews: boolean;
+            /**
+             * @description A push at 09:00 (in `Me.time_zone`) when someone you have a direct chat with has a birthday. Always sent
+             *     by the server; when a `PUT` leaves it out, it stays as it is. Defaults to `true`.
+             */
+            birthday_reminders?: boolean;
         };
         NotificationSettings: {
             preferences: components["schemas"]["NotificationPreferences"];
@@ -3173,6 +3258,14 @@ export interface components {
         UpdateMeRequest: {
             display_name?: string;
             bio?: string | null;
+            /** @description Free text; `null` or an empty string removes it. */
+            pronouns?: string | null;
+            /**
+             * @description `null` removes it. With a `year` the date must exist (no 29 February in other years); without one,
+             *     29 February is allowed.
+             */
+            birthday?: components["schemas"]["Birthday"] | null;
+            time_zone?: components["schemas"]["TimeZone"];
         };
         SetAvatarRequest: {
             attachment_id: components["schemas"]["AttachmentRef"];
@@ -3251,6 +3344,8 @@ export interface components {
             presence_visibility: components["schemas"]["Visibility"];
             /** @description Who sees when the user was last online (`User.last_seen`, `presence` events). */
             last_seen_visibility: components["schemas"]["Visibility"];
+            /** @description Who sees the birthday (`User.birthday`) and gets a reminder on the day. Defaults to `contacts`. */
+            birthday_visibility: components["schemas"]["Visibility"];
             read_receipts_enabled: boolean;
             direct_messages: components["schemas"]["DirectMessagePolicy"];
             group_invites: components["schemas"]["GroupInvitePolicy"];
@@ -3266,6 +3361,7 @@ export interface components {
             profile_visibility?: components["schemas"]["Visibility"];
             presence_visibility?: components["schemas"]["Visibility"];
             last_seen_visibility?: components["schemas"]["Visibility"];
+            birthday_visibility?: components["schemas"]["Visibility"];
             read_receipts_enabled?: boolean;
             direct_messages?: components["schemas"]["DirectMessagePolicy"];
             group_invites?: components["schemas"]["GroupInvitePolicy"];
@@ -3279,8 +3375,19 @@ export interface components {
         /** @description A user as visible to the requesting user; hidden fields are `null`. */
         User: {
             id: components["schemas"]["Id"];
-            /** @description Grows whenever the username, display name, bio or avatar changes (not with presence). Clients keep a stored profile until a higher version arrives. */
+            /**
+             * @description Grows whenever the username, display name, bio, avatar, pronouns, birthday, profile music or profile
+             *     background changes (not with presence). Clients keep a stored profile until a higher version arrives.
+             */
             profile_version: number;
+            /** @description Free text such as "she/her". Visible like the bio (`profile_visibility`). */
+            pronouns: string | null;
+            /** @description Visible by `birthday_visibility`; `null` when not set or hidden. */
+            birthday: components["schemas"]["Birthday"] | null;
+            /** @description A short song on the profile, visible like the bio. Clients never play it on their own. */
+            music: components["schemas"]["ProfileMusic"] | null;
+            /** @description The banner and page background of the profile, visible like the bio. */
+            background: components["schemas"]["ProfileBackground"] | null;
             username: components["schemas"]["Username"];
             display_name: string;
             /** @description The requesting user's own name for this user, if set. */
@@ -3295,6 +3402,63 @@ export interface components {
         Me: components["schemas"]["User"] & {
             created_at: components["schemas"]["Timestamp"];
             recovery_setup_required?: boolean;
+            /** @description The user's time zone; birthday reminders arrive at 09:00 in it. `UTC` until a client sets it. */
+            time_zone: components["schemas"]["TimeZone"];
+        };
+        /**
+         * @description An IANA time zone name such as `Europe/Berlin`.
+         * @example Europe/Berlin
+         */
+        TimeZone: string;
+        Birthday: {
+            day: number;
+            month: number;
+            /** @description Optional; `null` when the user keeps the year to themselves. */
+            year: number | null;
+        };
+        ProfileMusic: {
+            /** @description The clip (at most 30 s). `thumbnail_url` is the cover when the file had one. */
+            attachment: components["schemas"]["Attachment"];
+            title: string | null;
+            artist: string | null;
+        };
+        /**
+         * @description `media` an uploaded image, GIF or short video (`attachment`), `preset` one of the clients' built-in
+         *     gradients (`preset`), `color` one color or a gradient of two (`colors`).
+         * @enum {string}
+         */
+        ProfileBackgroundKind: "media" | "preset" | "color";
+        /** @description Name of a built-in gradient. Clients show their default background for a name they do not know. */
+        BackgroundPreset: string;
+        /** @example #3366ff */
+        BackgroundColor: string;
+        ProfileBackground: {
+            kind: components["schemas"]["ProfileBackgroundKind"];
+            /**
+             * @description Set for `media`. An image, an animated GIF or a muted video of at most 15 s; `thumbnail_url` is a still
+             *     frame to show while it loads and when the viewer prefers reduced motion.
+             */
+            attachment?: components["schemas"]["Attachment"];
+            preset?: components["schemas"]["BackgroundPreset"];
+            colors?: components["schemas"]["BackgroundColor"][];
+        };
+        /**
+         * @description `media` needs `attachment_id` (uploaded with purpose `profile_background`), `preset` needs `preset`, `color`
+         *     needs `colors`; other fields must be absent (`422` otherwise).
+         */
+        SetBackgroundRequest: {
+            kind: components["schemas"]["ProfileBackgroundKind"];
+            attachment_id?: components["schemas"]["AttachmentRef"];
+            preset?: components["schemas"]["BackgroundPreset"];
+            colors?: components["schemas"]["BackgroundColor"][];
+        };
+        SetMusicRequest: {
+            /** @description An upload of the caller with purpose `profile_music`. */
+            attachment_id: components["schemas"]["AttachmentRef"];
+            /** @description Shown title. Clients fill it in from `Attachment.tags` of the upload and let the user edit it. */
+            title?: string | null;
+            /** @description Shown artist, filled in the same way. */
+            artist?: string | null;
         };
         UserPage: {
             items: components["schemas"]["User"][];
@@ -3314,9 +3478,16 @@ export interface components {
          * @description `sticker`: a PNG, JPEG or still WebP of at most 5 MB. The server fits it into 512 x 512 px with a transparent
          *     border and stores a WebP (`413` when that is still over 512 KB). Only its uploader can load it until it is
          *     added to a pack.
+         *
+         *     `profile_music`: an audio file of at most 20 MB. The server keeps at most 30 s of it (from `start_ms` to
+         *     `end_ms`, or the first 30 s), stored as AAC, reads the title and artist into `tags` and the embedded cover
+         *     into `thumbnail_url`. Use it with `PUT /me/music`.
+         *
+         *     `profile_background`: an image (10 MB), an animated GIF (15 MB) or a video of at most 15 s (15 MB). Use it
+         *     with `PUT /me/background` or `PUT /groups/{chat_id}/background`.
          * @enum {string}
          */
-        UploadPurpose: "message" | "avatar" | "sticker";
+        UploadPurpose: "message" | "avatar" | "sticker" | "profile_music" | "profile_background";
         UploadAttachmentRequest: {
             /** Format: binary */
             file: string;
@@ -3326,6 +3497,10 @@ export interface components {
             duration_ms?: number;
             /** @description Amplitude samples (0-255) of a voice message */
             waveform?: number[];
+            /** @description `profile_music` only: where the kept part starts. */
+            start_ms?: number;
+            /** @description `profile_music` only: where the kept part ends, at most 30 s after `start_ms`. */
+            end_ms?: number;
         };
         Attachment: {
             id: components["schemas"]["AttachmentRef"];
@@ -3344,12 +3519,18 @@ export interface components {
             readonly display_url?: string | null;
             duration_ms?: number | null;
             waveform?: number[] | null;
+            /** @description Only in the answer to a `profile_music` upload; what the file says about itself. */
+            tags?: components["schemas"]["AudioTags"];
             /**
              * @description What the sender drew on this image of this message. Clients show the image with the drawing on top
              *     and never without it. Absent when the image has no drawing. The same image can carry another drawing
              *     in another message.
              */
             drawing?: components["schemas"]["Drawing"];
+        };
+        AudioTags: {
+            title: string | null;
+            artist: string | null;
         };
         /**
          * @description Strokes and text labels on an image. Coordinates, widths and sizes are fractions of the image as it is
@@ -3717,6 +3898,8 @@ export interface components {
             name: string;
             description: string | null;
             avatar_url: string | null;
+            /** @description The banner and page background of the group profile; set by the owner and admins. */
+            background: components["schemas"]["ProfileBackground"] | null;
             owner_id: components["schemas"]["Id"];
             my_role: components["schemas"]["GroupRole"];
             members: components["schemas"]["GroupMember"][];
@@ -4707,6 +4890,126 @@ export interface operations {
             426: components["responses"]["ClientOutdated"];
         };
     };
+    setMyMusic: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetMusicRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteMyMusic: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    setMyBackground: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetBackgroundRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteMyBackground: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
     changePassword: {
         parameters: {
             query?: never;
@@ -5058,7 +5361,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "group_invites" | "direct_messages" | "search_visibility";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -6724,6 +7027,74 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    setGroupBackground: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetBackgroundRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteGroupBackground: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
         };
     };
