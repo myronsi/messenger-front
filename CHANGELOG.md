@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.24](https://github.com/myronsi/messenger-front/compare/v0.6.23...v0.6.24) (2026-11-17)
+
+
+### Features
+
+* **ui:** reactions rework, personalization, in-app player and profile polish ([#220](https://github.com/myronsi/messenger-front/issues/220)) ([19400fc](https://github.com/myronsi/messenger-front/commit/19400fc2d8b9efee245d0f51db7c56ea9e9fcd6f))
+
 ## [0.6.23](https://github.com/myronsi/messenger-front/compare/v0.6.22...v0.6.23) (2026-11-16)
 
 
