@@ -75,7 +75,9 @@ const stored = (track: AudioTrack): AudioTrack => ({
   origin: track.origin,
 });
 const cleanName = (name: string) => name.trim().slice(0, MAX_NAME);
-const newId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+const newId = () => (typeof crypto.randomUUID === 'function'
+  ? crypto.randomUUID()
+  : Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join(''));
 
 const updatePlaylist = (id: string, change: (playlist: Playlist) => Playlist) => {
   commit({ ...library, playlists: library.playlists.map((playlist) => (playlist.id === id ? { ...change(playlist), updatedAt: Date.now() } : playlist)) });
