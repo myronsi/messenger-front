@@ -43,19 +43,39 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-it('lists accounts in order and links to them', () => {
+const openMenu = (name: string) => fireEvent.pointerDown(screen.getByRole('button', { name: `Options for ${name}` }), { button: 0, ctrlKey: false });
+
+it('lists accounts in order with their verification date and links to them from the menu', () => {
   render(<ConnectionsSettingsPage isActive onBack={vi.fn()} />);
   const rows = screen.getAllByTestId('connection-row');
   expect(rows.map((row) => within(row).getByText(/octo|example\.org/).textContent)).toEqual(['octo', 'example.org']);
-  expect(within(rows[0]).getByLabelText('Open GitHub profile')).toHaveAttribute('href', 'https://example.com/1');
-  expect(within(rows[0]).getByLabelText('Open GitHub profile')).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(within(rows[0]).getByText('GitHub · Verified 16 Nov')).toBeInTheDocument();
+  openMenu('octo');
+  expect(screen.getByRole('menuitem', { name: 'Open GitHub profile' })).toHaveAttribute('href', 'https://example.com/1');
+  expect(screen.getByRole('menuitem', { name: 'Open GitHub profile' })).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
+it('previews the accounts as they appear on the profile and counts them', () => {
+  render(<ConnectionsSettingsPage isActive onBack={vi.fn()} />);
+  const preview = screen.getByTestId('connections-preview');
+  expect(within(preview).getAllByTestId('profile-connection').map((chip) => chip.textContent)).toEqual(['octo', 'example.org']);
+  expect(screen.getByText('2/15')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /GitHub/ })).toHaveTextContent('Connected');
+});
+
+it('explains the preview when nothing is connected', () => {
+  mocks.items = [];
+  render(<ConnectionsSettingsPage isActive onBack={vi.fn()} />);
+  expect(within(screen.getByTestId('connections-preview')).getByText(/show up here/)).toBeInTheDocument();
+  expect(screen.getByText('0/15')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /GitHub/ })).not.toHaveTextContent('Connected');
 });
 
 it('moves an account and saves the new order', async () => {
   render(<ConnectionsSettingsPage isActive onBack={vi.fn()} />);
-  const first = screen.getAllByTestId('connection-row')[0];
-  expect(within(first).getByLabelText('Move up')).toBeDisabled();
-  fireEvent.click(within(first).getByLabelText('Move down'));
+  openMenu('octo');
+  expect(screen.getByRole('menuitem', { name: 'Move up' })).toHaveAttribute('data-disabled');
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Move down' }));
   await waitFor(() => expect(mocks.reorder).toHaveBeenCalledWith(['2', '1']));
 });
 
@@ -69,7 +89,8 @@ it('reorders by dragging a row onto another', async () => {
 
 it('removes an account after confirming', async () => {
   render(<ConnectionsSettingsPage isActive onBack={vi.fn()} />);
-  fireEvent.click(screen.getByLabelText('Remove octo'));
+  openMenu('octo');
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }));
   expect(screen.getByText('Remove octo from your profile?')).toBeInTheDocument();
   const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
   fireEvent.click(removeButtons[removeButtons.length - 1]);

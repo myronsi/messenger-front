@@ -3,15 +3,18 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import AudioMessage from './AudioMessage';
 import type { ProfileAudioItem } from './ProfileChatPanels';
+import type { AudioTrack } from '../model/audioPlayer';
+import { TrackMenu } from './TrackMenu';
 
 interface ProfileAudioRowProps {
   audio: ProfileAudioItem;
+  track?: AudioTrack;
   isMine: boolean;
   onPlay: (startAt?: number) => void;
   onShowInChat?: () => void;
 }
 
-const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, isMine, onPlay, onShowInChat }) => {
+const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, track, isMine, onPlay, onShowInChat }) => {
   const { translations, language } = useLanguage();
   const today = new Date();
   const yesterday = new Date(today);
@@ -38,6 +41,7 @@ const ProfileAudioRow: React.FC<ProfileAudioRowProps> = ({ audio, isMine, onPlay
         {onShowInChat && (
           <button type="button" onClick={onShowInChat} className="shrink-0 font-medium text-primary hover:underline">{translations.showInChat}</button>
         )}
+        {track && <TrackMenu track={track} className="-my-1 h-7 w-7" />}
       </div>
     </div>
   );

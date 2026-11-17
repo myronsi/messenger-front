@@ -36,5 +36,11 @@ export const connections = {
     openProfile: "{provider}-Profil öffnen",
     profileSection: "Konten",
     removed: "Entfernt",
+    previewTitle: "In deinem Profil",
+    previewEmpty: "Verbundene Konten erscheinen hier genau so, wie andere sie sehen.",
+    countOf: "{count}/{max}",
+    verifiedOn: "Bestätigt am {date}",
+    optionsFor: "Optionen für {name}",
+    alreadyConnected: "Verbunden",
   },
 };

@@ -49,6 +49,19 @@ describe('ChatListItem', () => {
     expect(screen.getByTestId('chat-list-item')).toHaveClass('bg-accent', 'text-accent-foreground');
   });
 
+  it('draws custom emoji in the name of the saved messages chat', () => {
+    render(
+      <ChatListItem
+        chat={{ ...chat, is_saved: true, display_name: 'Myron <a:img_7329:123456789>' } as Chat} activeChatId="8" isContextSelected={false} translations={en}
+        getLastMessagePreview={() => ''} getLastMessageTime={() => ''} isOwnLastMessage={() => false} isOwnLastMessageRead={() => false} onClick={vi.fn()} onContextMenu={vi.fn()}
+      />,
+    );
+    const row = screen.getByTestId('chat-list-item');
+    expect(screen.getByAltText(':img_7329:')).toBeInTheDocument();
+    expect(row).not.toHaveTextContent('<a:');
+    expect(row).toHaveTextContent('Myron');
+  });
+
   it('shows the unread count in the accent colour for a normal chat', () => {
     renderItem();
     expect(screen.queryByTestId('chat-muted-icon')).not.toBeInTheDocument();

@@ -1,6 +1,6 @@
 import { Music2, Pause, Play } from 'lucide-react';
 import type { ProfileMusic } from '@/entities/user';
-import { formatAudioTime, pauseAudio, playAudio, useAudioPlayer } from '@/entities/message';
+import { formatAudioTime, pauseAudio, playAudio, TrackMenu, useAudioPlayer, type AudioTrack } from '@/entities/message';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
@@ -16,9 +16,13 @@ export const ProfileMusicCard = ({ music, ownerName }: ProfileMusicCardProps) =>
   const playing = useAudioPlayer((state) => state.playing && state.track?.id === attachment.id);
   const title = music.title || t.music;
   const duration = (attachment.duration_ms ?? 0) / 1000;
+  const track: AudioTrack = {
+    id: attachment.id, src: attachment.url, title, kind: 'music', duration, artist: music.artist || undefined,
+    cover: attachment.thumbnail_url || undefined, origin: ownerName,
+  };
   const toggle = () => {
     if (playing) pauseAudio();
-    else playAudio({ id: attachment.id, src: attachment.url, title: music.artist ? `${music.artist} – ${title}` : `${ownerName} – ${title}`, kind: 'music', duration });
+    else playAudio(track);
   };
   return (
     <section data-testid="profile-music" className="flex items-center gap-3 rounded-2xl border border-border bg-card/80 p-2.5 backdrop-blur">
@@ -35,6 +39,7 @@ export const ProfileMusicCard = ({ music, ownerName }: ProfileMusicCardProps) =>
         className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90">
         {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-px" />}
       </button>
+      <TrackMenu track={track} />
     </section>
   );
 };

@@ -179,10 +179,6 @@
     transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
   }
 
-  .motion-list-item:hover {
-    transform: translateX(2px);
-  }
-
   .motion-message {
     animation: messageIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
@@ -297,7 +293,7 @@
     pointer-events: none;
   }
 
-  .message-cv > * {
+  body:not([style*="pointer-events: none"]) .message-cv > * {
     pointer-events: auto;
   }
 

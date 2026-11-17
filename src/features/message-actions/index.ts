@@ -6,3 +6,4 @@ export { messageMenuPlacement } from './model/menuAnchor';
 export { default as SelectionBar } from './ui/SelectionBar';
 export { useMessageSelection } from './model/useMessageSelection';
 export { useReplyAction } from './model/useReplyAction';
+export { ReactionPicker } from './ui/ReactionPicker';

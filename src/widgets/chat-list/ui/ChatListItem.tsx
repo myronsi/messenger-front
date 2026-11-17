@@ -150,7 +150,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           <div className={`flex min-w-0 flex-1 items-center gap-1.5 text-[15px] leading-5 ${unreadCount ? 'font-semibold' : 'font-medium'}`}>
             {chat.type === 'group' && <Users aria-label={translations.group} className={`h-4 w-4 shrink-0 ${muted}`} />}
             <span className="truncate">
-              {saved ? selfName(chat.display_name || chat.name, translations)
+              {saved ? <EmojiText text={selfName(chat.display_name || chat.name, translations)} />
                 : chat.interlocutor_deleted ? translations.deletedUser : <EmojiText text={chat.display_name || chat.name} />}
             </span>
             {isMuted && (

@@ -17,6 +17,7 @@ import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
 import type { Chat } from '@/entities/message';
 import type { ChatsListComponentProps } from './model/types';
 import { selfName } from '@/shared/lib/selfName';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 import { AudioPlayerBar } from '@/features/audio-player';
 
 const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
@@ -47,7 +48,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
     model.closeChatContextMenu();
     if (!chat) return;
     cleanup.open({ kind, target: {
-      chatId: chat.id, name: chat.is_saved ? selfName(chat.display_name || chat.name, model.translations) : chat.display_name || chat.name,
+      chatId: chat.id, name: plainEmoji(chat.is_saved ? selfName(chat.display_name || chat.name, model.translations) : chat.display_name || chat.name),
       isGroup: chat.type === 'group', isSaved: !!chat.is_saved, canClearForEveryone: chat.my_role === 'owner' || chat.my_role === 'admin',
     } });
   };
@@ -82,7 +83,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
       {playerBar}
       {pendingRequests > 0 && onOpenRequests && (
         <button type="button" onClick={onOpenRequests}
-          className="mx-3 mb-1 mt-2.5 flex items-center gap-3 rounded-xl bg-primary/10 px-3.5 py-3 text-left text-primary transition-colors hover:bg-primary/15 md:hidden">
+          className="mx-3 mb-1 mt-2.5 flex items-center gap-3 rounded-xl bg-primary/10 px-3.5 py-3 text-left text-primary transition-colors hover:bg-primary/15">
           <Inbox className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1 text-[15px] font-medium">{pendingRequests === 1 ? model.translations.appShell.messageRequestsRowOne
             : fillTemplate(model.translations.appShell.messageRequestsRow, { count: String(pendingRequests) })}</span>

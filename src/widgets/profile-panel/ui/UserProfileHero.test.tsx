@@ -59,4 +59,18 @@ describe('UserProfileHero', () => {
     expect(screen.queryByRole('menuitem', { name: en.profileRework.block })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: en.profileRework.rename })).not.toBeInTheDocument();
   });
+
+  it('shows online status for others but not on your own profile', () => {
+    renderHero({ isOnline: true });
+    expect(screen.getByTestId('profile-online-dot')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-presence')).toHaveTextContent(en.profileRework.onlineNow);
+  });
+
+  it('leaves out the online dot and status on your own profile', () => {
+    renderHero({ isOnline: true, isCurrentUser: true, canMessage: false });
+    expect(screen.queryByTestId('profile-online-dot')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('profile-presence')).not.toBeInTheDocument();
+    expect(screen.getByText('@bea')).toBeInTheDocument();
+  });
 });
+

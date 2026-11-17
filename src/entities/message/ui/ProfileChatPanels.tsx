@@ -76,9 +76,10 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
 const profileAudioTrack = (audio: ProfileAudioItem, voiceTitle: string): AudioTrack => ({
   id: audio.id,
   src: audio.url,
-  title: audio.kind === 'voice' ? [audio.sender, voiceTitle].filter(Boolean).join(' · ') : audio.name,
+  title: audio.kind === 'voice' ? [audio.sender, voiceTitle].filter(Boolean).join(' · ') : audio.name.replace(/\.[^.]+$/, '') || audio.name,
   kind: audio.kind === 'voice' ? 'voice' : 'music',
   duration: audio.duration,
+  origin: audio.kind === 'voice' ? undefined : audio.sender || undefined,
 });
 
 export const toProfileAudios = (audios: ChatAudio[] = [], fallbackName: string): ProfileAudioItem[] => (
@@ -267,7 +268,7 @@ export const ProfileAudiosPanel: React.FC<{
         <div className="space-y-3">
           {audios.map((audio) => (
             <ProfileAudioRow
-              key={audio.id} audio={audio} onPlay={(startAt) => play(audio.id, startAt)}
+              key={audio.id} audio={audio} track={profileAudioTrack(audio, translations.voiceMessage)} onPlay={(startAt) => play(audio.id, startAt)}
               onShowInChat={onJumpToMessage && isPersistedId(audio.id) ? () => onJumpToMessage(audio.id) : undefined}
               isMine={!!currentUsername && audio.senderUsername?.toLowerCase() === currentUsername.toLowerCase()}
             />

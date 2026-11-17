@@ -5,7 +5,7 @@ import React, { forwardRef, memo, useCallback, useState, useEffect, useMemo, use
 import { useMessageListScroll } from '../model/useMessageListScroll';
 import { bottomInsetPadding } from '../model/useBottomInset';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
-import { isIgnoredTap } from '../model/tapFilter';
+import { useMessageTap } from '../model/useMessageTap';
 import { audioQueueFor } from '../model/audioQueue';
 import { TypingBubble } from '@/entities/typing';
 import ScrollToBottomButton from './ScrollToBottomButton';
@@ -190,10 +190,8 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     return () => container.removeEventListener('scroll', onScroll);
   }, [chatContainerRef]);
 
-  const handleMessageClick = useStableCallback((e: React.MouseEvent, message: Message) => {
-    e.preventDefault();
-    if (e.type === 'click' && isIgnoredTap(e, lastScrollAtRef.current)) return;
-    onMessageClick(e, message);
+  const handleMessageClick = useMessageTap({
+    onMessageClick, userId, wsRef, lastScrollAtRef, canReact: !interlocutorDeleted && !props.selection?.active, menuOpen: contextMenuMessageId !== undefined,
   });
 
   return (

@@ -17,11 +17,12 @@ interface ProfileBannerProps {
   actions?: ReactNode;
   topLeft?: ReactNode;
   background?: ProfileBackgroundValue | null;
+  avatarOverlay?: ReactNode;
 }
 
-export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, actions, topLeft, background }: ProfileBannerProps) => (
+export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, actions, topLeft, background, avatarOverlay }: ProfileBannerProps) => (
   <div data-testid="profile-banner" style={{ '--wave-h': String(profileHue(seed)) } as CSSProperties}>
-    <div className="relative h-32 overflow-hidden bg-[hsl(var(--wave-h)_42%_40%)] dark:bg-[hsl(var(--wave-h)_38%_30%)]">
+    <div data-morph="cover" className="relative h-32 overflow-hidden bg-[hsl(var(--wave-h)_42%_40%)] dark:bg-[hsl(var(--wave-h)_38%_30%)]">
       {hasVisibleBackground(background) ? (
         <>
           <ProfileBackgroundFill background={background} className="absolute inset-0 h-full w-full" />
@@ -37,14 +38,15 @@ export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, a
       {topLeft && <div className="absolute left-1.5 top-3 text-white">{topLeft}</div>}
     </div>
     <div className="flex items-start justify-between gap-3 px-5">
-      <div className="relative -mt-14 h-28 w-28 shrink-0 rounded-full bg-background p-1">
+      <div data-morph="avatar" className="relative -mt-14 h-28 w-28 shrink-0 rounded-full bg-background p-1">
         <div className="h-full w-full overflow-hidden rounded-full">{avatar}</div>
+        {avatarOverlay}
         {online && <span data-testid="profile-online-dot" className="absolute bottom-2 right-2 h-5 w-5 rounded-full border-[3px] border-background bg-success" />}
       </div>
-      {actions && <div className="flex min-w-0 flex-wrap justify-end gap-2 pt-3">{actions}</div>}
+      {actions && <div data-morph-fade="" className="flex min-w-0 flex-wrap justify-end gap-2 pt-3">{actions}</div>}
     </div>
     <div className="px-5 pt-2">
-      <div className="break-words text-2xl font-bold leading-tight tracking-tight">{title}</div>
+      <div data-morph="name" data-morph-mode="move" className="break-words text-2xl font-bold leading-tight tracking-tight">{title}</div>
       {subtitle && <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">{subtitle}</div>}
     </div>
   </div>
@@ -93,7 +95,7 @@ export const ProfileActions = ({ tiles, menu = [], moreLabel = 'More' }: Profile
       </div>
     ))}
     {menu.length > 0 && (
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button type="button" aria-label={moreLabel} title={moreLabel} className={tileClass({ key: 'more', label: moreLabel })}>
             <MoreHorizontal className="h-5 w-5" />
@@ -120,7 +122,7 @@ interface ProfileTabsProps<T extends string> {
 
 export function ProfileTabs<T extends string>({ tabs, active, onSelect }: ProfileTabsProps<T>) {
   return (
-    <div role="tablist" className="mx-5 mt-3 flex gap-6 overflow-x-auto border-b border-border [scrollbar-width:none]">
+    <div role="tablist" data-morph-fade="" className="mx-5 mt-3 flex gap-6 overflow-x-auto border-b border-border [scrollbar-width:none]">
       {tabs.map((tab) => (
         <button key={tab.key} type="button" role="tab" aria-selected={tab.key === active} data-profile-tab={tab.key} onClick={() => onSelect(tab.key)}
           className={`relative shrink-0 pb-2.5 pt-1 text-[15px] transition-colors ${tab.key === active

@@ -3,7 +3,7 @@ import { localeOf, type AppLanguage } from '@/shared/lang/languages';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime, isSameDay, parseUtcDate, trimYearSuffix } from './dateFormatters';
 
-type PresenceWords = typeof en.presence;
+type PresenceWords = Omit<typeof en.presence, 'short'>;
 type PluralWords = PresenceWords['minutes'];
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -40,7 +40,8 @@ export const getPresenceLabel = (
   return words.date.replace('{date}', date).replace('{time}', time);
 };
 
-export const usePresenceLabel = (isOnline: boolean | undefined, lastSeen: string | null | undefined) => {
+export const usePresenceLabel = (isOnline: boolean | undefined, lastSeen: string | null | undefined, compact = false) => {
   const { language, translations } = useLanguage();
-  return getPresenceLabel(isOnline, lastSeen, translations.presence, language);
+  const words = compact ? { ...translations.presence, ...translations.presence.short } : translations.presence;
+  return getPresenceLabel(isOnline, lastSeen, words, language);
 };

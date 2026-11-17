@@ -37,6 +37,55 @@ it.each(['50%', '8px'])('lands at the exact thumbnail bounds with radius %s and 
   }
 });
 
+it('shrinks a profile picture back into the circle around it', () => {
+  const image = document.createElement('img');
+  image.src = 'blob:avatar';
+  Object.defineProperty(image, 'naturalWidth', { value: 512 });
+  Object.defineProperty(image, 'naturalHeight', { value: 512 });
+  image.getBoundingClientRect = () => rect(0, 100, 400, 400);
+  const circle = document.createElement('div');
+  circle.style.borderRadius = '9999px';
+  const button = document.createElement('button');
+  const target = document.createElement('img');
+  for (const element of [circle, button, target]) element.getBoundingClientRect = () => rect(24, 60, 104, 104);
+  button.append(target);
+  circle.append(button);
+  document.body.append(circle);
+  const animate = vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation);
+  const original = Element.prototype.animate;
+  Element.prototype.animate = animate;
+  try {
+    returnToThumbnail(image, target, { duration: 320 });
+    expect((animate.mock.calls[0] as unknown[][])[0][1]).toMatchObject({ width: '104px', height: '104px', borderRadius: '50%' });
+  } finally {
+    Element.prototype.animate = original;
+  }
+});
+
+it('ignores the rounded corners of a bigger box around a square thumbnail', () => {
+  const image = document.createElement('img');
+  image.src = 'blob:photo';
+  Object.defineProperty(image, 'naturalWidth', { value: 400 });
+  Object.defineProperty(image, 'naturalHeight', { value: 400 });
+  image.getBoundingClientRect = () => rect(0, 0, 400, 400);
+  const card = document.createElement('div');
+  card.style.borderRadius = '16px';
+  card.getBoundingClientRect = () => rect(0, 0, 300, 200);
+  const target = document.createElement('img');
+  target.getBoundingClientRect = () => rect(10, 10, 80, 80);
+  card.append(target);
+  document.body.append(card);
+  const animate = vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation);
+  const original = Element.prototype.animate;
+  Element.prototype.animate = animate;
+  try {
+    returnToThumbnail(image, target, { duration: 320 });
+    expect((animate.mock.calls[0] as unknown[][])[0][1]).toMatchObject({ borderRadius: '0px' });
+  } finally {
+    Element.prototype.animate = original;
+  }
+});
+
 it('finds the matching visible thumbnail rather than another image or the viewer itself', () => {
   const thumb = document.createElement('img');
   thumb.dataset.mediaSource = '/photo';

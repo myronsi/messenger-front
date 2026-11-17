@@ -7,10 +7,11 @@ import { Toaster } from '@/shared/ui/toaster';
 import ChatsListComponentRTK from '@/widgets/chat-list';
 import ProfileComponentRTK from '@/widgets/profile-panel';
 import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-panel';
+import { AddToPlaylistHost, ReactionBurstHost, startAudioSession } from '@/entities/message';
+import { NowPlayingHost } from '@/features/audio-player';
 import { useMessengerController } from './model/useMessengerController';
 import { chatPanelKey } from './model/messengerRoutes';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
-import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { DesktopChatLayout } from './ui/DesktopChatLayout';
 import { useJumpRequest } from './model/useJumpRequest';
@@ -82,8 +83,8 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
   const { requestJump, requestFor } = useJumpRequest(currentChat?.id);
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
   useVisualViewport(isMobile);
-  const ownProfile = useDelayedUnmount(isProfileOpen, WINDOW_MOTION_MS);
   const [settingsNavTarget, setSettingsNavTarget] = useState<HTMLDivElement | null>(null);
+  useEffect(() => startAudioSession(), []);
   const mainTab = useMainTab({ routeTab: isProfileOpen ? 'settings' : isMeOpen ? 'profile' : null, showRouteTab });
   const openChatFromList: typeof openChat = (...args) => { mainTab.showChats(); return openChat(...args); };
   const tabPanes = <MainTabPanes tab={mainTab.active} username={username} onShowChats={() => mainTab.select('chats')} onOpenGroup={openGroupFromProfile}
@@ -183,7 +184,6 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
       layout={layout}
       embedded={embedded}
       navTarget={layout === 'pane' ? settingsNavTarget : undefined}
-      isClosing={ownProfile.closing}
       onClose={() => setIsProfileOpen(false)}
       onLogout={() => {
         setIsProfileOpen(false);
@@ -197,6 +197,9 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     <ChatCoveredContext.Provider value={isProfileOpen}>
       <div className="min-h-screen bg-gradient-to-br from-primary/10 to-background">
         <Toaster />
+        <AddToPlaylistHost />
+        <NowPlayingHost />
+        <ReactionBurstHost />
         {isGoApi() && <RecoverySetupPrompt key={username} />}
         {<RecoveryApprovalPrompt key={`approval:${username}`} />}
         {<SecurityNoticeHandler key={`security:${username}`} />}
@@ -226,13 +229,13 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
                   onChatDeleted={handleChatDeleted}
                 />
                 {tabPanes}
-                {ownProfile.mounted && renderOwnProfile('sheet', true)}
+                {isProfileOpen && renderOwnProfile('sheet', true)}
               </div>
               <MainNav variant="bar" active={mainTab.active} onSelect={mainTab.select} className="absolute inset-x-0 bottom-0" />
 
               <div
                 className={`absolute inset-0 z-50 overflow-hidden bg-background motion-window-slide ${mobileChatPanelClass}`}
-                style={{ pointerEvents: currentChat ? 'auto' : 'none' }}
+                style={currentChat ? undefined : { pointerEvents: 'none' }}
               >
                 {activeChat || (
                   <div className="h-full flex items-center justify-center">
@@ -250,32 +253,34 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
           ) : (
             <div className="flex h-screen max-h-screen min-w-full overflow-hidden">
               <MainNav variant="rail" active={mainTab.active} onSelect={mainTab.select} />
-              <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={<div className="relative h-full">
-                <ChatsListComponentRTK
-                  username={username}
-                  onChatOpen={openChatFromList}
-                  setIsProfileOpen={setIsProfileOpen}
-                  onOpenRequests={openMessageRequests}
-                  activeChatId={currentChat?.id}
-                  activeChatName={currentChat?.name}
-                  onActiveChatUpdate={updateActiveChatFromList}
-                  onChatDeleted={handleChatDeleted}
-                />
-                <div ref={setSettingsNavTarget} className="absolute inset-0 z-30 flex rounded-lg bg-background empty:hidden" />
-              </div>}>
-                <div className="relative h-full">
-                  {activeChat || (
-                    <div className="h-full flex items-center justify-center">
-                      <div className="bg-muted px-3 py-1 rounded-xl">
-                        <p className="text-muted-foreground text-sm">{translations.selectChat}</p>
+              <div className="relative h-full min-w-0 flex-1">
+                <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={<div className="relative h-full">
+                  <ChatsListComponentRTK
+                    username={username}
+                    onChatOpen={openChatFromList}
+                    setIsProfileOpen={setIsProfileOpen}
+                    onOpenRequests={openMessageRequests}
+                    activeChatId={currentChat?.id}
+                    activeChatName={currentChat?.name}
+                    onActiveChatUpdate={updateActiveChatFromList}
+                    onChatDeleted={handleChatDeleted}
+                  />
+                  <div ref={setSettingsNavTarget} className="absolute inset-0 z-30 flex rounded-lg bg-background empty:hidden" />
+                </div>}>
+                  <div className="relative h-full">
+                    {activeChat || (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="bg-muted px-3 py-1 rounded-xl">
+                          <p className="text-muted-foreground text-sm">{translations.selectChat}</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {tabPanes}
-                  {ownProfile.mounted && renderOwnProfile('pane')}
-                  <CallStage />
-                </div>
-              </DesktopChatLayout>
+                    )}
+                    {isProfileOpen && renderOwnProfile('pane')}
+                    <CallStage />
+                  </div>
+                </DesktopChatLayout>
+                {tabPanes}
+              </div>
 
               {renderUserProfile && (
                 <UserProfileLayer isMobile={false} isClosing={isUserProfileClosing} onClose={requestCloseUserProfile}>

@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { formatBirthday, isBirthdayToday, isValidBirthday, monthNames } from './birthday';
+import { birthdayFieldOrder, birthdayYears, daysInMonth, formatBirthday, isBirthdayToday, isValidBirthday, monthNames } from './birthday';
+
+describe('birthday picker helpers', () => {
+  it('orders the wheels the way each language writes a date', () => {
+    expect(birthdayFieldOrder('en-US')).toEqual(['month', 'day', 'year']);
+    expect(birthdayFieldOrder('de-DE')).toEqual(['day', 'month', 'year']);
+    expect(birthdayFieldOrder('ru-RU')).toEqual(['day', 'month', 'year']);
+  });
+
+  it('knows how many days a month has and allows 29 February without a year', () => {
+    expect(daysInMonth(4, 2026)).toBe(30);
+    expect(daysInMonth(2, 2026)).toBe(28);
+    expect(daysInMonth(2, 2024)).toBe(29);
+    expect(daysInMonth(2, null)).toBe(29);
+  });
+
+  it('lists years from this year back to 1900', () => {
+    const years = birthdayYears(new Date(2026, 10, 17));
+    expect(years[0]).toBe(2026);
+    expect(years[years.length - 1]).toBe(1900);
+    expect(years).toHaveLength(127);
+  });
+});
 
 describe('birthday helpers', () => {
   it('knows today, and moves 29 February to 28 February in other years', () => {

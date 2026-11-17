@@ -36,5 +36,11 @@ export const connections = {
     openProfile: "Открыть профиль {provider}",
     profileSection: "Аккаунты",
     removed: "Удалено",
+    previewTitle: "В твоём профиле",
+    previewEmpty: "Подключённые аккаунты появятся здесь так, как их видят другие.",
+    countOf: "{count}/{max}",
+    verifiedOn: "Подтверждён {date}",
+    optionsFor: "Действия для {name}",
+    alreadyConnected: "Подключено",
   },
 };

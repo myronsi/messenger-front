@@ -1,38 +1,58 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, ImagePlus, Loader2, Trash2 } from 'lucide-react';
 import type { ProfileBackground } from '@/entities/user';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { cn } from '@/shared/lib/utils';
 import { PRESET_NAMES, presetGradient } from '@/shared/ui/profile/backgroundPresets';
 import { ProfileBackgroundFill } from '@/shared/ui/profile/ProfileBackgroundFill';
+import AvatarCropModal from '@/shared/ui/AvatarCropModal';
+import { needsBannerCrop } from '../model/bannerCrop';
 import { uploadProfileFile, type SetBackgroundBody } from '../api/profileExtrasApi';
 
 interface Props {
   title?: string;
   background?: ProfileBackground | null;
-  onSave: (body: SetBackgroundBody | null) => Promise<unknown>;
+  onSave: (body: SetBackgroundBody | null, preview: ProfileBackground | null) => Promise<unknown>;
+  embedded?: boolean;
 }
+
+const previewOf = (body: SetBackgroundBody | null): ProfileBackground | null => {
+  if (!body) return null;
+  if (body.kind === 'preset') return { kind: 'preset', preset: body.preset };
+  if (body.kind === 'color') return { kind: 'color', colors: body.colors };
+  return null;
+};
 
 const BUTTON = 'motion-press inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors disabled:opacity-50';
 
-export const ProfileBackgroundEditor = ({ title, background, onSave }: Props) => {
+export const ProfileBackgroundEditor = ({ title, background, onSave, embedded = false }: Props) => {
   const { translations } = useLanguage();
   const t = translations.profileExtras;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [colors, setColors] = useState<string[]>(background?.kind === 'color' && background.colors?.length ? background.colors : ['#3366ff']);
   const input = useRef<HTMLInputElement>(null);
+  const [cropping, setCropping] = useState<{ file: File; url: string } | null>(null);
+  const croppingUrl = cropping?.url;
+
+  useEffect(() => () => { if (croppingUrl) URL.revokeObjectURL(croppingUrl); }, [croppingUrl]);
 
   const run = async (body: SetBackgroundBody | null) => {
     setBusy(true);
     setError(false);
     try {
-      await onSave(body);
+      await onSave(body, previewOf(body));
     } catch {
       setError(true);
     } finally {
       setBusy(false);
     }
+  };
+
+  const pick = (file?: File) => {
+    if (!file) return;
+    if (needsBannerCrop(file)) setCropping({ file, url: URL.createObjectURL(file) });
+    else void upload(file);
   };
 
   const upload = async (file?: File) => {
@@ -41,7 +61,7 @@ export const ProfileBackgroundEditor = ({ title, background, onSave }: Props) =>
     setError(false);
     try {
       const attachment = await uploadProfileFile({ file, purpose: 'profile_background' });
-      await onSave({ kind: 'media', attachment_id: attachment.id });
+      await onSave({ kind: 'media', attachment_id: attachment.id }, { kind: 'media', attachment });
     } catch {
       setError(true);
     } finally {
@@ -51,12 +71,14 @@ export const ProfileBackgroundEditor = ({ title, background, onSave }: Props) =>
 
   const activePreset = background?.kind === 'preset' ? background.preset : null;
   return (
-    <section data-testid="profile-background-editor" className="space-y-3 rounded-lg border border-border p-4">
-      <div>
-        <p className="text-sm font-medium text-foreground">{title ?? t.background}</p>
-        <p className="text-xs text-muted-foreground">{t.backgroundHint}</p>
-      </div>
-      {background && (
+    <section data-testid="profile-background-editor" className={cn('space-y-3', !embedded && 'rounded-lg border border-border p-4')}>
+      {embedded ? <p className="text-xs text-muted-foreground">{t.backgroundHint}</p> : (
+        <div>
+          <p className="text-sm font-medium text-foreground">{title ?? t.background}</p>
+          <p className="text-xs text-muted-foreground">{t.backgroundHint}</p>
+        </div>
+      )}
+      {background && !embedded && (
         <div className="relative h-20 overflow-hidden rounded-xl bg-muted">
           <ProfileBackgroundFill background={background} className="absolute inset-0 h-full w-full" />
           <button type="button" onClick={() => void run(null)} disabled={busy} aria-label={t.removeBackground}
@@ -95,11 +117,22 @@ export const ProfileBackgroundEditor = ({ title, background, onSave }: Props) =>
           </button>
         </div>
       </div>
-      <button type="button" disabled={busy} onClick={() => input.current?.click()} className={`${BUTTON} border border-border hover:bg-accent`}>
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}{busy ? t.uploading : t.uploadBackground}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy} onClick={() => input.current?.click()} className={`${BUTTON} border border-border hover:bg-accent`}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}{busy ? t.uploading : t.uploadBackground}
+        </button>
+        {embedded && background && (
+          <button type="button" disabled={busy} onClick={() => void run(null)} className={`${BUTTON} border border-border text-destructive hover:bg-destructive/10`}>
+            <Trash2 className="h-4 w-4" />{t.removeBackground}
+          </button>
+        )}
+      </div>
       <input ref={input} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" className="hidden" data-testid="profile-background-input"
-        onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = ''; }} />
+        onChange={(event) => { pick(event.target.files?.[0]); event.target.value = ''; }} />
+      {cropping && (
+        <AvatarCropModal file={cropping.file} imageUrl={cropping.url} shape="banner" title={t.cropBackground}
+          onCancel={() => setCropping(null)} onConfirm={(file) => { setCropping(null); void upload(file); }} />
+      )}
       {error && <p className="text-sm text-destructive">{t.backgroundFailed}</p>}
     </section>
   );

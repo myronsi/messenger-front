@@ -1,5 +1,29 @@
 import { pictureRect } from './pictureRect';
 
+const MAX_SHAPE_DEPTH = 4;
+
+const sameBox = (a: DOMRect, b: DOMRect) => (
+  Math.abs(a.left - b.left) < 2 && Math.abs(a.top - b.top) < 2 && Math.abs(a.width - b.width) < 2 && Math.abs(a.height - b.height) < 2
+);
+
+const isSquare = (radius: string) => !radius || /^0(px|%)?( 0(px|%)?)*$/.test(radius.trim());
+
+const asCircle = (radius: string, box: DOMRect) => {
+  const pixels = parseFloat(radius);
+  return radius.endsWith('px') && pixels >= Math.min(box.width, box.height) / 2 ? '50%' : radius;
+};
+
+const thumbnailShape = (clipped: HTMLElement, box: DOMRect) => {
+  let element: HTMLElement | null = clipped;
+  for (let depth = 0; element && depth < MAX_SHAPE_DEPTH; depth += 1) {
+    if (element !== clipped && !sameBox(element.getBoundingClientRect(), box)) break;
+    const radius = getComputedStyle(element).borderRadius;
+    if (!isSquare(radius)) return asCircle(radius, box);
+    element = element.parentElement;
+  }
+  return '0px';
+};
+
 export function returnToThumbnail(image: HTMLImageElement, target: HTMLImageElement, options: KeyframeAnimationOptions) {
   const from = pictureRect(image);
   let startRadius = '8px';
@@ -34,7 +58,7 @@ export function returnToThumbnail(image: HTMLImageElement, target: HTMLImageElem
   document.body.append(shell);
   const previousVisibility = image.style.visibility;
   image.style.visibility = 'hidden';
-  const radius = getComputedStyle(clipped).borderRadius || '0px';
+  const radius = thumbnailShape(clipped, to);
   const animation = shell.animate([
     { left: `${from.left}px`, top: `${from.top}px`, width: `${width}px`, height: `${height}px`, borderRadius: startRadius },
     { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: radius },

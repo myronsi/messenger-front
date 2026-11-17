@@ -21,13 +21,15 @@ const flushFrames = (count = 5) => {
   }
 };
 
-const List = ({ messages, chat = 'chat', target = null, ownId }: { messages: Message[]; chat?: string; target?: string | null; ownId?: string }) => {
+const List = ({ messages, chat = 'chat', target = null, ownId, onScrollStart }: {
+  messages: Message[]; chat?: string; target?: string | null; ownId?: string; onScrollStart?: () => void;
+}) => {
   const messageRefs = useRef({});
   const { chatContainerRef, contentRef } = useMessageListScroll({
     messages, messageRefs, highlightedMessageId: target, tempHighlightedMessageId: null,
     getFormattedDateLabel: () => '', hasMoreMessages: false, hasMoreNewerMessages: false,
     isLoadingInitialMessages: false, isLoadingOlderMessages: false, isLoadingNewerMessages: false,
-    scrollToBottomKey: chat, isOwnMessage: (item) => item.id === ownId,
+    scrollToBottomKey: chat, isOwnMessage: (item) => item.id === ownId, onScrollStart,
   });
   return <div data-testid="container" ref={chatContainerRef}><div ref={contentRef} /></div>;
 };
@@ -50,6 +52,30 @@ const setup = (messages: Message[]) => {
     shrinkView: (height: number) => { clientHeight = height; },
   };
 };
+
+describe('useMessageListScroll menus', () => {
+  beforeEach(() => {
+    frames = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('keeps menus open when the list scrolls by itself, like for a typing bubble, and closes them on a user scroll', () => {
+    const onScrollStart = vi.fn();
+    const view = render(<List messages={[message('1')]} onScrollStart={onScrollStart} />);
+    const container = view.getByTestId('container');
+    act(() => { container.dispatchEvent(new Event('scroll')); flushFrames(); });
+    expect(onScrollStart).not.toHaveBeenCalled();
+    act(() => {
+      container.dispatchEvent(new WheelEvent('wheel', { deltaY: 40 }));
+      container.dispatchEvent(new Event('scroll'));
+      flushFrames();
+    });
+    expect(onScrollStart).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('useMessageListScroll', () => {
   beforeEach(() => {

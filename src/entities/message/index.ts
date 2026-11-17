@@ -18,4 +18,13 @@ export { useGetChatLinksQuery, linkItem, type ChatLinkItem } from './api/chatLin
 export { default as ChatHeaderSearch } from './ui/ChatHeaderSearch';
 export { analyzeAudio, createAudioContext, formatAudioTime } from './model/audioMessageHelpers';
 export * from './model/audioPlayer';
+export * from './model/audioLibrary';
+export { startAudioSession } from './model/audioSession';
+export { messageAudioTrack } from './model/messageAudioTrack';
+export * from './model/trackActions';
+export { TrackMenu } from './ui/TrackMenu';
+export { AddToPlaylistDialog, AddToPlaylistHost } from './ui/AddToPlaylistDialog';
 export { nextPlaybackSpeed, usePlaybackSpeed } from './model/playbackSpeed';
+export * from './model/reactionUsage';
+export * from './model/reactionToggle';
+export { ReactionBurstHost } from './ui/ReactionBurstHost';

@@ -4,9 +4,17 @@ export const presence = {
     offline: "offline",
     justNow: "last seen just now",
     minutes: { one: "last seen {count} minute ago", few: "last seen {count} minutes ago", many: "last seen {count} minutes ago", other: "last seen {count} minutes ago" },
-    today: "last seen today at {time}",
+    today: "last seen at {time}",
     yesterday: "last seen yesterday at {time}",
     date: "last seen {date} at {time}",
     longAgo: "last seen {date}",
+    short: {
+      justNow: "seen just now",
+      minutes: { one: "seen {count} min ago", few: "seen {count} min ago", many: "seen {count} min ago", other: "seen {count} min ago" },
+      today: "seen at {time}",
+      yesterday: "seen yesterday, {time}",
+      date: "seen {date}, {time}",
+      longAgo: "seen {date}",
+    },
   },
 };

@@ -52,4 +52,17 @@ describe('ChatsListHeader', () => {
     const button = screen.getByRole('button', { name: t.newMenuLabel });
     expect(button).not.toHaveTextContent(t.newAction);
   });
+
+  it('slides the New sheet up with a grip and runs the picked action', async () => {
+    mobile.value = true;
+    const { onNewGroup } = setup();
+    fireEvent.click(screen.getByRole('button', { name: t.newMenuLabelNoQr }));
+    const sheet = await screen.findByTestId('new-action-sheet');
+    expect(sheet).toHaveAttribute('data-state', 'open');
+    expect(sheet).not.toHaveStyle({ animation: 'none' });
+    expect(sheet.querySelector('.rounded-full.h-1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(t.newGroup) }));
+    expect(onNewGroup).toHaveBeenCalled();
+  });
 });
+

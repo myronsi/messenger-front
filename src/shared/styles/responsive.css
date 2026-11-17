@@ -19,7 +19,6 @@
     opacity: 0.5;
   }
 
-  .motion-list-item:hover,
   .motion-message-bubble:hover,
   .motion-avatar:hover {
     transform: none;

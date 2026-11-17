@@ -11,10 +11,13 @@ import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
 import LanguageSettingsPage from './ui/LanguageSettingsPage';
 import AppearanceSettingsPage from './ui/AppearanceSettingsPage';
+import PersonalizationSettingsPage from './ui/PersonalizationSettingsPage';
 import AboutPage from './ui/AboutPage';
 import { SettingsSectionNav, type SettingsSection } from './ui/SettingsSectionNav';
 import { LANGUAGE_NAMES } from './languageNames';
-import { ArrowLeft, Bell, Globe, Inbox, Info, Link2, Loader2, Palette, Shield, Smartphone, X } from 'lucide-react';
+import { ArrowLeft, Bell, Globe, Inbox, Info, Link2, Loader2, Palette, Shield, Smartphone, Sparkles, X } from 'lucide-react';
+import { useDoubleTapReaction } from '@/entities/message';
+import { customReactionId } from '@/shared/lib/customEmoji';
 import ProfileHomePage from './ui/ProfileHomePage';
 import ProfilePanelDialogs from './ui/ProfilePanelDialogs';
 import { SheetFrame } from './ui/SheetFrame';
@@ -48,10 +51,11 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     setDismissBlocked(blocked);
   }, []);
   const safeClose = () => { if (!dismissBlockedRef.current) onClose(); };
-  const { data: userData, error: userError, isLoading: isLoadingUser, refetch: refetchCurrentUser } = useGetCurrentUserQuery();
+  const { data: userData, isLoading: isLoadingUser, refetch: refetchCurrentUser } = useGetCurrentUserQuery();
   const { translations, language, setLanguage } = useLanguage();
   const t = translations.appShell;
   const { theme } = useAppearance();
+  const doubleTap = useDoubleTapReaction(userData?.id);
   const {
     avatarFile, setAvatarFile, avatarCropUrl, setAvatarCropUrl, isUploading, displayName, isAvatarViewerOpen, setIsAvatarViewerOpen,
     isVisible, modal, setModal, isLoggingOut, isDeletingAccount, handleAvatarUpload, handleAvatarDelete, handleLogout, handleDeleteAccount, handleClose,
@@ -69,7 +73,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     : <ModalSurface label="Profile" className="fixed inset-0 z-[1000] flex items-center justify-center bg-background p-4 sm:bg-background/80 sm:backdrop-blur-sm">{content}</ModalSurface>);
 
   if (isLoadingUser) return frame(<div className="flex items-center gap-2"><Loader2 className="h-6 w-6 animate-spin" /><span>{translations.loading}</span></div>);
-  if (userError || !userData) {
+  if (!userData) {
     return frame(
       <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-lg">
         <p className="mb-4 text-destructive">Failed to load profile</p>
@@ -87,6 +91,8 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     { page: 'notifications', label: translations.notifications, icon: Bell },
     { page: 'connections', label: translations.connections.title, icon: Link2 },
     { page: 'appearance', label: translations.appearance.title, icon: Palette, hint: translations.appearance.themes[theme] },
+    { page: 'personalization', label: translations.personalization.title, icon: Sparkles,
+      hint: doubleTap ? (customReactionId(doubleTap) ? translations.personalization.custom : doubleTap) : translations.personalization.off },
     { page: 'language', label: translations.language || 'Language', icon: Globe, hint: LANGUAGE_NAMES[language] },
     { page: 'about', label: t.aboutHelp, icon: Info },
   ];
@@ -94,13 +100,14 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     label: section.label, description: section.hint ?? '', icon: section.icon, indicatorCount: section.badge, onClick: () => setActiveProfilePage(section.page),
   });
   const pick = (...pages: SettingsPage[]) => sections.filter((section) => pages.includes(section.page)).map(toRow);
-  const homeSections = [pick('requests'), pick('privacy', 'security', 'notifications', 'connections', 'appearance', 'language'), pick('about')]
+  const homeSections = [pick('requests'), pick('privacy', 'security', 'notifications', 'connections', 'appearance', 'personalization', 'language'), pick('about')]
     .filter((rows) => rows.length > 0);
   const requested: SettingsPage = activeProfilePage === 'personal' ? 'profile' : activeProfilePage;
   const current: SettingsPage = pane && requested === 'profile' ? 'requests' : requested;
   const back = () => setActiveProfilePage('profile');
   const slot = (page: SettingsPage, node: ReactNode) => {
     const active = current === page;
+    if (pane && !active) return null;
     const motion = pane ? (active ? '' : 'hidden') : `motion-window-slide ${active ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full'}`;
     return <div key={page} aria-hidden={!active} inert={!active} className={`absolute inset-0 bg-background ${motion}`}>{node}</div>;
   };
@@ -109,6 +116,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     slot('requests', <ApprovalRequestsPage inbox={requestInbox} pendingCount={pendingRequestCount} isApproving={isApprovingRequest} isRejecting={isRejectingRequest}
       onApprove={handleApproveRequest} onReject={handleRejectRequest} onBack={back} getMediaUrl={getProfileMediaUrl} />),
     slot('appearance', <AppearanceSettingsPage onBack={back} />),
+    slot('personalization', <PersonalizationSettingsPage userId={userData.id} onBack={back} />),
     slot('language', <LanguageSettingsPage language={language} onChange={(next) => { setLanguage(next); window.location.reload(); }} onBack={back} />),
     slot('privacy', <PrivacySettingsPanel isActive={current === 'privacy'} detail={panelData.privacyDetail} showExceptions={panelData.privacyExceptions}
       onOpenDetail={panelData.openPrivacyDetail} onOpenRequests={() => setActiveProfilePage('requests')} onBack={back}>
@@ -147,7 +155,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
       <SettingsLayoutContext.Provider value="pane">
         <div ref={ref} role="region" aria-label={t.settings}
           onKeyDown={(event) => { if (event.key === 'Escape' && !event.defaultPrevented) closeSafely(); }}
-          className={`motion-sheet-in absolute inset-0 z-50 flex bg-background transition-opacity duration-200 ${shown ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+          className={`absolute inset-0 z-50 flex bg-background transition-opacity duration-200 ${shown ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
           {navTarget ? createPortal(sectionNav(true), navTarget) : sectionNav(false)}
           <div className="relative min-w-0 flex-1">
             {pages}

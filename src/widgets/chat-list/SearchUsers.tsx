@@ -72,7 +72,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
                         className="w-10 h-10 rounded-full mr-3 object-cover"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{isSelf ? selfName(u.display_name || u.username, translations) : <EmojiText text={u.display_name || u.username} />}</div>
+                        <div className="font-medium truncate"><EmojiText text={isSelf ? selfName(u.display_name || u.username, translations) : u.display_name || u.username} /></div>
                         <div className="truncate text-xs text-muted-foreground">@{u.username}</div>
                       </div>
                     </button>

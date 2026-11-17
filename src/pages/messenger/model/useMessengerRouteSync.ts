@@ -9,6 +9,7 @@ import { chatApi } from '@/entities/chat';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { authFetch } from '@/shared/auth/session';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
+import { isOffline } from '@/shared/lib/network';
 import { resolveNotificationChat } from './resolveNotificationChat';
 import { focusComposerWhenReady } from '@/shared/lib/notifications/replyFocus';
 import { routeNotificationChats } from '@/shared/lib/notifications/openChat';
@@ -107,7 +108,11 @@ export const useMessengerRouteSync = ({
 
       let isCancelled = false;
       const state = (location.state as MessengerRouteState | null) ?? {};
-      if (state.chatName || state.chatDisplayName || state.chatId) {
+      const openedFromState = !!(state.chatName || state.chatDisplayName || state.chatId);
+      const closeUnlessOfflineWithState = () => {
+        if (!(openedFromState && isOffline())) setCurrentChat(null);
+      };
+      if (openedFromState) {
         const name = state.chatName || String(directIdentifier.value);
         setCurrentChat(current => ({
           id: state.chatId || 0,
@@ -183,7 +188,7 @@ export const useMessengerRouteSync = ({
           .catch((error) => {
             if (isCancelled) return;
             console.error('Error loading direct chat by id:', error);
-            setCurrentChat(null);
+            closeUnlessOfflineWithState();
           });
 
         return () => {
@@ -239,7 +244,7 @@ export const useMessengerRouteSync = ({
         .catch((error) => {
           if (isCancelled) return;
           console.error('Error loading direct chat draft:', error);
-          setCurrentChat(null);
+          closeUnlessOfflineWithState();
         });
 
       return () => {

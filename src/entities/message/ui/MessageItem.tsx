@@ -20,6 +20,7 @@ import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import { bubbleClass } from '../model/bubbleClass';
+import { readDoubleTapReaction } from '../model/reactionUsage';
 import { AlertCircle, Check } from 'lucide-react';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
 const PARTICLE_COUNT = 36;
@@ -191,7 +192,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
           if (longPress.consumeClick()) return;
           onClick(event, message);
         }}
-        onMouseDown={(event) => { if (event.shiftKey) event.preventDefault(); }}
+        onMouseDown={(event) => { if (event.shiftKey || (event.detail === 2 && readDoubleTapReaction(userId))) event.preventDefault(); }}
+        onDoubleClick={(event) => onClick(event, message)}
         {...combineTouchHandlers(longPress.handlers, swipe.handlers)}
         onContextMenu={(event) => onMessageClick(event, message)}
       >
@@ -260,12 +262,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   </div>
                 )}
               </div>
-              {message.reactions?.length ? (
-                <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} wsRef={wsRef}
+              <ReactionList reactions={message.reactions} messageId={message.id} userId={userId} isMine={isMine} isImage={isImage} wsRef={wsRef}
                   onOpenReactionDetails={isGroup && onOpenReactionDetails
                     ? (reaction, reactions) => onOpenReactionDetails(message, reaction, reactions)
                     : undefined} />
-              ) : null}
               {!isText && (!isImage || hasImageCaption) && hasTime && (
                 <div className={`text-[10px] opacity-80 select-none flex items-center ${hasImageCaption ? '-mt-1 px-3 pb-2' : 'mt-1'} ${isMine ? 'justify-end text-primary-foreground' : 'text-muted-foreground'}`}>
                   {time()}

@@ -5,16 +5,27 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
+type CropShape = 'circle' | 'banner';
+
 interface AvatarCropModalProps {
   file: File;
   imageUrl: string;
   isUploading?: boolean;
+  shape?: CropShape;
+  title?: string;
   onCancel: () => void;
   onConfirm: (file: File) => void;
 }
 
-const AVATAR_SIZE = 512;
-const CROP_VIEW_SIZE = 280;
+interface Box {
+  width: number;
+  height: number;
+}
+
+const SHAPES: Record<CropShape, { view: Box; output: Box }> = {
+  circle: { view: { width: 280, height: 280 }, output: { width: 512, height: 512 } },
+  banner: { view: { width: 300, height: 100 }, output: { width: 1500, height: 500 } },
+};
 
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -26,19 +37,19 @@ const loadImage = (src: string) =>
 
 const MAX_ZOOM = 3;
 
-const getDisplaySize = (width: number, height: number, zoom: number) => {
-  const baseScale = Math.max(CROP_VIEW_SIZE / width, CROP_VIEW_SIZE / height);
+const getDisplaySize = (width: number, height: number, zoom: number, view: Box) => {
+  const baseScale = Math.max(view.width / width, view.height / height);
   return {
     width: width * baseScale * zoom,
     height: height * baseScale * zoom,
   };
 };
 
-const clampOffset = (offset: { x: number; y: number }, size: { width: number; height: number } | null, zoom: number) => {
+const clampOffset = (offset: { x: number; y: number }, size: Box | null, zoom: number, view: Box) => {
   if (!size) return offset;
-  const displaySize = getDisplaySize(size.width, size.height, zoom);
-  const maxX = Math.max(0, (displaySize.width - CROP_VIEW_SIZE) / 2);
-  const maxY = Math.max(0, (displaySize.height - CROP_VIEW_SIZE) / 2);
+  const displaySize = getDisplaySize(size.width, size.height, zoom, view);
+  const maxX = Math.max(0, (displaySize.width - view.width) / 2);
+  const maxY = Math.max(0, (displaySize.height - view.height) / 2);
 
   return {
     x: Math.min(maxX, Math.max(-maxX, offset.x)),
@@ -46,22 +57,23 @@ const clampOffset = (offset: { x: number; y: number }, size: { width: number; he
   };
 };
 
-const createCroppedAvatar = async (imageUrl: string, sourceFile: File, zoom: number, offset: { x: number; y: number }) => {
+const createCroppedImage = async (imageUrl: string, sourceFile: File, zoom: number, offset: { x: number; y: number }, shape: CropShape) => {
+  const { view, output } = SHAPES[shape];
   const image = await loadImage(imageUrl);
   const canvas = document.createElement('canvas');
-  canvas.width = AVATAR_SIZE;
-  canvas.height = AVATAR_SIZE;
+  canvas.width = output.width;
+  canvas.height = output.height;
 
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas is not available');
 
   context.fillStyle = '#ffffff';
-  context.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+  context.fillRect(0, 0, output.width, output.height);
 
-  const { width: displayWidth, height: displayHeight } = getDisplaySize(image.naturalWidth, image.naturalHeight, zoom);
-  const displayX = (CROP_VIEW_SIZE - displayWidth) / 2 + offset.x;
-  const displayY = (CROP_VIEW_SIZE - displayHeight) / 2 + offset.y;
-  const scaleToCanvas = AVATAR_SIZE / CROP_VIEW_SIZE;
+  const { width: displayWidth, height: displayHeight } = getDisplaySize(image.naturalWidth, image.naturalHeight, zoom, view);
+  const displayX = (view.width - displayWidth) / 2 + offset.x;
+  const displayY = (view.height - displayHeight) / 2 + offset.y;
+  const scaleToCanvas = output.width / view.width;
 
   context.drawImage(
     image,
@@ -78,12 +90,13 @@ const createCroppedAvatar = async (imageUrl: string, sourceFile: File, zoom: num
     }, 'image/jpeg', 0.92);
   });
 
-  const filename = sourceFile.name.replace(/\.[^.]+$/, '') || 'avatar';
+  const filename = sourceFile.name.replace(/\.[^.]+$/, '') || shape;
   return new File([blob], `${filename}-cropped.jpg`, { type: 'image/jpeg' });
 };
 
-const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUploading, onCancel, onConfirm }) => {
+const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUploading, shape = 'circle', title, onCancel, onConfirm }) => {
   const { translations } = useLanguage();
+  const { view } = SHAPES[shape];
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isCropping, setIsCropping] = useState(false);
@@ -96,14 +109,14 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
       return { height: '100%', width: '100%', left: 0, top: 0 };
     }
 
-    const displaySize = getDisplaySize(sourceSize.width, sourceSize.height, zoom);
+    const displaySize = getDisplaySize(sourceSize.width, sourceSize.height, zoom, view);
     return {
       height: `${displaySize.height}px`,
       width: `${displaySize.width}px`,
-      left: `${(CROP_VIEW_SIZE - displaySize.width) / 2 + offset.x}px`,
-      top: `${(CROP_VIEW_SIZE - displaySize.height) / 2 + offset.y}px`,
+      left: `${(view.width - displaySize.width) / 2 + offset.x}px`,
+      top: `${(view.height - displaySize.height) / 2 + offset.y}px`,
     };
-  }, [offset.x, offset.y, sourceSize, zoom]);
+  }, [offset.x, offset.y, sourceSize, zoom, view]);
 
   useEffect(() => {
     setZoom(1);
@@ -114,8 +127,8 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
   }, [file, imageUrl]);
 
   useEffect(() => {
-    setOffset((currentOffset) => clampOffset(currentOffset, sourceSize, zoom));
-  }, [sourceSize, zoom]);
+    setOffset((currentOffset) => clampOffset(currentOffset, sourceSize, zoom, view));
+  }, [sourceSize, zoom, view]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const factor = pinch.move(event.pointerId, event.clientX, event.clientY);
@@ -129,13 +142,13 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
     setOffset(clampOffset({
       x: start.offsetX + event.clientX - start.x,
       y: start.offsetY + event.clientY - start.y,
-    }, sourceSize, zoom));
+    }, sourceSize, zoom, view));
   };
 
   const handleConfirm = async () => {
     setIsCropping(true);
     try {
-      const croppedFile = await createCroppedAvatar(imageUrl, file, zoom, offset);
+      const croppedFile = await createCroppedImage(imageUrl, file, zoom, offset, shape);
       onConfirm(croppedFile);
     } finally {
       setIsCropping(false);
@@ -145,7 +158,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
   const isBusy = isUploading || isCropping;
 
   return (
-    <ModalSurface label="Crop profile photo"
+    <ModalSurface label={title ?? 'Crop profile photo'}
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
       onPointerDown={(event) => {
         if (event.target === event.currentTarget && !isBusy) onCancel();
@@ -154,7 +167,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
       <div className="w-full max-w-md rounded-lg bg-background p-5 shadow-lg">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h3 className="text-lg font-semibold text-foreground">
-            {translations.cropProfilePicture || 'Crop profile picture'}
+            {title ?? (translations.cropProfilePicture || 'Crop profile picture')}
           </h3>
           <button
             onClick={onCancel}
@@ -168,7 +181,9 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
 
         <div className="flex flex-col items-center gap-4">
           <div
-            className="relative h-[280px] w-[280px] touch-none overflow-hidden rounded-lg bg-black"
+            data-testid="crop-view"
+            style={{ width: view.width, height: view.height }}
+            className="relative touch-none overflow-hidden rounded-lg bg-black"
             onPointerDown={(event) => {
               if (isBusy) return;
               pinch.down(event.pointerId, event.clientX, event.clientY);
@@ -203,8 +218,10 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
               draggable={false}
               style={imageStyle}
             />
-            <div className="pointer-events-none absolute inset-0 bg-black/35" />
-            <div className="pointer-events-none absolute inset-0 rounded-full border-2 border-white shadow-[0_0_0_999px_rgba(0,0,0,0.35)]" />
+            {shape === 'circle' ? <>
+              <div className="pointer-events-none absolute inset-0 bg-black/35" />
+              <div className="pointer-events-none absolute inset-0 rounded-full border-2 border-white shadow-[0_0_0_999px_rgba(0,0,0,0.35)]" />
+            </> : <div className="pointer-events-none absolute inset-0 rounded-lg border-2 border-white/80" />}
           </div>
 
           <label className="w-full text-sm font-medium text-subtle-foreground">
@@ -219,7 +236,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
               onChange={(event) => {
                 const nextZoom = Number(event.target.value);
                 setZoom(nextZoom);
-                setOffset((currentOffset) => clampOffset(currentOffset, sourceSize, nextZoom));
+                setOffset((currentOffset) => clampOffset(currentOffset, sourceSize, nextZoom, view));
               }}
               className="mt-2 w-full accent-primary"
             />

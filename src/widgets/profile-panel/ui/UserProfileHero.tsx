@@ -86,16 +86,18 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
       <ProfileBanner
         seed={props.username}
         background={props.background}
-        online={props.isOnline}
+        online={props.isOnline && !props.isCurrentUser}
         avatar={props.hasCustomAvatar ? <button type="button" onClick={props.onAvatarHistory} className="block h-full w-full">{avatar}</button> : avatar}
         actions={(tiles.length > 0 || menu.length > 0) && <ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
         title={<ContactNameHeading {...props} />}
         subtitle={<>
-          <button type="button" onClick={copyUsername} className="font-medium text-primary hover:underline">@{props.username}</button>
+          <button type="button" onClick={copyUsername} data-morph="username" data-morph-mode="move" className="font-medium text-primary hover:underline">@{props.username}</button>
           {props.pronouns && <><span aria-hidden="true">·</span><span data-testid="profile-pronouns">{props.pronouns}</span></>}
           {props.birthdayToday && <Cake data-testid="profile-birthday-today" className="h-4 w-4 text-primary" aria-label={translations.profileExtras.birthdayToday} />}
-          <span aria-hidden="true">·</span>
-          <span className="min-w-0 truncate">{props.isOnline ? t.onlineNow : presence}</span>
+          {!props.isCurrentUser && <>
+            <span aria-hidden="true">·</span>
+            <span data-testid="profile-presence" className="min-w-0 truncate">{props.isOnline ? t.onlineNow : presence}</span>
+          </>}
         </>}
         topLeft={props.onClose && (
           <button type="button" onClick={props.onClose} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"><ArrowLeft className="h-5 w-5" /></button>
