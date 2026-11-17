@@ -30,3 +30,18 @@ export const formatBirthday = (birthday: BirthdayValue, locale: string) => {
 export const monthNames = (locale: string) => Array.from({ length: 12 }, (_, index) => (
   new Date(Date.UTC(2000, index, 1)).toLocaleDateString(locale, { month: 'long', timeZone: 'UTC' })
 ));
+
+export type BirthdayField = 'day' | 'month' | 'year';
+
+export const birthdayFieldOrder = (locale: string): BirthdayField[] => {
+  const parts = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .formatToParts(new Date(Date.UTC(2000, 10, 25)));
+  const order = parts.map((part) => part.type).filter((type): type is BirthdayField => type === 'day' || type === 'month' || type === 'year');
+  return order.length === 3 ? order : ['day', 'month', 'year'];
+};
+
+export const daysInMonth = (month: number, year: number | null) => new Date(Date.UTC(year ?? 2000, month, 0)).getUTCDate();
+
+export const birthdayYears = (now = new Date(), oldest = 1900) => (
+  Array.from({ length: now.getFullYear() - oldest + 1 }, (_, index) => now.getFullYear() - index)
+);

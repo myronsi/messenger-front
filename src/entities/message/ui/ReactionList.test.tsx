@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ReactionList from './ReactionList';
 
@@ -47,5 +47,20 @@ describe('ReactionList', () => {
     expect(button).toHaveAttribute('title', expect.stringContaining('Right-click to view people.'));
     fireEvent.contextMenu(button);
     expect(details).toHaveBeenCalledWith('👍', reactions.slice(0, 2));
+  });
+
+  it('shrinks a removed reaction away and renders nothing once all are gone', () => {
+    vi.useFakeTimers();
+    const wsRef = { current: null };
+    const { rerender, container } = render(<ReactionList reactions={reactions} messageId="99" userId="1" isMine={false} wsRef={wsRef} />);
+    rerender(<ReactionList reactions={reactions.slice(0, 2)} messageId="99" userId="1" isMine={false} wsRef={wsRef} />);
+    expect(screen.getByTestId('reaction-leaving')).toHaveTextContent('❤️');
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(screen.queryByTestId('reaction-leaving')).toBeNull();
+    rerender(<ReactionList reactions={[]} messageId="99" userId="1" isMine={false} wsRef={wsRef} />);
+    expect(screen.getByTestId('reaction-leaving')).toHaveTextContent('👍');
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(container).toBeEmptyDOMElement();
+    vi.useRealTimers();
   });
 });

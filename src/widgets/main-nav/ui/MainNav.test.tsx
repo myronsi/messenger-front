@@ -11,6 +11,8 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 vi.mock('@/features/profile', () => ({ useGetCurrentUserQuery: () => ({ data: { username: 'me', display_name: 'Me' } }) }));
 vi.mock('@/entities/chat', () => ({ useGetApprovalRequestInboxQuery: () => ({ data: { unread_count: 3 } }) }));
+const profileQuery = vi.hoisted(() => vi.fn());
+vi.mock('@/entities/user', () => ({ useGetUserByUsernameQuery: profileQuery }));
 
 const t = en.mainNav;
 
@@ -20,9 +22,35 @@ describe('MainNav', () => {
     render(<MainNav variant="rail" active="calls" onSelect={onSelect} />);
     expect(screen.getByRole('button', { name: new RegExp(t.calls) })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText(t.soon)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: new RegExp(t.settings) })).toHaveTextContent('3');
+    expect(screen.getByRole('button', { name: new RegExp(t.chats) })).toHaveTextContent('3');
+    expect(screen.getByRole('button', { name: new RegExp(t.settings) })).not.toHaveTextContent('3');
     fireEvent.click(screen.getByRole('button', { name: new RegExp(t.settings) }));
     expect(onSelect).toHaveBeenCalledWith('settings');
+  });
+
+  it('fills only the icon of the active tab', () => {
+    const { rerender } = render(<MainNav variant="rail" active="chats" onSelect={vi.fn()} />);
+    const icon = (name: string) => screen.getByRole('button', { name: new RegExp(name) }).querySelector('svg');
+    expect(icon(t.chats)).toHaveAttribute('fill', 'currentColor');
+    expect(icon(t.calls)).toHaveAttribute('fill', 'none');
+    expect(screen.queryByTestId('settings-icon-filled')).not.toBeInTheDocument();
+    rerender(<MainNav variant="bar" active="settings" onSelect={vi.fn()} />);
+    expect(icon(t.chats)).toHaveAttribute('fill', 'none');
+    expect(screen.getByTestId('settings-icon-filled')).toBeInTheDocument();
+  });
+
+  it('keeps the own profile loaded so the profile tab opens without waiting', () => {
+    render(<MainNav variant="rail" active="chats" onSelect={vi.fn()} />);
+    expect(profileQuery).toHaveBeenCalledWith('me', { skip: false });
+  });
+
+  it('puts settings and profile at the bottom of the rail but not of the bar', () => {
+    const { rerender } = render(<MainNav variant="rail" active="chats" onSelect={vi.fn()} />);
+    const names = screen.getAllByRole('button').map((button) => button.textContent);
+    expect(names.map((name) => name?.replace(/\d+/, ''))).toEqual([t.chats, `${t.calls}${t.soon}`, t.settings, t.profile]);
+    expect(screen.getByRole('button', { name: new RegExp(t.settings) })).toHaveClass('mt-auto');
+    rerender(<MainNav variant="bar" active="chats" onSelect={vi.fn()} />);
+    expect(screen.getByRole('button', { name: new RegExp(t.settings) })).not.toHaveClass('mt-auto');
   });
 
   it('takes settings and profile from the URL and keeps chats and calls local', () => {

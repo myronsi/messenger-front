@@ -6,6 +6,7 @@ import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
 import { discardServerUnsent, notifyMessageDeletedLocally } from '@/entities/message';
+import { messageAudioTrack, queueLast, queueNext, requestAddToPlaylist } from '@/entities/message';
 import { isPersistedId } from '@/shared/api/entityId';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { makeStickerFrom } from '@/entities/sticker';
@@ -88,6 +89,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const canEdit = !!message && !message.forwarded_from && !message.sticker && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
     const stickerSource = fileContent && fileContent.file_type.startsWith('image/') && !fileContent.album?.length ? fileContent.file_url : null;
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
+    const song = message ? messageAudioTrack(message, translations.voiceMessage) : null;
+    const musicTrack = song?.kind === 'music' ? song : null;
 
     const handleEdit = () => {
       if (message && canEdit) {
@@ -175,6 +178,11 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         onForward={onForward && message ? handleForward : undefined}
         onSelect={onSelect && message ? () => { onSelect(message); closeMenu(); } : undefined}
         onMakeSticker={stickerSource && isGoApi() ? () => { closeMenu(); makeStickerFrom(stickerSource); } : undefined}
+        audioActions={musicTrack ? {
+          onPlayNext: () => { closeMenu(); queueNext(musicTrack, translations.audioPlayer.playingNext); },
+          onAddToQueue: () => { closeMenu(); queueLast(musicTrack, translations.audioPlayer.addedToQueue); },
+          onAddToPlaylist: () => { closeMenu(); requestAddToPlaylist(musicTrack); },
+        } : undefined}
         isClosing={isClosing || !!contextMenu.isClosing}
         onClose={onClose}
       />

@@ -2,10 +2,12 @@ import type React from 'react';
 import { MessageCircle, Phone, Settings } from 'lucide-react';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetApprovalRequestInboxQuery } from '@/entities/chat';
+import { useGetUserByUsernameQuery } from '@/entities/user';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { MainTab } from '../model/mainTab';
+import { FilledSettingsIcon } from './FilledSettingsIcon';
 
 interface MainNavProps {
   active: MainTab;
@@ -19,13 +21,18 @@ const MainNav: React.FC<MainNavProps> = ({ active, onSelect, variant, className 
   const t = translations.mainNav;
   const { data: me } = useGetCurrentUserQuery();
   const { data: inbox } = useGetApprovalRequestInboxQuery();
+  useGetUserByUsernameQuery(me?.username ?? '', { skip: !me?.username });
   const requests = inbox?.unread_count || 0;
   const rail = variant === 'rail';
   const iconClass = 'h-6 w-6';
-  const items: { key: MainTab; label: string; icon: React.ReactNode; badge?: string; count?: number }[] = [
-    { key: 'chats', label: t.chats, icon: <MessageCircle className={iconClass} /> },
-    { key: 'calls', label: t.calls, icon: <Phone className={iconClass} />, badge: t.soon },
-    { key: 'settings', label: t.settings, icon: <Settings className={iconClass} />, count: requests },
+  const fill = (tab: MainTab) => (active === tab ? 'currentColor' : 'none');
+  const items: { key: MainTab; label: string; icon: React.ReactNode; badge?: string; count?: number; startsAccountGroup?: boolean }[] = [
+    { key: 'chats', label: t.chats, icon: <MessageCircle className={iconClass} fill={fill('chats')} />, count: requests },
+    { key: 'calls', label: t.calls, icon: <Phone className={iconClass} fill={fill('calls')} />, badge: t.soon },
+    {
+      key: 'settings', label: t.settings, startsAccountGroup: true,
+      icon: active === 'settings' ? <FilledSettingsIcon className={iconClass} /> : <Settings className={iconClass} />,
+    },
     {
       key: 'profile', label: t.profile,
       icon: <AuthenticatedImage src={resolveMediaUrl(me?.avatar_url)} initialsFrom={me?.display_name || me?.username || '?'} alt=""
@@ -44,7 +51,7 @@ const MainNav: React.FC<MainNavProps> = ({ active, onSelect, variant, className 
           <button key={item.key} type="button" onClick={() => onSelect(item.key)} aria-current={isActive ? 'page' : undefined}
             className={`motion-press relative flex flex-col items-center justify-center gap-1 font-medium transition-colors ${
               rail ? 'min-h-16 w-16 rounded-2xl py-2 text-[11px]' : 'h-14 text-[11px]'
-            } ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'} ${rail && isActive ? 'bg-primary/10' : ''} ${rail && !isActive ? 'hover:bg-accent' : ''}`}>
+            } ${rail && item.startsAccountGroup ? 'mt-auto' : ''} ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'} ${rail && isActive ? 'bg-primary/10' : ''} ${rail && !isActive ? 'hover:bg-accent' : ''}`}>
             <span className="relative flex">
               {item.icon}
               {!!item.count && (

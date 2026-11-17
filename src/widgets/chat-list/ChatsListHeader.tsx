@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui/drawer';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useCanScanQr } from '@/shared/hooks/useCanScanQr';
+import { SheetGrip } from '@/shared/ui/SheetGrip';
 
 interface ChatsListHeaderProps {
   translations: Translations;
@@ -48,9 +49,11 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
             <PenSquare className="h-5 w-5" />
           </button>
-          {sheetOpen && <Drawer open onOpenChange={setSheetOpen} shouldScaleBackground={false} autoFocus>
-            <DrawerContent aria-describedby={undefined} className="px-4 pb-6" style={{ animation: 'none' }}>
-              <DrawerTitle className="px-1 pb-2 pt-3 text-lg font-semibold">{t.newAction}</DrawerTitle>
+          <Drawer open={sheetOpen} onOpenChange={setSheetOpen} shouldScaleBackground={false} autoFocus>
+            <DrawerContent data-testid="new-action-sheet" aria-describedby={undefined}
+              className="rounded-t-3xl px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+              <div className="-mt-px flex h-5 shrink-0 items-center justify-center"><SheetGrip /></div>
+              <DrawerTitle className="px-1 pb-2 pt-1 text-lg font-semibold">{t.newAction}</DrawerTitle>
               <div className="flex flex-col gap-1">
                 {actions.map((action) => (
                   <button key={action.key} type="button" onClick={() => { setSheetOpen(false); action.run(); }}
@@ -62,7 +65,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
                 ))}
               </div>
             </DrawerContent>
-          </Drawer>}
+          </Drawer>
         </>
       ) : (
         <DropdownMenu>

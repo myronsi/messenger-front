@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useEffect } from 'react';
-import { ArrowLeft, CheckSquare, Edit, Trash2, Copy, Reply, Forward, Sticker } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Edit, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ContextMenuProps {
@@ -16,6 +16,7 @@ interface ContextMenuProps {
   onForward?: () => void;
   onSelect?: () => void;
   onMakeSticker?: () => void;
+  audioActions?: { onPlayNext: () => void; onAddToQueue: () => void; onAddToPlaylist: () => void };
   isClosing: boolean;
   onClose: () => void;
 }
@@ -26,7 +27,7 @@ const REACTION_MENU_OFFSET = 48;
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({
     x, y, isMine, openLeft = false, onEdit, onDeleteForMe, onDeleteForEveryone, forBoth = false, onCopy, onReply, onForward, onSelect, onMakeSticker,
-    isClosing, onClose,
+    audioActions, isClosing, onClose,
   }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
@@ -113,6 +114,22 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
                 <Forward className="w-4 h-4 mr-2" />
                 <span className="truncate">{translations.forward || 'Forward'}</span>
               </button>
+            )}
+            {audioActions && (
+              <>
+                <button type="button" className={itemClass} onClick={audioActions.onPlayNext}>
+                  <ListPlus className="w-4 h-4 mr-2" />
+                  <span className="truncate">{translations.audioPlayer.playNext}</span>
+                </button>
+                <button type="button" className={itemClass} onClick={audioActions.onAddToQueue}>
+                  <ListEnd className="w-4 h-4 mr-2" />
+                  <span className="truncate">{translations.audioPlayer.addToQueue}</span>
+                </button>
+                <button type="button" className={itemClass} onClick={audioActions.onAddToPlaylist}>
+                  <ListMusic className="w-4 h-4 mr-2" />
+                  <span className="truncate">{translations.audioPlayer.addToPlaylist}</span>
+                </button>
+              </>
             )}
             {onMakeSticker && (
               <button type="button" className={itemClass} onClick={onMakeSticker}>

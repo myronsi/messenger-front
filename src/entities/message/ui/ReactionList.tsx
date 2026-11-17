@@ -6,9 +6,12 @@ import { ReactionInfo } from '../model/types';
 import { ReactionGroup, groupAndSortReactions, splitVisibleReactions } from '../model/reactions';
 import { ReactionCount } from './ReactionCount';
 import { ReactionEmoji } from '@/entities/emoji';
+import { toggleReaction as sendToggle } from '../model/reactionToggle';
+import { elementCenter } from '../model/reactionBurst';
+import { useLeavingReactions } from '../model/useLeavingReactions';
 
 interface ReactionListProps {
-  reactions: ReactionInfo[];
+  reactions?: ReactionInfo[];
   messageId: EntityId;
   userId: EntityId;
   isMine: boolean;
@@ -18,6 +21,7 @@ interface ReactionListProps {
   onOpenReactionDetails?: (reaction: string, reactions: ReactionInfo[]) => void;
 }
 
+const NO_REACTIONS: ReactionInfo[] = [];
 const HOVER_CLOSE_DELAY_MS = 150;
 const POPOVER_GAP_PX = 6;
 const VIEWPORT_MARGIN_PX = 8;
@@ -28,7 +32,7 @@ interface PopoverPosition {
 }
 
 const ReactionList: React.FC<ReactionListProps> = ({
-  reactions,
+  reactions = NO_REACTIONS,
   messageId,
   userId,
   isMine,
@@ -41,6 +45,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
     () => splitVisibleReactions(groupAndSortReactions(reactions)),
     [reactions]
   );
+  const shown = useLeavingReactions(visible, hidden);
 
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null);
@@ -129,17 +134,8 @@ const ReactionList: React.FC<ReactionListProps> = ({
     };
   }, [overflowOpen, closeOverflow]);
 
-  const toggleReaction = (reaction: string) => {
-    const socket = wsRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    const hasReaction = reactions.some((item) => item.user_id === userId && item.reaction === reaction);
-    socket.send(
-      JSON.stringify({
-        type: hasReaction ? 'reaction_remove' : 'reaction_add',
-        message_id: messageId,
-        reaction,
-      })
-    );
+  const toggleReaction = (reaction: string, source?: Element) => {
+    sendToggle(wsRef.current, { id: messageId, reactions }, userId, reaction, source ? elementCenter(source) : undefined);
   };
 
   const detailHandlers = (group: ReactionGroup) => ({
@@ -176,6 +172,8 @@ const ReactionList: React.FC<ReactionListProps> = ({
     scheduleHoverClose();
   };
 
+  if (shown.length === 0 && hidden.length === 0) return null;
+
   return (
     <div
       className={`pointer-events-auto absolute top-full z-10 ${isImage ? '-mt-1' : '-mt-1.5'} ${
@@ -184,9 +182,14 @@ const ReactionList: React.FC<ReactionListProps> = ({
       data-testid="reaction-strip"
     >
       <div className="inline-flex h-5 items-center gap-0.5 whitespace-nowrap rounded-full border border-border/70 bg-background px-0.5 text-foreground shadow-sm">
-        {visible.map((group) => {
+        {shown.map(({ group, leaving }) => {
           const mine = isMineReaction(group);
-          return (
+          return leaving ? (
+            <span key={group.reaction} aria-hidden="true" data-testid="reaction-leaving"
+              className={`motion-reaction-out inline-flex h-4 select-none items-center gap-0.5 rounded-full px-1 text-[13px] leading-none ${reactionColors(mine)}`}>
+              <span><ReactionEmoji reaction={group.reaction} /></span>
+            </span>
+          ) : (
             <button
               key={group.reaction}
               type="button"
@@ -198,7 +201,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
               title={onOpenReactionDetails ? 'Click to toggle. Right-click to view people.' : 'Click to toggle.'}
               onClick={(event) => {
                 event.stopPropagation();
-                toggleReaction(group.reaction);
+                toggleReaction(group.reaction, event.currentTarget);
               }}
               {...detailHandlers(group)}
             >
@@ -267,7 +270,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
                   }`}
                   onClick={(event) => {
                     event.stopPropagation();
-                    toggleReaction(group.reaction);
+                    toggleReaction(group.reaction, event.currentTarget);
                     closeOverflow();
                   }}
                   {...detailHandlers(group)}

@@ -39,6 +39,7 @@ interface UserProfileComponentRTKProps {
   onOpenGroup?: (group: { id: EntityId; name: string; avatarUrl?: string }) => void;
   onEditProfile?: () => void;
   hideBackOnMobile?: boolean;
+  hideBack?: boolean;
 }
 
 const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
@@ -52,6 +53,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   onOpenGroup,
   onEditProfile,
   hideBackOnMobile = false,
+  hideBack = false,
 }) => {
   const { translations } = useLanguage();
   const { activeView, panelTransition, selectView: transitionToView } = useProfilePanelTransition(directChatId, username);
@@ -193,7 +195,10 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   };
 
   if (isLoading || !!error || !userData) {
-    return <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose} hideBackOnMobile={hideBackOnMobile} />;
+    return (
+      <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose}
+        hideBackOnMobile={hideBackOnMobile} hideBack={hideBack} />
+    );
   }
 
   const avatarUrl = getAvatarUrl(userData.avatar_url);
@@ -244,7 +249,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   );
 
   return (
-    <UserProfileShell onClose={onClose} hideBackOnMobile={hideBackOnMobile} background={userData.background}>
+    <UserProfileShell onClose={onClose} hideBackOnMobile={hideBackOnMobile} hideBack={hideBack} background={userData.background}>
       <div data-profile-swipe className="flex h-full min-h-0 flex-col">
         <UserProfileHero
           userId={userData.id} username={username} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} displayName={displayName}

@@ -29,3 +29,18 @@ it('names the chat with yourself after you without presence', () => {
   expect(screen.getByText('Mia Stone (you)')).toBeInTheDocument();
   expect(screen.queryByText(/online/i)).not.toBeInTheDocument();
 });
+
+it('keeps last seen on one short line on phones and gives the full wording as a tooltip', () => {
+  vi.setSystemTime(new Date(2026, 10, 17, 19, 43));
+  const lastSeen = new Date(2026, 10, 16, 3, 11).toISOString();
+  render(<ChatHeader chatName="mai" chatDisplayName="Mai" isOnline={false} lastSeen={lastSeen} interlocutorDeleted={false} onBack={vi.fn()}
+    onDeleteChat={vi.fn()} onOpenProfile={vi.fn()} interlocutorAvatar="/m.png" />);
+  const presence = screen.getByTestId('chat-header-presence');
+  expect(presence).toHaveClass('truncate');
+  expect(presence).toHaveAttribute('title', expect.stringMatching(/^last seen yesterday at /));
+  const [phone, wide] = Array.from(presence.children);
+  expect(phone).toHaveClass('md:hidden');
+  expect(phone).toHaveTextContent(/^seen yesterday, /);
+  expect(wide).toHaveClass('max-md:hidden');
+  expect(wide).toHaveTextContent(/^last seen yesterday at /);
+});

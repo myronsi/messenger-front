@@ -27,7 +27,7 @@ describe('audioQueueFor', () => {
   it('queues the following songs, skipping voice messages and other files', () => {
     const messages = [song('1'), voice('2'), photo('3'), song('4'), song('5')];
     expect(ids(messages, '1')).toEqual(['4', '5']);
-    expect(audioQueueFor(messages, '1', 'Voice message')?.track).toMatchObject({ kind: 'music', title: '1.mp3' });
+    expect(audioQueueFor(messages, '1', 'Voice message')?.track).toMatchObject({ kind: 'music', title: '1' });
   });
 
   it('has nothing to queue after the last one of its kind or for other messages', () => {

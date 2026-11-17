@@ -188,9 +188,9 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     const run = () => {
       frame = 0;
       const current = latest.current;
-      current.onScrollStart?.();
-      updateDistance();
       const movedByUser = Date.now() - lastUserInputAtRef.current < USER_SCROLL_WINDOW_MS;
+      if (movedByUser) current.onScrollStart?.();
+      updateDistance();
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       const jumping = (current.tempHighlightedMessageId ?? current.highlightedMessageId) != null;
       if (distanceFromBottom <= BOTTOM_TOLERANCE && !pendingBottomRef.current && (movedByUser || !jumping)) {

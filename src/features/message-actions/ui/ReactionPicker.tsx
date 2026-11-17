@@ -10,7 +10,7 @@ const CELL = 'flex aspect-square items-center justify-center rounded-md text-xl 
 const HEADING = 'sticky top-0 z-10 bg-popover py-1 text-xs font-medium text-muted-foreground';
 const GRID = 'grid grid-cols-8 gap-0.5';
 
-export const ReactionPicker = ({ onPick }: { onPick: (reaction: string) => void }) => {
+export const ReactionPicker = ({ onPick, embedded = false }: { onPick: (reaction: string) => void; embedded?: boolean }) => {
   const { translations } = useLanguage();
   const t = translations.customEmoji;
   const [query, setQuery] = useState('');
@@ -44,7 +44,7 @@ export const ReactionPicker = ({ onPick }: { onPick: (reaction: string) => void 
 
   return (
     <div data-testid="reaction-picker" onClick={(event) => event.nativeEvent.stopPropagation()}
-      className="w-72 rounded-2xl border border-border bg-popover p-2 shadow-lg">
+      className={embedded ? 'px-2 pb-2' : 'w-72 rounded-2xl border border-border bg-popover p-2 shadow-lg'}>
       <label className="mb-1 flex items-center gap-2 rounded-full bg-muted px-3">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchCustom} aria-label={t.searchCustom}

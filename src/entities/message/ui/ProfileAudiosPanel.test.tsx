@@ -7,6 +7,7 @@ interface PlayerProps { messageId: string; isMine: boolean; variant: string; onP
 
 const playAudio = vi.fn();
 vi.mock('../model/audioPlayer', () => ({ playAudio: (...args: unknown[]) => playAudio(...args) }));
+vi.mock('./TrackMenu', () => ({ TrackMenu: () => null }));
 vi.mock('./AudioMessage', () => ({
   default: ({ messageId, isMine, variant, onPlay }: PlayerProps) => (
     <div data-testid={`player-${messageId}`} data-mine={isMine} data-variant={variant}>
@@ -44,7 +45,7 @@ it('plays through the shared player and queues only the following audios of the 
   render(<ProfileAudiosPanel audios={more} currentUsername="Me" />);
   fireEvent.click(screen.getByText('play 3'));
   expect(playAudio).toHaveBeenCalledWith(
-    expect.objectContaining({ id: '3', src: '/c', title: 'one.mp3', kind: 'music' }),
+    expect.objectContaining({ id: '3', src: '/c', title: 'one', kind: 'music' }),
     [expect.objectContaining({ id: '1' }), expect.objectContaining({ id: '0' })],
     undefined,
   );

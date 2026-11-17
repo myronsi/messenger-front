@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
-import {
-  ProfileBackgroundEditor, ProfileMusicEditor, useDeleteMyBackgroundMutation, useGetCurrentUserQuery, useSetMyBackgroundMutation,
-  type SetBackgroundBody,
-} from '@/features/profile';
+import { useGetCurrentUserQuery } from '@/features/profile';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useProfileAccountActions } from './useProfileAccountActions';
 import { getProfileAvatarUrl } from './useProfilePanelData';
-import PersonalInfoPage from './ui/PersonalInfoPage';
+import { useProfileMediaDraft } from './model/useProfileMediaDraft';
+import { EditProfilePage } from './ui/EditProfilePage';
 import ProfilePanelDialogs from './ui/ProfilePanelDialogs';
 
 interface OwnProfileEditorProps {
@@ -19,10 +17,8 @@ export default function OwnProfileEditor({ onBack }: OwnProfileEditorProps) {
   const { translations } = useLanguage();
   const { data: userData, refetch } = useGetCurrentUserQuery();
   const account = useProfileAccountActions({ userData, refetchCurrentUser: refetch, onClose: onBack, onLogout: () => undefined });
+  const media = useProfileMediaDraft(userData);
   const [avatarStart, setAvatarStart] = useState(0);
-  const [setBackground] = useSetMyBackgroundMutation();
-  const [deleteBackground] = useDeleteMyBackgroundMutation();
-  const saveBackground = (body: SetBackgroundBody | null) => (body ? setBackground(body).unwrap() : deleteBackground().unwrap());
 
   if (!userData) {
     return <div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -30,26 +26,40 @@ export default function OwnProfileEditor({ onBack }: OwnProfileEditorProps) {
 
   const avatarUrl = getProfileAvatarUrl(userData.avatar_url);
   const hasCustomAvatar = avatarUrl !== DEFAULT_AVATAR;
+  const hasChanges = account.displayNameChanged || account.newBio !== account.bio || account.extras.changed || media.changed;
   const cancelCrop = () => {
     if (!account.avatarCropUrl) return;
     URL.revokeObjectURL(account.avatarCropUrl);
     account.setAvatarCropUrl(null);
     account.setAvatarFile(null);
   };
+  const save = async () => {
+    if (!await account.handleSavePersonalInfo()) return false;
+    try {
+      await media.save();
+    } catch {
+      account.setModal({ type: 'error', message: translations.profileSaveFailed });
+      return false;
+    }
+    onBack();
+    return true;
+  };
+  const discard = () => {
+    account.discardPersonalInfo();
+    media.discard();
+  };
 
   return (
     <>
-      <PersonalInfoPage avatarUrl={avatarUrl} displayName={userData.display_name || account.displayName} isUploadingAvatar={account.isUploading}
+      <EditProfilePage
+        username={userData.username} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar} isUploadingAvatar={account.isUploading}
         onPickAvatar={(file) => { account.setAvatarFile(file); account.setAvatarCropUrl(URL.createObjectURL(file)); }}
-        newDisplayName={account.newDisplayName} displayNameChanged={account.displayNameChanged} displayNameInvalid={account.displayNameInvalid}
-        isSaving={account.isSavingPersonalInfo} onDisplayNameChange={account.setNewDisplayName} bio={account.bio} newBio={account.newBio}
-        onBioChange={account.setNewBio} onSaveAll={account.handleSavePersonalInfo} onDiscard={account.discardPersonalInfo} onBack={onBack}
-        username={userData.username} createdAt={userData.created_at} hasCustomAvatar={hasCustomAvatar}
-        onOpenAvatar={(index) => { setAvatarStart(index); account.setIsAvatarViewerOpen(true); }} extras={account.extras}
-        extraSections={<>
-          <ProfileMusicEditor music={userData.music} />
-          <ProfileBackgroundEditor background={userData.background} onSave={saveBackground} />
-        </>} />
+        onOpenAvatar={(index) => { setAvatarStart(index); account.setIsAvatarViewerOpen(true); }}
+        name={account.newDisplayName} nameInvalid={account.displayNameInvalid} onNameChange={account.setNewDisplayName}
+        bio={account.newBio} onBioChange={account.setNewBio} extras={account.extras}
+        music={media.music} onMusicChange={media.chooseMusic} background={media.background} onBackgroundChange={media.chooseBackground}
+        mediaVersion={media.version} hasChanges={hasChanges} canSave={!account.displayNameInvalid && !account.extras.birthdayInvalid}
+        isSaving={account.isSavingPersonalInfo || media.isSaving} onSave={save} onDiscard={discard} onBack={onBack} />
       <ProfilePanelDialogs userData={userData} displayName={account.displayName} avatarUrl={avatarUrl} hasCustomAvatar={hasCustomAvatar}
         modal={account.modal} onCancel={() => account.setModal(null)} setModal={account.setModal} translations={translations}
         avatarFile={account.avatarFile} avatarCropUrl={account.avatarCropUrl} isUploading={account.isUploading} onAvatarUpload={account.handleAvatarUpload}

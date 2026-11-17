@@ -63,7 +63,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const [updateUser, { isLoading: isSavingPersonalInfo }] = useUpdateUserMutation();
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [modal, setModal] = useState<ProfileModalState | null>(null);
 
   const savedRef = useRef({ bio: '', displayName: '' });
@@ -71,7 +71,6 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
   const extras = useProfileExtrasDraft(userData);
 
   useEffect(() => {
-    setIsVisible(true);
     if (userData) {
       const previous = savedRef.current;
       const saved = { bio: plainEmoji(userData.bio || ''), displayName: plainEmoji(userData.display_name || userData.username) };

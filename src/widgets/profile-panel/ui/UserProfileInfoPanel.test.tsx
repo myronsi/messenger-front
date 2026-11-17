@@ -10,7 +10,7 @@ vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <im
 vi.mock('./UserProfileConnections', () => ({ default: () => <div data-testid="profile-connections-slot" /> }));
 vi.mock('@/entities/message', () => ({
   formatAudioTime: (value: number) => `0:${String(Math.round(value)).padStart(2, '0')}`,
-  playAudio: vi.fn(), pauseAudio: vi.fn(), useAudioPlayer: () => false,
+  playAudio: vi.fn(), pauseAudio: vi.fn(), useAudioPlayer: () => false, TrackMenu: () => null,
 }));
 vi.mock('@/entities/user', () => ({
   useGetCommonGroupsQuery: vi.fn(() => ({ data: [{ id: '12', name: 'Design crew', avatar_url: null, member_count: 3 }] })),
@@ -43,5 +43,5 @@ it('shows the birthday chip and plays the profile music', async () => {
   expect(screen.getByTestId('profile-birthday')).toHaveTextContent('Birthday 3 July');
   expect(screen.getByText('Song')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Play' }));
-  expect(playAudio).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1', src: '/api/v2/attachments/a1/content', title: 'Band – Song', kind: 'music', duration: 20 }));
+  expect(playAudio).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1', src: '/api/v2/attachments/a1/content', title: 'Song', artist: 'Band', kind: 'music', duration: 20 }));
 });

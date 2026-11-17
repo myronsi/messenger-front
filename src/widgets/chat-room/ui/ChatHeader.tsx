@@ -31,6 +31,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const { translations } = useLanguage();
   const presenceLabel = usePresenceLabel(isOnline, lastSeen);
+  const shortPresence = usePresenceLabel(isOnline, lastSeen, true);
   const { data: me } = useGetCurrentUserQuery();
   const saved = !!me?.username && me.username.toLowerCase() === chatName.toLowerCase();
   const displayName = saved ? selfName(chatDisplayName || chatName, translations) : chatDisplayName || chatName;
@@ -48,8 +49,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             <span className="flex min-w-0 flex-col items-start">
               <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : <EmojiText text={displayName} />}</span>
               {!interlocutorDeleted && !saved && (
-                <span className="text-xs font-normal text-muted-foreground">
-                  {presenceLabel}
+                <span data-testid="chat-header-presence" title={presenceLabel}
+                  className="max-w-full truncate text-xs font-normal leading-tight text-muted-foreground">
+                  <span className="md:hidden">{shortPresence}</span>
+                  <span className="max-md:hidden">{presenceLabel}</span>
                 </span>
               )}
             </span>

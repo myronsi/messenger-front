@@ -28,3 +28,10 @@ it('shows the banner-style skeleton while the profile loads', () => {
   render(<UserProfileState isLoading unavailable={false} onClose={vi.fn()} />);
   expect(screen.getByTestId('user-profile-skeleton')).toBeInTheDocument();
 });
+
+it('leaves out the back arrow when the profile is a main tab', () => {
+  render(<UserProfileShell onClose={vi.fn()} hideBack><p>Profile</p></UserProfileShell>);
+  expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+  render(<UserProfileState isLoading unavailable={false} onClose={vi.fn()} hideBack />);
+  expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+});
