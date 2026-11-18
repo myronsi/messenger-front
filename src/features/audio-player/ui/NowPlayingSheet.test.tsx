@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { audioLibrary, audioPlayerState, playAudio, rememberPlayed, stopAudio, type AudioTrack } from '@/entities/message';
 import { openNowPlaying } from '../model/nowPlaying';
@@ -45,6 +46,45 @@ describe('NowPlayingSheet', () => {
     expect(within(sheet).getByRole('button', { name: 'Repeat all' })).toBeInTheDocument();
     act(() => stopAudio());
     expect(screen.queryByTestId('now-playing')).not.toBeInTheDocument();
+  });
+
+  it('shows the time under the finger while the progress bar is held, and seeks on release', async () => {
+    render(<NowPlayingHost />);
+    act(() => playAudio(song('a', { duration: 200 })));
+    await flush();
+    act(() => openNowPlaying());
+    const sheet = screen.getByTestId('now-playing');
+    const bar = within(sheet).getByTestId('seek-full');
+    bar.getBoundingClientRect = () => ({ left: 0, width: 200, top: 0, height: 10, right: 200, bottom: 10, x: 0, y: 0, toJSON: () => ({}) });
+    expect(within(sheet).getByText('0:00')).toBeInTheDocument();
+    fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
+    expect(within(sheet).getByText('1:40')).toBeInTheDocument();
+    fireEvent.pointerMove(bar, { clientX: 150, pointerId: 1 });
+    expect(within(sheet).getByText('2:30')).toBeInTheDocument();
+    fireEvent.pointerUp(bar, { clientX: 150, pointerId: 1 });
+    expect(audioPlayerState().time).toBe(150);
+    expect(within(sheet).getByText('2:30')).toBeInTheDocument();
+    fireEvent.pointerDown(bar, { clientX: 20, pointerId: 1 });
+    fireEvent.pointerCancel(bar, { pointerId: 1 });
+    expect(within(sheet).getByText('2:30')).toBeInTheDocument();
+  });
+
+  it('closes with the back button on a phone and keeps the chat open', async () => {
+    const width = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 400 });
+    const Back = () => {
+      const navigate = useNavigate();
+      return <button type="button" onClick={() => navigate(-1)}>system back</button>;
+    };
+    render(<MemoryRouter initialEntries={['/dm/@mai']}><NowPlayingHost /><Back /></MemoryRouter>);
+    act(() => playAudio(song('a')));
+    await flush();
+    act(() => openNowPlaying());
+    expect(screen.getByTestId('now-playing')).toBeInTheDocument();
+    act(() => screen.getByText('system back').click());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
+    expect(screen.queryByTestId('now-playing')).not.toBeInTheDocument();
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
   });
 
   it('creates a playlist and lists recently played songs', async () => {

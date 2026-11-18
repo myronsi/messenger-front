@@ -6,7 +6,7 @@ import {
 
 vi.mock('@/shared/api/mediaCache', () => ({ isProtectedMedia: () => false, acquireMedia: vi.fn() }));
 const tagReader = vi.hoisted(() => ({ read: vi.fn(async () => ({})) }));
-vi.mock('@/shared/lib/songTags', () => ({ readSongTags: tagReader.read }));
+vi.mock('@/shared/lib/remoteSongTags', () => ({ readRemoteSongTags: tagReader.read }));
 
 const track = (id: string): AudioTrack => ({ id, src: `/${id}.mp3`, title: id, kind: 'music' });
 const ids = () => audioPlayerState().list.map((item) => item.id);
@@ -117,29 +117,48 @@ describe('audio player queue actions', () => {
 });
 
 describe('audio player song tags', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  const startPlaying = () => vi.mocked(HTMLMediaElement.prototype.play).mockImplementation(function (this: HTMLMediaElement) {
+    this.dispatchEvent(new Event('playing'));
+    return Promise.resolve();
+  });
+  afterEach(() => {
+    vi.mocked(HTMLMediaElement.prototype.play).mockResolvedValue(undefined);
+    tagReader.read.mockClear();
+  });
 
-  it('fills title, artist and cover of a chat song from its file tags', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, blob: async () => new Blob(['x']) })));
+  it('fills title, artist and cover of a chat song once it plays', async () => {
     URL.createObjectURL = vi.fn(() => 'blob:cover');
     tagReader.read.mockResolvedValueOnce({ title: 'Do Unto Others', artist: 'Band', cover: new Blob(['c']) } as never);
+    startPlaying();
     playAudio({ ...track('tagged'), title: '02 Do Unto Others' });
     await flush();
     await flush();
     expect(audioPlayerState().track).toMatchObject({ title: 'Do Unto Others', artist: 'Band', cover: 'blob:cover' });
   });
 
-  it('keeps a title that already came with an artist and skips voice messages', async () => {
-    const fetcher = vi.fn(async () => ({ ok: true, blob: async () => new Blob(['x']) }));
-    vi.stubGlobal('fetch', fetcher);
-    tagReader.read.mockResolvedValueOnce({ title: 'File title', artist: 'File artist' } as never);
-    playAudio({ ...track('profile-song'), title: 'Chosen title', artist: 'Chosen artist' });
+  it('waits for playback before it reads the tags', async () => {
+    playAudio(track('waiting'));
     await flush();
+    expect(tagReader.read).not.toHaveBeenCalled();
+  });
+
+  it('skips the download for songs with artist and cover, and for voice messages', async () => {
+    startPlaying();
+    playAudio({ ...track('profile-song'), title: 'Chosen title', artist: 'Chosen artist', cover: '/cover.jpg' });
     await flush();
-    expect(audioPlayerState().track).toMatchObject({ title: 'Chosen title', artist: 'Chosen artist' });
-    fetcher.mockClear();
     playAudio({ ...track('voice-1'), kind: 'voice' });
     await flush();
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(tagReader.read).not.toHaveBeenCalled();
+    expect(audioPlayerState().track?.id).toBe('voice-1');
+  });
+
+  it('keeps a title that already came with an artist', async () => {
+    tagReader.read.mockResolvedValueOnce({ title: 'File title', artist: 'File artist' } as never);
+    startPlaying();
+    playAudio({ ...track('artist-song'), title: 'Chosen title', artist: 'Chosen artist' });
+    await flush();
+    await flush();
+    expect(tagReader.read).toHaveBeenCalledTimes(1);
+    expect(audioPlayerState().track).toMatchObject({ title: 'Chosen title', artist: 'Chosen artist' });
   });
 });

@@ -17,8 +17,11 @@ import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
 import type { Chat } from '@/entities/message';
 import type { ChatsListComponentProps } from './model/types';
 import { selfName } from '@/shared/lib/selfName';
+import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { plainEmoji } from '@/shared/lib/customEmoji';
 import { AudioPlayerBar } from '@/features/audio-player';
+
+const GROUP_EXIT_MS = 260;
 
 const unreadForMenu = (chat?: Chat) => (chat?.is_request ? 0 : chat?.unread_count || 0);
 
@@ -29,6 +32,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const { data: me } = useGetCurrentUserQuery();
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const groupModal = useDelayedUnmount(creatingGroup, GROUP_EXIT_MS);
   const createGroup = useCreateGroup((message, groupName, chatId) => {
     setCreatingGroup(false);
     if (chatId) {
@@ -142,8 +146,8 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
 
       <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
 
-      {creatingGroup && (
-        <GroupCreateModal currentUsername={model.username} onClose={() => setCreatingGroup(false)} onCreate={createGroup} />
+      {groupModal.mounted && (
+        <GroupCreateModal currentUsername={model.username} closing={groupModal.closing} onClose={() => setCreatingGroup(false)} onCreate={createGroup} />
       )}
       <QrScannerDialog open={scanning} onClose={() => setScanning(false)} />
 

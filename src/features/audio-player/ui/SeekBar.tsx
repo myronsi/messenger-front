@@ -6,15 +6,20 @@ interface SeekBarProps {
   duration: number;
   label: string;
   onSeek: (seconds: number) => void;
+  onScrub?: (seconds: number | null) => void;
   variant?: 'thin' | 'full';
   className?: string;
 }
 
 const KEY_STEP = 5;
 
-export const SeekBar = ({ time, duration, label, onSeek, variant = 'full', className }: SeekBarProps) => {
+export const SeekBar = ({ time, duration, label, onSeek, onScrub, variant = 'full', className }: SeekBarProps) => {
   const track = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<number | null>(null);
+  const [dragging, setDraggingState] = useState<number | null>(null);
+  const setDragging = (seconds: number | null) => {
+    setDraggingState(seconds);
+    onScrub?.(seconds);
+  };
   const usable = duration > 0;
   const shown = dragging ?? time;
   const percent = usable ? Math.min(100, Math.max(0, (shown / duration) * 100)) : 0;

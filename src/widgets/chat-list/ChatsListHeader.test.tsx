@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
 import ChatsListHeader from './ChatsListHeader';
@@ -16,7 +17,24 @@ const setup = () => {
   return handlers;
 };
 
+const SystemBack = () => {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate(-1)}>system back</button>;
+};
+
 describe('ChatsListHeader', () => {
+  it('closes the New sheet with the back button on a phone', async () => {
+    mobile.value = true;
+    const width = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    render(<MemoryRouter><ChatsListHeader translations={en} onOpenSearch={vi.fn()} onNewGroup={vi.fn()} onScanQr={vi.fn()} /><SystemBack /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: t.newMenuLabelNoQr }));
+    expect(await screen.findByTestId('new-action-sheet')).toBeInTheDocument();
+    act(() => screen.getByText('system back').click());
+    await vi.waitFor(() => expect(screen.queryByTestId('new-action-sheet')).not.toBeInTheDocument());
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+  });
+
   beforeEach(() => { mobile.value = false; touch.value = false; });
 
   it('uses the shared tab header with the Chats title and no avatar button', () => {

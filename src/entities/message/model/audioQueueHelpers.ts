@@ -1,12 +1,9 @@
-import { readSongTags } from '@/shared/lib/songTags';
+import { readRemoteSongTags } from '@/shared/lib/remoteSongTags';
 import type { AudioTrack, RepeatMode } from './audioTypes';
 
-const TAG_BYTES = 2 * 1024 * 1024;
 const tagCache = new Map<string, Partial<AudioTrack>>();
 const readTrackTags = async (source: string): Promise<Partial<AudioTrack>> => {
-  const response = await fetch(source, source.startsWith('blob:') ? undefined : { headers: { Range: `bytes=0-${TAG_BYTES - 1}` } });
-  if (!response.ok) return {};
-  const tags = await readSongTags(await response.blob());
+  const tags = await readRemoteSongTags(source);
   return { title: tags.title, artist: tags.artist, cover: tags.cover ? URL.createObjectURL(tags.cover) : undefined };
 };
 
@@ -17,6 +14,7 @@ const patchFor = (track: AudioTrack, tags: Partial<AudioTrack>): Partial<AudioTr
 });
 
 export const trackTagPatch = async (track: AudioTrack, source: string) => {
+  if (track.artist && track.cover) return {};
   const key = String(track.id);
   let tags = tagCache.get(key);
   if (!tags) {

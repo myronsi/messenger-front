@@ -1,11 +1,10 @@
 import { ChatCoveredContext } from '@/shared/contexts/ChatCoveredContext';
-import { RecoverySetupPrompt, RecoveryApprovalPrompt, SecurityNoticeHandler, AccountStatusHost } from '@/widgets/profile-panel';
+import ProfileComponentRTK, { RecoverySetupPrompt, RecoveryApprovalPrompt, SecurityNoticeHandler, AccountStatusHost } from '@/widgets/profile-panel';
 import { isGoApi } from '@/shared/api/goSocket';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
 import ChatsListComponentRTK from '@/widgets/chat-list';
-import ProfileComponentRTK from '@/widgets/profile-panel';
 import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-panel';
 import { AddToPlaylistHost, ReactionBurstHost, startAudioSession } from '@/entities/message';
 import { NowPlayingHost } from '@/features/audio-player';
@@ -18,6 +17,7 @@ import { useJumpRequest } from './model/useJumpRequest';
 import { QrApprovalRoute } from './ui/QrApprovalRoute';
 import { StickerManagerHost, stickerLinkSlug } from '@/features/sticker-packs';
 import { EmojiManagerHost, emojiLinkSlug } from '@/features/emoji-packs';
+import { PackManager } from '@/widgets/pack-manager';
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CallProvider, CallStage } from '@/features/calls';
@@ -205,7 +205,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
         {<SecurityNoticeHandler key={`security:${username}`} />}{isGoApi() && <AccountStatusHost key={`moderation:${username}`} />}
         {<CallProvider key={`calls:${username}`} openChatId={currentChat ? String(currentChat.id) : null} />}
         {isGoApi() && <StickerManagerHost linkSlug={stickerLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}
-        {isGoApi() && <EmojiManagerHost linkSlug={emojiLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}
+        {isGoApi() && <><EmojiManagerHost linkSlug={emojiLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} /><PackManager /></>}
         {qrRequestId && (
           <ChunkErrorBoundary key={qrRequestId}>
             <Suspense fallback={null}>

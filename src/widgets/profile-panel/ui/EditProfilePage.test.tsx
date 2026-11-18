@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import type { ComponentProps } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
 import { EditProfilePage } from './EditProfilePage';
 import type { ProfileExtrasDraft } from '../model/useProfileExtrasDraft';
@@ -26,6 +27,12 @@ const extras = {
 } as unknown as ProfileExtrasDraft;
 
 type Props = ComponentProps<typeof EditProfilePage>;
+const renderPropsBase = (): Props => ({
+    username: 'myron', avatarUrl: '/a.png', hasCustomAvatar: false, isUploadingAvatar: false, onPickAvatar: vi.fn(), onOpenAvatar: vi.fn(),
+    name: 'Myron', nameInvalid: false, onNameChange: vi.fn(), bio: '', onBioChange: vi.fn(), extras,
+    music: null, onMusicChange: vi.fn(), background: null, onBackgroundChange: vi.fn(async () => undefined), mediaVersion: 0,
+    hasChanges: false, canSave: true, isSaving: false, onSave: vi.fn(async () => true), onDiscard: vi.fn(), onBack: vi.fn(),
+});
 const renderPage = (overrides: Partial<Props> = {}) => {
   const props: Props = {
     username: 'myron', avatarUrl: '/a.png', hasCustomAvatar: false, isUploadingAvatar: false, onPickAvatar: vi.fn(), onOpenAvatar: vi.fn(),
@@ -36,6 +43,41 @@ const renderPage = (overrides: Partial<Props> = {}) => {
   render(<EditProfilePage {...props} />);
   return props;
 };
+
+const SystemBack = () => {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate(-1)}>system back</button>;
+};
+
+const withRouter = (overrides: Partial<Props>) => {
+  const props = { ...renderPropsBase(), ...overrides };
+  render(<MemoryRouter><EditProfilePage {...props} /><SystemBack /></MemoryRouter>);
+  return props;
+};
+
+describe('EditProfilePage back button', () => {
+  const width = window.innerWidth;
+  afterEach(() => Object.defineProperty(window, 'innerWidth', { configurable: true, value: width }));
+
+  it('leaves edit mode with the back button when nothing changed', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    const { onBack } = withRouter({});
+    act(() => screen.getByText('system back').click());
+    expect(onBack).toHaveBeenCalledOnce();
+  });
+
+  it('asks before leaving with unsaved changes and asks again after Stay', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    const { onBack } = withRouter({ hasChanges: true });
+    act(() => screen.getByText('system back').click());
+    expect(await screen.findByText(en.leaveUnsavedText)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: en.stayOnPage }));
+    await waitFor(() => expect(screen.queryByText(en.leaveUnsavedText)).not.toBeInTheDocument());
+    act(() => screen.getByText('system back').click());
+    expect(await screen.findByText(en.leaveUnsavedText)).toBeInTheDocument();
+    expect(onBack).not.toHaveBeenCalled();
+  });
+});
 
 describe('EditProfilePage', () => {
   it('edits the name and bio in place and saves only when something changed', () => {

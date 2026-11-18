@@ -14,7 +14,7 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { alt?: string }) => <img alt={props.alt} data-testid="cover" /> }));
 vi.mock('../model/nowPlaying', () => ({ openNowPlaying: calls.openNowPlaying }));
 vi.mock('@/entities/message', async () => {
-  const actions = await vi.importActual<typeof import('@/entities/message/model/trackActions')>('@/entities/message/model/trackActions');
+  const actions = await vi.importActual<typeof import('@/entities/message')>('@/entities/message');
   return {
     useAudioPlayer: <T,>(select: (state: AudioPlayerState) => T) => select(player),
     usePlaybackSpeed: () => 1,

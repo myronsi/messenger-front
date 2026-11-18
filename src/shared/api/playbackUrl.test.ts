@@ -42,3 +42,54 @@ describe('playback URLs', () => {
     await expect(playbackUrl(ID)).rejects.toThrow('playback 404');
   });
 });
+
+describe('warming playback URLs', () => {
+  const observers: Array<{ callback: IntersectionObserverCallback; disconnect: ReturnType<typeof vi.fn> }> = [];
+  const lease = () => new Response(JSON.stringify({ url: `/api/v2/attachments/${ID}/content?pt=warm`, expires_at: new Date(Date.now() + 5 * 60_000).toISOString() }));
+
+  afterEach(() => {
+    authFetch.mockReset();
+    observers.length = 0;
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it('gets the URL ahead of time so the click reuses it, and ignores refusals', async () => {
+    const { playbackUrl, warmPlaybackUrl } = await import('./playbackUrl');
+    authFetch.mockImplementation(async () => lease());
+    warmPlaybackUrl(`/api/v2/attachments/${ID}/content`);
+    warmPlaybackUrl('/static/a.mp3');
+    expect(await playbackUrl(ID)).toContain('pt=warm');
+    expect(authFetch).toHaveBeenCalledTimes(1);
+    authFetch.mockImplementation(async () => new Response('{}', { status: 404 }));
+    const { forgetPlaybackUrl } = await import('./playbackUrl');
+    forgetPlaybackUrl(ID);
+    expect(() => warmPlaybackUrl(`/api/v2/attachments/${ID}/content`)).not.toThrow();
+  });
+
+  it('warms once when the song scrolls into view and stops watching', async () => {
+    vi.stubGlobal('IntersectionObserver', class {
+      disconnect = vi.fn();
+      constructor(callback: IntersectionObserverCallback) { observers.push({ callback, disconnect: this.disconnect }); }
+      observe() { return undefined; }
+    });
+    const { renderHook, act } = await import('@testing-library/react');
+    const { useWarmPlaybackUrl } = await import('./playbackUrl');
+    authFetch.mockImplementation(async () => lease());
+    const { result } = renderHook(() => useWarmPlaybackUrl(`/api/v2/attachments/${ID}/content`, true));
+    act(() => result.current(document.createElement('div')));
+    expect(authFetch).not.toHaveBeenCalled();
+    act(() => observers[0].callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+    expect(authFetch).toHaveBeenCalledTimes(1);
+    expect(observers[0].disconnect).toHaveBeenCalled();
+  });
+
+  it('does nothing for voice messages', async () => {
+    const { renderHook, act } = await import('@testing-library/react');
+    const { useWarmPlaybackUrl } = await import('./playbackUrl');
+    const { result } = renderHook(() => useWarmPlaybackUrl(`/api/v2/attachments/${ID}/content`, false));
+    act(() => result.current(document.createElement('div')));
+    expect(observers).toHaveLength(0);
+    expect(authFetch).not.toHaveBeenCalled();
+  });
+});

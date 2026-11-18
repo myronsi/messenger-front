@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { OneOnOneChatResponse } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import SearchUsers from '../SearchUsers';
+import { BackToClose } from '@/shared/ui/BackToClose';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { ChatsListComponentProps } from '../model/types';
 
@@ -37,6 +38,7 @@ const ChatSearchOverlay: React.FC<ChatSearchOverlayProps> = ({
 
   return (
     <div className="absolute inset-0 z-50 pointer-events-auto overflow-hidden">
+      {showSearch && <BackToClose flag="userSearch" onClose={onClose} />}
       {/* expanding circle background */}
       {circleStyle && (
         <div

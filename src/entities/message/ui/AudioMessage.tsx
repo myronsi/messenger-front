@@ -1,4 +1,5 @@
 import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
+import { useWarmPlaybackUrl, warmPlaybackUrl } from '@/shared/api/playbackUrl';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause } from 'lucide-react';
@@ -50,6 +51,9 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     : isUsableDuration(metadataDuration) ? metadataDuration : analyzed?.duration ?? 0;
   const currentTime = active ? smoothTime ?? playerTime : 0;
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const streams = variant === 'music';
+  const warmRef = useWarmPlaybackUrl(sourceFileUrl, streams);
+  const warm = () => { if (streams) warmPlaybackUrl(sourceFileUrl); };
 
   useEffect(() => {
     if (!needsAnalysis || !analysisUrl || analyzed) return;
@@ -105,6 +109,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
 
   return (
     <div
+      ref={warmRef}
       className="voice-message-player flex max-w-full min-w-0 items-center gap-2.5 py-0.5"
       style={{ width }}
       onClick={stopPropagation}
@@ -113,6 +118,9 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
       <button
         type="button"
         onClick={() => (isPlaying ? pauseAudio() : onPlay())}
+        onPointerEnter={warm}
+        onPointerDown={warm}
+        onFocus={warm}
         aria-label={`${isPlaying ? 'Pause' : 'Play'} ${label}`}
         className={`motion-press relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-sm transition-colors disabled:opacity-50 ${
           isMine ? 'bg-primary-foreground text-primary hover:bg-primary-foreground/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'

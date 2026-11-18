@@ -45,6 +45,26 @@ export const playbackUrl = (id: string, variant?: PlaybackVariant): Promise<stri
   return request;
 };
 
+export const warmPlaybackUrl = (source?: string | null) => {
+  const id = attachmentIdOf(source);
+  if (id) void playbackUrl(id).catch(() => undefined);
+};
+
+export const useWarmPlaybackUrl = (source: string | undefined, enabled: boolean) => {
+  const [node, setNode] = useState<Element | null>(null);
+  useEffect(() => {
+    if (!enabled || !node || !attachmentIdOf(source) || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      warmPlaybackUrl(source);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node, source, enabled]);
+  return setNode;
+};
+
 export const usePlaybackUrl = (source?: string, enabled = true, onError?: () => void) => {
   const id = attachmentIdOf(source);
   const variant = variantOf(source);
