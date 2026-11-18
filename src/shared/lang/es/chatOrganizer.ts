@@ -18,7 +18,7 @@ export const chatOrganizer = {
     requestBannerText: "Aún no compartís ningún chat. No verá que leíste sus mensajes hasta que aceptes o respondas.",
     acceptRequest: "Aceptar",
     deleteRequest: "Eliminar",
-    blockRequest: "Bloquear",
+    reportAndBlockRequest: "Denunciar y bloquear",
     requestAccepted: "Chat movido a tus chats",
   },
 };

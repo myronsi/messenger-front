@@ -18,7 +18,7 @@ export const chatOrganizer = {
     requestBannerText: "У вас пока нет общих чатов. Собеседник не увидит, что вы прочитали сообщения, пока вы не примете запрос или не ответите.",
     acceptRequest: "Принять",
     deleteRequest: "Удалить",
-    blockRequest: "Заблокировать",
+    reportAndBlockRequest: "Пожаловаться и заблокировать",
     requestAccepted: "Чат перенесён в ваши чаты",
   },
 };

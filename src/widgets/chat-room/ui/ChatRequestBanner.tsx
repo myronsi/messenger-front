@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useGetUserByUsernameQuery } from '@/entities/user';
+import { ReportUserDialog } from '@/features/moderation';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { Button } from '@/shared/ui/button';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
@@ -14,6 +17,11 @@ interface ChatRequestBannerProps {
 
 const ChatRequestBanner = ({ request, chatName, displayName, avatar, translations, onOpenProfile }: ChatRequestBannerProps) => {
   const t = translations.chatOrganizer;
+  const [reporting, setReporting] = useState(false);
+  const { data: peer } = useGetUserByUsernameQuery(chatName, { skip: !chatName });
+  const reported = (blocked: boolean) => {
+    if (blocked) request.block();
+  };
   const [before, after = ''] = t.requestBannerTitle.split('{name}');
   return (
     <div data-testid="chat-request-banner" className="shrink-0 border-b border-border bg-muted/40 px-4 py-3">
@@ -28,8 +36,9 @@ const ChatRequestBanner = ({ request, chatName, displayName, avatar, translation
       <div className="mt-3 flex flex-wrap gap-2">
         <Button size="sm" disabled={request.busy} onClick={request.accept}>{t.acceptRequest}</Button>
         <Button size="sm" variant="outline" disabled={request.busy} onClick={request.remove}>{t.deleteRequest}</Button>
-        <Button size="sm" variant="destructive" disabled={request.busy} onClick={request.block}>{t.blockRequest}</Button>
+        <Button size="sm" variant="destructive" disabled={request.busy || !peer?.id} onClick={() => setReporting(true)}>{t.reportAndBlockRequest}</Button>
       </div>
+      {reporting && peer?.id && <ReportUserDialog userId={peer.id} name={displayName} onClose={() => setReporting(false)} onReported={reported} />}
     </div>
   );
 };

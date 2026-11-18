@@ -18,7 +18,7 @@ export const chatOrganizer = {
     requestBannerText: "Ihr habt noch keinen gemeinsamen Chat. Die Person sieht erst, dass du ihre Nachrichten gelesen hast, wenn du annimmst oder antwortest.",
     acceptRequest: "Annehmen",
     deleteRequest: "Löschen",
-    blockRequest: "Blockieren",
+    reportAndBlockRequest: "Melden und blockieren",
     requestAccepted: "Chat zu deinen Chats verschoben",
   },
 };

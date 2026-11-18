@@ -1,3 +1,4 @@
+import { isAccountRestricted } from '@/shared/api/accountRestriction';
 import { getApiBaseUrl } from '@/shared/api/config';
 import { useEffect, useRef, useState } from 'react';
 import { useDeleteAccountMutation, useUpdateUserMutation } from '@/features/profile';
@@ -96,7 +97,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
       setAvatarCropUrl(null);
       setAvatarFile(null);
     } catch (error) {
-      setModal({ type: 'error', message: errorMessage(error, 'Failed to update avatar') });
+      if (!isAccountRestricted(error)) setModal({ type: 'error', message: errorMessage(error, 'Failed to update avatar') });
     } finally {
       setIsUploading(false);
     }
@@ -131,7 +132,7 @@ export const useProfileAccountActions = ({ userData, refetchCurrentUser, onClose
       setNewBio(draft => draft === newBio ? savedBio : draft);
       return true;
     } catch (error) {
-      setModal({ type: 'error', message: errorMessage(error, translations.profileSaveFailed) });
+      if (!isAccountRestricted(error)) setModal({ type: 'error', message: errorMessage(error, translations.profileSaveFailed) });
       return false;
     }
   };

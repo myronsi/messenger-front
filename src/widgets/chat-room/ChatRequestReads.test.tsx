@@ -18,7 +18,9 @@ vi.mock('@/features/profile', () => ({ useGetCurrentUserQuery: () => ({ data: { 
 vi.mock('@/entities/user', () => ({
   useGetBlockedUsersQuery: () => ({ data: { users: [] } }),
   useBlockUserMutation: () => [ok],
+  useGetUserByUsernameQuery: () => ({ data: { id: '2' } }),
 }));
+vi.mock('@/features/moderation', () => ({ ReportUserDialog: () => null }));
 vi.mock('@/entities/chat', () => ({
   chatApi: { util: { invalidateTags: (tags: string[]) => ({ type: 'invalidate', tags }) } },
   useGetOneOnOneChatsQuery: (_: string, options: { selectFromResult: (result: { data: unknown }) => unknown }) =>

@@ -33,10 +33,12 @@ import { audioPlayer } from './audioPlayer';
 import { groupCreate } from './groupCreate';
 import { mainNav } from './mainNav';
 import { personalization } from './personalization';
+import { moderation } from './moderation';
 
 export const en = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
   ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
   ...chatOrganizer, ...chatCleanup, ...profileRework, ...profileExtras, ...customEmoji, ...audioPlayer, ...groupCreate, ...mainNav, ...personalization,
+  ...moderation,
 };
