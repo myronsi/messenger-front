@@ -4,7 +4,12 @@ import { closeAllWebSockets } from '@/shared/api/socketRegistry';
 import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { messengerApi } from '@/shared/api/baseApi';
+import { createQueryCache } from '@/shared/api/queryCache';
 import type { RootState as SharedRootState } from '@/shared/hooks/redux';
+import { cachedQueryEndpoints } from './cachedQueries';
+
+const queryCache = createQueryCache({ endpoints: cachedQueryEndpoints });
+subscribeToAccessToken(() => void queryCache.sync());
 
 export const store = configureStore({
   reducer: {
@@ -14,7 +19,7 @@ export const store = configureStore({
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(messengerApi.middleware),
+    getDefaultMiddleware().concat(queryCache.middleware, messengerApi.middleware),
 });
 
 // optional, but required for refetchOnFocus/refetchOnReconnect behaviors
