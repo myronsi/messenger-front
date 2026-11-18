@@ -45,11 +45,14 @@ export default function AlbumMessage({ messageId, items, viewerInfo }: AlbumMess
     return {
       index, ratio: ratioOf(item), isVideo, url, name: item.file_name, drawing: item.drawing, aspect: attachmentAspect(item),
       poster: item.thumbnail_url ? resolveMediaUrl(item.thumbnail_url) : undefined,
+      display: !isVideo && item.display_url ? resolveMediaUrl(item.display_url) : undefined,
+      placeholder: item.placeholder,
       onDraw: draw && (() => draw(() => setOpenIndex(null))),
     };
   }), [drawing, items, messageId]);
   const viewerItems = useMemo<ViewerImage[]>(() => media.map((item) => ({
-    url: item.url, name: item.name, previewUrl: item.poster, isVideo: item.isVideo, info: viewerInfo,
+    url: item.display ?? item.url, fullUrl: item.display ? item.url : undefined, name: item.name, downloadName: item.name,
+    previewUrl: item.poster, isVideo: item.isVideo, info: viewerInfo,
     drawing: item.drawing, aspect: item.aspect, onDraw: item.onDraw,
   })), [media, viewerInfo]);
 
@@ -58,7 +61,7 @@ export default function AlbumMessage({ messageId, items, viewerInfo }: AlbumMess
       {albumRows(media).map((row) => (
         <div key={row[0].index} className="flex gap-0.5" style={{ aspectRatio: rowAspect(row.map((item) => item.ratio)) }}>
           {row.map((item) => (
-            <MediaTile key={`${item.url}-${item.index}`} url={item.url} poster={item.poster} name={item.name} isVideo={item.isVideo}
+            <MediaTile key={`${item.url}-${item.index}`} url={item.url} poster={item.poster} name={item.name} isVideo={item.isVideo} placeholder={item.placeholder}
               badge={row.length > 2 ? 'sm' : 'md'} className="h-full" style={{ flex: `${item.ratio} 1 0%` }} drawing={item.drawing} aspect={item.aspect}
               onOpen={() => setOpenIndex(item.index)} />
           ))}

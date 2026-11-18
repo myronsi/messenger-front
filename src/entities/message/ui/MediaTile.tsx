@@ -4,6 +4,7 @@ import { useMediaPreload } from '@/shared/api/useMediaPreload';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
 import { MediaVisual } from './MediaVisual';
+import { placeholderDataURL } from '@/shared/lib/thumbhash';
 
 interface MediaTileProps {
   url: string;
@@ -15,10 +16,11 @@ interface MediaTileProps {
   style?: CSSProperties;
   drawing?: Drawing | null;
   aspect?: number;
+  placeholder?: string;
   onOpen: () => void;
 }
 
-export default function MediaTile({ url, poster, name, isVideo, badge = 'md', className = '', style, drawing, aspect, onOpen }: MediaTileProps) {
+export default function MediaTile({ url, poster, name, isVideo, badge = 'md', className = '', style, drawing, aspect, placeholder, onOpen }: MediaTileProps) {
   const { translations: t } = useLanguage();
   const [ready, setReady] = useState(false);
   const markReady = useCallback(() => setReady(true), []);
@@ -31,7 +33,7 @@ export default function MediaTile({ url, poster, name, isVideo, badge = 'md', cl
       aria-label={isVideo ? `${t.playVideo} ${name}` : name}
       {...preloadHandlers}
       onClick={(event) => { event.stopPropagation(); onOpen(); }}
-      style={style}
+      style={!ready && placeholderDataURL(placeholder) ? { ...style, backgroundImage: `url(${placeholderDataURL(placeholder)})`, backgroundSize: 'cover' } : style}
       className={`group relative block min-h-0 min-w-0 overflow-hidden bg-muted focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${ready ? '' : 'animate-pulse'} ${className}`}
     >
       <MediaVisual url={url} poster={poster} isVideo={isVideo} onReady={markReady}

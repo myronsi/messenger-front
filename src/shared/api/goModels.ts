@@ -13,7 +13,7 @@ export const userModel = (user: Schema['User']) => ({
   can_message: !user.is_deleted,
 });
 
-const attachmentModel = (attachment: Schema['Attachment']) => ({
+export const attachmentModel = (attachment: Schema['Attachment']) => ({
   attachment_id: attachment.id,
   kind: attachment.kind,
   drawing: attachment.drawing,
@@ -24,6 +24,14 @@ const attachmentModel = (attachment: Schema['Attachment']) => ({
   image_width: attachment.width || undefined,
   image_height: attachment.height || undefined,
   thumbnail_url: attachment.thumbnail_url || undefined,
+  display_url: attachment.display_url || undefined,
+  placeholder: attachment.placeholder || undefined,
+  processing: attachment.processing || undefined,
+  source_url: attachment.source_url || undefined,
+  animation_url: attachment.animation_url || undefined,
+  audio_title: attachment.tags?.title || undefined,
+  audio_artist: attachment.tags?.artist || undefined,
+  audio_album: attachment.tags?.album || undefined,
   audio_metadata: {
     duration: (attachment.duration_ms || 0) / 1000,
     waveform: attachment.waveform || undefined,
@@ -42,6 +50,8 @@ const stickerModel = (sticker: Schema['Sticker']) => ({
   pack_slug: sticker.pack_slug,
   emoji: sticker.emoji,
   image_url: sticker.image.url,
+  panel_url: sticker.image.panel_url || undefined,
+  message_url: sticker.image.message_url || undefined,
   is_animated: sticker.is_animated,
 });
 

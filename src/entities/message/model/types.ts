@@ -20,7 +20,17 @@ export interface MessageAttachment {
   image_width?: number;
   image_height?: number;
   thumbnail_url?: string;
+  display_url?: string;
+  placeholder?: string;
+  processing?: MediaProcessing;
+  source_url?: string;
+  animation_url?: string;
+  audio_title?: string;
+  audio_artist?: string;
+  audio_album?: string;
 }
+
+export type MediaProcessing = 'queued' | 'running' | 'done' | 'failed';
 
 export interface FileMessageContent extends MessageAttachment {
   caption?: string;
@@ -33,6 +43,8 @@ export interface MessageSticker {
   pack_slug?: string;
   emoji: string;
   image_url?: string;
+  panel_url?: string;
+  message_url?: string;
   is_animated?: boolean;
 }
 

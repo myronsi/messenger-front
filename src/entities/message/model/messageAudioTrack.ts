@@ -13,7 +13,8 @@ export const messageAudioTrack = (message: Message, voiceTitle: string): AudioTr
   return {
     id: message.id,
     src: resolveMediaUrl(content.file_url),
-    title: voice ? [message.sender, voiceTitle].filter(Boolean).join(' · ') : withoutExtension(content.file_name) || content.file_name,
+    title: voice ? [message.sender, voiceTitle].filter(Boolean).join(' · ') : content.audio_title || withoutExtension(content.file_name) || content.file_name,
+    artist: voice ? undefined : content.audio_artist || undefined,
     kind: voice ? 'voice' : 'music',
     duration: content.audio_metadata?.duration,
     cover: content.thumbnail_url || undefined,

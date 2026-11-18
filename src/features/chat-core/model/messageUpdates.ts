@@ -1,6 +1,6 @@
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
-import { sortMessages, type FileMessageContent, type Message, type ReactionInfo } from '@/entities/message';
+import { sortMessages, type FileMessageContent, type Message, type MessageAttachment, type ReactionInfo } from '@/entities/message';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import type { NewMessageEvent } from './socketEvents';
 
@@ -137,4 +137,25 @@ export const addReadReceipts = (
       }],
     };
   });
+};
+
+const withAttachment = (item: MessageAttachment, update: MessageAttachment): MessageAttachment => (
+  item.attachment_id === update.attachment_id ? { ...item, ...update, drawing: item.drawing, file_name: item.file_name } : item
+);
+
+export const applyAttachmentUpdate = (previous: Message[], update: MessageAttachment): Message[] => {
+  if (!update.attachment_id) return previous;
+  let changed = false;
+  const next = previous.map((message) => {
+    const content = message.content;
+    if (!content || typeof content === 'string') return message;
+    const hit = content.attachment_id === update.attachment_id || content.album?.some((item) => item.attachment_id === update.attachment_id);
+    if (!hit) return message;
+    changed = true;
+    return {
+      ...message,
+      content: { ...withAttachment(content, update), caption: content.caption, album: content.album?.map((item) => withAttachment(item, update)) },
+    };
+  });
+  return changed ? next : previous;
 };
