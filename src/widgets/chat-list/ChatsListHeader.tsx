@@ -7,6 +7,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui/drawer';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useCanScanQr } from '@/shared/hooks/useCanScanQr';
 import { SheetGrip } from '@/shared/ui/SheetGrip';
+import { BackToClose } from '@/shared/ui/BackToClose';
 
 interface ChatsListHeaderProps {
   translations: Translations;
@@ -45,6 +46,7 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
       </button>
       {isMobile ? (
         <>
+          {sheetOpen && <BackToClose flag="newActions" onClose={() => setSheetOpen(false)} />}
           <button ref={newButton} type="button" onClick={() => setSheetOpen(true)} aria-label={newMenuLabel}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
             <PenSquare className="h-5 w-5" />

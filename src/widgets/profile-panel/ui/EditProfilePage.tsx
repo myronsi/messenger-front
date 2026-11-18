@@ -11,6 +11,7 @@ import type { ProfileExtrasDraft } from '../model/useProfileExtrasDraft';
 import { useEditableAvatar } from './EditableAvatar';
 import { ProfileExtrasFields } from './ProfileExtrasFields';
 import { LeaveUnsavedDialog } from './UnsavedChanges';
+import { BackToClose } from '@/shared/ui/BackToClose';
 
 const BIO_MAX = 500;
 const NAME_MAX = 50;
@@ -80,6 +81,8 @@ export const EditProfilePage = (props: EditProfilePageProps) => {
   const t = translations.profileExtras;
   const [open, setOpen] = useState<OpenRow>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [backRound, setBackRound] = useState(0);
+  const [leftByBack, setLeftByBack] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const bioRef = useRef<HTMLTextAreaElement>(null);
   const backgroundRow = useRef<HTMLDivElement>(null);
@@ -93,6 +96,17 @@ export const EditProfilePage = (props: EditProfilePageProps) => {
     requestAnimationFrame(() => backgroundRow.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   };
   const cancel = () => (props.hasChanges ? setConfirmLeave(true) : props.onBack());
+  const backPressed = () => {
+    if (!props.hasChanges) return props.onBack();
+    setLeftByBack(true);
+    setConfirmLeave(true);
+  };
+  const stay = () => {
+    setConfirmLeave(false);
+    if (!leftByBack) return;
+    setLeftByBack(false);
+    setBackRound((round) => round + 1);
+  };
   const save = async () => {
     const saved = await props.onSave();
     if (saved) setConfirmLeave(false);
@@ -158,9 +172,10 @@ export const EditProfilePage = (props: EditProfilePageProps) => {
           </div>
         </Group>
       </div>
+      <BackToClose key={backRound} flag="editProfile" onClose={backPressed} />
       <LeaveUnsavedDialog
         open={confirmLeave} text={translations.leaveUnsavedText} isSaving={props.isSaving} canSave={props.canSave} onSave={() => void save()}
-        onDiscard={() => { setConfirmLeave(false); props.onDiscard(); props.onBack(); }} onStay={() => setConfirmLeave(false)}
+        onDiscard={() => { setConfirmLeave(false); props.onDiscard(); props.onBack(); }} onStay={stay}
       />
     </div>
   );

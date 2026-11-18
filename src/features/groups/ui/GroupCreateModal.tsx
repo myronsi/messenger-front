@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Loader2, Plus, X } from 'lucide-react';
+import { BackToClose } from '@/shared/ui/BackToClose';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
+import { cn } from '@/shared/lib/utils';
 import { useGroupCreateForm, type GroupCreatePayload } from '../model/useGroupCreateForm';
 import GroupAvatarPicker from './GroupAvatarPicker';
 import GroupPeoplePicker from './GroupPeoplePicker';
@@ -9,18 +11,22 @@ interface GroupCreateModalProps {
   currentUsername: string;
   onClose: () => void;
   onCreate: (payload: GroupCreatePayload) => Promise<void> | void;
+  closing?: boolean;
 }
 
-const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, onClose, onCreate }) => {
+const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, onClose, onCreate, closing = false }) => {
   const form = useGroupCreateForm({ currentUsername, onCreate });
   const text = form.translations.groupCreate;
   const [showDescription, setShowDescription] = useState(false);
   const canCreate = !!form.groupName.trim() && form.selectedUsers.length > 0 && !form.isCreating;
 
   return (
-    <ModalSurface label={text.title} className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in sm:p-4">
+    <ModalSurface label={text.title} data-testid="group-create" data-closing={closing || undefined}
+      className={cn('motion-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm sm:p-4', closing && 'is-closing pointer-events-none')}>
+      {!closing && <BackToClose flag="groupCreate" onClose={onClose} />}
       <div
-        className="relative flex h-dvh w-full flex-col overflow-hidden bg-card sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:border-border sm:shadow-lg">
+        className={cn('motion-modal-panel relative flex h-dvh w-full flex-col overflow-hidden bg-card sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:border-border sm:shadow-lg',
+          closing && 'is-closing')}>
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-6 sm:py-4">
           <h2 className="text-xl font-bold">{text.title}</h2>
           <button type="button" onClick={onClose} className="motion-press rounded-full p-2 hover:bg-accent" aria-label={text.close}>

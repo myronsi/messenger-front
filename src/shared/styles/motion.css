@@ -165,6 +165,16 @@
     mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
   }
 
+  .motion-modal-backdrop { animation: backdropIn 260ms ease-out backwards; }
+  .motion-modal-backdrop.is-closing { animation: backdropOut 240ms ease-in forwards; }
+  .motion-modal-panel { animation: nowPlayingUp 380ms cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+  .motion-modal-panel.is-closing { animation: nowPlayingDown 240ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+
+  @media (min-width: 640px) {
+    .motion-modal-panel { animation-name: nowPlayingPop; animation-duration: 300ms; }
+    .motion-modal-panel.is-closing { animation-name: nowPlayingSink; animation-duration: 200ms; }
+  }
+
   @keyframes listItemIn {
     from { transform: translateY(6px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }

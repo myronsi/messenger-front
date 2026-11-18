@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
 import GroupCreateModal from './GroupCreateModal';
 
@@ -17,7 +18,28 @@ vi.mock('@/entities/chat', () => ({
   ] } }),
 }));
 
+const SystemBack = () => {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate(-1)}>system back</button>;
+};
+
 describe('GroupCreateModal', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('closes with the back button on a phone and plays its exit animation', () => {
+    vi.stubGlobal('innerWidth', 390);
+    const onClose = vi.fn();
+    const tree = (closing: boolean) => (
+      <MemoryRouter><GroupCreateModal currentUsername="me" onClose={onClose} onCreate={vi.fn()} closing={closing} /><SystemBack /></MemoryRouter>
+    );
+    const view = render(tree(false));
+    expect(screen.getByTestId('group-create')).not.toHaveClass('is-closing');
+    act(() => screen.getByText('system back').click());
+    expect(onClose).toHaveBeenCalledOnce();
+    view.rerender(tree(true));
+    expect(screen.getByTestId('group-create')).toHaveClass('is-closing');
+  });
+
   it('creates a group from one screen with chips and a selected count', async () => {
     const onCreate = vi.fn();
     render(<GroupCreateModal currentUsername="me" onClose={vi.fn()} onCreate={onCreate} />);

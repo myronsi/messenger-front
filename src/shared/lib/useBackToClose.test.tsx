@@ -131,3 +131,20 @@ it('leaves history alone when the browser already moved to another entry before 
 it('does nothing outside a router', () => {
   expect(() => render(<BackToClose onClose={vi.fn()} flag="imageViewer" />)).not.toThrow();
 });
+
+it('keeps a panel that opens right after another one closed itself', () => {
+  const closeMenu = vi.fn();
+  const closeGroup = vi.fn();
+  const view = renderHook(({ menu, group }) => {
+    useBackToClose(menu, closeMenu, 'newActions');
+    useBackToClose(group, closeGroup, 'groupCreate');
+    return { location: useLocation(), navigate: useNavigate() };
+  }, { wrapper, initialProps: { menu: true, group: false } });
+  expect(view.result.current.location.state).toEqual({ chatName: 'alice', newActions: expect.any(String) });
+  view.rerender({ menu: false, group: true });
+  expect(closeGroup).not.toHaveBeenCalled();
+  expect(view.result.current.location.state).toEqual({ chatName: 'alice', groupCreate: expect.any(String) });
+  act(() => view.result.current.navigate(-1));
+  expect(closeGroup).toHaveBeenCalledOnce();
+  expect(view.result.current.location.state).toEqual({ chatName: 'alice' });
+});
