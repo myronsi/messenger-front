@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
-  approvePendingRequestIfPresent, createSmokeUser, openChatFromList, openPreviewChat, registerUser, reloadMessenger, sendMessage,
+  acceptChatRequestIfPresent, approvePendingRequestIfPresent, createSmokeUser, openChatFromList, openPreviewChat, registerUser, reloadMessenger, sendMessage,
   waitForChatListItem, type SmokeUser,
 } from './helpers';
 import {
@@ -21,6 +21,7 @@ const setUpDirectChat = async (a: Page, b: Page, caller: SmokeUser, callee: Smok
   await openPreviewChat(a, callee.username);
   await sendMessage(a, 'Ready for a call?');
   await approvePendingRequestIfPresent(b, caller.username);
+  await acceptChatRequestIfPresent(b, caller.username);
   await reloadMessenger(a);
   await reloadMessenger(b);
   await waitForChatListItem(b, caller.username);
