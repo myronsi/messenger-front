@@ -9,6 +9,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { BackToClose } from '@/shared/ui/BackToClose';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { findMiniCover, flyCover, prefersReducedMotion } from '../model/coverFlight';
 import { closeNowPlaying, useNowPlayingOpen } from '../model/nowPlaying';
@@ -61,14 +62,16 @@ const NowPlayingSheet = ({ closing }: { closing: boolean }) => {
   const hasNext = useAudioPlayer((player) => player.index + 1 < player.list.length || (player.repeat === 'all' && player.list.length > 1));
   const upcoming = useAudioPlayer((player) => Math.max(0, player.list.length - player.index - 1));
   const speed = usePlaybackSpeed();
-  const current = useAudioTime();
+  const playerTime = useAudioTime();
+  const [scrub, setScrub] = useState<number | null>(null);
+  const current = scrub ?? playerTime;
   const [tab, setTab] = useState<Tab>('queue');
   const [fromCover] = useState(() => !prefersReducedMotion() && !!findMiniCover());
   const [firstTrack] = useState(() => (track ? String(track.id) : ''));
   const cover = useRef<HTMLSpanElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const scroll = useScrollProgress(COLLAPSE_DISTANCE);
-  const drag = useDragToDismiss({ onDismiss: () => closeNowPlaying(), canStart: () => (scroller.current?.scrollTop ?? 0) <= 0 });
+  const drag = useDragToDismiss({ onDismiss: () => closeNowPlaying(), canStart: () => (scroller.current?.scrollTop ?? 0) <= 0, area: scroller });
 
   useLayoutEffect(() => {
     const mini = findMiniCover();
@@ -159,7 +162,7 @@ const NowPlayingSheet = ({ closing }: { closing: boolean }) => {
               <MarqueeText key={trackId} text={track.title} className="text-xl font-semibold" />
               {subtitle && <p className="truncate text-sm text-muted-foreground"><EmojiText text={subtitle} /></p>}
             </div>
-            <SeekBar time={current} duration={duration} label={t.seek} onSeek={seekAudio} className="mt-4" />
+            <SeekBar time={playerTime} duration={duration} label={t.seek} onSeek={seekAudio} onScrub={setScrub} className="mt-4" />
             <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
               <span>{formatAudioTime(current)}</span>
               <span>{duration > 0 ? formatAudioTime(duration) : '--:--'}</span>
@@ -211,5 +214,10 @@ export const NowPlayingHost = () => {
   const hasTrack = useAudioPlayer((player) => !!player.track);
   const { mounted, closing } = useDelayedUnmount(open && hasTrack, EXIT_MS);
   useEffect(() => { if (!hasTrack) closeNowPlaying(); }, [hasTrack]);
-  return mounted && hasTrack ? <NowPlayingSheet closing={closing} /> : null;
+  return (
+    <>
+      {open && hasTrack && <BackToClose flag="nowPlaying" onClose={closeNowPlaying} />}
+      {mounted && hasTrack && <NowPlayingSheet closing={closing} />}
+    </>
+  );
 };

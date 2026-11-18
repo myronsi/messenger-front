@@ -101,7 +101,11 @@
   }
 
   .motion-ambient {
-    animation: backdropIn 700ms ease-out backwards;
+    animation: ambientIn 700ms ease-out backwards;
+  }
+
+  @keyframes ambientIn {
+    from { opacity: 0; }
   }
 
   .mini-player {

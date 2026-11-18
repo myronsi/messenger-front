@@ -37,7 +37,9 @@ export const AudioPlayerBar = ({ className = '' }: { className?: string }) => {
   const duration = useAudioPlayer((player) => player.duration);
   const hasNext = useAudioPlayer((player) => player.index + 1 < player.list.length || (player.repeat === 'all' && player.list.length > 1));
   const speed = usePlaybackSpeed();
-  const current = useAudioTime();
+  const playerTime = useAudioTime();
+  const [scrub, setScrub] = useState<number | null>(null);
+  const current = scrub ?? playerTime;
   const canPrevious = useAudioPlayer((player) => player.index > 0);
   const swipe = useTrackSwipe({ canNext: hasNext, canPrevious, onNext: playNextAudio, onPrevious: playPreviousAudio });
 
@@ -83,7 +85,7 @@ export const AudioPlayerBar = ({ className = '' }: { className?: string }) => {
           <button type="button" onClick={stopAudio} aria-label={t.close} className={`${iconButton} text-muted-foreground`}>
             <X className="h-4 w-4" />
           </button>
-          <SeekBar variant="thin" time={current} duration={duration} label={t.seek} onSeek={seekAudio} className="absolute inset-x-0 -bottom-1.5" />
+          <SeekBar variant="thin" time={playerTime} duration={duration} label={t.seek} onSeek={seekAudio} onScrub={setScrub} className="absolute inset-x-0 -bottom-1.5" />
         </div>
       </div>
     </div>
