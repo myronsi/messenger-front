@@ -54,6 +54,7 @@ export interface OneOnOneChatResponse {
     is_pinned?: boolean;
     pin_position?: number | null;
     is_archived?: boolean;
+    is_request?: boolean;
     pending_approval_request?: boolean;
     pending_request_id?: EntityId;
   }>;

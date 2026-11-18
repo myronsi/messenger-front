@@ -15,7 +15,7 @@ import type { PrivacyDetail } from '@/shared/lib/urlOverlay';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { Switch } from '@/shared/ui/switch';
 import { useCallsEnabledOnServer } from '@/features/calls';
-import { choiceOf, exceptionEffectsOf, modeFor, type PrivacyChoice } from '../model/privacyChoices';
+import { choiceOf, exceptionEffectsOf, type PrivacyChoice } from '../model/privacyChoices';
 import { useChatPartners } from '../model/useChatPartners';
 import PrivacySettingPage from './PrivacySettingPage';
 import PrivacyExceptionsPage from './PrivacyExceptionsPage';
@@ -26,35 +26,37 @@ type Translations = ReturnType<typeof usePrivacySettings>['translations'];
 
 interface SettingDefinition {
   key: PrivacyDetail;
-  group: 'see' | 'contact' | 'discovery';
+  group: 'see' | 'contact' | 'discovery' | 'calls';
   modes: readonly string[];
   label: (t: Translations) => string;
 }
 
-const visibilityModes = ['everyone', 'shared_chats', 'everyone_except', 'nobody_except'] as const;
+const visibilityModes = ['everyone', 'shared_chats', 'nobody'] as const;
 const SETTINGS: SettingDefinition[] = [
   { key: 'avatar_visibility', group: 'see', modes: visibilityModes,
     label: (t) => t.avatarVisibility || 'Avatar visibility' },
   { key: 'profile_visibility', group: 'see', modes: visibilityModes,
     label: (t) => t.profileVisibility || 'Profile visibility' },
-  { key: 'presence_visibility', group: 'see', modes: ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except'],
+  { key: 'presence_visibility', group: 'see', modes: visibilityModes,
     label: (t) => t.presenceVisibility || 'Online status' },
-  { key: 'last_seen_visibility', group: 'see', modes: ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except'],
+  { key: 'last_seen_visibility', group: 'see', modes: visibilityModes,
     label: (t) => t.lastSeenVisibility || 'Last seen' },
-  { key: 'birthday_visibility', group: 'see', modes: ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except'],
+  { key: 'birthday_visibility', group: 'see', modes: visibilityModes,
     label: (t) => t.profileExtras.privacyBirthday },
   { key: 'forward_link', group: 'see', modes: ['everyone', 'shared_chats', 'nobody'], label: (t) => t.forwardLink },
-  { key: 'direct_messages', group: 'contact', modes: ['everyone', 'shared_chats', 'wait_approval'],
+  { key: 'direct_messages', group: 'contact', modes: ['everyone', 'shared_chats', 'nobody', 'wait_approval'],
     label: (t) => t.directMessages || 'Direct messages' },
-  { key: 'group_invites', group: 'contact', modes: ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except', 'wait_approval'],
+  { key: 'group_invites', group: 'contact', modes: ['everyone', 'shared_chats', 'nobody', 'wait_approval'],
     label: (t) => t.groupInvites || 'Group invites' },
   { key: 'voice_video_messages', group: 'contact', modes: ['everyone', 'shared_chats'], label: (t) => t.voiceVideoMessages },
   { key: 'search_visibility', group: 'discovery', modes: ['everyone', 'nobody'],
     label: (t) => t.searchVisibility || 'Search visibility' },
+  { key: 'calls_from', group: 'calls', modes: visibilityModes,
+    label: (t) => t.callsFrom },
 ];
 const EXCEPTION_KEYS = new Set<string>([
   'avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'birthday_visibility', 'group_invites', 'direct_messages',
-  'search_visibility', 'voice_video_messages', 'forward_link',
+  'search_visibility', 'calls_from', 'voice_video_messages', 'forward_link',
 ]);
 
 interface PrivacySettingsPanelProps {
@@ -104,9 +106,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
   };
   const choose = (setting: SettingDefinition, choice: PrivacyChoice) => {
     const key = setting.key as PrivacyExceptionKey;
-    const count = EXCEPTION_KEYS.has(setting.key) && choice !== 'shared_chats' && choice !== 'wait_approval'
-      ? exceptionsOf(key, choice === 'everyone' ? 'deny' : 'allow').length : 0;
-    handlePrivacyChange(setting.key, modeFor(choice, setting.modes, count));
+    handlePrivacyChange(setting.key, choice);
     if (choice === 'shared_chats' && EXCEPTION_KEYS.has(setting.key) && exceptionsOf(key, 'allow').length) {
       handleExceptionListChange(key, 'allow', []);
     }
@@ -127,8 +127,6 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
 
   const addException = async (username: string) => {
     if (!definition || !exceptionKey || !effect) return;
-    if (mode === 'everyone' && effect === 'deny' && definition.modes.includes('everyone_except')) handlePrivacyChange(definition.key, 'everyone_except');
-    if (mode === 'nobody' && effect === 'allow' && definition.modes.includes('nobody_except')) handlePrivacyChange(definition.key, 'nobody_except');
     await handleAddException(exceptionKey, effect, username);
   };
 
@@ -212,16 +210,7 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
                       onCheckedChange={(checked) => handlePrivacyChange('typing_indicators_enabled', checked)} />
                   </label>
                 </>))}
-                {callsOnServer && group(translations.privacyCalls, (
-                  <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-foreground">{translations.callsEnabledSetting}</span>
-                      <span className="block text-xs text-muted-foreground">{translations.callsEnabledDescription}</span>
-                    </span>
-                    <Switch checked={!!privacySettings?.calls_enabled} disabled={!privacySettings || isSaving}
-                      onCheckedChange={(checked) => handlePrivacyChange('calls_enabled', checked)} />
-                  </label>
-                ))}
+                {callsOnServer && group(translations.privacyCalls, rowsOf('calls'))}
               </>
             )}
             {children}

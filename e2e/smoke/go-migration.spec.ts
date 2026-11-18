@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { createEnglishContext, createSmokeUser, loginUser, openOwnProfile, registerUser } from './helpers';
+import { allowGroupInvites, createEnglishContext, createSmokeUser, loginUser, openOwnProfile, registerUser } from './helpers';
 
 test('Go profile, avatar, privacy, sessions, groups and blocking remain usable', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the isolated Go staging backend');
@@ -21,6 +21,7 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
   try {
     await (reuse ? loginUser : registerUser)(page, user);
     await (reuse ? loginUser : registerUser)(other, peer);
+    await allowGroupInvites(other);
     const result = await page.evaluate(async ({ peer, image, api }) => {
       const base = api || `${location.origin}/api/v2`;
       const headers = { Authorization: `Bearer ${localStorage.getItem('access_token')}` };

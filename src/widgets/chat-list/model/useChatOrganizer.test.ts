@@ -19,6 +19,7 @@ type ToastOptions = { action: { label: string; onClick: () => void } };
 const chats = {
   a: { id: 'a', name: 'Ana', is_pinned: true, pin_position: 0 },
   b: { id: 'b', name: 'Ben', is_pinned: true, pin_position: 1 },
+  r: { id: 'r', name: 'Stranger', is_request: true },
 } as unknown as Record<string, Chat>;
 
 const setup = () => {
@@ -47,5 +48,14 @@ describe('useChatOrganizer archive undo', () => {
     expect(api.archive).toHaveBeenLastCalledWith({ chatId: 'b', archived: false });
     expect(api.pin).toHaveBeenCalledWith({ chatId: 'b', pinned: true });
     expect(api.reorder).toHaveBeenCalledWith(['a', 'b']);
+  });
+
+  it('offers no Undo when archiving a request, because archiving accepts it', async () => {
+    const { result } = setup();
+    await act(() => result.current.handleToggleArchived('r'));
+    expect(api.archive).toHaveBeenCalledWith({ chatId: 'r', archived: true });
+    const [message, options] = toastMock.mock.lastCall as [string, Partial<ToastOptions>];
+    expect(message).toBe(en.chatOrganizer.archived);
+    expect(options.action).toBeUndefined();
   });
 });

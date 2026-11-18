@@ -8,14 +8,9 @@ export const choiceOf = (mode: string): PrivacyChoice => {
   return mode as PrivacyChoice;
 };
 
-export const choicesFor = (modes: readonly string[]): PrivacyChoice[] => {
-  const choices: PrivacyChoice[] = [];
-  if (modes.includes('everyone')) choices.push('everyone');
-  if (modes.includes('shared_chats')) choices.push('shared_chats');
-  if (modes.includes('nobody') || modes.includes('nobody_except')) choices.push('nobody');
-  if (modes.includes('wait_approval')) choices.push('wait_approval');
-  return choices;
-};
+const ORDER: PrivacyChoice[] = ['everyone', 'shared_chats', 'nobody', 'wait_approval'];
+
+export const choicesFor = (modes: readonly string[]): PrivacyChoice[] => ORDER.filter((choice) => modes.includes(choice));
 
 export const exceptionEffectsOf = (choice: PrivacyChoice): PrivacyExceptionEffect[] => {
   if (choice === 'everyone') return ['deny'];
@@ -24,10 +19,3 @@ export const exceptionEffectsOf = (choice: PrivacyChoice): PrivacyExceptionEffec
   return ['allow', 'deny'];
 };
 
-export const modeFor = (choice: PrivacyChoice, modes: readonly string[], exceptionCount: number): string => {
-  if (choice === 'everyone') return exceptionCount > 0 && modes.includes('everyone_except') ? 'everyone_except' : 'everyone';
-  if (choice === 'nobody') {
-    return (exceptionCount > 0 || !modes.includes('nobody')) && modes.includes('nobody_except') ? 'nobody_except' : 'nobody';
-  }
-  return choice;
-};

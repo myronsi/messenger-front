@@ -567,7 +567,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "voice_video_messages" | "forward_link";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from" | "voice_video_messages" | "forward_link";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -1253,6 +1253,10 @@ export interface paths {
          *     message (newest first). `last_message` is the newest message the caller can see; in
          *     direct chats its `read_by` holds the other user once they read it (with read receipts
          *     on), in groups it is empty. `unread_count` stops at 999.
+         *
+         *     Direct chats that a stranger opened with the caller are in the caller's Requests folder
+         *     (`is_request`). Without `folder` the answer holds only the main list, so the Requests
+         *     folder needs `folder=requests` (or `folder=all` for both in one list).
          */
         get: operations["listChats"];
         put?: never;
@@ -1263,6 +1267,10 @@ export interface paths {
          *     chat (`200`) if there already is one. `user_id` may be the caller's own id: that opens
          *     their "Saved Messages" chat, a direct chat with the caller as its only member and as
          *     its `peer`.
+         *
+         *     When the other user does not count the caller as a contact (no shared chat they took
+         *     part in, no allow exception), the new chat lands in their Requests folder
+         *     (`is_request: true` for them only) and its messages send them no push notification.
          */
         post: operations["createChat"];
         delete?: never;
@@ -1389,6 +1397,60 @@ export interface paths {
         post?: never;
         /** Move a chat out of the archive */
         delete: operations["unarchiveChat"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/requests/count": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Number of chats in my Requests folder
+         * @description Chats deleted for the caller only count again once a newer message arrives.
+         */
+        get: operations["countChatRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a chat out of the Requests folder
+         * @description The chat moves to the caller's main list (`is_request: false`) and the caller's devices get
+         *     `chat_list_update`. Sending a message in the chat, pinning it or archiving it does the same.
+         *     Reading it does not. Accepting a chat that is not a request changes nothing.
+         */
+        post: operations["acceptChatRequest"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4008,15 +4070,34 @@ export interface components {
             code?: string;
         };
         /**
-         * @description Who may see the item. The exception lists apply to every value; `*_except` behave like `everyone` and `nobody`.
-         *     `contacts` are the users you share a group with, or a direct chat that you opened or read in.
+         * @description Who may see the item. The exception lists apply to every value.
+         *     `contacts` are the users you share a direct chat with that you opened or read in, or a group you created,
+         *     joined by accepting an invitation, or read or wrote in. Being added to a group alone does not make its
+         *     members your contacts.
+         *     Deprecated: `everyone_except` and `nobody_except` are still accepted and stored as `everyone` and `nobody`;
+         *     they are never returned.
          * @enum {string}
          */
         Visibility: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody";
-        /** @enum {string} */
-        DirectMessagePolicy: "everyone" | "shared_chats" | "wait_approval";
-        /** @enum {string} */
+        /**
+         * @description Who may open a direct chat with the user. `everyone`; `contacts` (see `Visibility`); `wait_approval`: others
+         *     send a request the user approves; `nobody`: no new direct chats and no requests (existing chats stay).
+         *     Allow exceptions still let the listed users in.
+         *     Deprecated: `shared_chats` is the old name of `contacts`; it is still accepted and never returned.
+         * @enum {string}
+         */
+        DirectMessagePolicy: "everyone" | "shared_chats" | "wait_approval" | "contacts" | "nobody";
+        /**
+         * @description Who may add the user to a group. Defaults to `contacts`. Deprecated: `everyone_except` and `nobody_except`
+         *     are still accepted and stored as `everyone` and `nobody`; they are never returned.
+         * @enum {string}
+         */
         GroupInvitePolicy: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody" | "wait_approval";
+        /**
+         * @description Who may ring the user (`contacts` as in `Visibility`).
+         * @enum {string}
+         */
+        CallPolicy: "everyone" | "contacts" | "nobody";
         /** @enum {string} */
         SearchVisibility: "everyone" | "nobody";
         /**
@@ -4049,8 +4130,17 @@ export interface components {
             direct_messages: components["schemas"]["DirectMessagePolicy"];
             group_invites: components["schemas"]["GroupInvitePolicy"];
             search_visibility: components["schemas"]["SearchVisibility"];
-            /** @description Whether others may ring this user. Calls are only possible from an existing direct chat or a shared group. */
+            /**
+             * @deprecated
+             * @description `false` exactly when `calls_from` is `nobody`. Use `calls_from`.
+             */
             calls_enabled: boolean;
+            /**
+             * @description Who may ring this user, with the `calls_from` exceptions. Calls are only possible from an existing direct
+             *     chat or a shared group. A direct call to a user who does not allow the caller is refused; in a group call
+             *     only the members who allow the caller are rung, the others can still join.
+             */
+            calls_from: components["schemas"]["CallPolicy"];
             /** @description Whether other members see that this user is typing or recording a voice message. The user still sees theirs. */
             typing_indicators_enabled: boolean;
             /**
@@ -4075,7 +4165,12 @@ export interface components {
             direct_messages?: components["schemas"]["DirectMessagePolicy"];
             group_invites?: components["schemas"]["GroupInvitePolicy"];
             search_visibility?: components["schemas"]["SearchVisibility"];
+            /**
+             * @deprecated
+             * @description `false` sets `calls_from` to `nobody`; `true` sets it to `everyone` when it was `nobody`. Ignored when `calls_from` is sent.
+             */
             calls_enabled?: boolean;
+            calls_from?: components["schemas"]["CallPolicy"];
             typing_indicators_enabled?: boolean;
             voice_video_messages?: components["schemas"]["VoiceVideoPolicy"];
             forward_link?: components["schemas"]["ForwardLinkPolicy"];
@@ -4669,6 +4764,11 @@ export interface components {
             pin_position: number | null;
             /** @description Whether the caller archived the chat (only for the caller). */
             is_archived: boolean;
+            /**
+             * @description Whether the chat is in the caller's Requests folder: a stranger opened it, and the caller has not
+             *     replied, accepted, pinned or archived it yet (only for the caller).
+             */
+            is_request: boolean;
             unread_count: number;
             /**
              * @description The oldest message the caller has not read (the same messages `unread_count` counts: not their own,
@@ -4682,6 +4782,9 @@ export interface components {
             /** @description Only for groups. */
             my_role?: components["schemas"]["GroupRole"] | null;
             created_at: components["schemas"]["Timestamp"];
+        };
+        ChatRequestCount: {
+            requests_count: number;
         };
         ChatPage: {
             items: components["schemas"]["Chat"][];
@@ -6190,7 +6293,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "voice_video_messages" | "forward_link";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from" | "voice_video_messages" | "forward_link";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -7209,6 +7312,8 @@ export interface operations {
                 after?: components["parameters"]["After"];
                 /** @description `true`: only archived chats, `false`: only chats that are not archived. Without it, every chat. */
                 archived?: boolean;
+                /** @description `main`: chats that are not requests (the default). `requests`: the caller's Requests folder. `all`: both. */
+                folder?: "main" | "requests" | "all";
             };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
@@ -7492,6 +7597,62 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Not archived */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    countChatRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The number of request chats */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatRequestCount"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    acceptChatRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
             204: {
                 headers: {
                     [name: string]: unknown;

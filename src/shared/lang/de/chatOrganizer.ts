@@ -12,5 +12,13 @@ export const chatOrganizer = {
     selfName: "{name} (du)",
     pullForArchive: "Nach unten ziehen für archivierte Chats",
     dragToReorder: "Zum Sortieren ziehen",
+    requests: "Anfragen",
+    requestsHint: "Personen, die nicht in deinen Kontakten sind",
+    requestBannerTitle: "{name} möchte mit dir chatten",
+    requestBannerText: "Ihr habt noch keinen gemeinsamen Chat. Die Person sieht erst, dass du ihre Nachrichten gelesen hast, wenn du annimmst oder antwortest.",
+    acceptRequest: "Annehmen",
+    deleteRequest: "Löschen",
+    blockRequest: "Blockieren",
+    requestAccepted: "Chat zu deinen Chats verschoben",
   },
 };
