@@ -6,7 +6,7 @@ export type SettingsPage = typeof SETTINGS_PAGES[number];
 
 export const PRIVACY_DETAILS = [
   'avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'birthday_visibility', 'direct_messages', 'group_invites',
-  'search_visibility',
+  'search_visibility', 'calls_from', 'voice_video_messages', 'forward_link',
 ] as const;
 export type PrivacyDetail = typeof PRIVACY_DETAILS[number];
 

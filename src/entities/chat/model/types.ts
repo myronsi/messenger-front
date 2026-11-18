@@ -47,12 +47,14 @@ export interface OneOnOneChatResponse {
     interlocutor_last_seen?: string | null;
     avatar_url?: string;
     interlocutor_deleted?: boolean;
+    interlocutor_can_send_voice_video?: boolean;
     last_message?: ChatLastMessage | null;
     unread_count?: number;
     first_unread_message_id?: EntityId | null;
     is_pinned?: boolean;
     pin_position?: number | null;
     is_archived?: boolean;
+    is_request?: boolean;
     pending_approval_request?: boolean;
     pending_request_id?: EntityId;
   }>;

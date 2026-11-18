@@ -1,7 +1,7 @@
 import { useRef, useState, type TouchEvent } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { Archive, ArrowLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { Archive, ArrowLeft, ChevronRight, MessageSquare, UserPlus } from 'lucide-react';
 import type { Chat, ChatLastMessage } from '@/entities/message';
 import { Button } from '@/shared/ui/button';
 import ChatListItem from './ChatListItem';
@@ -52,6 +52,25 @@ const ArchivedRow = ({ chats, translations, onOpen }: { chats: Chat[]; translati
   );
 };
 
+const RequestsRow = ({ count, translations, onOpen }: { count: number; translations: Translations; onOpen: () => void }) => (
+  <button type="button" data-testid="requests-row" onClick={onOpen}
+    className="motion-list-item flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left [@media(hover:hover)]:hover:bg-accent">
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <UserPlus className="h-5 w-5" aria-hidden="true" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-[15px] font-medium leading-5">{translations.chatOrganizer.requests} ({count})</span>
+      <span className="block truncate text-sm text-muted-foreground">{translations.chatOrganizer.requestsHint}</span>
+    </span>
+    <span data-testid="requests-count" className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+      {count > 99 ? '99+' : count}
+    </span>
+    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+  </button>
+);
+
+type Folder = 'main' | 'archive' | 'requests';
+
 const ChatListBody: React.FC<ChatListBodyProps> = ({
   chats,
   activeChatId,
@@ -69,16 +88,18 @@ const ChatListBody: React.FC<ChatListBodyProps> = ({
   onToggleArchived,
   onReorderPinned,
 }) => {
-  const [showArchived, setShowArchived] = useState(false);
+  const [folder, setFolder] = useState<Folder>('main');
   const [revealed, setRevealed] = useState(false);
   const pull = useRef<number | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const archived = chats.filter((chat) => chat.is_archived);
-  const main = chats.filter((chat) => !chat.is_archived);
-  if (showArchived && archived.length === 0) setShowArchived(false);
-  const inArchive = showArchived && archived.length > 0;
-  const shown = inArchive ? archived : main;
-  const pinnedIds = inArchive ? [] : main.filter((chat) => chat.is_pinned).map((chat) => chat.id);
+  const requests = chats.filter((chat) => chat.is_request);
+  const archived = chats.filter((chat) => chat.is_archived && !chat.is_request);
+  const main = chats.filter((chat) => !chat.is_archived && !chat.is_request);
+  const inArchive = folder === 'archive' && archived.length > 0;
+  const inRequests = folder === 'requests' && requests.length > 0;
+  if (folder !== 'main' && !inArchive && !inRequests) setFolder('main');
+  const shown = inArchive ? archived : inRequests ? requests : main;
+  const pinnedIds = folder !== 'main' ? [] : main.filter((chat) => chat.is_pinned).map((chat) => chat.id);
   const byId = new Map(chats.map((chat) => [chat.id, chat]));
   const reorder = usePinnedReorder({
     pinnedIds,
@@ -89,7 +110,8 @@ const ChatListBody: React.FC<ChatListBodyProps> = ({
     },
     onDragStart: () => onCloseChatMenu?.(),
   });
-  const showArchivedRow = !inArchive && archived.length > 0 && (revealed || !isCoarsePointer());
+  const atMain = !inArchive && !inRequests;
+  const showArchivedRow = atMain && archived.length > 0 && (revealed || !isCoarsePointer());
 
   const onTouchStart = (event: TouchEvent) => {
     pull.current = (listRef.current?.scrollTop ?? 0) <= 0 ? event.touches[0]?.clientY ?? null : null;
@@ -117,14 +139,15 @@ const ChatListBody: React.FC<ChatListBodyProps> = ({
 
   return (
     <div ref={listRef} className="flex-1 overflow-y-auto" onTouchStart={onTouchStart} onTouchMove={onTouchMove}>
-      {inArchive && (
-        <button type="button" data-testid="archived-chats-back" onClick={() => setShowArchived(false)}
+      {!atMain && (
+        <button type="button" data-testid={inArchive ? 'archived-chats-back' : 'requests-back'} onClick={() => setFolder('main')}
           className="flex w-full items-center gap-2 px-4 py-3 text-left text-[15px] font-semibold [@media(hover:hover)]:hover:bg-accent">
           <ArrowLeft className="h-4 w-4" aria-label={translations.chatOrganizer.backToChats} />
-          <span>{translations.chatOrganizer.archivedChats}</span>
+          <span>{inArchive ? translations.chatOrganizer.archivedChats : translations.chatOrganizer.requests}</span>
         </button>
       )}
-      {showArchivedRow && <ArchivedRow chats={archived} translations={translations} onOpen={() => setShowArchived(true)} />}
+      {atMain && requests.length > 0 && <RequestsRow count={requests.length} translations={translations} onOpen={() => setFolder('requests')} />}
+      {showArchivedRow && <ArchivedRow chats={archived} translations={translations} onOpen={() => setFolder('archive')} />}
       {shown.map((chat) => (
         <ChatListItem
           key={chat.id}

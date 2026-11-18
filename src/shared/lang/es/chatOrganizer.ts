@@ -12,5 +12,13 @@ export const chatOrganizer = {
     selfName: "{name} (tú)",
     pullForArchive: "Desliza hacia abajo para ver los chats archivados",
     dragToReorder: "Arrastra para ordenar",
+    requests: "Solicitudes",
+    requestsHint: "Personas que no están en tus contactos",
+    requestBannerTitle: "{name} quiere chatear contigo",
+    requestBannerText: "Aún no compartís ningún chat. No verá que leíste sus mensajes hasta que aceptes o respondas.",
+    acceptRequest: "Aceptar",
+    deleteRequest: "Eliminar",
+    reportAndBlockRequest: "Denunciar y bloquear",
+    requestAccepted: "Chat movido a tus chats",
   },
 };

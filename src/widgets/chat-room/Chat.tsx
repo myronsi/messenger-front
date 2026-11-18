@@ -21,6 +21,9 @@ import ChatUnblockButton from './ui/ChatUnblockButton';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetBlockedUsersQuery } from '@/entities/user';
+import { useChatRequest } from './model/useChatRequest';
+import ChatRequestBanner from './ui/ChatRequestBanner';
+import { useVoiceVideoBlocked } from './model/useVoiceVideoBlocked';
 
 export type { ChatProps } from './model/types';
 
@@ -38,6 +41,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const isPreview = !isPersistedId(chatId);
 
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
+  const voiceVideoBlocked = useVoiceVideoBlocked(chatId, username);
   const isBlockedByMe = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username.toLowerCase() === chatName.toLowerCase());
 
   const {
@@ -83,9 +87,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
       if (update.username === chatName) setPresence({ is_online: update.is_online, last_seen: update.last_seen });
     },
   });
-
-
-
+  const request = useChatRequest({ chatId, chatName, username, onBack, fallbackError: translations.errorLoading, onError: (message) => setModal({ type: 'error', message }) });
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const reactionMenuRef = useRef<HTMLDivElement>(null);
@@ -166,7 +168,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const formatTime = useStableCallback(getMessageTime);
   const renderContent = useStableCallback(renderMessageContent);
 
-  const content = (
+  return (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
       {isSearchOpen ? <ChatHeaderSearch chatId={chatId} onClose={() => setIsSearchOpen(false)} onJumpToMessage={jumpToSearchResult} /> : (<ChatHeader
         chatId={chatId}
@@ -181,6 +183,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         onOpenSearch={!isPreview && !interlocutorDeleted ? () => setIsSearchOpen(true) : undefined}
         interlocutorAvatar={interlocutorAvatar}
       />)}
+      {request.isRequest && !isSearchOpen && <ChatRequestBanner request={request} chatName={chatName} displayName={chatDisplayName || chatName}
+        avatar={interlocutorAvatar} translations={translations} onOpenProfile={onOpenProfile} />}
       <ImageDrawingProvider chatId={chatId} enabled={!isPreview} onSent={settleOptimisticUpload}>
       <MessageList
           ref={chatWindowRef}
@@ -213,7 +217,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
           isLoadingInitialMessages={isLoadingInitialMessages}
           isLoadingOlderMessages={isLoadingOlderMessages}
           isLoadingNewerMessages={isLoadingNewerMessages}
-          onMarkMessagesRead={markMessagesRead}
+          onMarkMessagesRead={request.readMarker(markMessagesRead)}
           onResendMessage={!isPreview ? onListResend : undefined}
           scrollToBottomKey={chatId}
           onScrollStart={onListScrollStart}
@@ -228,11 +232,10 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
             draftRef={composerDraftRef} setReplyTo={setReplyTo} setEditingMessage={setEditingMessage}
             messageInput={isPreview ? previewMessageInput : undefined}
             setMessageInput={isPreview ? setPreviewMessageInput : undefined}
-            replyTo={replyTo}
-            editingMessage={editingMessage}
-            onSendMessage={isPreview ? handleSendMessagePreview : handleSendMessage}
-            onSendSticker={isPreview ? undefined : handleSendSticker}
-            onFileUpload={isPreview ? handleFileUploadPreview : handleFileUpload}
+            replyTo={replyTo} editingMessage={editingMessage}
+            onSendMessage={isPreview ? handleSendMessagePreview : request.withReply(handleSendMessage)}
+            onSendSticker={isPreview || !handleSendSticker ? undefined : request.withReply(handleSendSticker)}
+            onFileUpload={isPreview ? handleFileUploadPreview : request.withReply(handleFileUpload)}
             onCancelReplyOrEdit={() => {
               if (isPreview) {
                 setPreviewMessageInput('');
@@ -242,9 +245,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
                 if (editingMessage) setMessageInput('');
               }
             }}
-            chatId={chatId}
-            token={token}
-            disableVoice={isPreview}
+            chatId={chatId} token={token}
+            disableVoice={isPreview} voiceVideoBlocked={voiceVideoBlocked}
             isSending={isPreview && isCreatingPreviewChat}
             disabled={isPreview && hasPendingApprovalRequest}
             onVoiceUploadStart={createOptimisticUploadMessage}
@@ -289,11 +291,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         modal={modal}
         selection={selection} onSelect={isPreview ? undefined : startSelection} onClearSelection={clearSelection} onSelectAll={selectAll}
       />
-
     </div>
   );
-
-  return content;
 };
 
 export default Chat;

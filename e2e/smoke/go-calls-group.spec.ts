@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createSmokeUser, openChatFromList, registerUser, reloadMessenger, type SmokeUser } from './helpers';
+import { allowGroupInvites, createSmokeUser, openChatFromList, registerUser, reloadMessenger, type SmokeUser } from './helpers';
 import {
   FAKE_MEDIA_ARGS, apiRequest, callContext, callPanel, callsEnabled, currentCallId, getCall, getCallOverApi, loginOverApi, myId, remoteAudioLevels,
   report, revokeSessionOverApi, securityCode, waitForCodeChange, type TrackedContext,
@@ -20,6 +20,7 @@ const setUpGroup = async (members: Member[], name: string) => {
   for (const [index, member] of members.entries()) {
     await registerUser(member.page, member.user);
     member.id = await myId(member.page);
+    if (index > 0) await allowGroupInvites(member.page);
     if (index === 0) test.skip(!(await callsEnabled(member.page)), 'Calls are disabled on this backend');
   }
   const created = await apiRequest<{ id: string }>(members[0].page, '/groups', {

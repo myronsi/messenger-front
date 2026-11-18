@@ -9,7 +9,7 @@ import { uploadAbortSignal } from '@/shared/lib/uploadCancellation';
 import { isGoApi } from '@/shared/api/goSocket';
 import { escapeCurlyBraces } from './messageText';
 import { applyMessageEdit, editableText, mergeIncomingMessage } from './messageUpdates';
-import { createdMessage, deliveryErrorText, unconfirmedSends, useUnsentMessageRelease } from './unsentMessages';
+import { createdMessage, deliveryErrorText, unconfirmedSends, useUnsentMessageRelease, voiceVideoRefusal } from './unsentMessages';
 import { appendMessageFiles, createLocalFileContent, type UploadFile } from './uploadFileType';
 import { withUploadActivity } from './uploadActivity';
 import type { Drawing } from '@/shared/ui/drawing';
@@ -137,9 +137,9 @@ export const useMessageSender = ({
         onProgress: (percent) => updateOptimisticUploadProgress(messageId, percent),
       });
       settleOptimisticUpload(messageId, created);
-    } catch {
+    } catch (error) {
       if (signal.aborted) return dropCancelledUpload(String(messageId));
-      markOptimisticUploadFailed(messageId, translations.errorLoading || 'Upload failed');
+      markOptimisticUploadFailed(messageId, voiceVideoRefusal(error, translations) || translations.errorLoading || 'Upload failed');
     }
   };
 

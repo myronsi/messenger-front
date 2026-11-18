@@ -134,6 +134,13 @@ export const chatApi = messengerApi.injectEndpoints({
       invalidatesTags: ['Chat'],
     }),
 
+    acceptChatRequest: builder.mutation<void, EntityId>({
+      queryFn: (chatId, { signal }) => apiTask(async () => {
+        contractData(await apiClient.POST('/chats/{chat_id}/accept', { params: { path: { chat_id: String(chatId) } }, signal }));
+      }),
+      invalidatesTags: ['Chat'],
+    }),
+
     reorderPinnedChats: builder.mutation<void, EntityId[]>({
       queryFn: (ids, { signal }) => apiTask(async () => {
         contractData(await apiClient.PUT('/chats/pins/order', { body: { chat_ids: ids.map(String) }, signal }));
@@ -169,6 +176,7 @@ export const {
   useDeleteChatMutation,
   useSetChatPinnedMutation,
   useSetChatArchivedMutation,
+  useAcceptChatRequestMutation,
   useGetGroupMembersQuery,
   useClearChatHistoryMutation,
   useReorderPinnedChatsMutation,

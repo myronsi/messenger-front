@@ -39,6 +39,7 @@ interface MessageInputProps {
   chatId: EntityId;
   token: string;
   disableVoice?: boolean;
+  voiceVideoBlocked?: boolean;
   isSending?: boolean;
   disabled?: boolean;
   onVoiceUploadStart?: (file: Blob, fileName: string, fileType?: string) => number | null;
@@ -52,15 +53,12 @@ const MAX_MESSAGE_LENGTH = 4096;
 const sendsOnEnter = () => !window.matchMedia?.('(pointer: coarse)').matches;
 
 const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
-  messageInput,
-  setMessageInput,
-  replyTo,
-  editingMessage,
+  messageInput, setMessageInput, replyTo, editingMessage,
   onSendMessage, onSendSticker,
   onFileUpload,
   onCancelReplyOrEdit,
   chatId,
-  disableVoice = false,
+  disableVoice = false, voiceVideoBlocked = false,
   isSending = false,
   disabled = false,
   onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete,
@@ -76,6 +74,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   const fileDrawings = useFileDrawings(selectedFiles);
   const albumsEnabled = isGoApi();
   const isDisabled = disabled || isSending;
+  const voiceOff = disableVoice || voiceVideoBlocked;
   const isEditing = !!editingMessage;
   const hasSelectedFile = selectedFiles.length > 0 && !isEditing;
   const hasDraft = messageInput.trim().length > 0 || hasSelectedFile;
@@ -84,7 +83,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
     isRecording, isStarting, recordingDuration, liveStream, isPaused, togglePause,
     errorMessage, setErrorMessage, stopRecording, handleStartRecording, preview: voicePreview, sendPreview, discardPreview, setPreviewTrim,
   } = useVoiceRecorder({
-    chatId, isDisabled, disableVoice, onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete,
+    chatId, isDisabled, disableVoice: voiceOff, onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete,
     getReplyToId: () => replyToRef.current?.id ?? null,
   });
   const canSend = ((hasDraft || isEditing) && !isUnchangedEdit) || !!voicePreview;
@@ -137,7 +136,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   };
 
   const addFiles = (files: File[]) => {
-    const result = addToSelection(selectedFilesRef.current, files, albumsEnabled, translations);
+    const result = addToSelection(selectedFilesRef.current, files, albumsEnabled, translations, voiceVideoBlocked ? translations.voiceVideoBlocked : undefined);
     if (result.error !== undefined) {
       setErrorMessage(result.error);
       return;
@@ -182,7 +181,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   };
 
   const hold = useHoldToRecord({
-    enabled: !canSend && !isUnchangedEdit && !isRecording && !isStarting && !disableVoice && !isDisabled,
+    enabled: !canSend && !isUnchangedEdit && !isRecording && !isStarting && !voiceOff && !isDisabled,
     isRecording,
     isStarting,
     start: () => { void handleStartRecording(); },
@@ -246,7 +245,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 aria-label={translations.attachFile || 'Attach file'}
-                title={isEditing ? translations.attachDisabledWhileEditing : undefined}
+                title={isEditing ? translations.attachDisabledWhileEditing : voiceVideoBlocked ? translations.voiceVideoBlocked : undefined}
                 disabled={isDisabled || isRecording || isStarting || isEditing}
                 className="motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50"
               >
@@ -282,7 +281,8 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
           </div>
           <ComposerActionButton
             mode={isRecording ? 'recording' : isUnchangedEdit ? 'cancel' : canSend ? 'send' : 'voice'}
-            disabled={isRecording || isUnchangedEdit ? false : isStarting || (canSend ? isDisabled : disableVoice || isDisabled)}
+            disabled={isRecording || isUnchangedEdit ? false : isStarting || (canSend ? isDisabled : voiceOff || isDisabled)}
+            hint={voiceVideoBlocked && !canSend && !isRecording ? translations.voiceVideoBlocked : undefined}
             editLabel={isEditing ? translations.saveMessageEdit : undefined}
             cancelLabel={translations.cancel || 'Cancel'}
             onClick={handleActionClick}

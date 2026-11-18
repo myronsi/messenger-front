@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createEnglishContext, loginUser } from './helpers';
+import { allowGroupInvites, createEnglishContext, loginUser } from './helpers';
 
 const request = async <T>(page: Page, path: string, method = 'GET', body?: unknown, expected = 200): Promise<T> => {
   const perform = () => page.evaluate(async ({ path, method, body, api }) => {
@@ -31,6 +31,7 @@ test('Go group permissions and older/newer history work through the frontend tra
   try {
     await loginUser(a, { username: process.env.GO_TEST_USER_A!, password: process.env.GO_TEST_PASSWORD_A!, displayName: 'Owner fixture' });
     await loginUser(b, { username: peer, password: process.env.GO_TEST_PASSWORD_B!, displayName: 'Member fixture' });
+    await allowGroupInvites(b);
     const group = await request<{chat_id: string}>(a, '/groups/create', 'POST', {
       name: 'Permission transport audit', participants: [peer],
     }, 201);

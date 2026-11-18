@@ -28,3 +28,17 @@ it.each(['1', '2'])('dismisses the menu first when tapping chat %s, then opens i
   expect(onChatOpen).toHaveBeenCalledOnce();
   expect(onChatOpen.mock.calls[0][0]).toBe(id);
 });
+
+it('never marks a request chat read from the menu', async () => {
+  const markChatRead = vi.fn(() => ({ unwrap: async () => ({ unread_count: 0, first_unread_message_id: null }) }));
+  const request = { id: '9', name: 'Stranger', type: 'one-on-one', is_request: true, unread_count: 3 } as Chat;
+  const { result } = renderHook(() => useChatListActions({
+    username: 'alice', chatContextMenu: null, onChatOpen: vi.fn(),
+    createChat: () => ({ unwrap: async () => ({}) }),
+    setChatPinned: () => ({ unwrap: async () => ({}) }),
+    markChatRead, refetch: vi.fn(), chatsByIdRef: { current: { 9: request } }, setChatOverrides: vi.fn(),
+    setChatContextMenu: vi.fn(), setModal: vi.fn(), translations: {} as Translations,
+  }));
+  await act(() => result.current.handleMarkChatRead('9'));
+  expect(markChatRead).not.toHaveBeenCalled();
+});
