@@ -8,6 +8,10 @@ interface ScreenPayload {
   usernames?: string[]; user2?: string; username?: string; participants?: string[];
   message_ids?: EntityId[]; target_chat_ids?: EntityId[];
 }
+const privacyKeys = [
+  'avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'birthday_visibility', 'group_invites', 'direct_messages',
+  'calls_from',
+];
 const jsonResponse = (data: unknown, source?: Response) => new Response(JSON.stringify(data), {
   status: source?.status === 204 ? 200 : source?.status || 200,
   headers: { 'Content-Type': 'application/json' },
@@ -96,7 +100,7 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     if (path === '/me/privacy' && method === 'PATCH') {
       data = { ...data };
       delete data.privacy_exceptions;
-      for (const key of ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'group_invites']) {
+      for (const key of privacyKeys) {
         if (data[key] === 'shared_chats') data[key] = 'contacts';
       }
     }
@@ -194,8 +198,10 @@ export const withGoTransport = (nativeFetch: typeof fetch, baseUrl: string): typ
     const result = await response.clone().json();
     if (path === '/me/privacy' || path.includes('/privacy/exceptions/')) {
       const exceptions: Record<string, {allow: unknown[]; deny: unknown[]}> = {};
-      for (const key of ['avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'group_invites', 'direct_messages', 'search_visibility']) {
+      for (const key of [...privacyKeys, 'search_visibility']) {
         if (result[key] === 'contacts') result[key] = 'shared_chats';
+        if (result[key] === 'everyone_except') result[key] = 'everyone';
+        if (result[key] === 'nobody_except') result[key] = 'nobody';
         const source = result.exceptions?.[key] || { allow: [], deny: [] };
         exceptions[key] = { allow: [], deny: [] };
         for (const effect of ['allow', 'deny'] as const) {

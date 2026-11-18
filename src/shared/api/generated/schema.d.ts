@@ -567,7 +567,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -4062,15 +4062,34 @@ export interface components {
             code?: string;
         };
         /**
-         * @description Who may see the item. The exception lists apply to every value; `*_except` behave like `everyone` and `nobody`.
-         *     `contacts` are the users you share a group with, or a direct chat that you opened or read in.
+         * @description Who may see the item. The exception lists apply to every value.
+         *     `contacts` are the users you share a direct chat with that you opened or read in, or a group you created,
+         *     joined by accepting an invitation, or read or wrote in. Being added to a group alone does not make its
+         *     members your contacts.
+         *     Deprecated: `everyone_except` and `nobody_except` are still accepted and stored as `everyone` and `nobody`;
+         *     they are never returned.
          * @enum {string}
          */
         Visibility: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody";
-        /** @enum {string} */
-        DirectMessagePolicy: "everyone" | "shared_chats" | "wait_approval";
-        /** @enum {string} */
+        /**
+         * @description Who may open a direct chat with the user. `everyone`; `contacts` (see `Visibility`); `wait_approval`: others
+         *     send a request the user approves; `nobody`: no new direct chats and no requests (existing chats stay).
+         *     Allow exceptions still let the listed users in.
+         *     Deprecated: `shared_chats` is the old name of `contacts`; it is still accepted and never returned.
+         * @enum {string}
+         */
+        DirectMessagePolicy: "everyone" | "shared_chats" | "wait_approval" | "contacts" | "nobody";
+        /**
+         * @description Who may add the user to a group. Defaults to `contacts`. Deprecated: `everyone_except` and `nobody_except`
+         *     are still accepted and stored as `everyone` and `nobody`; they are never returned.
+         * @enum {string}
+         */
         GroupInvitePolicy: "everyone" | "contacts" | "everyone_except" | "nobody_except" | "nobody" | "wait_approval";
+        /**
+         * @description Who may ring the user (`contacts` as in `Visibility`).
+         * @enum {string}
+         */
+        CallPolicy: "everyone" | "contacts" | "nobody";
         /** @enum {string} */
         SearchVisibility: "everyone" | "nobody";
         /** @description User IDs per setting. An exception wins over the setting whatever its value; `allow` always lets the user in, `deny` always keeps them out. */
@@ -4093,8 +4112,17 @@ export interface components {
             direct_messages: components["schemas"]["DirectMessagePolicy"];
             group_invites: components["schemas"]["GroupInvitePolicy"];
             search_visibility: components["schemas"]["SearchVisibility"];
-            /** @description Whether others may ring this user. Calls are only possible from an existing direct chat or a shared group. */
+            /**
+             * @deprecated
+             * @description `false` exactly when `calls_from` is `nobody`. Use `calls_from`.
+             */
             calls_enabled: boolean;
+            /**
+             * @description Who may ring this user, with the `calls_from` exceptions. Calls are only possible from an existing direct
+             *     chat or a shared group. A direct call to a user who does not allow the caller is refused; in a group call
+             *     only the members who allow the caller are rung, the others can still join.
+             */
+            calls_from: components["schemas"]["CallPolicy"];
             /** @description Whether other members see that this user is typing or recording a voice message. The user still sees theirs. */
             typing_indicators_enabled: boolean;
             exceptions: components["schemas"]["PrivacyExceptions"];
@@ -4109,7 +4137,12 @@ export interface components {
             direct_messages?: components["schemas"]["DirectMessagePolicy"];
             group_invites?: components["schemas"]["GroupInvitePolicy"];
             search_visibility?: components["schemas"]["SearchVisibility"];
+            /**
+             * @deprecated
+             * @description `false` sets `calls_from` to `nobody`; `true` sets it to `everyone` when it was `nobody`. Ignored when `calls_from` is sent.
+             */
             calls_enabled?: boolean;
+            calls_from?: components["schemas"]["CallPolicy"];
             typing_indicators_enabled?: boolean;
         };
         PrivacyExceptionsRequest: {
@@ -6221,7 +6254,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from";
                 effect: "allow" | "deny";
             };
             cookie?: never;

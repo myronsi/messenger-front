@@ -31,6 +31,7 @@ export const usePrivacySettings = (isActive: boolean) => {
     group_invites: '',
     direct_messages: '',
     search_visibility: '',
+    calls_from: '',
   });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [settingDrafts, setSettingDrafts] = useState<Partial<Record<PrivacySettingKey, string | boolean>>>({});
@@ -86,8 +87,6 @@ export const usePrivacySettings = (isActive: boolean) => {
   const visibilityLabel = (value: string) => {
     if (value === 'shared_chats') return translations.sharedChats || 'Shared chats';
     if (value === 'nobody') return translations.nobody || 'Nobody';
-    if (value === 'everyone_except') return translations.everyoneExceptSelected || 'Everyone except selected';
-    if (value === 'nobody_except') return translations.nobodyExceptSelected || 'Nobody except selected';
     if (value === 'wait_approval') return translations.waitApproval || 'Wait for my approval';
     return translations.everyone || 'Everyone';
   };
