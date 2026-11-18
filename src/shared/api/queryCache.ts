@@ -136,7 +136,7 @@ export const createQueryCache = ({
     const entryOf = () => (queryCacheKey ? getState()[messengerApi.reducerPath].queries[queryCacheKey] : undefined);
     const endpointName = query?.meta.arg.endpointName ?? entryOf()?.endpointName;
     if (!queryCacheKey || !endpointName || !cacheable.has(endpointName)) return next(action);
-    sync();
+    void sync();
 
     if (query?.type === PENDING && entryOf()?.data === undefined) {
       const stored = entries.get(queryCacheKey);
@@ -163,6 +163,6 @@ export const createQueryCache = ({
     return result;
   };
 
-  sync();
+  void sync();
   return { middleware, sync };
 };
