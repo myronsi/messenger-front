@@ -124,6 +124,7 @@ export function useChatsData(username: string) {
       is_pinned: !!chat.is_pinned,
       pin_position: chat.pin_position ?? null,
       is_archived: !!chat.is_archived,
+      is_request: !!chat.is_request,
       is_saved: !!username && chat.interlocutor_name.toLowerCase() === username.toLowerCase(),
       pending_approval_request: !!chat.pending_approval_request,
       pending_request_id: chat.pending_request_id,

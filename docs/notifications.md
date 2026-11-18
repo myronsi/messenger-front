@@ -17,7 +17,7 @@ the worker account and removes the subscription and visible alerts. API session 
 client is offline during cleanup. Browser permission denial must be reversed through browser/OS settings.
 
 Visible, focused clients report a healthy live connection periodically, suppressing push on that device. In-app
-alerts skip own messages, stale messages, muted chats and the focused conversation. Web Locks and a bounded replay
+alerts skip own messages, stale messages, muted chats, chats in the Requests folder and the focused conversation. Web Locks and a bounded replay
 marker prevent duplicate live alerts across tabs. Separate devices receive independent alerts. Notification
 delivery is best effort at the OS/provider boundary; a worker crash just after provider acceptance can repeat an
 alert, although notification tags/collapse identifiers replace the previous conversation alert.

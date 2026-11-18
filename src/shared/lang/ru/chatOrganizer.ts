@@ -12,5 +12,13 @@ export const chatOrganizer = {
     selfName: "{name} (вы)",
     pullForArchive: "Потяните вниз, чтобы увидеть архив",
     dragToReorder: "Перетащите, чтобы изменить порядок",
+    requests: "Запросы",
+    requestsHint: "Люди, которых нет в ваших контактах",
+    requestBannerTitle: "{name} хочет с вами переписываться",
+    requestBannerText: "У вас пока нет общих чатов. Собеседник не увидит, что вы прочитали сообщения, пока вы не примете запрос или не ответите.",
+    acceptRequest: "Принять",
+    deleteRequest: "Удалить",
+    blockRequest: "Заблокировать",
+    requestAccepted: "Чат перенесён в ваши чаты",
   },
 };

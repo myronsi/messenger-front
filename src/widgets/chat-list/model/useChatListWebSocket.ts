@@ -12,6 +12,7 @@ import { applyTypingFrame, clearTypingUsers } from '@/entities/typing';
 import { chatApi } from '@/entities/chat';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
+import { createRequestChatTracker } from './requestChats';
 
 const CHAT_LIST_REFETCH_DELAY_MS = 750;
 const GO_CHAT_LIST_EVENTS = ['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence', 'history_cleared', 'user_updated'];
@@ -36,7 +37,7 @@ interface UseChatListWebSocketParams {
 // teardown on unmount) and forwards parsed messages to the pure message-handling function.
 // The socket authenticates with a one-time ticket, so a token refresh does not need a new connection.
 export function useChatListWebSocket(params: UseChatListWebSocketParams) {
-  const { token, username, activeChatId, onChatDeleted, currentUserId, refetch, refetchRequestInbox } = params;
+  const { token, username, activeChatId, onChatDeleted, currentUserId, refetch, refetchRequestInbox, chatsByIdRef } = params;
   const dispatch = useAppDispatch();
   const usernameRef = useRef(username);
   const activeChatIdRef = useRef(activeChatId);
@@ -58,6 +59,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   useEffect(() => {
     if (!isSignedIn) return;
     const listRefetch = coalesceTask(() => refetchRef.current(), CHAT_LIST_REFETCH_DELAY_MS);
+    const requestChats = createRequestChatTracker();
     const pending = () => dispatch((_, getState) => {
       const state = getState();
       const user = usernameRef.current;
@@ -81,7 +83,8 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
           endSession(); window.location.assign('/login'); return;
         }
         applyTypingFrame(frame);
-        notifyMessageFrame(frame, activeChatIdRef.current);
+        requestChats.observe(frame);
+        if (!requestChats.isRequest(frame, chatsByIdRef.current)) notifyMessageFrame(frame, activeChatIdRef.current);
         if (GO_CHAT_LIST_EVENTS.includes(frame.type)) listRefetch.schedule();
         if (frame.type === 'approval_request_created') refetchRequestInboxRef.current();
         if (frame.type === 'user_updated') dispatch(chatApi.util.invalidateTags(['User', 'Avatar']));
@@ -89,5 +92,5 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
       },
     });
     return () => { release(); listRefetch.cancel(); setNotificationLive(false); clearTypingUsers(); };
-  }, [dispatch, isSignedIn]);
+  }, [chatsByIdRef, dispatch, isSignedIn]);
 }

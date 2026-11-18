@@ -7,7 +7,7 @@ export const resolveUsername = async (username: string, signal?: AbortSignal) =>
 }));
 
 export const listChats = (signal?: AbortSignal) => collectPages(async after => contractData(await apiClient.GET('/chats', {
-  params: { query: { limit: 100, ...(after ? { after } : {}) } }, signal,
+  params: { query: { limit: 100, folder: 'all', ...(after ? { after } : {}) } }, signal,
 })));
 
 const RECENT_CHATS_MS = 30_000;

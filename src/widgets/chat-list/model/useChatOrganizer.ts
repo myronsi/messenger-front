@@ -53,12 +53,12 @@ export function useChatOrganizer({ chatsByIdRef, setChatOverrides, setChatContex
     const order = pinnedOrder();
     const archived = !chat?.is_archived;
     setChatContextMenu(null);
-    override(chatId, archived ? { is_archived: true, is_pinned: false, pin_position: null } : { is_archived: false });
+    override(chatId, archived ? { is_archived: true, is_request: false, is_pinned: false, pin_position: null } : { is_archived: false });
     try {
       await setChatArchived({ chatId, archived }).unwrap();
       toast(archived ? translations.chatOrganizer.archived : translations.chatOrganizer.unarchived, {
         duration: 8000,
-        action: { label: translations.chatOrganizer.undo, onClick: () => void restore(chatId, previous, order) },
+        ...(previous?.is_request ? {} : { action: { label: translations.chatOrganizer.undo, onClick: () => void restore(chatId, previous, order) } }),
       });
       refetch();
     } catch (caught) {
