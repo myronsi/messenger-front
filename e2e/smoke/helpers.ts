@@ -73,6 +73,18 @@ export const finishProfileStep = async (page: Page, user: SmokeUser) => {
   await page.getByRole('button', { name: 'Finish', exact: true }).click();
 };
 
+export const allowGroupInvites = async (page: Page) => {
+  const status = await page.evaluate(async (api) => {
+    const response = await fetch(`${api || `${location.origin}/api/v2`}/me/privacy`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group_invites: 'everyone' }),
+    });
+    return response.status;
+  }, process.env.E2E_API_URL);
+  expect(status, 'allow group invites').toBe(200);
+};
+
 export const registerUser = async (page: Page, user: SmokeUser) => {
   await page.goto('/register');
 
