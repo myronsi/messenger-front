@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { parseEmojiTokens } from '@/shared/lib/customEmoji';
 
 const KEY = 'messenger.recentEmoji';
 const MAX = 24;
@@ -16,14 +17,29 @@ const read = (): string[] => {
   return cache;
 };
 
-export const rememberEmoji = (value: string) => {
-  cache = [value, ...read().filter((item) => item !== value)].slice(0, MAX);
+const write = (next: string[]) => {
+  cache = next;
   try {
     localStorage.setItem(KEY, JSON.stringify(cache));
   } catch {
     cache = [...cache];
   }
   listeners.forEach((listener) => listener());
+};
+
+export const rememberEmoji = (value: string) => {
+  write([value, ...read().filter((item) => item !== value)].slice(0, MAX));
+};
+
+export const isRecentEmojiKnown = (item: string, known: ReadonlySet<string>) => {
+  const id = parseEmojiTokens(item)[0]?.id;
+  return !id || known.has(id);
+};
+
+export const forgetUnknownEmoji = (known: ReadonlySet<string>) => {
+  const current = read();
+  const next = current.filter((item) => isRecentEmojiKnown(item, known));
+  if (next.length !== current.length) write(next);
 };
 
 export const resetRecentEmoji = () => {
@@ -35,4 +51,4 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 
-export const useRecentEmoji = () => useSyncExternalStore(subscribe, read, read);
+export const useStoredRecentEmoji = () => useSyncExternalStore(subscribe, read, read);

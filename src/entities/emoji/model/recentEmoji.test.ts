@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { rememberEmoji, resetRecentEmoji, useRecentEmoji } from './recentEmoji';
+import { rememberEmoji, resetRecentEmoji, useStoredRecentEmoji as useRecentEmoji } from './recentEmoji';
 import { knownEmojiMap } from './useKnownEmoji';
 import type { EmojiPack } from './types';
 
