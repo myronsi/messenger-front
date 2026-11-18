@@ -17,15 +17,16 @@ interface MediaTileProps {
   drawing?: Drawing | null;
   aspect?: number;
   placeholder?: string;
+  viewUrl?: string;
   onOpen: () => void;
 }
 
-export default function MediaTile({ url, poster, name, isVideo, badge = 'md', className = '', style, drawing, aspect, placeholder, onOpen }: MediaTileProps) {
+export default function MediaTile({ url, poster, name, isVideo, badge = 'md', className = '', style, drawing, aspect, placeholder, viewUrl, onOpen }: MediaTileProps) {
   const { translations: t } = useLanguage();
   const [ready, setReady] = useState(false);
   const markReady = useCallback(() => setReady(true), []);
   const [loadedAspect, setLoadedAspect] = useState<number>();
-  const preloadHandlers = useMediaPreload(isVideo ? undefined : url);
+  const preloadHandlers = useMediaPreload(isVideo ? undefined : viewUrl ?? url);
   return (
     <button
       type="button"

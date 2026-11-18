@@ -50,7 +50,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const previewUrl = thumbnailUrl && !thumbnailFailed ? thumbnailUrl : fileUrl;
-  const preloadHandlers = useMediaPreload(isVideo ? undefined : fileUrl);
+  const preloadHandlers = useMediaPreload(isVideo ? undefined : displayUrl ?? fileUrl);
 
   const closeViewer = useCallback(() => setIsExpanded(false), []);
   const markLoaded = useCallback(() => setIsLoaded(true), []);

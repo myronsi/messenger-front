@@ -61,7 +61,7 @@ export default function AlbumMessage({ messageId, items, viewerInfo }: AlbumMess
       {albumRows(media).map((row) => (
         <div key={row[0].index} className="flex gap-0.5" style={{ aspectRatio: rowAspect(row.map((item) => item.ratio)) }}>
           {row.map((item) => (
-            <MediaTile key={`${item.url}-${item.index}`} url={item.url} poster={item.poster} name={item.name} isVideo={item.isVideo} placeholder={item.placeholder}
+            <MediaTile key={`${item.url}-${item.index}`} url={item.url} poster={item.poster} name={item.name} isVideo={item.isVideo} placeholder={item.placeholder} viewUrl={item.display}
               badge={row.length > 2 ? 'sm' : 'md'} className="h-full" style={{ flex: `${item.ratio} 1 0%` }} drawing={item.drawing} aspect={item.aspect}
               onOpen={() => setOpenIndex(item.index)} />
           ))}
