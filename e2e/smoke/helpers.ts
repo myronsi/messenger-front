@@ -178,6 +178,18 @@ export const sendMessage = async (page: Page, text: string) => {
   await expect(page.locator('[data-message-id]').filter({ hasText: text }).last()).toBeVisible();
 };
 
+export const acceptChatRequestIfPresent = async (page: Page, requesterUsername: string) => {
+  const requestsRow = page.getByTestId('requests-row');
+  const hasRequests = await requestsRow.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true, () => false);
+  if (!hasRequests) return false;
+  await requestsRow.click();
+  await page.locator(chatListItemSelector(requesterUsername)).first().click();
+  const banner = page.getByTestId('chat-request-banner');
+  await banner.getByRole('button', { name: 'Accept', exact: true }).click();
+  await expect(banner).toBeHidden();
+  return true;
+};
+
 export const approvePendingRequestIfPresent = async (page: Page, requesterUsername: string) => {
   await openProfile(page);
 
