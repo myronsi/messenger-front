@@ -949,6 +949,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{user_id}/report": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a user
+         * @description One active report per reporter and user; reporting again changes the reason and the note. The reported user
+         *     never learns who reported them. `block` (default `true`) also blocks the user, like
+         *     `PUT /me/blocked-users/{user_id}`. Reporting yourself is `422`. At most 20 reports a day (`429`).
+         *     Reports drive the reported user's account status automatically (`GET /me/account-status`).
+         */
+        post: operations["reportUser"];
+        /**
+         * Withdraw a report
+         * @description Withdraws the current user's report on the user. Withdrawing a report that does not exist is fine.
+         */
+        delete: operations["unreportUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/account-status": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The current user's account status
+         * @description The status follows the reports on the account automatically (`docs/moderation.md`). `restrictions` lists
+         *     what the status blocks. The WebSocket event `account_status` carries the same object when it changes.
+         */
+        get: operations["getAccountStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/account-status/appeal": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Appeal the account status
+         * @description Automatic appeal (probation): the status drops one level for 14 days. Without a new weighted report in that
+         *     time the lower level stays; a new one restores the status and blocks appeals for 90 days. Allowed once per
+         *     30 days and only when `can_appeal` is `true`, otherwise `409`.
+         */
+        post: operations["appealAccountStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{user_id}/avatar": {
         parameters: {
             query?: never;
@@ -3781,7 +3868,7 @@ export interface components {
          *     codes must be treated like `internal_error`.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "limit_reached" | "internal_error";
+        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "limit_reached" | "account_restricted" | "internal_error";
         /** @description RFC 9457 problem details. `426 Upgrade Required` (`client_outdated`) uses the same format. */
         Problem: {
             /**
@@ -3804,6 +3891,8 @@ export interface components {
             min_client_api_version?: string;
             /** @description Present when `code` is `client_outdated`. */
             api_version?: string;
+            /** @description Present when `code` is `account_restricted` (`403`); names what the account status blocks. */
+            restriction?: components["schemas"]["AccountRestriction"];
         } & {
             [key: string]: unknown;
         };
@@ -4079,6 +4168,47 @@ export interface components {
             is_online: boolean;
             last_seen: components["schemas"]["Timestamp"] | null;
             is_deleted: boolean;
+            /**
+             * @description `restricted` when the account is suspended by its automatic account status; clients show "Restricted
+             *     account". Absent otherwise.
+             */
+            account_label?: components["schemas"]["AccountLabel"];
+        };
+        /** @enum {string} */
+        AccountLabel: "restricted";
+        /** @enum {string} */
+        ReportReason: "spam" | "scam" | "harassment" | "impersonation" | "inappropriate_profile" | "other";
+        ReportUserRequest: {
+            reason: components["schemas"]["ReportReason"];
+            /** @description Optional details for the report. Never shown to the reported user. */
+            note?: string | null;
+            /**
+             * @description Also block the user.
+             * @default true
+             */
+            block: boolean;
+        };
+        /**
+         * @description `good` no restrictions, `warned` no restrictions yet, `limited` no new contact with non-contacts and at most 5
+         *     new direct chats a day, `restricted` also no groups, uploads, forwarded files, profile changes or sticker
+         *     and emoji packs and hidden from search, `suspended` read-only (no sending, joining calls or managing groups).
+         *     Unknown values must be treated like `restricted`.
+         * @enum {string}
+         */
+        AccountStatusLevel: "good" | "warned" | "limited" | "restricted" | "suspended";
+        /**
+         * @description An action the account status blocks. Unknown values must be shown as a generic restriction.
+         * @enum {string}
+         */
+        AccountRestriction: "start_direct" | "invite_to_group" | "call" | "create_group" | "upload" | "forward" | "edit_profile" | "publish_pack" | "search" | "send" | "manage_group";
+        AccountStatus: {
+            status: components["schemas"]["AccountStatusLevel"];
+            /** @description When the account reached this status; `null` when it never changed. */
+            since: components["schemas"]["Timestamp"] | null;
+            restrictions: components["schemas"]["AccountRestriction"][];
+            can_appeal: boolean;
+            /** @description End of the running probation after an appeal; `null` when none runs. */
+            probation_until: components["schemas"]["Timestamp"] | null;
         };
         Me: components["schemas"]["User"] & {
             created_at: components["schemas"]["Timestamp"];
@@ -5051,7 +5181,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Authenticated but not allowed */
+        /** @description Authenticated but not allowed. `account_restricted` (with `restriction`) when the account status blocks the action. */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
@@ -5611,6 +5741,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
@@ -5644,6 +5775,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
         };
@@ -5709,6 +5841,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
@@ -5769,6 +5902,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
@@ -6664,6 +6798,126 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    reportUser: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Reported */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    unreportUser: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getAccountStatus: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    appealAccountStatus: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new account status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
     getUserAvatar: {
         parameters: {
             query?: {
@@ -6862,6 +7116,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
             426: components["responses"]["ClientOutdated"];
@@ -7006,6 +7261,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             413: components["responses"]["PayloadTooLarge"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
@@ -8677,6 +8933,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
@@ -9111,6 +9368,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };

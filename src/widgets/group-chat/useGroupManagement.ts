@@ -1,3 +1,4 @@
+import { isAccountRestricted } from '@/shared/api/accountRestriction';
 import { getApiBaseUrl } from '@/shared/api/config';
 import type { EntityId } from '@/shared/api/entityId';
 import React from 'react';
@@ -78,6 +79,7 @@ export const useGroupManagement = ({
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: newUsername }),
       });
+      if (response.status === 403 && isAccountRestricted(await response.clone().json().catch(() => null))) return;
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
       if (data?.participants || data?.pending_invites) {

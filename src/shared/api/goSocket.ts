@@ -55,7 +55,7 @@ export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => 
     case 'read': return { type: 'is_read', message_id: event.data.message_id, user_id: event.data.user_id, read_at: event.data.read_at };
     case 'error': if (!event.client_temp_id) return null;
       return event.client_temp_id.startsWith('op:')
-      ? { type: 'error', message: event.data.message || event.data.code, operation_error: true }
+      ? { type: 'error', message: event.data.message || event.data.code, operation_error: true, code: event.data.code }
       : { type: 'error', message: event.data.message || event.data.code, message_id: event.client_temp_id, code: event.data.code };
     case 'group_updated': return { type: 'group_updated', group: groupModel(event.data.group) };
     case 'chat_deleted': return { type: 'chat_deleted', chat_id: event.chat_id };

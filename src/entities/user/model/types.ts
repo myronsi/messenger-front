@@ -25,6 +25,7 @@ export interface User {
   birthday?: Birthday | null;
   music?: ProfileMusic | null;
   background?: ProfileBackground | null;
+  account_label?: Schema['AccountLabel'] | null;
 }
 
 export interface UserAvatarHistoryItem {

@@ -1,3 +1,4 @@
+import { isAccountRestricted } from '@/shared/api/accountRestriction';
 import type { EntityId } from '@/shared/api/entityId';
 import { asApiError } from '@/shared/lib/apiError';
 import type { Translations } from '@/shared/contexts/LanguageContext';
@@ -75,6 +76,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
       refetch();
     } catch (caught) {
       const error = asApiError(caught);
+      if (isAccountRestricted(error)) return;
       setModal({ type: 'error', message: error?.data?.detail || error?.message || 'Failed to create chat' });
     }
   };

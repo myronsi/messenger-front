@@ -1,6 +1,7 @@
 import { trimTrailingSlashes } from './trimTrailingSlashes';
 
-export const SETTINGS_PAGES = ['profile', 'personal', 'privacy', 'security', 'notifications', 'connections', 'requests', 'language', 'appearance', 'personalization', 'about'] as const;
+export const SETTINGS_PAGES = ['profile', 'personal', 'privacy', 'security', 'notifications', 'connections', 'requests', 'language', 'appearance', 'personalization', 'about',
+  'account-status'] as const;
 export type SettingsPage = typeof SETTINGS_PAGES[number];
 
 export const PRIVACY_DETAILS = [

@@ -14,6 +14,7 @@ const CODE_NOTICES: Record<string, CallNotice> = {
   calls_unavailable: 'unavailable',
   calls_not_allowed: 'not-allowed',
   blocked_by_user: 'not-allowed',
+  account_restricted: 'not-allowed',
   forbidden: 'not-allowed',
   rate_limited: 'rate-limited',
 };

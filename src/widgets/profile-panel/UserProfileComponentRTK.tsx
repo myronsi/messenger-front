@@ -264,6 +264,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           onSelectView={selectView} onMessage={handleMessage} onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
           onBlock={isBlocked ? handleBlockToggle : () => setIsBlockConfirmOpen(true)} onEditProfile={onEditProfile}
           pronouns={userData.pronouns} background={userData.background} birthdayToday={isBirthdayToday(userData.birthday)}
+          accountLabel={userData.account_label}
         />
 
         <UserProfilePanelContent activeView={activeView} visibleViews={visiblePanelOrder} onSelectView={selectView}
