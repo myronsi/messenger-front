@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  acceptChatRequestIfPresent,
   approvePendingRequestIfPresent,
   createEnglishContext,
   createSmokeUser,
@@ -31,6 +32,7 @@ test('creates a direct chat, delivers a realtime message, and uploads a file', a
     await sendMessage(pageA, initialMessage);
 
     await approvePendingRequestIfPresent(pageB, userA.username);
+    await acceptChatRequestIfPresent(pageB, userA.username);
 
     await reloadMessenger(pageA);
     await reloadMessenger(pageB);
