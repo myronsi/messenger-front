@@ -31,7 +31,7 @@ describe('resumableUpload', () => {
     const attachment = await resumableUpload(file, { onProgress: (percent) => progress.push(percent) });
     expect(attachment).toMatchObject({ id: 'a1' });
     expect(chunks).toEqual(['0:10', '10:10', '20:5']);
-    expect(progress.at(-1)).toBe(100);
+    expect(progress[progress.length - 1]).toBe(100);
     expect(JSON.parse(String(authFetch.mock.calls[0][1].body))).toMatchObject({ purpose: 'message', filename: 'clip.mp4', size: 25 });
   });
 
