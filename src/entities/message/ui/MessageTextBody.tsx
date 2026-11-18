@@ -9,7 +9,7 @@ export function MessageTextBody({ text, trailing }: { text: string; trailing?: R
   const large = isEmojiOnly(text);
   return (
     <div ref={ref} data-message-text-body data-emoji-only={large || undefined} className={large ? 'whitespace-pre-wrap text-4xl leading-tight' : 'whitespace-pre-wrap'}>
-      <LinkedMessageText text={text} />{trailing}
+      <LinkedMessageText text={text} large={large} />{trailing}
     </div>
   );
 }

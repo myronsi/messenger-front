@@ -6,7 +6,7 @@ import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
 import { SERVER_KEPT_ERRORS, useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
 import {
-  addReaction, addReadReceipts, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
+  addReaction, addReadReceipts, applyAttachmentUpdate, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
 } from './messageUpdates';
 import { closeForGood } from '@/shared/api/reconnect';
 import { markServerKept } from './serverOutbox';
@@ -72,6 +72,9 @@ export const useMessageEvents = ({
         return;
       case 'delete':
         removeMessageAnimated(setMessages, event.message_id);
+        return;
+      case 'attachment_updated':
+        setMessages((previous) => applyAttachmentUpdate(previous, event.attachment));
         return;
       case 'history_cleared':
         setMessages((previous) => previous.filter((message) => !isPersistedId(message.id) || BigInt(message.id) > BigInt(event.before_message_id)));

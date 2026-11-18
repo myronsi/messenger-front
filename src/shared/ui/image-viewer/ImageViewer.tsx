@@ -6,6 +6,7 @@ import { preloadMedia } from '@/shared/api/mediaCache';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
 import { downloadImage } from './downloadImage';
+import { useFullResolution } from './useFullResolution';
 import { isOnPicture, type ViewerMedia } from './pictureRect';
 import { ViewerVideo, type VideoTap } from './ViewerVideo';
 import { handleVideoKey } from './videoPlayback';
@@ -102,6 +103,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     if (wasConfirmingRef.current && !deleting && deleteButtonRef.current?.isConnected) deleteButtonRef.current.focus({ preventScroll: true });
     wasConfirmingRef.current = !!deleting;
   }, [deleting]);
+  const shownUrl = useFullResolution(image, view.scale);
   useEffect(() => {
     const zoomed = view.scale > 1;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -150,7 +152,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadImage(image.url, image.downloadName || image.name, image.drawing);
+      await downloadImage(image.fullUrl ?? image.url, image.downloadName || image.name, image.drawing);
     } finally {
       setIsDownloading(false);
     }
@@ -278,7 +280,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                     />
                   ) : (
                     <AuthenticatedImage
-                      key={image.url} ref={setImage} src={image.url} alt={image.name} data-active-slide
+                      key={image.url} ref={setImage} src={shownUrl ?? image.url} alt={image.name} data-active-slide
                       className={mainClass} style={mediaStyle} draggable={false}
                       onLoad={markCurrentLoaded} onError={markCurrentBroken}
                     />

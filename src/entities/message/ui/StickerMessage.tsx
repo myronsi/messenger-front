@@ -13,7 +13,8 @@ export const StickerMessage = ({ sticker, onBroken }: StickerMessageProps) => {
   const { translations } = useLanguage();
   const touchedAt = useRef<number | null>(null);
   const ref = sticker.pack_slug ? { slug: sticker.pack_slug } : sticker.pack_id ? { packId: String(sticker.pack_id) } : null;
-  const image = <StickerImage url={sticker.image_url} emoji={sticker.emoji} onBroken={onBroken} className="h-40 w-40 max-w-full" />;
+  const still = sticker.is_animated && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? sticker.panel_url : undefined;
+  const image = <StickerImage url={sticker.message_url ?? sticker.image_url} stillUrl={still} emoji={sticker.emoji} onBroken={onBroken} className="h-40 w-40 max-w-full" />;
   if (!ref) return <div data-testid="sticker-message">{image}</div>;
   return (
     <button

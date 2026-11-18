@@ -7,14 +7,15 @@ interface CustomEmojiProps {
   id: string;
   shortcode?: string;
   className?: string;
+  large?: boolean;
 }
 
-export const CustomEmoji = ({ id, shortcode, className }: CustomEmojiProps) => {
+export const CustomEmoji = ({ id, shortcode, className, large = false }: CustomEmojiProps) => {
   const [broken, setBroken] = useState(false);
   const label = shortcode ? `:${shortcode}:` : ':emoji:';
   if (broken) return <span data-custom-emoji-fallback>{label}</span>;
   return (
-    <AuthenticatedImage src={emojiImageUrl(id)} alt={label} title={label} draggable={false} loading="eager" data-custom-emoji={id}
+    <AuthenticatedImage src={emojiImageUrl(id, !large)} fallbackSrc={large ? undefined : emojiImageUrl(id)} alt={label} title={label} draggable={false} loading="eager" data-custom-emoji={id}
       onError={() => setBroken(true)}
       className={cn('inline-block h-[1.375em] w-[1.375em] object-contain align-[-0.3em]', className)} />
   );

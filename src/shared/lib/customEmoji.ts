@@ -68,4 +68,4 @@ export const customReactionId = (reaction: string) => (
 
 export const customReaction = (id: string) => `${REACTION_PREFIX}${id}`;
 
-export const emojiImageUrl = (id: string) => apiUrl(`/emoji/items/${id}/image`);
+export const emojiImageUrl = (id: string, inline = false) => apiUrl(`/emoji/items/${id}/image${inline ? '?variant=inline' : ''}`);

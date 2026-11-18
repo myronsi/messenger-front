@@ -2,7 +2,7 @@ import type { SocketSender } from '@/shared/api/realtime';
 import { getApiBaseUrl } from '@/shared/api/config';
 import type { ClientEvent, ServerEvent } from '@myronsi/messenger-api';
 import type { EntityId } from './entityId';
-import { groupModel, messageModel } from './goModels';
+import { attachmentModel, groupModel, messageModel } from './goModels';
 
 export const isGoApi = () => /\/api\/v2\/?$/.test(String(getApiBaseUrl()));
 
@@ -60,6 +60,7 @@ export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => 
     case 'group_updated': return { type: 'group_updated', group: groupModel(event.data.group) };
     case 'chat_deleted': return { type: 'chat_deleted', chat_id: event.chat_id };
     case 'history_cleared': return { type: 'history_cleared', before_message_id: event.data.before_message_id };
+    case 'attachment_updated': return { type: 'attachment_updated', attachment: attachmentModel(event.data.attachment) };
     default: return null;
   }
 };

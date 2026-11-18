@@ -25,6 +25,8 @@ export const messageSticker = (sticker: Sticker): MessageSticker => ({
   pack_slug: sticker.pack_slug,
   emoji: sticker.emoji,
   image_url: sticker.image.url,
+  panel_url: sticker.image.panel_url || undefined,
+  message_url: sticker.image.message_url || undefined,
   is_animated: sticker.is_animated,
 });
 

@@ -1080,10 +1080,154 @@ export interface paths {
          *     storage. Images, audio and video are sent `inline`; everything else as a download
          *     (`Content-Disposition: attachment`, `application/octet-stream`), always with
          *     `X-Content-Type-Options: nosniff`.
+         *
+         *     Without a bearer token the request needs `pt`, a playback token from
+         *     `POST /attachments/{attachment_id}/playback`, so a `<video>` or `<audio>` element can stream the file with
+         *     range requests.
+         *
+         *     Without `variant`, a video or audio file the server optimized (it then has a `source_url`) is answered
+         *     with the optimized copy (H.264/AAC MP4 or AAC M4A); `variant=source` returns the file as uploaded.
          */
         get: operations["getAttachmentContent"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attachments/{attachment_id}/playback": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                attachment_id: components["parameters"]["AttachmentId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A short-lived URL to stream an attachment
+         * @description Same access as `GET /attachments/{attachment_id}/content`. The answer is a URL that works without a bearer
+         *     token for five minutes and only for this attachment, so media elements can stream it with range requests.
+         *     Ask again when it expires (a `401` from the URL); the client keeps the playback position.
+         */
+        post: operations["createAttachmentPlayback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/upload-sessions": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a resumable upload
+         * @description For large files: the client sends the file in chunks of `chunk_size` bytes with
+         *     `PUT /upload-sessions/{upload_id}/chunks`, can ask how much arrived with `GET`, and finishes with
+         *     `POST /upload-sessions/{upload_id}/complete`, which checks the file like `POST /attachments`. Sessions
+         *     without progress for 24 hours are deleted. At most 5 open sessions per user.
+         */
+        post: operations["createUploadSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/upload-sessions/{upload_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                upload_id: components["parameters"]["UploadId"];
+            };
+            cookie?: never;
+        };
+        /** How much of a resumable upload arrived */
+        get: operations["getUploadSession"];
+        put?: never;
+        post?: never;
+        /** Cancel a resumable upload */
+        delete: operations["deleteUploadSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/upload-sessions/{upload_id}/chunks": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                upload_id: components["parameters"]["UploadId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Send the next chunk of a resumable upload
+         * @description `offset` must equal `received`; every chunk but the last is exactly `chunk_size` bytes. A chunk sent again
+         *     after a lost answer gets `409` with the session, whose `received` tells where to continue.
+         */
+        put: operations["putUploadChunk"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/upload-sessions/{upload_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                upload_id: components["parameters"]["UploadId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish a resumable upload
+         * @description Checks and stores the file like `POST /attachments` and deletes the session.
+         */
+        post: operations["completeUploadSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2398,8 +2542,8 @@ export interface paths {
         };
         /**
          * The image of a custom emoji
-         * @description Any signed-in user; a PNG of 128 x 128 px or a GIF. Cached as immutable. `404` once the emoji or its pack
-         *     is deleted: clients then show the token's `:shortcode:` text.
+         * @description Any signed-in user; a WebP (still or animated) of 128 x 128 px, or for older emoji a PNG or a GIF. Cached
+         *     as immutable. `404` once the emoji or its pack is deleted: clients then show the token's `:shortcode:` text.
          */
         get: operations["getCustomEmojiImage"];
         put?: never;
@@ -4055,12 +4199,28 @@ export interface components {
             readonly url: string;
             width?: number | null;
             height?: number | null;
+            /** @description A WebP of at most 480 px (older uploads a JPEG of at most 320 px); for audio the embedded cover. */
             readonly thumbnail_url?: string | null;
-            /** @description A JPEG of at most 1600 px to show in an image viewer instead of the original; `null` for small images and GIFs, which are shown as they are. */
+            /** @description At most 1600 px to show in an image viewer instead of the original; `null` for small images and GIFs, which are shown as they are. */
             readonly display_url?: string | null;
+            /** @description A ThumbHash (base64) of the image or video poster, to draw a blurred preview before the thumbnail arrives. */
+            readonly placeholder?: string | null;
+            /**
+             * @description Whether the server is still making an optimized copy of a video, GIF or audio file. Clients play `url`
+             *     meanwhile and swap to the new copy on `attachment_updated`. `null` when there is nothing to do.
+             */
+            readonly processing?: components["schemas"]["MediaProcessing"] | null;
+            /** @description The file as uploaded, when `url` serves an optimized copy; `null` otherwise. */
+            readonly source_url?: string | null;
+            /** @description A GIF as a muted, looping MP4, much smaller than the GIF; `null` until made or for other files. */
+            readonly animation_url?: string | null;
+            /** @description Stickers only; a still 128 px WebP for pickers and lists. */
+            readonly panel_url?: string | null;
+            /** @description Stickers only; a 320 px WebP for messages. */
+            readonly message_url?: string | null;
             duration_ms?: number | null;
             waveform?: number[] | null;
-            /** @description Only in the answer to a `profile_music` upload; what the file says about itself. */
+            /** @description Audio files (not voice messages) and `profile_music` uploads; what the file says about itself. */
             tags?: components["schemas"]["AudioTags"];
             /**
              * @description What the sender drew on this image of this message. Clients show the image with the drawing on top
@@ -4072,6 +4232,44 @@ export interface components {
         AudioTags: {
             title: string | null;
             artist: string | null;
+            album?: string | null;
+        };
+        /** @enum {string} */
+        MediaProcessing: "queued" | "running" | "done" | "failed";
+        PlaybackUrl: {
+            /** @description Same-origin path with the playback token; set it as `src` of a media element. */
+            url: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        CreateUploadSessionRequest: {
+            purpose: components["schemas"]["UploadPurpose"];
+            /** @enum {string} */
+            kind?: "image" | "audio" | "video" | "file";
+            filename: string;
+            /**
+             * Format: int64
+             * @description Bytes of the whole file; at most the upload limit of its kind.
+             */
+            size: number;
+        };
+        UploadSession: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int64 */
+            size: number;
+            /** @description Bytes per chunk (8 MiB). */
+            chunk_size: number;
+            /**
+             * Format: int64
+             * @description Bytes stored so far; the next `offset`.
+             */
+            received: number;
+            /**
+             * Format: date-time
+             * @description When the session is deleted unless more chunks arrive.
+             */
+            expires_at: string;
         };
         /**
          * @description Strokes and text labels on an image. Coordinates, widths and sizes are fractions of the image as it is
@@ -4947,6 +5145,7 @@ export interface components {
         UserId: components["schemas"]["Id"];
         RequestId: components["schemas"]["Id"];
         AttachmentId: components["schemas"]["AttachmentRef"];
+        UploadId: string;
         StickerPackId: components["schemas"]["Id"];
         StickerId: components["schemas"]["Id"];
         EmojiPackId: components["schemas"]["Id"];
@@ -6472,6 +6671,11 @@ export interface operations {
                 version?: components["schemas"]["Id"];
                 /** @description Revision of the current avatar, as given in `avatar_url`. */
                 rev?: string;
+                /**
+                 * @description The size the client shows the avatar at, in device pixels. The answer is the smallest stored WebP of
+                 *     64, 128 or 256 px that is at least that large, or the original when there is none.
+                 */
+                size?: number;
             };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
@@ -6668,11 +6872,18 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description `thumbnail`: a JPEG of at most 320 px (images only; `thumbnail_url` of the attachment).
-                 *     `display`: a JPEG of at most 1600 px for viewing a large still image (`display_url` of the attachment);
-                 *     the original for any other attachment.
+                 * @description `thumbnail`: a WebP of at most 480 px (older uploads: a JPEG of at most 320 px); `thumbnail_url`.
+                 *     `display`: at most 1600 px for viewing a large still image (`display_url`); the original otherwise.
+                 *     `source`: the file as uploaded (`source_url`).
+                 *     `panel`, `message`: a sticker as a still 128 px or a 320 px WebP (`panel_url`, `message_url`).
+                 *     `animation`: a GIF as a muted, looping MP4 (`animation_url`).
+                 *     `inline`: a custom emoji at 64 px.
+                 *     `avatar_64`, `avatar_128`, `avatar_256`: a group avatar at that size.
+                 *     A variant the attachment does not have answers with the default content.
                  */
-                variant?: "thumbnail" | "display";
+                variant?: "thumbnail" | "display" | "source" | "panel" | "message" | "animation" | "inline" | "avatar_64" | "avatar_128" | "avatar_256";
+                /** @description Playback token (`PlaybackUrl.url` carries it); only for requests without a bearer token. */
+                pt?: string;
             };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
@@ -6731,6 +6942,223 @@ export interface operations {
                 content?: never;
             };
             426: components["responses"]["ClientOutdated"];
+        };
+    };
+    createAttachmentPlayback: {
+        parameters: {
+            query?: {
+                variant?: "source" | "animation";
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                attachment_id: components["parameters"]["AttachmentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Playback URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackUrl"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    createUploadSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUploadSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Session */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            413: components["responses"]["PayloadTooLarge"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getUploadSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                upload_id: components["parameters"]["UploadId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteUploadSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                upload_id: components["parameters"]["UploadId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    putUploadChunk: {
+        parameters: {
+            query: {
+                offset: number;
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                upload_id: components["parameters"]["UploadId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Session after the chunk */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description `offset` is not where the upload stands */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSession"];
+                };
+            };
+            413: components["responses"]["PayloadTooLarge"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    completeUploadSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                upload_id: components["parameters"]["UploadId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Uploaded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description Not all chunks arrived yet */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSession"];
+                };
+            };
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     listChats: {
@@ -9050,7 +9478,10 @@ export interface operations {
     };
     getCustomEmojiImage: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `inline`: the emoji at 64 px for text; the 128 px image when the emoji has none. */
+                variant?: "inline";
+            };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { Loader2, Play } from 'lucide-react';
 import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
+import { usePlaybackUrl } from '@/shared/api/playbackUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { VideoControls, type Playback } from './VideoControls';
@@ -37,9 +38,26 @@ export function ViewerVideo({
   const singleTapRef = useRef(onSingleTap);
   singleTapRef.current = onSingleTap;
   const { translations: t } = useLanguage();
-  const src = useAuthenticatedMedia(url, undefined, true, onError);
+  const stream = usePlaybackUrl(url, true, onError);
+  const blobSrc = useAuthenticatedMedia(stream.streaming ? undefined : url, undefined, true, onError);
+  const src = stream.streaming ? stream.src : blobSrc;
   const posterSrc = useAuthenticatedMedia(poster);
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
+  const resumeAt = useRef(0);
+  const failed = useCallback(() => {
+    if (stream.streaming && stream.refresh()) {
+      resumeAt.current = video?.currentTime ?? 0;
+      return;
+    }
+    onError();
+  }, [stream, video, onError]);
+  const loadedData = useCallback(() => {
+    if (resumeAt.current > 0 && video) {
+      video.currentTime = resumeAt.current;
+      resumeAt.current = 0;
+    }
+    onLoad();
+  }, [video, onLoad]);
   const [playback, setPlayback] = useState(IDLE);
   const [flash, setFlash] = useState(false);
   const [skip, setSkip] = useState<Skip | null>(null);
@@ -131,7 +149,7 @@ export function ViewerVideo({
     <>
       {src && (
         <video key={src} ref={attach} src={src} poster={posterSrc} aria-label={name} autoPlay playsInline data-active-slide
-          className={className} style={style} onLoadedData={onLoad} onError={onError} />
+          className={className} style={style} onLoadedData={loadedData} onError={failed} />
       )}
       {!loaded && <Loader2 data-testid="viewer-video-loading" className="pointer-events-none absolute inset-0 z-[1] m-auto h-7 w-7 animate-spin text-white/80" />}
       {loaded && (

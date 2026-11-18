@@ -154,7 +154,7 @@ export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMak
                 <div role="radiogroup" aria-label={translations.stickerChoosePack} className="-mx-1 flex flex-wrap gap-2 px-1">
                   {owned.currentData?.map((pack) => (
                     <PackChoice key={pack.id} selected={choice === pack.id} label={pack.title} onSelect={() => setChoice(pack.id)}
-                      cover={pack.stickers[0] ? <StickerImage url={pack.stickers[0].image.url} emoji={pack.stickers[0].emoji} className="h-full w-full" />
+                      cover={pack.stickers[0] ? <StickerImage url={pack.stickers[0].image.url} stillUrl={pack.stickers[0].image.panel_url} emoji={pack.stickers[0].emoji} className="h-full w-full" />
                         : <StickerIcon className="h-4 w-4" />} />
                   ))}
                   <PackChoice selected={choice === NEW_PACK} label={translations.newStickerPack} onSelect={chooseNewPack}

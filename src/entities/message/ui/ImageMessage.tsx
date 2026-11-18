@@ -9,6 +9,9 @@ import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { MediaVisual } from './MediaVisual';
 import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
 import { UploadProgressRing } from './UploadProgress';
+import { AnimationVideo } from './AnimationVideo';
+import { placeholderDataURL } from '@/shared/lib/thumbhash';
+import type { MediaProcessing } from '../model/types';
 
 const MAX_HEIGHT = 300;
 const MAX_WIDTH = 300;
@@ -18,6 +21,10 @@ const VIDEO_PLACEHOLDER = { width: 16, height: 10 };
 interface ImageMessageProps {
   fileUrl: string;
   thumbnailUrl?: string;
+  displayUrl?: string;
+  animationUrl?: string;
+  placeholder?: string;
+  processing?: MediaProcessing;
   width?: number;
   height?: number;
   fileName: string;
@@ -32,7 +39,8 @@ interface ImageMessageProps {
 }
 
 const ImageMessage: React.FC<ImageMessageProps> = ({
-  fileUrl, thumbnailUrl, width, height, fileName, isVideo = false, onBroken, onReply, viewerInfo, drawing, onDraw, uploadProgress,
+  fileUrl, thumbnailUrl, displayUrl, animationUrl, placeholder, processing, width, height, fileName, isVideo = false, onBroken, onReply,
+  viewerInfo, drawing, onDraw, uploadProgress,
 }) => {
   const { translations } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -42,7 +50,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const previewUrl = thumbnailUrl && !thumbnailFailed ? thumbnailUrl : fileUrl;
-  const preloadHandlers = useMediaPreload(isVideo ? undefined : fileUrl);
+  const preloadHandlers = useMediaPreload(isVideo ? undefined : displayUrl ?? fileUrl);
 
   const closeViewer = useCallback(() => setIsExpanded(false), []);
   const markLoaded = useCallback(() => setIsLoaded(true), []);
@@ -55,6 +63,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   const box = shape ?? (isVideo ? VIDEO_PLACEHOLDER : PLACEHOLDER);
   const aspect = shape ? shape.width / shape.height : undefined;
   const visualClass = `block h-full w-full select-none rounded-2xl object-cover transition-opacity duration-150 ${isLoaded ? 'opacity-100' : 'opacity-0'}`;
+  const blur = isLoaded ? undefined : placeholderDataURL(placeholder);
+  const optimizing = isVideo && (processing === 'queued' || processing === 'running');
 
   return (
     <>
@@ -63,6 +73,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
         style={{
           width: `${Math.min(MAX_WIDTH, MAX_HEIGHT * (box.width / box.height))}px`,
           aspectRatio: `${box.width} / ${box.height}`,
+          ...(blur ? { backgroundImage: `url(${blur})`, backgroundSize: 'cover' } : {}),
         }}
       >
         {isVideo ? (
@@ -110,6 +121,12 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
             draggable={false}
           />
         )}
+        {!isVideo && animationUrl && isLoaded && <AnimationVideo url={animationUrl} label={fileName} onClick={open} className="rounded-2xl" />}
+        {optimizing && (
+          <span data-testid="media-optimizing" className="pointer-events-none absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+            {translations.mediaOptimizing}
+          </span>
+        )}
         {!isVideo && isLoaded && <DrawingOverlay drawing={drawing} aspect={aspect} />}
         {uploadProgress !== undefined && <UploadProgressRing progress={uploadProgress} />}
         {onReply && (
@@ -131,7 +148,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
       {isExpanded && (
         <ImageViewer
           images={[{
-            url: fileUrl, name: fileName, isVideo, previewUrl: thumbnailFailed ? undefined : thumbnailUrl, info: viewerInfo,
+            url: !isVideo && displayUrl ? displayUrl : fileUrl, fullUrl: !isVideo && displayUrl ? fileUrl : undefined, downloadName: fileName,
+            name: fileName, isVideo, previewUrl: thumbnailFailed ? undefined : thumbnailUrl, info: viewerInfo,
             drawing, aspect, onDraw: onDraw && (() => onDraw(() => setIsExpanded(false))),
           }]}
           onClose={closeViewer}

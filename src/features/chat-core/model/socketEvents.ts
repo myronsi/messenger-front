@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { isPersistedId } from '@/shared/api/entityId';
-import type { FileMessageContent, ForwardedFrom, Message, MessageSticker, ReactionInfo, ReadReceiptInfo, SystemEventInfo } from '@/entities/message';
+import type { FileMessageContent, ForwardedFrom, Message, MessageAttachment, MessageSticker, ReactionInfo, ReadReceiptInfo, SystemEventInfo } from '@/entities/message';
 
 export interface NewMessageEvent {
   type: 'message' | 'file';
@@ -120,6 +120,11 @@ export interface GroupInviteEvent {
   chat_id?: EntityId;
 }
 
+export interface AttachmentUpdatedEvent {
+  type: 'attachment_updated';
+  attachment: MessageAttachment;
+}
+
 // Any event type this client does not handle; keeps the union closed so `switch` narrows properly.
 export interface UnknownEvent {
   type: 'unknown';
@@ -141,13 +146,14 @@ export type ServerEvent =
   | PresenceUpdateEvent
   | GroupUpdatedEvent
   | GroupInviteEvent
+  | AttachmentUpdatedEvent
   | UnknownEvent;
 
 const KNOWN_TYPES = new Set<string>([
   'ack',
   'message', 'file', 'edit', 'delete', 'reaction_add', 'reaction_remove', 'is_read', 'chat_list_read',
   'chat_read_batch', 'error', 'chat_deleted', 'presence_update', 'group_updated', 'group_invite_rejected',
-  'group_invite_approved', 'history_cleared',
+  'group_invite_approved', 'history_cleared', 'attachment_updated',
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (

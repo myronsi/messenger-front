@@ -66,7 +66,7 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
           <ul className="grid grid-cols-4 gap-2 sm:grid-cols-5" aria-label={pack.title}>
             {pack.stickers.map((sticker) => (
               <li key={sticker.id} className="aspect-square">
-                <StickerImage url={sticker.image.url} emoji={sticker.emoji} className="h-full w-full" />
+                <StickerImage url={sticker.image.url} stillUrl={sticker.image.panel_url} emoji={sticker.emoji} className="h-full w-full" />
               </li>
             ))}
           </ul>

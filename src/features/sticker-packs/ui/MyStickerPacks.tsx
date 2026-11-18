@@ -79,7 +79,7 @@ export const MyStickerPacks = ({ onOpen }: MyStickerPacksProps) => {
               <button type="button" onClick={() => onOpen(pack.id)}
                 className="motion-press flex w-full items-center gap-3 rounded-xl border border-border p-2.5 text-left transition-colors hover:bg-accent">
                 <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted/60 p-1 text-muted-foreground">
-                  {pack.stickers[0] ? <StickerImage url={pack.stickers[0].image.url} emoji={pack.stickers[0].emoji} className="h-full w-full" /> : <Sticker className="h-6 w-6" />}
+                  {pack.stickers[0] ? <StickerImage url={pack.stickers[0].image.url} stillUrl={pack.stickers[0].image.panel_url} emoji={pack.stickers[0].emoji} className="h-full w-full" /> : <Sticker className="h-6 w-6" />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">

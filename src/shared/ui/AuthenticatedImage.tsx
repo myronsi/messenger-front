@@ -1,6 +1,7 @@
-import { forwardRef, useCallback, useEffect, useRef, useState, type ImgHTMLAttributes } from 'react';
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState, type ImgHTMLAttributes } from 'react';
 import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
 import { isDefaultAvatar, letterAvatar } from '@/shared/lib/letterAvatar';
+import { sizedAvatarUrl } from '@/shared/lib/avatarSize';
 
 interface Props extends ImgHTMLAttributes<HTMLImageElement> { fallbackSrc?: string; initialsFrom?: string; }
 
@@ -17,6 +18,8 @@ export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fa
   const shownRef = useRef<string | undefined>(undefined);
   const imageRef = useRef<HTMLImageElement>(null);
   const [visible, setVisible] = useState(false);
+  const [box, setBox] = useState<number>();
+  useLayoutEffect(() => { setBox(imageRef.current?.getBoundingClientRect().width ?? 0); }, []);
   useEffect(() => {
     const image = imageRef.current;
     if (!image) return;
@@ -32,8 +35,8 @@ export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fa
     if (fallbackSrc && brokenSource !== src) setBrokenSource(src);
     if (imageRef.current) onError?.({ currentTarget: imageRef.current, target: imageRef.current } as unknown as React.SyntheticEvent<HTMLImageElement, Event>);
   }, [brokenSource, fallbackSrc, onError, reloaded, src]);
-  const mediaSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : src, fallbackSrc, visible || props.loading === 'eager', handleFailure,
-    reloaded === src ? 1 : 0);
+  const mediaSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : sizedAvatarUrl(src, box ?? 0), fallbackSrc,
+    box !== undefined && (visible || props.loading === 'eager'), handleFailure, reloaded === src ? 1 : 0);
   const name = initialsFrom ?? props.alt;
   const showsFallback = !src || (brokenSource === src && !!fallbackSrc);
   const showsDefault = isDefaultAvatar(src) || (showsFallback && isDefaultAvatar(fallbackSrc)) || isDefaultAvatar(mediaSource);

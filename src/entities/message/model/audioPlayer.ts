@@ -5,7 +5,7 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { getPlaybackSpeed, subscribePlaybackSpeed } from './playbackSpeed';
 import { bindMediaSession, syncMediaSession } from './audioMediaSession';
 import { REPEAT_ORDER, sameTrack, shuffled, trackTagPatch, trackUpdateListeners, without } from './audioQueueHelpers';
-
+import { retryStream, streamingSource } from './audioSource';
 import { IDLE, type AudioPlayerState, type AudioTrack } from './audioTypes';
 
 export { onTrackUpdated } from './audioQueueHelpers';
@@ -47,7 +47,7 @@ const audioElement = () => {
   });
   audio.addEventListener('pause', () => { emit({ playing: false }); updateMediaSession(); });
   audio.addEventListener('ended', () => finishTrack());
-  audio.addEventListener('error', () => { if (audio.getAttribute('src')) emit({ playing: false, loading: false, error: true }); });
+  audio.addEventListener('error', () => { if (audio.getAttribute('src') && !retryStream(state.track, audio)) emit({ playing: false, loading: false, error: true }); });
   subscribePlaybackSpeed(() => {
     audio.defaultPlaybackRate = getPlaybackSpeed();
     audio.playbackRate = getPlaybackSpeed();
@@ -86,8 +86,9 @@ const load = async (index: number, startAt = 0) => {
   emit({ track, index, playing: false, loading: true, error: false, time: startAt, duration: usable(track.duration) ? track.duration : 0 });
   updateMediaSession();
   const url = resolveMediaUrl(track.src);
-  let source = url;
-  if (isProtectedMedia(url)) {
+  let source = (await streamingSource(track)) ?? url;
+  if (run !== loadRun) return;
+  if (source === url && isProtectedMedia(url)) {
     const current = acquireMedia(url);
     lease = current;
     try {

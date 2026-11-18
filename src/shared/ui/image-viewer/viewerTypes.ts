@@ -3,6 +3,7 @@ import type { ViewerImageInfo } from './ImageViewerHeader';
 
 export interface ViewerImage {
   url: string;
+  fullUrl?: string;
   name: string;
   downloadName?: string;
   previewUrl?: string;

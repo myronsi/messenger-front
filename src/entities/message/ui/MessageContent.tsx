@@ -126,6 +126,10 @@ const MessageContent: React.FC<MessageContentProps> = ({
     <ImageMessage
       fileUrl={fullFileUrl}
       thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
+      displayUrl={message.content.display_url ? resolveMediaUrl(message.content.display_url) : undefined}
+      animationUrl={message.content.animation_url}
+      placeholder={message.content.placeholder}
+      processing={message.content.processing}
       width={message.content.image_width}
       height={message.content.image_height}
       fileName={fileName}

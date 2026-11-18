@@ -236,6 +236,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             canAdd={albumsEnabled && canAddToSelection(selectedFiles) && !isDisabled}
             onAdd={() => fileInputRef.current?.click()}
             onRemove={(index) => setSelectedFiles(current => current.filter((_, item) => item !== index))}
+            onReplace={(index, file) => setSelectedFiles(current => current.map((item, at) => (at === index ? file : item)))}
             drawings={fileDrawings.drawings} onDrawingChange={isGoApi() ? fileDrawings.setDrawing : undefined} />
         )}</ComposerReveal>
         <div className="flex items-end gap-2">

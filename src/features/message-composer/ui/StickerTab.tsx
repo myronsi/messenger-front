@@ -25,7 +25,7 @@ const Section = ({ title, stickers, onPick, label }: SectionProps) => (
         <button key={sticker.id} type="button" aria-label={label(sticker.emoji)} title={sticker.emoji}
           className="motion-press aspect-square rounded-lg p-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => onPick(sticker)}>
-          <StickerImage url={sticker.image.url} emoji={sticker.emoji} className="h-full w-full" />
+          <StickerImage url={sticker.image.url} stillUrl={sticker.image.panel_url} emoji={sticker.emoji} className="h-full w-full" />
         </button>
       ))}
     </div>
