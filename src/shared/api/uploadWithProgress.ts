@@ -4,6 +4,7 @@ import { authFetch, ensureAccessToken, refreshAccessToken } from '@/shared/auth/
 import { isGoApi } from './goSocket';
 import type { components } from './generated/schema';
 import { applyClientVersionToXhr, reportIfClientOutdated } from '@/shared/api/clientVersionFetch';
+import { resumableUpload, shouldResume } from './resumableUpload';
 
 interface UploadWithProgressOptions {
   url: string;
@@ -74,10 +75,10 @@ export const uploadWithProgress = async <T = unknown>(options: UploadWithProgres
       form.set('purpose', 'message');
       if (voice) form.set('kind', 'voice');
       const uploaded = attachmentIds.length;
-      const attachment = await uploadWithProgress<components['schemas']['Attachment']>({
-        ...options, url: `${base}/attachments`, formData: form,
-        onProgress: percent => options.onProgress?.(((uploaded + percent / 100) / files.length) * 95),
-      });
+      const progress = (percent: number) => options.onProgress?.(((uploaded + percent / 100) / files.length) * 95);
+      const attachment = shouldResume(file)
+        ? await resumableUpload(file, { kind: voice ? 'voice' : undefined, onProgress: progress, signal: options.signal })
+        : await uploadWithProgress<components['schemas']['Attachment']>({ ...options, url: `${base}/attachments`, formData: form, onProgress: progress });
       attachmentIds.push(attachment.id);
     }
     const drawn = JSON.parse(String(options.formData.get('drawings') || '[]')) as (components['schemas']['Drawing'] | null)[];

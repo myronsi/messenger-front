@@ -5,7 +5,7 @@ import { uploadWithProgress } from '@/shared/api/uploadWithProgress';
 import { useVoicePreview } from './useVoicePreview';
 
 const BASE_URL = getApiBaseUrl();
-const OPUS_AUDIO_BITS_PER_SECOND = 48_000;
+const OPUS_AUDIO_BITS_PER_SECOND = 32_000;
 const MIN_RECORDING_MS = 1000;
 const RECORDING_TOO_SHORT_MESSAGE = 'Recording was too short and was not sent. Hold the mic to record, or slide up to lock it.';
 const OPUS_MIME_TYPES = [
@@ -114,7 +114,7 @@ export const useVoiceRecorder = ({
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
       if (!recordingIntentRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;

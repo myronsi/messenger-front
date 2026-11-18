@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Brush, Plus, X } from 'lucide-react';
+import { Brush, FileImage, Plus, X } from 'lucide-react';
+import { originalOf } from '@/shared/lib/compressImage';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { isAlbumFile } from '@/shared/lib/uploadValidation';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -43,9 +44,10 @@ interface SelectedMediaTileProps {
   drawing?: FileDrawing;
   onRemove: () => void;
   onDraw?: () => void;
+  onOriginal?: (original: File) => void;
 }
 
-function SelectedMediaTile({ file, removeLabel, drawing, onRemove, onDraw }: SelectedMediaTileProps) {
+function SelectedMediaTile({ file, removeLabel, drawing, onRemove, onDraw, onOriginal }: SelectedMediaTileProps) {
   const { translations: t } = useLanguage();
   const url = useObjectUrl(file);
   const isVideo = isVideoFile(file);
@@ -60,6 +62,13 @@ function SelectedMediaTile({ file, removeLabel, drawing, onRemove, onDraw }: Sel
         <button type="button" onClick={onDraw} aria-label={`${drawing ? t.drawingEdit : t.drawOnImage} ${file.name}`} title={t.drawOnImage}
           className={`motion-press absolute bottom-1 left-1 grid size-6 place-items-center rounded-full text-white backdrop-blur-sm transition-colors ${drawing ? 'bg-primary' : 'bg-black/60 hover:bg-black/80'}`}>
           <Brush className="size-3.5" />
+        </button>
+      )}
+      {onOriginal && originalOf(file) && (
+        <button type="button" onClick={() => onOriginal(originalOf(file) as File)} aria-label={`${t.sendAsFile} ${file.name}`} title={t.sendAsFileHint}
+          data-testid="send-original"
+          className="motion-press absolute bottom-1 right-1 grid size-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/80">
+          <FileImage className="size-3.5" />
         </button>
       )}
       <button type="button" onClick={onRemove} aria-label={`${removeLabel} ${file.name}`}
@@ -79,15 +88,17 @@ interface SelectedMediaStripProps {
   onRemove: (index: number) => void;
   drawings?: FileDrawings;
   onDrawingChange?: (file: File, value: FileDrawing | null) => void;
+  onReplace?: (index: number, file: File) => void;
 }
 
-function SelectedMediaStrip({ files, removeLabel, addLabel, canAdd, onAdd, onRemove, drawings, onDrawingChange }: SelectedMediaStripProps) {
+function SelectedMediaStrip({ files, removeLabel, addLabel, canAdd, onAdd, onRemove, drawings, onDrawingChange, onReplace }: SelectedMediaStripProps) {
   const [editing, setEditing] = useState<File | null>(null);
   return (
     <div data-testid="selected-media" className="flex gap-2 overflow-x-auto rounded-2xl border border-border/60 bg-background/55 p-2 backdrop-blur-2xl">
       {files.map((file, index) => (
         <SelectedMediaTile key={`${file.name}-${file.size}-${file.lastModified}-${index}`} file={file} removeLabel={removeLabel}
-          drawing={drawings?.get(file)} onRemove={() => onRemove(index)} onDraw={onDrawingChange && (() => setEditing(file))} />
+          drawing={drawings?.get(file)} onRemove={() => onRemove(index)} onDraw={onDrawingChange && (() => setEditing(file))}
+          onOriginal={onReplace && ((original) => onReplace(index, original))} />
       ))}
       {editing && onDrawingChange && (
         <FileDrawingEditor file={editing} value={drawings?.get(editing)} onCancel={() => setEditing(null)}
@@ -127,7 +138,8 @@ export default function SelectedFiles(props: SelectedMediaStripProps) {
     <div data-testid="selected-files" className="flex flex-col gap-1.5">
       {grouped && media.length > 1 && <GroupLabel text={fillTemplate(t.selectedAlbumGroup, { count: String(media.length) })} />}
       {media.length > 0 && (
-        <SelectedMediaStrip {...props} files={media.map(({ file }) => file)} onRemove={(index) => props.onRemove(media[index].index)} />
+        <SelectedMediaStrip {...props} files={media.map(({ file }) => file)} onRemove={(index) => props.onRemove(media[index].index)}
+          onReplace={props.onReplace && ((index, file) => props.onReplace?.(media[index].index, file))} />
       )}
       {grouped && <GroupLabel text={fillTemplate(t.selectedSeparateFiles, { count: String(others.length) })} />}
       {others.length > 0 && (

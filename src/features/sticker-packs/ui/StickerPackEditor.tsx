@@ -97,7 +97,7 @@ export const StickerPackEditor = ({ packId, onBack }: StickerPackEditorProps) =>
       <div className="flex items-center gap-2">
         <button type="button" className={iconButton} aria-label={translations.back} onClick={onBack}><ArrowLeft className="h-4 w-4" /></button>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/60 p-0.5 text-muted-foreground">
-          {cover ? <StickerImage url={cover.image.url} emoji={cover.emoji} className="h-full w-full" /> : <StickerIcon className="h-5 w-5" />}
+          {cover ? <StickerImage url={cover.image.url} stillUrl={cover.image.panel_url} emoji={cover.emoji} className="h-full w-full" /> : <StickerIcon className="h-5 w-5" />}
         </span>
         <input
           className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-base font-semibold hover:border-input focus:border-input focus:outline-none"
@@ -183,7 +183,7 @@ export const StickerPackEditor = ({ packId, onBack }: StickerPackEditorProps) =>
                 selected === sticker.id ? 'scale-[1.04] bg-primary/20 ring-[3px] ring-primary'
                   : `bg-muted/40 hover:bg-accent ${selected ? 'opacity-45 hover:opacity-80' : ''}`}`}
               onClick={() => setSelected(selected === sticker.id ? null : sticker.id)}>
-              <StickerImage url={sticker.image.url} emoji={sticker.emoji} className="h-full w-full" />
+              <StickerImage url={sticker.image.url} stillUrl={sticker.image.panel_url} emoji={sticker.emoji} className="h-full w-full" />
               {selected === sticker.id && (
                 <span className="absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
                   <Check className="h-4 w-4" />

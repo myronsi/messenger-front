@@ -9,16 +9,16 @@ const Marked = ({ text, query }: { text: string; query: string }) => (
     ? <mark key={index} data-search-match className="rounded-sm bg-highlight text-inherit">{part.text}</mark> : part.text)}</>
 );
 
-const Highlighted = ({ text, query }: { text: string; query: string }) => (
+const Highlighted = ({ text, query, large }: { text: string; query: string; large?: boolean }) => (
   <>{splitEmoji(text).map((part, index) => (part.kind === 'text'
     ? <Marked key={index} text={part.text} query={query} />
-    : <CustomEmoji key={index} id={part.token.id} shortcode={part.token.shortcode} />))}</>
+    : <CustomEmoji key={index} id={part.token.id} shortcode={part.token.shortcode} large={large} />))}</>
 );
 
-export function LinkedMessageText({ text }: { text: string }) {
+export function LinkedMessageText({ text, large }: { text: string; large?: boolean }) {
   const query = useSearchHighlight();
   const displayText = text.replace(/[ \t]+(?=\r?$)/gm, '');
   return <>{messageLinks(displayText).map((part, index) => part.href
     ? <MessageLink key={index} href={part.href}><Highlighted text={part.text} query={query} /></MessageLink>
-    : <Highlighted key={index} text={part.text} query={query} />)}</>;
+    : <Highlighted key={index} text={part.text} query={query} large={large} />)}</>;
 }
