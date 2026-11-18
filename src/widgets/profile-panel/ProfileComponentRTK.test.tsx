@@ -30,6 +30,7 @@ vi.mock('./ui/ApprovalRequestsPage', () => ({ default: () => null }));
 vi.mock('./ui/LanguageSettingsPage', () => ({ default: () => null }));
 vi.mock('./ui/AppearanceSettingsPage', () => ({ default: () => null }));
 vi.mock('./ui/AboutPage', () => ({ default: () => null }));
+vi.mock('@/features/moderation', () => ({ AccountStatusPage: () => null }));
 
 const renderSettings = () => render(
   <LanguageProvider><ProfileComponentRTK username="myron" onClose={vi.fn()} onLogout={vi.fn()} /></LanguageProvider>,

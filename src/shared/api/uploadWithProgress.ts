@@ -4,6 +4,7 @@ import { authFetch, ensureAccessToken, refreshAccessToken } from '@/shared/auth/
 import { isGoApi } from './goSocket';
 import type { components } from './generated/schema';
 import { applyClientVersionToXhr, reportIfClientOutdated } from '@/shared/api/clientVersionFetch';
+import { reportIfAccountRestricted } from './accountRestriction';
 import { resumableUpload, shouldResume } from './resumableUpload';
 
 interface UploadWithProgressOptions {
@@ -53,7 +54,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress, signal }: Uploa
         return;
       }
 
-      reportIfClientOutdated(xhr.status, parsedBody);
+      if (!reportIfClientOutdated(xhr.status, parsedBody)) reportIfAccountRestricted(xhr.status, parsedBody);
       reject({ status: xhr.status, body: parsedBody });
     };
 

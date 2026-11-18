@@ -113,7 +113,7 @@ export const useMessageEvents = ({
         ));
         return;
       case 'error':
-        if (event.operation_error) setModal({ type: 'error', message: event.message ?? '' });
+        if (event.operation_error) { if (event.code !== 'account_restricted') setModal({ type: 'error', message: event.message ?? '' }); }
         else if (event.message_id) {
           markMessageFailed(event.message_id, event.field === 'voice_video_messages' ? translationsRef.current.voiceVideoBlocked : event.message);
           if (event.code && SERVER_KEPT_ERRORS.has(event.code)) setMessages(previous => markServerKept(previous, event.message_id!));

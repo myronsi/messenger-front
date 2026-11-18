@@ -1,16 +1,22 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { longPress } from '@/test/longPress';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import ChatHeader from './ChatHeader';
 
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 vi.mock('@/features/profile', () => ({ useGetCurrentUserQuery: () => ({ data: { username: 'me' } }) }));
+const peer = vi.hoisted(() => ({ current: undefined as undefined | { id: string; account_label?: string } }));
+vi.mock('@/entities/user', () => ({ useGetUserByUsernameQuery: () => ({ data: peer.current }) }));
+vi.mock('@/features/moderation', async () => ({
+  ...await vi.importActual<typeof import('@/features/moderation')>('@/features/moderation'),
+  ReportUserDialog: ({ name }: { name: string }) => <div role="dialog">report {name}</div>,
+}));
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en } = await import('@/shared/lang/en');
   return { useLanguage: () => ({ language: 'en', translations: { ...en, search: 'Search', back: 'Back' } }) };
 });
 
-beforeEach(() => vi.useFakeTimers());
+beforeEach(() => { vi.useFakeTimers(); peer.current = undefined; });
 afterEach(() => vi.useRealTimers());
 
 it('opens the direct chat search with a long press on the header', () => {
@@ -43,4 +49,22 @@ it('keeps last seen on one short line on phones and gives the full wording as a 
   expect(phone).toHaveTextContent(/^seen yesterday, /);
   expect(wide).toHaveClass('max-md:hidden');
   expect(wide).toHaveTextContent(/^last seen yesterday at /);
+});
+
+it('shows the restricted account label and offers a report from the header menu', () => {
+  peer.current = { id: '42', account_label: 'restricted' };
+  render(<ChatHeader chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+    onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
+  expect(screen.getByTestId('restricted-account-label')).toHaveTextContent('Restricted account');
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), { button: 0, ctrlKey: false, pointerType: 'mouse' });
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Report' }));
+  expect(screen.getByRole('dialog')).toHaveTextContent('report Eve');
+});
+
+it('has no report menu or label for the chat with yourself', () => {
+  peer.current = { id: '1', account_label: 'restricted' };
+  render(<ChatHeader chatName="me" chatDisplayName="Mia" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+    onOpenProfile={vi.fn()} interlocutorAvatar="/me.png" />);
+  expect(screen.queryByTestId('restricted-account-label')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
 });

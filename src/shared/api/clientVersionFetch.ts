@@ -3,6 +3,7 @@ import { clientVersionHeaders } from './clientVersion';
 import { reportClientOutdated } from './updateGate';
 import { withGoTransport } from './goTransport';
 import { setContractFetch } from './contractFetch';
+import { reportIfAccountRestricted } from './accountRestriction';
 
 const BASE_URL = getApiBaseUrl();
 
@@ -38,9 +39,10 @@ export const reportIfClientOutdated = (status: number, body: unknown) => {
 };
 
 const inspectResponse = async (response: Response) => {
-  if (response.status !== 426) return;
+  if (response.status !== 426 && response.status !== 403) return;
   try {
-    reportIfClientOutdated(response.status, await response.clone().json());
+    const body = await response.clone().json();
+    if (!reportIfClientOutdated(response.status, body)) reportIfAccountRestricted(response.status, body);
   } catch {
     // not a problem+json body
   }

@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowLeft, Ban, Cake, Eraser, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Ban, Cake, Eraser, Flag, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { ProfileActions, ProfileBanner, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -10,6 +10,7 @@ import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { ChatMuteAction } from '@/features/chat-mute';
 import { CallButton, useCallsAvailable } from '@/features/calls';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
+import { ReportUserDialog, RestrictedAccountLabel } from '@/features/moderation';
 import { ContactNameHeading } from './ContactNameHeading';
 import type { ProfilePanelView } from './UserProfilePanelContent';
 import type { ProfileBackground } from '@/entities/user';
@@ -41,6 +42,7 @@ interface UserProfileHeroProps extends HeadingProps {
   pronouns?: string | null;
   background?: ProfileBackground | null;
   birthdayToday?: boolean;
+  accountLabel?: string | null;
 }
 
 const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
@@ -49,6 +51,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
   const presence = usePresenceLabel(props.isOnline, props.lastSeen);
   const hasChat = !!props.directChatId && isPersistedId(props.directChatId);
   const callsAvailable = useCallsAvailable();
+  const [reportOpen, setReportOpen] = useState(false);
   const cleanup = useChatCleanup(() => toast(translations.chatCleanup.cleared), (message) => toast(message || translations.errorLoading));
   const clearHistory = () => props.directChatId && cleanup.open({ kind: 'clear', target: {
     chatId: props.directChatId, name: props.displayName, isGroup: false, isSaved: props.isCurrentUser, canClearForEveryone: false,
@@ -77,6 +80,9 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
     ...(!props.isCurrentUser ? [{
       key: 'block', label: props.isBlocked ? t.unblock : t.block, danger: !props.isBlocked, icon: <Ban className="h-4 w-4" />, onSelect: props.onBlock,
     }] : []),
+    ...(!props.isCurrentUser && props.userId ? [{
+      key: 'report', label: translations.moderation.report, danger: true, icon: <Flag className="h-4 w-4" />, onSelect: () => setReportOpen(true),
+    }] : []),
   ];
 
   const copyUsername = () => void copyText(`@${props.username}`).then((ok) => { if (ok) toast(translations.messagesCopied); });
@@ -93,6 +99,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
         subtitle={<>
           <button type="button" onClick={copyUsername} data-morph="username" data-morph-mode="move" className="font-medium text-primary hover:underline">@{props.username}</button>
           {props.pronouns && <><span aria-hidden="true">·</span><span data-testid="profile-pronouns">{props.pronouns}</span></>}
+          {props.accountLabel && <RestrictedAccountLabel label={props.accountLabel} />}
           {props.birthdayToday && <Cake data-testid="profile-birthday-today" className="h-4 w-4 text-primary" aria-label={translations.profileExtras.birthdayToday} />}
           {!props.isCurrentUser && <>
             <span aria-hidden="true">·</span>
@@ -105,6 +112,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
       />
       <ProfileTabs tabs={props.tabs.map((key) => ({ key, label: tabLabels[key] }))} active={props.activeView} onSelect={props.onSelectView} />
       <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
+      {reportOpen && props.userId && <ReportUserDialog userId={props.userId} name={props.displayName} onClose={() => setReportOpen(false)} />}
     </div>
   );
 };

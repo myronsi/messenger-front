@@ -70,6 +70,20 @@ describe('client version headers', () => {
     expect(gate.getUpdateStatus()).toBe('none');
   });
 
+  it('reports a 403 account_restricted response and still returns it', async () => {
+    const { withClientVersion } = await load();
+    const restriction = await import('./accountRestriction');
+    const listener = vi.fn();
+    const stop = restriction.subscribeAccountRestricted(listener);
+    baseFetch.mockResolvedValue(problem(403, { code: 'account_restricted', status: 403, restriction: 'create_group' }));
+
+    const response = await withClientVersion(baseFetch)(`${API}/groups`);
+
+    stop();
+    expect(response.status).toBe(403);
+    expect(listener).toHaveBeenCalledWith({ restriction: 'create_group' });
+  });
+
   it('does not fail on a 426 without a JSON body', async () => {
     const { withClientVersion, gate } = await load();
     baseFetch.mockResolvedValue(new Response('Upgrade Required', { status: 426 }));

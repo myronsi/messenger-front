@@ -19,6 +19,6 @@ describe('goServerEvent errors', () => {
 
   it('still reports errors of messages and operations', () => {
     expect(goServerEvent(error('c-1'), '5')).toEqual({ type: 'error', message: 'data does not match the typing event', message_id: 'c-1', code: 'validation_failed' });
-    expect(goServerEvent(error('op:1'), '5')).toEqual({ type: 'error', message: 'data does not match the typing event', operation_error: true });
+    expect(goServerEvent(error('op:1'), '5')).toEqual({ type: 'error', message: 'data does not match the typing event', operation_error: true, code: 'validation_failed' });
   });
 });

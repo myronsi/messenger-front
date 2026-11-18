@@ -1,5 +1,5 @@
 import { ChatCoveredContext } from '@/shared/contexts/ChatCoveredContext';
-import { RecoverySetupPrompt, RecoveryApprovalPrompt, SecurityNoticeHandler } from '@/widgets/profile-panel';
+import { RecoverySetupPrompt, RecoveryApprovalPrompt, SecurityNoticeHandler, AccountStatusHost } from '@/widgets/profile-panel';
 import { isGoApi } from '@/shared/api/goSocket';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
@@ -202,7 +202,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
         <ReactionBurstHost />
         {isGoApi() && <RecoverySetupPrompt key={username} />}
         {<RecoveryApprovalPrompt key={`approval:${username}`} />}
-        {<SecurityNoticeHandler key={`security:${username}`} />}
+        {<SecurityNoticeHandler key={`security:${username}`} />}{isGoApi() && <AccountStatusHost key={`moderation:${username}`} />}
         {<CallProvider key={`calls:${username}`} openChatId={currentChat ? String(currentChat.id) : null} />}
         {isGoApi() && <StickerManagerHost linkSlug={stickerLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}
         {isGoApi() && <EmojiManagerHost linkSlug={emojiLinkSlug(location.pathname)} onLinkClose={() => navigate('/', { replace: true })} />}

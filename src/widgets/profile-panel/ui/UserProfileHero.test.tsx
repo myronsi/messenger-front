@@ -12,6 +12,10 @@ vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: {
 vi.mock('@/entities/user', () => ({ useGetCommonGroupsQuery: () => ({ data: [] }) }));
 vi.mock('@/features/calls', () => ({ CallButton: () => <button type="button">call</button>, useCallsAvailable: () => true }));
 vi.mock('@/features/chat-mute', () => ({ ChatMuteAction: () => <button type="button">mute</button> }));
+vi.mock('@/features/moderation', async () => ({
+  ...await vi.importActual<typeof import('@/features/moderation')>('@/features/moderation'),
+  ReportUserDialog: ({ name }: { name: string }) => <div role="dialog">report {name}</div>,
+}));
 vi.mock('@/features/chat-cleanup', () => ({
   useChatCleanup: () => ({ request: null, open: cleanupOpen, close: vi.fn(), confirm: vi.fn() }), ChatCleanupDialog: () => null,
 }));
@@ -64,6 +68,21 @@ describe('UserProfileHero', () => {
     renderHero({ isOnline: true });
     expect(screen.getByTestId('profile-online-dot')).toBeInTheDocument();
     expect(screen.getByTestId('profile-presence')).toHaveTextContent(en.profileRework.onlineNow);
+  });
+
+  it('offers a report for other users and shows the restricted account label', () => {
+    renderHero({ userId: '9', accountLabel: 'restricted' });
+    expect(screen.getByTestId('restricted-account-label')).toHaveTextContent(en.moderation.restrictedLabel);
+    openMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: en.moderation.report }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('report Bea');
+  });
+
+  it('has no report entry on your own profile', () => {
+    renderHero({ userId: '9', isCurrentUser: true, canMessage: false });
+    expect(screen.queryByTestId('restricted-account-label')).not.toBeInTheDocument();
+    if (screen.queryByRole('button', { name: en.profileRework.more })) openMenu();
+    expect(screen.queryByRole('menuitem', { name: en.moderation.report })).not.toBeInTheDocument();
   });
 
   it('leaves out the online dot and status on your own profile', () => {

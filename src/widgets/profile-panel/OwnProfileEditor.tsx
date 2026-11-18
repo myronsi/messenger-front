@@ -1,3 +1,4 @@
+import { isAccountRestricted } from '@/shared/api/accountRestriction';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
@@ -37,8 +38,8 @@ export default function OwnProfileEditor({ onBack }: OwnProfileEditorProps) {
     if (!await account.handleSavePersonalInfo()) return false;
     try {
       await media.save();
-    } catch {
-      account.setModal({ type: 'error', message: translations.profileSaveFailed });
+    } catch (error) {
+      if (!isAccountRestricted(error)) account.setModal({ type: 'error', message: translations.profileSaveFailed });
       return false;
     }
     onBack();

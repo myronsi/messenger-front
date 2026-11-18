@@ -10,6 +10,9 @@ import { AudioPlayerBar } from '@/features/audio-player';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { selfName } from '@/shared/lib/selfName';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { useGetUserByUsernameQuery } from '@/entities/user';
+import { RestrictedAccountLabel } from '@/features/moderation';
+import { ChatHeaderMenu } from './ChatHeaderMenu';
 
 interface ChatHeaderProps {
   chatId?: EntityId;
@@ -36,6 +39,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const saved = !!me?.username && me.username.toLowerCase() === chatName.toLowerCase();
   const displayName = saved ? selfName(chatDisplayName || chatName, translations) : chatDisplayName || chatName;
   const longPress = useLongPress(onOpenSearch);
+  const { data: peer } = useGetUserByUsernameQuery(chatName, { skip: saved || interlocutorDeleted || !chatName });
 
   return (
     <>
@@ -47,7 +51,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left md:space-x-0">
             <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-border object-cover md:hidden" />
             <span className="flex min-w-0 flex-col items-start">
-              <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : <EmojiText text={displayName} />}</span>
+              <span className="flex max-w-full items-center gap-2">
+                <span className="truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : <EmojiText text={displayName} />}</span>
+                {!interlocutorDeleted && !saved && <RestrictedAccountLabel label={peer?.account_label} className="shrink-0" />}
+              </span>
               {!interlocutorDeleted && !saved && (
                 <span data-testid="chat-header-presence" title={presenceLabel}
                   className="max-w-full truncate text-xs font-normal leading-tight text-muted-foreground">
@@ -71,6 +78,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <Search className="h-5 w-5" />
             </button>
           )}
+          {!interlocutorDeleted && !saved && peer?.id && <ChatHeaderMenu userId={peer.id} name={displayName} />}
         </div>
       </div>
       <AudioPlayerBar />

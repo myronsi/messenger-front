@@ -18,7 +18,7 @@ export const chatOrganizer = {
     requestBannerText: "You do not share any chat yet. They won't see that you read their messages until you accept or reply.",
     acceptRequest: "Accept",
     deleteRequest: "Delete",
-    blockRequest: "Block",
+    reportAndBlockRequest: "Report and block",
     requestAccepted: "Chat moved to your chats",
   },
 };
