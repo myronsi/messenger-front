@@ -234,7 +234,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
             )}
             <div className={bubbleClass({ isMine, showTail, isImage, isText, isSticker, hasReactions, deleting: message.is_deleting })}>
               {message.forwarded_from && (
-                <ForwardedLabel forwardedFrom={message.forwarded_from} translations={translations} isMine={tinted} isImage={isImage} />
+                <ForwardedLabel forwardedFrom={message.forwarded_from} translations={translations} isMine={tinted} isImage={isImage}
+                  onOpenSender={onAvatarClick} />
               )}
               {message.reply_to && (
                 <ReplyPreview replyMessage={replyMessage} isMine={tinted} isReplyToOwn={!!replyMessage && isOwnMessage(replyMessage)} isImage={isImage}

@@ -7,7 +7,7 @@ import type { PrivacyExceptionKey, PrivacySettings } from '../model/types';
 type Schema = components['schemas'];
 const keys: PrivacyExceptionKey[] = [
   'avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'birthday_visibility', 'group_invites', 'direct_messages',
-  'search_visibility', 'calls_from',
+  'search_visibility', 'calls_from', 'voice_video_messages', 'forward_link',
 ];
 const fromApi = <T extends string>(value: T) => {
   if (value === 'contacts') return 'shared_chats' as const;
@@ -35,11 +35,14 @@ export const privacyModel = async (settings: Schema['PrivacySettings'], signal?:
     calls_from: fromApi(settings.calls_from ?? (settings.calls_enabled === false ? 'nobody' : 'everyone')),
     typing_indicators_enabled: settings.typing_indicators_enabled ?? true,
     direct_messages: fromApi(settings.direct_messages), group_invites: fromApi(settings.group_invites),
-    search_visibility: settings.search_visibility, privacy_exceptions: {
+    search_visibility: settings.search_visibility,
+    voice_video_messages: settings.voice_video_messages === 'contacts' ? 'shared_chats' : 'everyone',
+    forward_link: fromApi(settings.forward_link ?? 'everyone'), privacy_exceptions: {
       avatar_visibility: exceptions('avatar_visibility'), profile_visibility: exceptions('profile_visibility'),
       presence_visibility: exceptions('presence_visibility'), last_seen_visibility: exceptions('last_seen_visibility'),
       birthday_visibility: exceptions('birthday_visibility'), group_invites: exceptions('group_invites'),
       direct_messages: exceptions('direct_messages'), search_visibility: exceptions('search_visibility'), calls_from: exceptions('calls_from'),
+      voice_video_messages: exceptions('voice_video_messages'), forward_link: exceptions('forward_link'),
     },
   };
 };
@@ -49,5 +52,6 @@ export const privacyPatch = (patch: Partial<PrivacySettings>): Schema['UpdatePri
   presence_visibility: toApi(patch.presence_visibility), last_seen_visibility: toApi(patch.last_seen_visibility),
   birthday_visibility: toApi(patch.birthday_visibility), group_invites: toApi(patch.group_invites),
   direct_messages: toApi(patch.direct_messages), calls_from: toApi(patch.calls_from), search_visibility: patch.search_visibility,
+  voice_video_messages: toApi(patch.voice_video_messages), forward_link: toApi(patch.forward_link),
   read_receipts_enabled: patch.read_receipts_enabled, typing_indicators_enabled: patch.typing_indicators_enabled,
 });

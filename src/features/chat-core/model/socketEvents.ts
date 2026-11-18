@@ -90,6 +90,7 @@ export interface ErrorEvent {
   message_id?: EntityId;
   operation_error?: boolean;
   code?: string;
+  field?: string;
 }
 
 export interface ChatDeletedEvent {

@@ -9,6 +9,7 @@ interface ComposerActionButtonProps {
   disabled: boolean;
   cancelLabel: string;
   editLabel?: string;
+  hint?: string;
   onClick: () => void;
   holding?: boolean;
   lift?: number;
@@ -28,13 +29,13 @@ const icon = (visible: boolean, from: 'above' | 'below') => `absolute inset-0 fl
 }`;
 
 const ComposerActionButton: React.FC<ComposerActionButtonProps> = ({
-  mode, disabled, cancelLabel, editLabel, onClick, holding = false, lift = 0, holdHandlers,
+  mode, disabled, cancelLabel, editLabel, hint, onClick, holding = false, lift = 0, holdHandlers,
 }) => {
   const progress = Math.min(1, lift / LOCK_DISTANCE);
   const live = mode === 'recording' && !holding;
   const calm = mode === 'send' || (mode === 'recording' && holding);
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0" title={hint}>
       <div
         data-testid="recording-lock"
         aria-hidden="true"

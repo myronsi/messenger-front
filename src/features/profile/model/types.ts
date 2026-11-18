@@ -9,8 +9,9 @@ export type GroupInvitePrivacyVisibility = PresencePrivacyVisibility | 'wait_app
 export type CallsPrivacyVisibility = ExceptionPrivacyVisibility;
 export type PrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
 export type SearchVisibility = 'everyone' | 'nobody';
+export type ForwardLinkVisibility = BasicPrivacyVisibility | 'nobody';
 export type PrivacyExceptionKey = 'avatar_visibility' | 'profile_visibility' | 'presence_visibility' | 'last_seen_visibility' | 'birthday_visibility'
-  | 'group_invites' | 'direct_messages' | 'search_visibility' | 'calls_from';
+  | 'group_invites' | 'direct_messages' | 'search_visibility' | 'calls_from' | 'voice_video_messages' | 'forward_link';
 export type PrivacyExceptionEffect = 'allow' | 'deny';
 export type PrivacyExceptionLists = Record<PrivacyExceptionKey, Record<PrivacyExceptionEffect, User[]>>;
 
@@ -26,6 +27,8 @@ export interface PrivacySettings {
   direct_messages: DirectMessagePrivacyVisibility;
   group_invites: GroupInvitePrivacyVisibility;
   search_visibility: SearchVisibility;
+  voice_video_messages: BasicPrivacyVisibility;
+  forward_link: ForwardLinkVisibility;
   privacy_exceptions: PrivacyExceptionLists;
 }
 

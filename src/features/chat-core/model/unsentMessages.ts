@@ -58,7 +58,13 @@ export const useUnsentMessageRelease = (chatId: EntityId, setMessages: SetMessag
   return { uploadSourcesRef, uploadingRef, releasedRef, releaseSource, dropCancelledUpload };
 };
 
+export const voiceVideoRefusal = (error: unknown, translations: Translations) => {
+  const errors = (error as { body?: { errors?: { field?: string }[] } } | null)?.body?.errors;
+  return Array.isArray(errors) && errors.some((item) => item?.field === 'voice_video_messages') ? translations.voiceVideoBlocked : undefined;
+};
+
 export const deliveryErrorText = (message: string | undefined, translations: Translations) => {
+  if (message && message === translations.voiceVideoBlocked) return message;
   const lowerMessage = (message || '').toLowerCase();
   if (lowerMessage.includes('block')) {
     return translations.messageNotDeliveredBlocked || "This message could not be delivered due to the recipient's privacy settings.";

@@ -23,6 +23,7 @@ import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetBlockedUsersQuery } from '@/entities/user';
 import { useChatRequest } from './model/useChatRequest';
 import ChatRequestBanner from './ui/ChatRequestBanner';
+import { useVoiceVideoBlocked } from './model/useVoiceVideoBlocked';
 
 export type { ChatProps } from './model/types';
 
@@ -40,6 +41,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const isPreview = !isPersistedId(chatId);
 
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
+  const voiceVideoBlocked = useVoiceVideoBlocked(chatId, username);
   const isBlockedByMe = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username.toLowerCase() === chatName.toLowerCase());
 
   const {
@@ -230,8 +232,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
             draftRef={composerDraftRef} setReplyTo={setReplyTo} setEditingMessage={setEditingMessage}
             messageInput={isPreview ? previewMessageInput : undefined}
             setMessageInput={isPreview ? setPreviewMessageInput : undefined}
-            replyTo={replyTo}
-            editingMessage={editingMessage}
+            replyTo={replyTo} editingMessage={editingMessage}
             onSendMessage={isPreview ? handleSendMessagePreview : request.withReply(handleSendMessage)}
             onSendSticker={isPreview || !handleSendSticker ? undefined : request.withReply(handleSendSticker)}
             onFileUpload={isPreview ? handleFileUploadPreview : request.withReply(handleFileUpload)}
@@ -244,9 +245,8 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
                 if (editingMessage) setMessageInput('');
               }
             }}
-            chatId={chatId}
-            token={token}
-            disableVoice={isPreview}
+            chatId={chatId} token={token}
+            disableVoice={isPreview} voiceVideoBlocked={voiceVideoBlocked}
             isSending={isPreview && isCreatingPreviewChat}
             disabled={isPreview && hasPendingApprovalRequest}
             onVoiceUploadStart={createOptimisticUploadMessage}

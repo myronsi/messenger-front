@@ -1,6 +1,6 @@
 import type { Drawing } from '@/shared/ui/drawing';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
-import { isAlbumFile, MAX_ALBUM_ITEMS, uploadLimitMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
+import { isAlbumFile, MAX_ALBUM_ITEMS, uploadKindOf, uploadLimitMegabytes, validateUploadFile } from '@/shared/lib/uploadValidation';
 
 export const MAX_SEPARATE_FILES = 10;
 
@@ -25,7 +25,10 @@ export const splitSelection = (files: readonly File[]) => ({
   others: files.filter((file) => !isAlbumFile(file)),
 });
 
-export const addToSelection = (current: readonly File[], selected: readonly File[], albumsEnabled: boolean, texts: SelectionTexts): SelectionResult => {
+export const addToSelection = (
+  current: readonly File[], selected: readonly File[], albumsEnabled: boolean, texts: SelectionTexts, videoBlocked?: string,
+): SelectionResult => {
+  if (videoBlocked && selected.some((file) => uploadKindOf(file.name) === 'video')) return { error: videoBlocked };
   const empty = selected.filter((file) => validateUploadFile(file) === 'empty');
   const notice = empty.length ? fillTemplate(texts.uploadFilesEmpty, { names: empty.map((file) => file.name).join(', ') }) : undefined;
   const incoming = selected.filter((file) => !empty.includes(file));

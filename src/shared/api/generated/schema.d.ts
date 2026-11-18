@@ -567,7 +567,7 @@ export interface paths {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from" | "voice_video_messages" | "forward_link";
                 effect: "allow" | "deny";
             };
             cookie?: never;
@@ -1535,6 +1535,9 @@ export interface paths {
          * Send a message over HTTP
          * @description Same as the WebSocket `message` event, for clients without a connection. Sending the
          *     same `client_temp_id` again returns the existing message instead of creating a copy.
+         *     A voice message, or a file message with a video, in a direct chat whose peer does not accept them from
+         *     the sender (`voice_video_messages`) is refused with `403` (`forbidden`, field `voice_video_messages`)
+         *     and kept as an unsent message.
          */
         post: operations["sendMessage"];
         delete?: never;
@@ -1697,7 +1700,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Forward a message to other chats */
+        /**
+         * Forward a message to other chats
+         * @description A voice message or a video forwarded into a direct chat whose peer does not accept them from the caller
+         *     is refused with `403` (`forbidden`, field `voice_video_messages`), and nothing is forwarded.
+         */
         post: operations["forwardMessage"];
         delete?: never;
         options?: never;
@@ -1725,7 +1732,8 @@ export interface paths {
          * Forward several messages of a chat to other chats
          * @description Copies up to 20 messages of the chat, oldest first, into every target chat, at most 20 copies in all. Every
          *     copy counts against the sender's message rate. Every message and target is checked before anything is
-         *     written, so a refused one forwards nothing.
+         *     written, so a refused one forwards nothing. Voice messages and videos follow the target peer's
+         *     `voice_video_messages` (`403`, field `voice_video_messages`).
          */
         post: operations["forwardMessages"];
         delete?: never;
@@ -4092,6 +4100,16 @@ export interface components {
         CallPolicy: "everyone" | "contacts" | "nobody";
         /** @enum {string} */
         SearchVisibility: "everyone" | "nobody";
+        /**
+         * @description Who may send the user voice messages and videos in a direct chat. Groups are not affected.
+         * @enum {string}
+         */
+        VoiceVideoPolicy: "everyone" | "contacts";
+        /**
+         * @description Who sees the link to the user's account (`ForwardedFrom.sender_id`) on copies of their forwarded messages.
+         * @enum {string}
+         */
+        ForwardLinkPolicy: "everyone" | "contacts" | "nobody";
         /** @description User IDs per setting. An exception wins over the setting whatever its value; `allow` always lets the user in, `deny` always keeps them out. */
         PrivacyExceptions: {
             [key: string]: {
@@ -4125,6 +4143,16 @@ export interface components {
             calls_from: components["schemas"]["CallPolicy"];
             /** @description Whether other members see that this user is typing or recording a voice message. The user still sees theirs. */
             typing_indicators_enabled: boolean;
+            /**
+             * @description Who may send this user voice messages, and file messages with a video, in a direct chat. Others get
+             *     `403` (`forbidden`, field `voice_video_messages`); their `Chat.peer.can_send_voice_video` is `false`.
+             */
+            voice_video_messages: components["schemas"]["VoiceVideoPolicy"];
+            /**
+             * @description Who sees `ForwardedFrom.sender_id` when this user's messages are forwarded. Others get `null`; the name
+             *     stays.
+             */
+            forward_link: components["schemas"]["ForwardLinkPolicy"];
             exceptions: components["schemas"]["PrivacyExceptions"];
         };
         UpdatePrivacySettingsRequest: {
@@ -4144,6 +4172,8 @@ export interface components {
             calls_enabled?: boolean;
             calls_from?: components["schemas"]["CallPolicy"];
             typing_indicators_enabled?: boolean;
+            voice_video_messages?: components["schemas"]["VoiceVideoPolicy"];
+            forward_link?: components["schemas"]["ForwardLinkPolicy"];
         };
         PrivacyExceptionsRequest: {
             user_ids: components["schemas"]["Id"][];
@@ -4174,6 +4204,11 @@ export interface components {
             is_online: boolean;
             last_seen: components["schemas"]["Timestamp"] | null;
             is_deleted: boolean;
+            /**
+             * @description Only on `Chat.peer` of a direct chat: whether the requesting user may send this user voice messages and
+             *     videos (their `voice_video_messages` setting and exceptions). Absent everywhere else.
+             */
+            can_send_voice_video?: boolean;
         };
         Me: components["schemas"]["User"] & {
             created_at: components["schemas"]["Timestamp"];
@@ -4536,6 +4571,10 @@ export interface components {
         };
         ForwardedFrom: {
             message_id: components["schemas"]["Id"];
+            /**
+             * @description The original sender; `null` when their account is gone or their `forward_link` setting hides it from the
+             *     requesting user. Clients then show `sender_name` as plain text, not as a link to a profile.
+             */
             sender_id: components["schemas"]["Id"] | null;
             sender_name: string;
         };
@@ -6254,7 +6293,7 @@ export interface operations {
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
             };
             path: {
-                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from";
+                setting_key: "avatar_visibility" | "profile_visibility" | "presence_visibility" | "last_seen_visibility" | "birthday_visibility" | "group_invites" | "direct_messages" | "search_visibility" | "calls_from" | "voice_video_messages" | "forward_link";
                 effect: "allow" | "deny";
             };
             cookie?: never;

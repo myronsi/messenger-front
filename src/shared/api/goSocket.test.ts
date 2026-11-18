@@ -8,6 +8,11 @@ const error = (clientTempId?: string) => ({
 }) as ServerEvent;
 
 describe('goServerEvent errors', () => {
+  it('keeps the field that caused a refused send', () => {
+    const refused = { type: 'error', event_id: '1', chat_id: '5', client_temp_id: 'v-1', data: { code: 'forbidden', message: 'no', field: 'voice_video_messages' } };
+    expect(goServerEvent(refused as ServerEvent, '5')).toMatchObject({ type: 'error', message_id: 'v-1', field: 'voice_video_messages' });
+  });
+
   it('ignores an error without client_temp_id, which only answers a typing event', () => {
     expect(goServerEvent(error(), '5')).toBeNull();
   });

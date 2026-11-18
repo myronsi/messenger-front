@@ -57,5 +57,6 @@ export const chat = {
   previousImage: "Предыдущее изображение",
   nextImage: "Следующее изображение",
   attachDisabledWhileEditing: "При редактировании сообщения нельзя прикрепить файл",
+  voiceVideoBlocked: "Этот человек не принимает от вас голосовые сообщения и видео",
   dropFileToAttach: "Отпустите файл, чтобы прикрепить",
 };
