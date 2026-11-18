@@ -114,7 +114,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
       chatId: chat.id,
       isPinned: !!chat.is_pinned,
       isArchived: !!chat.is_archived,
-      unreadCount: chat.unread_count || 0,
+      unreadCount: chat.is_request ? 0 : chat.unread_count || 0,
     }));
   };
 
@@ -151,6 +151,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
 
   const handleMarkChatRead = async (chatId: EntityId) => {
     const chat = chatsByIdRef.current[chatId];
+    if (chat?.is_request) return;
     const previousUnreadCount = chat?.unread_count ?? 0;
     const previousFirstUnreadId = chat?.first_unread_message_id ?? null;
     setChatContextMenu((current) => current?.chatId === chatId

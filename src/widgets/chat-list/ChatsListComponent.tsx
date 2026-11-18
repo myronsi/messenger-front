@@ -20,6 +20,8 @@ import { selfName } from '@/shared/lib/selfName';
 import { plainEmoji } from '@/shared/lib/customEmoji';
 import { AudioPlayerBar } from '@/features/audio-player';
 
+const unreadForMenu = (chat?: Chat) => (chat?.is_request ? 0 : chat?.unread_count || 0);
+
 const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const { onOpenRequests } = props;
   const model = useChatListModel(props);
@@ -126,7 +128,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
 
       <ChatContextMenu
         menu={model.chatContextMenu}
-        unreadCount={model.chats.find((chat) => chat.id === model.chatContextMenu?.chatId)?.unread_count || 0}
+        unreadCount={unreadForMenu(model.chats.find((chat) => chat.id === model.chatContextMenu?.chatId))}
         translations={model.translations}
         onMarkAsRead={model.handleMarkChatRead}
         onTogglePinned={model.handleTogglePinnedChat}

@@ -235,6 +235,7 @@ export interface Chat {
   is_pinned?: boolean;
   pin_position?: number | null;
   is_archived?: boolean;
+  is_request?: boolean;
   is_saved?: boolean;
   my_role?: string | null;
   pending_approval_request?: boolean;
