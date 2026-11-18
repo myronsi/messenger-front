@@ -57,7 +57,6 @@ const audioElement = () => {
   return audio;
 };
 
-
 const applyTrackPatch = (id: string, patch: Partial<AudioTrack>) => {
   if (!Object.keys(patch).length) return;
   const update = (item: AudioTrack) => (String(item.id) === id ? { ...item, ...patch } : item);
@@ -67,11 +66,12 @@ const applyTrackPatch = (id: string, patch: Partial<AudioTrack>) => {
   trackUpdateListeners.forEach((listener) => listener(id, patch));
 };
 
-const enrichTrack = async (track: AudioTrack, source: string) => {
+const enrichWhenPlaying = (audio: HTMLAudioElement, run: number, track: AudioTrack, source: string) => {
   if (track.kind !== 'music' || typeof fetch !== 'function') return;
-  applyTrackPatch(String(track.id), await trackTagPatch(track, source));
+  audio.addEventListener('playing', () => {
+    if (run === loadRun) void trackTagPatch(track, source).then((patch) => applyTrackPatch(String(track.id), patch));
+  }, { once: true });
 };
-
 
 const RESTART_AFTER_SECONDS = 3;
 const MAX_HISTORY = 20;
@@ -100,7 +100,7 @@ const load = async (index: number, startAt = 0) => {
     if (run !== loadRun) return;
   }
   audio.src = source;
-  void enrichTrack(track, source);
+  enrichWhenPlaying(audio, run, track, source);
   audio.defaultPlaybackRate = getPlaybackSpeed();
   audio.playbackRate = getPlaybackSpeed();
   if (startAt > 0) audio.currentTime = startAt;

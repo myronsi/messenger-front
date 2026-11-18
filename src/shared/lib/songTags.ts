@@ -107,10 +107,33 @@ export const readFlac = (bytes: Uint8Array): SongTags | null => {
   return tags;
 };
 
+export const id3Length = (bytes: Uint8Array) => (
+  bytes.length >= 10 && ascii(bytes, 0, 3) === 'ID3' ? 10 + synchsafe(bytes, 6) + (bytes[5] & 0x10 ? 10 : 0) : null
+);
+
+export const flacMetadataLength = (bytes: Uint8Array) => {
+  if (bytes.length < 4 || ascii(bytes, 0, 4) !== 'fLaC') return null;
+  let at = 4;
+  while (at + 4 <= bytes.length) {
+    const last = (bytes[at] & 0x80) !== 0;
+    at += 4 + uint24(bytes, at + 1);
+    if (last) return at;
+  }
+  return at + 4;
+};
+
+export const mp4Box = (bytes: Uint8Array) => {
+  if (bytes.length < 8) return null;
+  const size = uint32(bytes, 0);
+  const large = size === 1 && bytes.length >= 16 ? uint32(bytes, 8) * 2 ** 32 + uint32(bytes, 12) : size;
+  return { type: ascii(bytes, 4, 4), size: large };
+};
+
 const MP4_CONTAINERS = new Set(['moov', 'udta', 'meta', 'ilst']);
 
-export const readMp4 = (bytes: Uint8Array): SongTags | null => {
-  if (ascii(bytes, 4, 4) !== 'ftyp') return null;
+export const readMp4 = (bytes: Uint8Array): SongTags | null => (ascii(bytes, 4, 4) === 'ftyp' ? readMp4Boxes(bytes) : null);
+
+export const readMp4Boxes = (bytes: Uint8Array): SongTags => {
   const tags: SongTags = {};
   const walk = (from: number, to: number) => {
     let at = from;

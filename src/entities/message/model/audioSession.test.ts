@@ -2,7 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 const session = vi.hoisted(() => ({ token: 'token-a' as string | null, listeners: new Set<() => void>() }));
 vi.mock('@/shared/api/mediaCache', () => ({ isProtectedMedia: () => false, acquireMedia: vi.fn() }));
-vi.mock('@/shared/lib/songTags', () => ({ readSongTags: vi.fn(async () => ({})) }));
+vi.mock('@/shared/lib/remoteSongTags', () => ({ readRemoteSongTags: vi.fn(async () => ({})) }));
 vi.mock('@/shared/auth/session', () => ({
   getAccessToken: () => session.token,
   subscribeToAccessToken: (listener: () => void) => { session.listeners.add(listener); return () => session.listeners.delete(listener); },
