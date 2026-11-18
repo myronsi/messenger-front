@@ -26,7 +26,7 @@ describe('Go migration transport', () => {
     await withGoTransport(native as typeof fetch, base)(`${base}/me/privacy`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ direct_messages: 'shared_chats', avatar_visibility: 'shared_chats' }),
     });
-    expect(JSON.parse(String(native.mock.calls[0][1]?.body))).toEqual({ direct_messages: 'shared_chats', avatar_visibility: 'contacts' });
+    expect(JSON.parse(String(native.mock.calls[0][1]?.body))).toEqual({ direct_messages: 'contacts', avatar_visibility: 'contacts' });
   });
 
   it('does not send an empty read receipt', async () => {

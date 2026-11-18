@@ -2,14 +2,15 @@ import type { User } from '@/entities/user';
 import type { ApproximateLocation } from '@/shared/lib/locationLabel';
 
 export type BasicPrivacyVisibility = 'everyone' | 'shared_chats';
-export type ExceptionPrivacyVisibility = BasicPrivacyVisibility | 'everyone_except' | 'nobody_except' | 'nobody';
-export type PresencePrivacyVisibility = ExceptionPrivacyVisibility | 'nobody';
-export type DirectMessagePrivacyVisibility = BasicPrivacyVisibility | 'wait_approval';
+export type ExceptionPrivacyVisibility = BasicPrivacyVisibility | 'nobody';
+export type PresencePrivacyVisibility = ExceptionPrivacyVisibility;
+export type DirectMessagePrivacyVisibility = BasicPrivacyVisibility | 'wait_approval' | 'nobody';
 export type GroupInvitePrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
+export type CallsPrivacyVisibility = ExceptionPrivacyVisibility;
 export type PrivacyVisibility = PresencePrivacyVisibility | 'wait_approval';
 export type SearchVisibility = 'everyone' | 'nobody';
 export type PrivacyExceptionKey = 'avatar_visibility' | 'profile_visibility' | 'presence_visibility' | 'last_seen_visibility' | 'birthday_visibility'
-  | 'group_invites' | 'direct_messages' | 'search_visibility';
+  | 'group_invites' | 'direct_messages' | 'search_visibility' | 'calls_from';
 export type PrivacyExceptionEffect = 'allow' | 'deny';
 export type PrivacyExceptionLists = Record<PrivacyExceptionKey, Record<PrivacyExceptionEffect, User[]>>;
 
@@ -20,7 +21,7 @@ export interface PrivacySettings {
   last_seen_visibility: PresencePrivacyVisibility;
   birthday_visibility: PresencePrivacyVisibility;
   read_receipts_enabled: boolean;
-  calls_enabled: boolean;
+  calls_from: CallsPrivacyVisibility;
   typing_indicators_enabled: boolean;
   direct_messages: DirectMessagePrivacyVisibility;
   group_invites: GroupInvitePrivacyVisibility;
