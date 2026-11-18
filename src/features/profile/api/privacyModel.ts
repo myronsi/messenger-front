@@ -7,9 +7,15 @@ import type { PrivacyExceptionKey, PrivacySettings } from '../model/types';
 type Schema = components['schemas'];
 const keys: PrivacyExceptionKey[] = [
   'avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'birthday_visibility', 'group_invites', 'direct_messages',
-  'search_visibility',
+  'search_visibility', 'calls_from',
 ];
-const visibility = (value: Schema['Visibility']) => value === 'contacts' ? 'shared_chats' as const : value;
+const fromApi = <T extends string>(value: T) => {
+  if (value === 'contacts') return 'shared_chats' as const;
+  if (value === 'everyone_except') return 'everyone' as const;
+  if (value === 'nobody_except') return 'nobody' as const;
+  return value as Exclude<T, 'contacts' | 'everyone_except' | 'nobody_except'>;
+};
+const toApi = <T extends string>(value: T | undefined) => (value === 'shared_chats' ? 'contacts' as const : value as Exclude<T, 'shared_chats'> | undefined);
 
 export const privacyModel = async (settings: Schema['PrivacySettings'], signal?: AbortSignal): Promise<PrivacySettings> => {
   const ids = new Set(keys.flatMap(key => [...(settings.exceptions[key]?.allow || []), ...(settings.exceptions[key]?.deny || [])]));
@@ -21,29 +27,27 @@ export const privacyModel = async (settings: Schema['PrivacySettings'], signal?:
     deny: (settings.exceptions[key]?.deny || []).map(id => users.get(id)!),
   });
   return {
-    avatar_visibility: visibility(settings.avatar_visibility), profile_visibility: visibility(settings.profile_visibility),
-    presence_visibility: visibility(settings.presence_visibility),
-    last_seen_visibility: visibility(settings.last_seen_visibility ?? settings.presence_visibility),
-    birthday_visibility: visibility(settings.birthday_visibility ?? 'contacts'),
+    avatar_visibility: fromApi(settings.avatar_visibility), profile_visibility: fromApi(settings.profile_visibility),
+    presence_visibility: fromApi(settings.presence_visibility),
+    last_seen_visibility: fromApi(settings.last_seen_visibility ?? settings.presence_visibility),
+    birthday_visibility: fromApi(settings.birthday_visibility ?? 'contacts'),
     read_receipts_enabled: settings.read_receipts_enabled,
-    calls_enabled: settings.calls_enabled ?? true, typing_indicators_enabled: settings.typing_indicators_enabled ?? true,
-    direct_messages: settings.direct_messages, group_invites: settings.group_invites === 'contacts' ? 'shared_chats' : settings.group_invites,
+    calls_from: fromApi(settings.calls_from ?? (settings.calls_enabled === false ? 'nobody' : 'everyone')),
+    typing_indicators_enabled: settings.typing_indicators_enabled ?? true,
+    direct_messages: fromApi(settings.direct_messages), group_invites: fromApi(settings.group_invites),
     search_visibility: settings.search_visibility, privacy_exceptions: {
       avatar_visibility: exceptions('avatar_visibility'), profile_visibility: exceptions('profile_visibility'),
       presence_visibility: exceptions('presence_visibility'), last_seen_visibility: exceptions('last_seen_visibility'),
       birthday_visibility: exceptions('birthday_visibility'), group_invites: exceptions('group_invites'),
-      direct_messages: exceptions('direct_messages'), search_visibility: exceptions('search_visibility'),
+      direct_messages: exceptions('direct_messages'), search_visibility: exceptions('search_visibility'), calls_from: exceptions('calls_from'),
     },
   };
 };
 
 export const privacyPatch = (patch: Partial<PrivacySettings>): Schema['UpdatePrivacySettingsRequest'] => ({
-  avatar_visibility: patch.avatar_visibility === 'shared_chats' ? 'contacts' : patch.avatar_visibility,
-  profile_visibility: patch.profile_visibility === 'shared_chats' ? 'contacts' : patch.profile_visibility,
-  presence_visibility: patch.presence_visibility === 'shared_chats' ? 'contacts' : patch.presence_visibility,
-  last_seen_visibility: patch.last_seen_visibility === 'shared_chats' ? 'contacts' : patch.last_seen_visibility,
-  birthday_visibility: patch.birthday_visibility === 'shared_chats' ? 'contacts' : patch.birthday_visibility,
-  group_invites: patch.group_invites === 'shared_chats' ? 'contacts' : patch.group_invites,
-  direct_messages: patch.direct_messages, search_visibility: patch.search_visibility,
-  read_receipts_enabled: patch.read_receipts_enabled, calls_enabled: patch.calls_enabled, typing_indicators_enabled: patch.typing_indicators_enabled,
+  avatar_visibility: toApi(patch.avatar_visibility), profile_visibility: toApi(patch.profile_visibility),
+  presence_visibility: toApi(patch.presence_visibility), last_seen_visibility: toApi(patch.last_seen_visibility),
+  birthday_visibility: toApi(patch.birthday_visibility), group_invites: toApi(patch.group_invites),
+  direct_messages: toApi(patch.direct_messages), calls_from: toApi(patch.calls_from), search_visibility: patch.search_visibility,
+  read_receipts_enabled: patch.read_receipts_enabled, typing_indicators_enabled: patch.typing_indicators_enabled,
 });
