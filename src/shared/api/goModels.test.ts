@@ -72,6 +72,12 @@ describe('chat unread anchor', () => {
     ...extra,
   } as Parameters<typeof directChatModel>[0]);
 
+  it('tells whether the peer accepts voice and video, and assumes yes from an older server', () => {
+    expect(directChatModel(chat({ peer: { ...user('1', 'bob'), can_send_voice_video: false } })).interlocutor_can_send_voice_video).toBe(false);
+    expect(directChatModel(chat({ peer: { ...user('1', 'bob'), can_send_voice_video: true } })).interlocutor_can_send_voice_video).toBe(true);
+    expect(directChatModel(chat({})).interlocutor_can_send_voice_video).toBe(true);
+  });
+
   it('keeps the first unread message and the read marker as string IDs', () => {
     expect(directChatModel(chat({}))).toMatchObject({
       first_unread_message_id: '7217400317439950001', last_read_message_id: '7217400317439949999',

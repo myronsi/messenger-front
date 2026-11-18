@@ -100,6 +100,7 @@ export const directChatModel = (chat: Schema['Chat']) => ({
   interlocutor_is_online: chat.peer?.is_online,
   interlocutor_last_seen: chat.peer?.last_seen,
   interlocutor_deleted: chat.peer?.is_deleted || false,
+  interlocutor_can_send_voice_video: chat.peer?.can_send_voice_video ?? true,
   avatar_url: chat.avatar_url || undefined,
   first_unread_message_id: chat.first_unread_message_id ?? null,
   last_read_message_id: chat.last_read_message_id ?? null,

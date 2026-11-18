@@ -57,5 +57,6 @@ export const chat = {
   previousImage: "Vorheriges Bild",
   nextImage: "Nächstes Bild",
   attachDisabledWhileEditing: "Während du eine Nachricht bearbeitest, können keine Dateien angehängt werden",
+  voiceVideoBlocked: "Diese Person nimmt von dir keine Sprachnachrichten oder Videos an",
   dropFileToAttach: "Datei hier ablegen, um sie anzuhängen",
 };

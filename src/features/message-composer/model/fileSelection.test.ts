@@ -76,4 +76,11 @@ describe('file selection', () => {
   it('refuses a selection of only empty files with their names', () => {
     expect(addToSelection([], [named('route.png', 0)], true, texts).error).toBe('Empty: route.png');
   });
+
+  it('refuses videos when the peer does not accept them, and nothing else', () => {
+    expect(addToSelection([], [named('clip.mp4')], true, texts, 'No videos')).toEqual({ error: 'No videos' });
+    expect(addToSelection([], [named('a.png'), named('clip.mov')], true, texts, 'No videos')).toEqual({ error: 'No videos' });
+    expect(addToSelection([], [named('a.png')], true, texts, 'No videos').files).toHaveLength(1);
+    expect(addToSelection([], [named('clip.mp4')], true, texts).files).toHaveLength(1);
+  });
 });

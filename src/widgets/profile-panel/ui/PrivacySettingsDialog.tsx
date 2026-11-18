@@ -43,16 +43,18 @@ const SETTINGS: SettingDefinition[] = [
     label: (t) => t.lastSeenVisibility || 'Last seen' },
   { key: 'birthday_visibility', group: 'see', modes: ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except'],
     label: (t) => t.profileExtras.privacyBirthday },
+  { key: 'forward_link', group: 'see', modes: ['everyone', 'shared_chats', 'nobody'], label: (t) => t.forwardLink },
   { key: 'direct_messages', group: 'contact', modes: ['everyone', 'shared_chats', 'wait_approval'],
     label: (t) => t.directMessages || 'Direct messages' },
   { key: 'group_invites', group: 'contact', modes: ['everyone', 'shared_chats', 'nobody', 'everyone_except', 'nobody_except', 'wait_approval'],
     label: (t) => t.groupInvites || 'Group invites' },
+  { key: 'voice_video_messages', group: 'contact', modes: ['everyone', 'shared_chats'], label: (t) => t.voiceVideoMessages },
   { key: 'search_visibility', group: 'discovery', modes: ['everyone', 'nobody'],
     label: (t) => t.searchVisibility || 'Search visibility' },
 ];
 const EXCEPTION_KEYS = new Set<string>([
   'avatar_visibility', 'profile_visibility', 'presence_visibility', 'last_seen_visibility', 'birthday_visibility', 'group_invites', 'direct_messages',
-  'search_visibility',
+  'search_visibility', 'voice_video_messages', 'forward_link',
 ]);
 
 interface PrivacySettingsPanelProps {

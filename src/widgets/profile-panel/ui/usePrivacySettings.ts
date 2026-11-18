@@ -31,6 +31,8 @@ export const usePrivacySettings = (isActive: boolean) => {
     group_invites: '',
     direct_messages: '',
     search_visibility: '',
+    voice_video_messages: '',
+    forward_link: '',
   });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [settingDrafts, setSettingDrafts] = useState<Partial<Record<PrivacySettingKey, string | boolean>>>({});
