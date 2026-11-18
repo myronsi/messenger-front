@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.25](https://github.com/myronsi/messenger-front/compare/v0.6.24...v0.6.25) (2026-11-18)
+
+
+### Features
+
+* **chats:** Requests folder for chats from strangers ([#226](https://github.com/myronsi/messenger-front/issues/226)) ([f09945a](https://github.com/myronsi/messenger-front/commit/f09945ac0b0acbf8068650c00fe99110e39676b6))
+* **media:** stream video and music, display copies, placeholders, smaller stickers, emoji and avatars, WebP compression and resumable uploads ([#223](https://github.com/myronsi/messenger-front/issues/223)) ([75a77ed](https://github.com/myronsi/messenger-front/commit/75a77eda1368f2d9f47ffed29725f03f6a5b1e78))
+* **moderation:** report users, account status page and one restriction toast ([#229](https://github.com/myronsi/messenger-front/issues/229)) ([71fafd1](https://github.com/myronsi/messenger-front/commit/71fafd1162d3b6e2e68d4aed3d6969dff97c2981))
+* **privacy:** three options per setting, who can call me, direct messages from nobody ([#225](https://github.com/myronsi/messenger-front/issues/225)) ([4a45b03](https://github.com/myronsi/messenger-front/commit/4a45b03f2abadc2abdd91e7dd33d13840fa7189e))
+* **privacy:** voice and video, forwarded messages settings and a composer that knows the peer's choice ([#228](https://github.com/myronsi/messenger-front/issues/228)) ([c9d1109](https://github.com/myronsi/messenger-front/commit/c9d110962538cd44205438fe4606f037ab3186f0))
+* **ui:** instant settings and profiles, faster songs, one stickers and emoji window, back button and motion for windows ([#231](https://github.com/myronsi/messenger-front/issues/231)) ([0f1a467](https://github.com/myronsi/messenger-front/commit/0f1a467b10f124c6e61fe65028c159916ea0b9d7))
+
 ## [0.6.24](https://github.com/myronsi/messenger-front/compare/v0.6.23...v0.6.24) (2026-11-17)
 
 
