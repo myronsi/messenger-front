@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.28](https://github.com/myronsi/messenger-front/compare/v0.6.27...v0.6.28) (2026-11-19)
+
+
+### Features
+
+* **legal:** send the accepted terms version and age confirmation at sign-up ([#239](https://github.com/myronsi/messenger-front/issues/239)) ([d6faa78](https://github.com/myronsi/messenger-front/commit/d6faa7844cdf2a47f530134fd5f2d55f641868bb))
+
 ## [0.6.27](https://github.com/myronsi/messenger-front/compare/v0.6.26...v0.6.27) (2026-11-19)
 
 
