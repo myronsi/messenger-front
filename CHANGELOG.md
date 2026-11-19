@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.26](https://github.com/myronsi/messenger-front/compare/v0.6.25...v0.6.26) (2026-11-19)
+
+
+### Features
+
+* **moderation:** report messages and groups, show messages removed by moderation ([#236](https://github.com/myronsi/messenger-front/issues/236)) ([96afec2](https://github.com/myronsi/messenger-front/commit/96afec25d53e1bb74dcac76dabd26bc83b54b3cb))
+* **moderation:** request a review by a person on the account status page ([#234](https://github.com/myronsi/messenger-front/issues/234)) ([627a2f6](https://github.com/myronsi/messenger-front/commit/627a2f6327a8356296aecdc21a5c74b07bc3b150))
+* **moderation:** show staff decisions and report outcomes ([#235](https://github.com/myronsi/messenger-front/issues/235)) ([16c38b3](https://github.com/myronsi/messenger-front/commit/16c38b3e450f691d6c9b2118e97d52c10584312d))
+
+
+### Bug Fixes
+
+* **groups:** stop promising a data export and match group limits to the server ([#232](https://github.com/myronsi/messenger-front/issues/232)) ([c685c7b](https://github.com/myronsi/messenger-front/commit/c685c7be15cdad9ccd37b435c26296d997643c18))
+
 ## [0.6.25](https://github.com/myronsi/messenger-front/compare/v0.6.24...v0.6.25) (2026-11-18)
 
 
