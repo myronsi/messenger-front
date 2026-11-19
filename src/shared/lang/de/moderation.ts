@@ -36,7 +36,7 @@ export const moderation = {
       warned: "Mehrere Personen haben dein Konto gemeldet. Noch ist nichts eingeschränkt, weitere Meldungen begrenzen es aber.",
       limited: "Nach mehreren Meldungen kannst du Chats, Anrufe und Gruppeneinladungen nur noch mit deinen Kontakten beginnen, höchstens 5 neue Chats pro Tag.",
       restricted: "Nach vielen Meldungen ist dein Konto eingeschränkt. Andere finden dich nicht in der Suche.",
-      suspended: "Nach vielen Meldungen kannst du nur noch lesen. Du kannst deine Chats lesen, Daten exportieren, das Konto löschen und Einspruch einlegen.",
+      suspended: "Nach vielen Meldungen kannst du nur noch lesen. Du kannst deine Chats lesen, das Konto löschen und Einspruch einlegen.",
     },
     since: "Seit {date}",
     restrictionsTitle: "Was eingeschränkt ist",

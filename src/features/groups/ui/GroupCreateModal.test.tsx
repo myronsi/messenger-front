@@ -63,4 +63,11 @@ describe('GroupCreateModal', () => {
       groupName: 'Weekend plans', description: 'Hiking', participants: ['mailen'],
     })));
   });
+
+  it('limits the name and description to what the server accepts', () => {
+    render(<GroupCreateModal currentUsername="me" onClose={vi.fn()} onCreate={vi.fn()} />);
+    expect(screen.getByPlaceholderText(text.groupNamePlaceholder)).toHaveAttribute('maxLength', '64');
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(text.addDescription) }));
+    expect(screen.getByLabelText(text.description)).toHaveAttribute('maxLength', '500');
+  });
 });

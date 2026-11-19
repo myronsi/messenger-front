@@ -1,0 +1,2 @@
+export const GROUP_NAME_MAX_LENGTH = 64;
+export const GROUP_DESCRIPTION_MAX_LENGTH = 500;
