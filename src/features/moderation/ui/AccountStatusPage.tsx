@@ -7,6 +7,7 @@ import { formatDate } from '@/shared/utils/dateFormatters';
 import { toast } from '@/shared/ui/sonner';
 import { useAppealAccountStatusMutation, useGetAccountStatusQuery, useListReportOutcomesQuery } from '../api/moderationApi';
 import { decidedByStaff, decisionReasonLabel, outcomeNotice, restrictionLabel, statusLevel } from '../model/accountStatus';
+import { ReviewRequestSection } from './ReviewRequestSection';
 
 interface AccountStatusPageProps {
   onBack: () => void;
@@ -106,6 +107,7 @@ export const AccountStatusPage = ({ onBack, hideBack = false, isActive = true }:
               {!data.can_appeal && <p className="text-xs text-muted-foreground">{t.appealUnavailable}</p>}
             </section>
           )}
+          {level !== 'good' && <ReviewRequestSection status={data} />}
         </>}
         {outcomes && outcomes.items.length > 0 && (
           <section className="space-y-2">
