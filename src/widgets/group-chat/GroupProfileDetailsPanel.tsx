@@ -7,6 +7,7 @@ import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, Gro
 import { roleLabel } from './groupProfileHelpers';
 import GroupRoleHistoryRow from './GroupRoleHistoryRow';
 import { ProfileBackgroundEditor } from '@/features/profile';
+import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '@/features/groups';
 
 interface Props {
   model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
@@ -60,6 +61,7 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
               value={groupForm.name}
               onChange={(event) => setGroupForm((form) => ({ ...form, name: event.target.value }))}
               placeholder={translations.groupName || 'Group name'}
+              maxLength={GROUP_NAME_MAX_LENGTH}
               className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -70,6 +72,7 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
               onChange={(event) => setGroupForm((form) => ({ ...form, description: event.target.value }))}
               placeholder={descriptionLabel}
               rows={4}
+              maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
               className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

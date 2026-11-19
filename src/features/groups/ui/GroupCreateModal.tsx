@@ -3,6 +3,7 @@ import { Loader2, Plus, X } from 'lucide-react';
 import { BackToClose } from '@/shared/ui/BackToClose';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { cn } from '@/shared/lib/utils';
+import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '../model/groupLimits';
 import { useGroupCreateForm, type GroupCreatePayload } from '../model/useGroupCreateForm';
 import GroupAvatarPicker from './GroupAvatarPicker';
 import GroupPeoplePicker from './GroupPeoplePicker';
@@ -51,7 +52,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                 value={form.groupName}
                 onChange={(event) => form.setGroupName(event.target.value)}
                 placeholder={text.groupNamePlaceholder}
-                maxLength={80}
+                maxLength={GROUP_NAME_MAX_LENGTH}
                 autoFocus
                 className="w-full rounded-xl border border-input bg-background px-4 py-2.5 outline-none focus:ring-2 focus:ring-ring"
               />
@@ -65,7 +66,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                 value={form.description}
                 onChange={(event) => form.setDescription(event.target.value)}
                 rows={3}
-                maxLength={500}
+                maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
                 autoFocus
                 className="w-full resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
               />

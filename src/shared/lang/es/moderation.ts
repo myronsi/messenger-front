@@ -36,7 +36,7 @@ export const moderation = {
       warned: "Varias personas denunciaron tu cuenta. Aún no hay restricciones, pero más denuncias la limitarán.",
       limited: "Tras varias denuncias solo puedes iniciar chats, llamadas e invitaciones a grupos con tus contactos, y como máximo 5 chats nuevos al día.",
       restricted: "Tras muchas denuncias tu cuenta está restringida. Los demás no pueden encontrarte en la búsqueda.",
-      suspended: "Tras muchas denuncias tu cuenta es de solo lectura. Puedes leer tus chats, exportar tus datos, eliminar la cuenta y apelar.",
+      suspended: "Tras muchas denuncias tu cuenta es de solo lectura. Puedes leer tus chats, eliminar la cuenta y apelar.",
     },
     since: "Desde {date}",
     restrictionsTitle: "Qué está restringido",

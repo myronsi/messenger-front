@@ -36,7 +36,7 @@ export const moderation = {
       warned: "Several people reported your account. Nothing is restricted yet, but more reports will limit it.",
       limited: "After several reports you can only start chats, calls and group invites with your contacts, and at most 5 new chats a day.",
       restricted: "After many reports your account is restricted. Other people cannot find you in search.",
-      suspended: "After many reports your account is read-only. You can read your chats, export your data, delete your account and appeal.",
+      suspended: "After many reports your account is read-only. You can read your chats, delete your account and appeal.",
     },
     since: "Since {date}",
     restrictionsTitle: "What is restricted",
