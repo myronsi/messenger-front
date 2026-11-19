@@ -2,6 +2,8 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { setAccessToken } from '@/shared/auth/session';
+import { TERMS_VERSION } from '@/shared/lib/helpSite';
+import type { components } from '@/shared/api/generated/schema';
 import {
   normalizeDisplayName, normalizeUsername, registerErrorsFromProblem, validateRegisterField, validateRegisterValues,
   type AccountField, type RegisterFieldError, type RegisterFieldErrors, type RegisterStep,
@@ -61,12 +63,15 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
     if (Object.keys(validateRegisterValues({ username, password })).length > 0) return;
     const normalizedUsername = normalizeUsername(username);
     setIsSubmitting(true);
+    const request: components['schemas']['RegisterRequest'] = {
+      username: normalizedUsername, display_name: normalizedUsername, password, terms_version: TERMS_VERSION, age_confirmed: true,
+    };
     try {
       const response = await fetch(`${BASE_URL}/auth/register`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: normalizedUsername, display_name: normalizedUsername, password }),
+        body: JSON.stringify(request),
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {

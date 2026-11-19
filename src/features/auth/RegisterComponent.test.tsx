@@ -156,7 +156,9 @@ describe('RegisterComponent', () => {
     expect(body.username).toBe('alex_m');
     expect(body.display_name).toBe('alex_m');
     expect(body.password).toBe(samples.strong);
-    expect(Object.keys(body).sort()).toEqual(['display_name', 'password', 'username']);
+    expect(body.terms_version).toBe('2026-11-19');
+    expect(body.age_confirmed).toBe(true);
+    expect(Object.keys(body).sort()).toEqual(['age_confirmed', 'display_name', 'password', 'terms_version', 'username']);
   });
 
   it('generates a visible strong password and copies it', async () => {
