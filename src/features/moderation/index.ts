@@ -1,5 +1,5 @@
 export * from './api/moderationApi';
-export { restrictionLabel, restrictionToast, showsBanner, statusLevel } from './model/accountStatus';
+export { decidedByStaff, decisionReasonLabel, outcomeNotice, restrictionLabel, restrictionToast, showsBanner, statusLevel } from './model/accountStatus';
 export { ReportUserDialog } from './ui/ReportUserDialog';
 export { ReportContentDialog } from './ui/ReportContentDialog';
 export { ContentReportHost } from './ui/ContentReportHost';

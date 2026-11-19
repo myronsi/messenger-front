@@ -103,7 +103,7 @@ export interface ReadReceiptInfo extends UserMessageMeta {
   read_at: string;
 }
 
-export interface ModerationReason {
+export interface ModerationRemovalReason {
   code: string;
   text: string;
 }
@@ -130,7 +130,7 @@ export interface Message {
   is_deleted?: boolean;
   is_deleting?: boolean;
   removed_by_moderation?: boolean;
-  moderation_reason?: ModerationReason | null;
+  moderation_reason?: ModerationRemovalReason | null;
   edited_at?: string | null;
   type: 'message' | 'file';
   sticker?: MessageSticker;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { en } from '@/shared/lang/en';
-import { restrictionLabel, restrictionToast, showsBanner, statusLevel } from './accountStatus';
+import { decidedByStaff, decisionReasonLabel, outcomeNotice, restrictionLabel, restrictionToast, showsBanner, statusLevel } from './accountStatus';
 
 const t = en.moderation;
 
@@ -28,5 +28,27 @@ describe('account status helpers', () => {
   it('falls back to a generic action for unknown or missing restrictions', () => {
     expect(restrictionLabel('teleport', t)).toBe('This action');
     expect(restrictionLabel(null, t)).toBe('This action');
+  });
+
+  it('reads staff decisions and their rule', () => {
+    const base = {
+      status: 'warned' as const, since: null, restrictions: [], can_appeal: false, probation_until: null,
+      review_requested_at: null, can_request_review: false,
+    };
+    expect(decidedByStaff({ ...base, decided_by: 'staff' })).toBe(true);
+    expect(decidedByStaff({ ...base, decided_by: 'automatic' })).toBe(false);
+    expect(decidedByStaff(base)).toBe(false);
+    expect(decisionReasonLabel('illegal', t)).toBe('Illegal content');
+    expect(decisionReasonLabel('teleport', t)).toBe('Other');
+    expect(decisionReasonLabel(null, t)).toBe('Other');
+  });
+
+  it('words report outcomes without details', () => {
+    expect(outcomeNotice({ subject_type: 'emoji_pack', outcome: 'no_violation' }, t)).toEqual({
+      title: 'Your report about an emoji pack', description: 'We reviewed it and found no violation of our rules.',
+    });
+    expect(outcomeNotice({ subject_type: 'group' as 'user', outcome: 'escalated' as 'action_taken' }, t)).toEqual({
+      title: 'Your report', description: 'We reviewed it.',
+    });
   });
 });
