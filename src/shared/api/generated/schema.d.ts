@@ -4177,6 +4177,18 @@ export interface components {
             display_name?: string;
             password: string;
             bio?: string | null;
+            /**
+             * @description The version of the Terms of Use the user accepted: the date of those terms, such as `2026-11-19`. Stored
+             *     with the time of registration. Required, together with `age_confirmed: true`, when the server requires
+             *     terms acceptance (`422` with the field otherwise).
+             * @example 2026-11-19
+             */
+            terms_version?: string;
+            /**
+             * @description The user confirmed being at least 13 years old, and that a parent or guardian agrees when under 16.
+             *     `false` is refused with `422` and the field `age_confirmed`.
+             */
+            age_confirmed?: boolean;
         };
         LoginRequest: {
             username: components["schemas"]["Username"];
@@ -4578,6 +4590,13 @@ export interface components {
             recovery_setup_required?: boolean;
             /** @description The user's time zone; birthday reminders arrive at 09:00 in it. `UTC` until a client sets it. */
             time_zone: components["schemas"]["TimeZone"];
+            /** @description The version of the Terms of Use accepted at registration; `null` when none was recorded. */
+            terms_version: string | null;
+            /**
+             * Format: date-time
+             * @description When the Terms of Use were accepted; `null` when no acceptance was recorded.
+             */
+            terms_accepted_at: string | null;
         };
         /**
          * @description An IANA time zone name such as `Europe/Berlin`.

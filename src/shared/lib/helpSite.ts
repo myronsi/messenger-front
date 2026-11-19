@@ -1,6 +1,8 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { isAppLanguage, type AppLanguage } from '@/shared/lang/languages';
 
+export const TERMS_VERSION = '2026-11-19';
+
 export const LEGAL_PAGES = ['privacy', 'terms', 'guidelines', 'imprint'] as const;
 export type LegalPage = typeof LEGAL_PAGES[number];
 
