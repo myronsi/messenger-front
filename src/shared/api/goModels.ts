@@ -75,6 +75,7 @@ export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
   content: preview.type === 'sticker' ? preview.content || '' : contentModel(preview),
   sticker: isSticker(preview) ? { emoji: preview.content || '', image_url: preview.attachment?.url } : undefined,
   is_deleted: preview.is_deleted,
+  removed_by_moderation: preview.removed_by_moderation,
   read_by: [],
 });
 

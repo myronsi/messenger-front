@@ -4,7 +4,7 @@ import { compareIds, isPersistedId } from '@/shared/api/entityId';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { SERVER_KEPT_ERRORS, useLocalMessageDeletion, removeMessageAnimated } from '@/entities/message';
+import { SERVER_KEPT_ERRORS, useLocalMessageDeletion, removeMessageAnimated, applyModerationRemoval } from '@/entities/message';
 import {
   addReaction, addReadReceipts, applyAttachmentUpdate, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
 } from './messageUpdates';
@@ -71,7 +71,8 @@ export const useMessageEvents = ({
         setMessages((previous) => applyMessageEdit(previous, event.message_id, event.new_content, event.timestamp));
         return;
       case 'delete':
-        removeMessageAnimated(setMessages, event.message_id);
+        if (event.removed_by_moderation) setMessages((previous) => applyModerationRemoval(previous, event.message_id, event.moderation_reason));
+        else removeMessageAnimated(setMessages, event.message_id);
         return;
       case 'attachment_updated':
         setMessages((previous) => applyAttachmentUpdate(previous, event.attachment));

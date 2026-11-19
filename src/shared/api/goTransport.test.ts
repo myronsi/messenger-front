@@ -113,6 +113,16 @@ describe('Go migration transport', () => {
     expect(goServerEvent({ type: 'delete', event_id: '7', chat_id: id, data: { message_id: id, scope: 'everyone' } }, id)).toEqual({ type: 'delete', message_id: id });
   });
 
+  it('keeps the moderation marker and the reason of a removed message', () => {
+    const removed = {
+      type: 'delete', event_id: '8', chat_id: id,
+      data: { message_id: id, scope: 'everyone', removed_by_moderation: true, moderation_reason: { code: 'spam', text: 'Ads' } },
+    } as unknown as Parameters<typeof goServerEvent>[0];
+    expect(goServerEvent(removed, id)).toEqual({
+      type: 'delete', message_id: id, removed_by_moderation: true, moderation_reason: { code: 'spam', text: 'Ads' },
+    });
+  });
+
   it('does not truncate media after the first backend page', async () => {
     const message = { id, chat_id: '1', sender: user, content: '', attachment: null, type: 'text',
       reply_to: null, reactions: [], read_by: [], created_at: '2026-01-01T00:00:00Z', edited_at: null, is_deleted: false };

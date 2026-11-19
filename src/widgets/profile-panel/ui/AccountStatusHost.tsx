@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { AccountStatusBanner, ModerationEvents } from '@/features/moderation';
+import { AccountStatusBanner, ContentReportHost, ModerationEvents } from '@/features/moderation';
 import { useUrlOverlay } from '@/shared/lib/useUrlOverlay';
 
 export const AccountStatusHost = () => {
@@ -9,6 +9,7 @@ export const AccountStatusHost = () => {
     <>
       <ModerationEvents onOpenDetails={openDetails} />
       <AccountStatusBanner onOpenDetails={openDetails} />
+      <ContentReportHost />
     </>
   );
 };

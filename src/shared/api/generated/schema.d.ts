@@ -1799,6 +1799,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chats/{chat_id}/messages/{message_id}/report": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a message
+         * @description Sends the message to moderation. The report keeps a copy of the message and of up to 5 messages before and
+         *     after it that the reporter can see (sender, time, text and file names); moderators see only this copy, and it
+         *     is deleted after 6 months. One active report per reporter and message; reporting again changes the reason
+         *     and the note but keeps the first copy. `illegal` is a notice of illegal content and needs a `note` that
+         *     explains why (`422` without it). A message the caller cannot see, a deleted message or a chat they are not in
+         *     is `404`; their own messages and system messages are `422`. Reports of users, messages and groups share the
+         *     limit of 20 a day (`429`). Reporting a message does not block anyone and does not change the sender's
+         *     account status.
+         */
+        post: operations["reportMessage"];
+        /**
+         * Withdraw a message report
+         * @description Withdraws the current user's report on the message. Withdrawing a report that does not exist is fine.
+         */
+        delete: operations["unreportMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chats/{chat_id}/messages/forward": {
         parameters: {
             query?: never;
@@ -2172,6 +2211,41 @@ export interface paths {
          */
         post: operations["leaveGroup"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{chat_id}/report": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a group
+         * @description Sends the group to moderation for its name, description or picture. The report keeps a copy of them; it is
+         *     deleted after 6 months. Only members can report a group (`404` otherwise, also for direct chats). One active
+         *     report per reporter and group; reporting again changes the reason and the note but keeps the first copy.
+         *     `illegal` needs a `note` (`422` without it). Shares the limit of 20 reports a day with user and message
+         *     reports (`429`).
+         */
+        post: operations["reportGroup"];
+        /**
+         * Withdraw a group report
+         * @description Withdraws the current user's report on the group. Withdrawing a report that does not exist is fine.
+         */
+        delete: operations["unreportGroup"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4319,6 +4393,29 @@ export interface components {
             block: boolean;
         };
         /**
+         * @description The reasons of `ReportReason` plus `illegal`, a notice of illegal content.
+         * @enum {string}
+         */
+        ContentReportReason: "spam" | "scam" | "harassment" | "impersonation" | "inappropriate_profile" | "illegal" | "other";
+        ContentReportRequest: {
+            reason: components["schemas"]["ContentReportReason"];
+            /**
+             * @description Details for moderation, never shown to the sender or the group. Required for `illegal`: why the content is
+             *     illegal, for example which law it breaks.
+             */
+            note?: string | null;
+        };
+        /** @description Why moderation removed something, shown only to its author. */
+        ModerationReason: {
+            /**
+             * @description The rule of the community guidelines: `spam`, `scam`, `harassment`, `impersonation`,
+             *     `inappropriate_profile`, `illegal` or `other`. Unknown values must be shown like `other`.
+             */
+            code: string;
+            /** @description A short explanation written by moderation; may be empty. */
+            text: string;
+        };
+        /**
          * @description `good` no restrictions, `warned` no restrictions yet, `limited` no new contact with non-contacts and at most 5
          *     new direct chats a day, `restricted` also no groups, uploads, forwarded files, profile changes or sticker
          *     and emoji packs and hidden from search, `suspended` read-only (no sending, joining calls or managing groups).
@@ -4721,6 +4818,8 @@ export interface components {
             content: string | null;
             attachment: components["schemas"]["Attachment"] | null;
             is_deleted: boolean;
+            /** @description `true` when moderation removed the answered message. Absent otherwise. */
+            removed_by_moderation?: boolean;
         };
         Message: {
             id: components["schemas"]["Id"];
@@ -4746,6 +4845,13 @@ export interface components {
             created_at: components["schemas"]["Timestamp"];
             edited_at: components["schemas"]["Timestamp"] | null;
             is_deleted: boolean;
+            /**
+             * @description `true` when moderation removed the message; it is then also `is_deleted`. Clients show "Removed by
+             *     moderation" instead of the deleted placeholder. Absent otherwise.
+             */
+            removed_by_moderation?: boolean;
+            /** @description Why moderation removed the message; only for its sender, absent for everyone else. */
+            moderation_reason?: components["schemas"]["ModerationReason"];
             system_event?: components["schemas"]["SystemEvent"];
             client_temp_id?: components["schemas"]["ClientTempId"];
         };
@@ -8327,6 +8433,71 @@ export interface operations {
             429: components["responses"]["TooManyRequests"];
         };
     };
+    reportMessage: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Reported */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    unreportMessage: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
     forwardMessages: {
         parameters: {
             query?: never;
@@ -9033,6 +9204,69 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    reportGroup: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Reported */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    unreportGroup: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
             426: components["responses"]["ClientOutdated"];
         };
     };

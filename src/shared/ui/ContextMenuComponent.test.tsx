@@ -4,8 +4,24 @@ import { describe, expect, it, vi } from 'vitest';
 import ContextMenuComponent from './ContextMenuComponent';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply', copy: 'Copy', forward: 'Forward', selectMessage: 'Select', editMessage: 'Edit' } }),
+  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply', copy: 'Copy', forward: 'Forward', selectMessage: 'Select', editMessage: 'Edit', moderation: { reportMessage: 'Report' } } }),
 }));
+
+describe('ContextMenuComponent report', () => {
+  it('offers Report only when the caller passes it', () => {
+    const onReport = vi.fn();
+    const { unmount } = render(
+      <ContextMenuComponent
+        ref={createRef<HTMLDivElement>()} x={10} y={10} isMine={false} onReply={vi.fn()} onReport={onReport} isClosing={false} onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Report' }));
+    expect(onReport).toHaveBeenCalledTimes(1);
+    unmount();
+    render(<ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine={false} onReply={vi.fn()} isClosing={false} onClose={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Report' })).not.toBeInTheDocument();
+  });
+});
 
 const renderMenu = (props: { onDeleteForMe?: () => void; onDeleteForEveryone?: () => void }) => render(
   <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine onReply={vi.fn()} isClosing={false} onClose={vi.fn()} {...props} />,

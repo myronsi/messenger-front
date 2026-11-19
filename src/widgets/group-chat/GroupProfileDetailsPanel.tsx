@@ -1,6 +1,6 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
-import { Camera, Check, Loader2, LogOut, Trash2 } from 'lucide-react';
+import { Camera, Check, Flag, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
@@ -8,6 +8,8 @@ import { roleLabel } from './groupProfileHelpers';
 import GroupRoleHistoryRow from './GroupRoleHistoryRow';
 import { ProfileBackgroundEditor } from '@/features/profile';
 import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '@/features/groups';
+import { requestContentReport } from '@/entities/message';
+import { isGoApi } from '@/shared/api/goSocket';
 
 interface Props {
   model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
@@ -118,6 +120,17 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
       </section>
 
       <GroupRoleHistoryRow chatId={model.chatId} onOpen={onOpenRoleHistory} />
+
+      {isGoApi() && currentRole !== 'owner' && (
+        <button
+          type="button"
+          onClick={() => requestContentReport({ kind: 'group', chatId: model.chatId, name: model.currentGroupName })}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-medium text-subtle-foreground transition-colors hover:bg-accent/60"
+        >
+          <Flag className="h-4 w-4" />
+          {rawTranslations.moderation.reportGroup}
+        </button>
+      )}
 
       <button
         type="button"

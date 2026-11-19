@@ -4,6 +4,8 @@ import type { AccountStatusLevel } from '../api/moderationApi';
 
 export const REPORT_REASONS = ['spam', 'scam', 'harassment', 'impersonation', 'inappropriate_profile', 'other'] as const;
 export const MAX_REPORT_NOTE = 500;
+export const CONTENT_REPORT_REASONS = ['spam', 'scam', 'harassment', 'inappropriate_profile', 'impersonation', 'illegal', 'other'] as const;
+export const MAX_CONTENT_REPORT_NOTE = 1000;
 
 const LEVELS: AccountStatusLevel[] = ['good', 'warned', 'limited', 'restricted', 'suspended'];
 

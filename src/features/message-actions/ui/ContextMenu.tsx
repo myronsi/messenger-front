@@ -6,7 +6,7 @@ import React, { forwardRef, useEffect } from 'react';
 import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
 import { discardServerUnsent, notifyMessageDeletedLocally } from '@/entities/message';
-import { messageAudioTrack, queueLast, queueNext, requestAddToPlaylist } from '@/entities/message';
+import { messageAudioTrack, queueLast, queueNext, requestAddToPlaylist, requestContentReport } from '@/entities/message';
 import { isPersistedId } from '@/shared/api/entityId';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { makeStickerFrom } from '@/entities/sticker';
@@ -91,6 +91,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
     const song = message ? messageAudioTrack(message, translations.voiceMessage) : null;
     const musicTrack = song?.kind === 'music' ? song : null;
+    const canReport = isGoApi() && !!message && !contextMenu.isMine && !message.is_own && isPersistedId(message.id)
+      && !message.is_deleted && !message.system_event && !message.is_system;
 
     const handleEdit = () => {
       if (message && canEdit) {
@@ -177,6 +179,10 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         onReply={handleReply}
         onForward={onForward && message ? handleForward : undefined}
         onSelect={onSelect && message ? () => { onSelect(message); closeMenu(); } : undefined}
+        onReport={canReport && message ? () => {
+          closeMenu();
+          requestContentReport({ kind: 'message', chatId, messageId: message.id, name: message.sender });
+        } : undefined}
         onMakeSticker={stickerSource && isGoApi() ? () => { closeMenu(); makeStickerFrom(stickerSource); } : undefined}
         audioActions={musicTrack ? {
           onPlayNext: () => { closeMenu(); queueNext(musicTrack, translations.audioPlayer.playingNext); },

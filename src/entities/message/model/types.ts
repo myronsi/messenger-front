@@ -103,6 +103,11 @@ export interface ReadReceiptInfo extends UserMessageMeta {
   read_at: string;
 }
 
+export interface ModerationReason {
+  code: string;
+  text: string;
+}
+
 export interface Message {
   id: EntityId;
   client_temp_id?: EntityId | null;
@@ -124,6 +129,8 @@ export interface Message {
   system_event?: SystemEventInfo;
   is_deleted?: boolean;
   is_deleting?: boolean;
+  removed_by_moderation?: boolean;
+  moderation_reason?: ModerationReason | null;
   edited_at?: string | null;
   type: 'message' | 'file';
   sticker?: MessageSticker;

@@ -8,6 +8,7 @@ import { useLongPress } from '@/shared/lib/useLongPress';
 import { combineTouchHandlers, useSwipeAction } from '@/shared/lib/useSwipeAction';
 import SwipeReplyIcon from './SwipeReplyIcon';
 import SystemMessageLine from './SystemMessageLine';
+import RemovedMessageLine from './RemovedMessageLine';
 import DateSeparator from './DateSeparator';
 import { Message, ReactionInfo } from '../model/types';
 import { isValidTimestamp } from '../model/messageListScrollUtils';
@@ -152,6 +153,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
   if (message.system_event) {
     const isMe = (id?: EntityId | null) => !!id && isOwnMessage({ ...message, is_own: false, sender_id: id, sender_username: null, sender: '' });
     return <>{dateSeparator}<SystemMessageLine event={message.system_event} isMe={isMe} /></>;
+  }
+  if (message.removed_by_moderation) {
+    return <>{dateSeparator}<RemovedMessageLine message={message} isMine={isMine} time={timeLabel} rowRef={setRowRef} /></>;
   }
 
   const handleReply = () => {
