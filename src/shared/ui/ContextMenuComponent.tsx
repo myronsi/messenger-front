@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useEffect } from 'react';
-import { ArrowLeft, CheckSquare, Edit, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Edit, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ContextMenuProps {
@@ -16,6 +16,7 @@ interface ContextMenuProps {
   onForward?: () => void;
   onSelect?: () => void;
   onMakeSticker?: () => void;
+  onReport?: () => void;
   audioActions?: { onPlayNext: () => void; onAddToQueue: () => void; onAddToPlaylist: () => void };
   isClosing: boolean;
   onClose: () => void;
@@ -27,7 +28,7 @@ const REACTION_MENU_OFFSET = 48;
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({
     x, y, isMine, openLeft = false, onEdit, onDeleteForMe, onDeleteForEveryone, forBoth = false, onCopy, onReply, onForward, onSelect, onMakeSticker,
-    audioActions, isClosing, onClose,
+    onReport, audioActions, isClosing, onClose,
   }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
@@ -141,6 +142,12 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
               <button type="button" className={itemClass} onClick={onSelect}>
                 <CheckSquare className="w-4 h-4 mr-2" />
                 <span className="truncate">{translations.selectMessage}</span>
+              </button>
+            )}
+            {onReport && (
+              <button type="button" className={itemClass} onClick={onReport}>
+                <Flag className="w-4 h-4 mr-2" />
+                <span className="truncate">{translations.moderation.reportMessage}</span>
               </button>
             )}
             {isMine && onEdit && (

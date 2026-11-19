@@ -8,7 +8,7 @@ export * from './model/systemEvents';
 export { isAudioAttachment, isVisualMediaMessage, isVoiceAttachment } from './model/videoAttachment';
 export * from './api/messageApi';
 export * from './api/unsentApi';
-export * from './model/messageDeletion';
+export * from './model/messageRemoval';
 export * from './model/messageListScrollUtils';
 export { default as MessageItem } from './ui/MessageItem';
 export * from './ui/ProfileChatPanels';

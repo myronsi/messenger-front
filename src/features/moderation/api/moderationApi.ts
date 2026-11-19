@@ -9,6 +9,7 @@ export type AccountStatus = Schema['AccountStatus'];
 export type AccountStatusLevel = Schema['AccountStatusLevel'];
 export type AccountRestriction = Schema['AccountRestriction'];
 export type ReportReason = Schema['ReportReason'];
+export type ContentReportReason = Schema['ContentReportReason'];
 export type ModerationReason = Schema['ModerationReason'];
 export type ReportOutcome = Schema['ReportOutcome'];
 export type ReportOutcomeList = Schema['ReportOutcomeList'];
@@ -18,6 +19,19 @@ export interface ReportUserArgs {
   reason: ReportReason;
   note?: string | null;
   block: boolean;
+}
+
+export interface ReportMessageArgs {
+  chatId: EntityId;
+  messageId: EntityId;
+  reason: ContentReportReason;
+  note?: string | null;
+}
+
+export interface ReportGroupArgs {
+  chatId: EntityId;
+  reason: ContentReportReason;
+  note?: string | null;
 }
 
 export const moderationApi = messengerApi.injectEndpoints({
@@ -70,6 +84,20 @@ export const moderationApi = messengerApi.injectEndpoints({
       }),
       invalidatesTags: (_, error, { block }) => (block && !error ? ['Privacy', 'User', 'Chat'] : []),
     }),
+    reportMessage: builder.mutation<void, ReportMessageArgs>({
+      queryFn: ({ chatId, messageId, reason, note }, { signal }) => apiTask(async () => {
+        contractData(await apiClient.POST('/chats/{chat_id}/messages/{message_id}/report', {
+          params: { path: { chat_id: String(chatId), message_id: String(messageId) } }, body: { reason, note: note || null }, signal,
+        }));
+      }),
+    }),
+    reportGroup: builder.mutation<void, ReportGroupArgs>({
+      queryFn: ({ chatId, reason, note }, { signal }) => apiTask(async () => {
+        contractData(await apiClient.POST('/groups/{chat_id}/report', {
+          params: { path: { chat_id: String(chatId) } }, body: { reason, note: note || null }, signal,
+        }));
+      }),
+    }),
     unreportUser: builder.mutation<void, EntityId>({
       queryFn: (userId, { signal }) => apiTask(async () => {
         contractData(await apiClient.DELETE('/users/{user_id}/report', { params: { path: { user_id: String(userId) } }, signal }));
@@ -86,4 +114,6 @@ export const {
   useMarkReportOutcomeReadMutation,
   useReportUserMutation,
   useUnreportUserMutation,
+  useReportMessageMutation,
+  useReportGroupMutation,
 } = moderationApi;

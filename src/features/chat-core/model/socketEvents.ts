@@ -44,6 +44,8 @@ export interface AckEvent {
 export interface DeleteEvent {
   type: 'delete';
   message_id: EntityId;
+  removed_by_moderation?: boolean;
+  moderation_reason?: { code: string; text: string } | null;
 }
 
 export interface ReactionAddEvent {

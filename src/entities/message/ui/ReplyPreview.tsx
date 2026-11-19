@@ -24,6 +24,7 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isRep
 
   const describe = (message: Message | undefined): { text: string; imageUrl?: string; drawing?: Drawing | null; aspect?: number; muted?: boolean } => {
     if (!message) return { text: translations.replyUnavailable, muted: true };
+    if (message.removed_by_moderation) return { text: translations.moderation.removedByModeration, muted: true };
     if (message.is_deleted) return { text: translations.messageDeleted, muted: true };
     if (message.sticker) return { text: `${message.sticker.emoji} ${translations.sticker}`, imageUrl: message.sticker.image_url && resolveMediaUrl(message.sticker.image_url) };
     if (message.type === 'file' && typeof message.content !== 'string') {

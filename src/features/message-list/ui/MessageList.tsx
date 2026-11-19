@@ -108,7 +108,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
   const latchedBoundaryRef = useRef<{ key: string | number | undefined; id: EntityId | null }>({ key: scrollToBottomKey, id: null });
   if (latchedBoundaryRef.current.key !== scrollToBottomKey) latchedBoundaryRef.current = { key: scrollToBottomKey, id: null };
 
-  const messages = useMemo(() => allMessages.filter((message) => !message.is_deleted || message.is_deleting), [allMessages]);
+  const messages = useMemo(() => allMessages.filter((message) => !message.is_deleted || message.is_deleting || message.removed_by_moderation), [allMessages]);
   // Latched per chat so the separator doesn't jump as messages become read.
   const visibleUnreadBoundaryId = (() => {
     if (latchedBoundaryRef.current.id !== null) return latchedBoundaryRef.current.id;

@@ -50,7 +50,12 @@ export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => 
           client_temp_id: message.client_temp_id, ...(typeof message.content === 'string' ? { content: message.content } : message.content) } };
     }
     case 'edit': return { type: 'edit', message_id: event.data.message.id, new_content: event.data.message.content, timestamp: event.data.message.edited_at };
-    case 'delete': return { type: 'delete', message_id: event.data.message_id };
+    case 'delete': {
+      const data: { message_id: string; removed_by_moderation?: boolean; moderation_reason?: { code: string; text: string } } = event.data;
+      return data.removed_by_moderation
+        ? { type: 'delete', message_id: data.message_id, removed_by_moderation: true, moderation_reason: data.moderation_reason ?? null }
+        : { type: 'delete', message_id: data.message_id };
+    }
     case 'reaction_add': case 'reaction_remove': return { type: event.type, message_id: event.data.message_id, user_id: event.data.reaction.user_id, reaction: event.data.reaction.emoji };
     case 'read': return { type: 'is_read', message_id: event.data.message_id, user_id: event.data.user_id, read_at: event.data.read_at };
     case 'error': if (!event.client_temp_id) return null;
