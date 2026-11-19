@@ -997,7 +997,8 @@ export interface paths {
         };
         /**
          * The current user's account status
-         * @description The status follows the reports on the account automatically (`docs/moderation.md`). `restrictions` lists
+         * @description The status follows the reports on the account automatically (`docs/moderation.md`), unless a person on the
+         *     moderation team decided it (`decided_by: staff`, with `reason_code` and `reason_text`). `restrictions` lists
          *     what the status blocks. The WebSocket event `account_status` carries the same object when it changes.
          */
         get: operations["getAccountStatus"];
@@ -1030,6 +1031,60 @@ export interface paths {
          *     30 days and only when `can_appeal` is `true`, otherwise `409`.
          */
         post: operations["appealAccountStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/report-outcomes": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outcomes of the current user's reports
+         * @description Short notices about reports the current user made: the moderation team took action or found no violation.
+         *     They never say what action was taken. Newest first, at most 50, kept for 90 days. A new one also arrives as
+         *     the WebSocket event `report_outcome`.
+         */
+        get: operations["listReportOutcomes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/report-outcomes/{outcome_id}/read": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                outcome_id: components["parameters"]["ReportOutcomeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a report outcome as read
+         * @description Marking an outcome that is already read is fine.
+         */
+        post: operations["markReportOutcomeRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4339,6 +4394,48 @@ export interface components {
             can_appeal: boolean;
             /** @description End of the running probation after an appeal; `null` when none runs. */
             probation_until: components["schemas"]["Timestamp"] | null;
+            decided_by?: components["schemas"]["AccountStatusDecidedBy"];
+            /** @description The guideline rule a person on the moderation team named; `null` for automatic statuses. */
+            reason_code?: components["schemas"]["ModerationReason"] | null;
+            /**
+             * @description The explanation written for the user by the moderation team; `null` for automatic statuses. Show it as
+             *     written by "Messenger moderation", never by a person's name.
+             */
+            reason_text?: string | null;
+        };
+        /**
+         * @description Who set the current status: `automatic` (reports, decay, appeal) or `staff` (reviewed by a person on the
+         *     moderation team). Missing means `automatic`. Unknown values must be treated like `automatic`.
+         * @enum {string}
+         */
+        AccountStatusDecidedBy: "automatic" | "staff";
+        /**
+         * @description The guideline rule behind a moderation decision. Unknown values must be shown as `other`.
+         * @enum {string}
+         */
+        ModerationReason: "spam" | "scam" | "harassment" | "impersonation" | "inappropriate_profile" | "illegal" | "other";
+        /**
+         * @description `action_taken` the moderation team acted on the report, `no_violation` it found no violation. Unknown values
+         *     must be shown as a generic "your report was reviewed".
+         * @enum {string}
+         */
+        ReportOutcomeKind: "action_taken" | "no_violation";
+        /**
+         * @description What was reported. Unknown values must be shown without the subject.
+         * @enum {string}
+         */
+        ReportSubjectType: "user" | "sticker_pack" | "emoji_pack";
+        ReportOutcome: {
+            id: components["schemas"]["Id"];
+            subject_type: components["schemas"]["ReportSubjectType"];
+            /** @description The reported user, sticker pack or emoji pack. */
+            subject_id: components["schemas"]["Id"];
+            outcome: components["schemas"]["ReportOutcomeKind"];
+            created_at: components["schemas"]["Timestamp"];
+            read: boolean;
+        };
+        ReportOutcomeList: {
+            items: components["schemas"]["ReportOutcome"][];
         };
         Me: components["schemas"]["User"] & {
             created_at: components["schemas"]["Timestamp"];
@@ -5415,6 +5512,7 @@ export interface components {
         ChatId: components["schemas"]["Id"];
         MessageId: components["schemas"]["Id"];
         UserId: components["schemas"]["Id"];
+        ReportOutcomeId: components["schemas"]["Id"];
         RequestId: components["schemas"]["Id"];
         AttachmentId: components["schemas"]["AttachmentRef"];
         UploadId: string;
@@ -7057,6 +7155,63 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             409: components["responses"]["Conflict"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listReportOutcomes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The report outcomes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportOutcomeList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    markReportOutcomeRead: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                outcome_id: components["parameters"]["ReportOutcomeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked as read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
         };
     };
