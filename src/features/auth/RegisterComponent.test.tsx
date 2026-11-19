@@ -22,6 +22,8 @@ const fillName = (value: string) => fireEvent.change(screen.getByLabelText('User
 const fillSecret = (value: string) => fireEvent.change(screen.getByLabelText('Password'), { target: { value } });
 
 const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+const ageCheckbox = () => screen.getByRole('checkbox', { name: 'I am at least 13 years old. If I am under 16, a parent or guardian agrees.' });
+const confirmAge = () => fireEvent.click(ageCheckbox());
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -29,8 +31,43 @@ afterEach(() => {
 });
 
 describe('RegisterComponent', () => {
+  it('keeps the button disabled until the age confirmation is ticked', () => {
+    render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    const button = screen.getByRole('button', { name: 'Create account' });
+    fillName('alex_m');
+    fillSecret(samples.strong);
+    expect(ageCheckbox()).not.toBeChecked();
+    expect(ageCheckbox()).toBeRequired();
+    expect(button).toBeDisabled();
+    confirmAge();
+    expect(button).toBeEnabled();
+    confirmAge();
+    expect(button).toBeDisabled();
+  });
+
+  it('does not register on Enter before the age confirmation is ticked', () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    fillName('alex_m');
+    fillSecret(samples.strong);
+    fireEvent.submit(screen.getByLabelText('Username').closest('form') as HTMLFormElement);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('links the Terms of Use and the Privacy Policy in the consent text', () => {
+    render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    expect(screen.getByText(/By creating an account you accept the/)).toHaveTextContent(
+      'By creating an account you accept the Terms of Use and have read the Privacy Policy.',
+    );
+    expect(screen.getByRole('link', { name: 'Terms of Use' })).toHaveAttribute('href', 'https://docs.messenger.viserix.com/#/terms/en');
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', 'https://docs.messenger.viserix.com/#/privacy/en');
+    expect(screen.getByRole('link', { name: 'Terms of Use' })).toHaveAttribute('target', '_blank');
+  });
+
   it('shows a field error only after the field is left', () => {
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     fillName('al');
     expect(screen.queryByText('Use at least 3 characters.')).not.toBeInTheDocument();
     fireEvent.blur(screen.getByLabelText('Username'));
@@ -40,6 +77,7 @@ describe('RegisterComponent', () => {
 
   it('enables the button only when every field has text', () => {
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     const button = screen.getByRole('button', { name: 'Create account' });
     expect(button).toBeDisabled();
     fillName('alex_m');
@@ -52,6 +90,7 @@ describe('RegisterComponent', () => {
 
   it('disables the button while a field shows an error', () => {
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     const button = screen.getByRole('button', { name: 'Create account' });
     fillName('al');
     fillSecret(samples.strong);
@@ -68,6 +107,7 @@ describe('RegisterComponent', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     fillName('al');
     fillSecret(samples.tooShort);
     submit();
@@ -79,6 +119,7 @@ describe('RegisterComponent', () => {
   it('shows a taken username under the field and clears it when the name changes', async () => {
     vi.stubGlobal('fetch', vi.fn(() => reply(409, { code: 'already_exists', status: 409 })));
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     fillName('alex_m');
     fillSecret(samples.strong);
     submit();
@@ -92,6 +133,7 @@ describe('RegisterComponent', () => {
   it('shows a rate limit message for the whole form', async () => {
     vi.stubGlobal('fetch', vi.fn(() => reply(429, { code: 'rate_limited', status: 429 })));
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     fillName('alex_m');
     fillSecret(samples.strong);
     submit();
@@ -103,6 +145,7 @@ describe('RegisterComponent', () => {
     vi.stubGlobal('fetch', fetchMock);
     const onStepChange = vi.fn();
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} onStepChange={onStepChange} />);
+    confirmAge();
     fillName(' Alex_M ');
     fillSecret(samples.strong);
     submit();
@@ -113,12 +156,14 @@ describe('RegisterComponent', () => {
     expect(body.username).toBe('alex_m');
     expect(body.display_name).toBe('alex_m');
     expect(body.password).toBe(samples.strong);
+    expect(Object.keys(body).sort()).toEqual(['display_name', 'password', 'username']);
   });
 
   it('generates a visible strong password and copies it', async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     fireEvent.click(screen.getByRole('button', { name: 'Generate a strong password' }));
     const input = screen.getByLabelText('Password') as HTMLInputElement;
     expect(input).toHaveAttribute('type', 'text');
@@ -135,6 +180,7 @@ describe('RegisterComponent', () => {
 
   it('shows the password rules while typing and hides them once the password is strong', () => {
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     const input = screen.getByLabelText('Password');
     expect(screen.queryByRole('list', { name: 'Password requirements' })).not.toBeInTheDocument();
     act(() => input.focus());
@@ -154,6 +200,7 @@ describe('RegisterComponent', () => {
 
   it('shows the username rules before anything is typed', () => {
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={() => {}} />);
+    confirmAge();
     const hint = '3 to 32 characters: letters, numbers and _.';
     const input = screen.getByLabelText('Username');
     expect(screen.getByText(hint)).not.toHaveClass('invisible');
@@ -172,6 +219,7 @@ describe('RegisterComponent', () => {
     vi.stubGlobal('fetch', fetchMock);
     const onLoginSuccess = vi.fn();
     render(<RegisterComponent onLoginSuccess={onLoginSuccess} onBackToLogin={() => {}} />);
+    confirmAge();
     fillName('alex_m');
     fillSecret(samples.strong);
     submit();
@@ -192,6 +240,7 @@ describe('RegisterComponent', () => {
     vi.stubGlobal('fetch', fetchMock);
     const onLoginSuccess = vi.fn();
     render(<RegisterComponent onLoginSuccess={onLoginSuccess} onBackToLogin={() => {}} />);
+    confirmAge();
     fillName('alex_m');
     fillSecret(samples.strong);
     submit();
@@ -205,6 +254,7 @@ describe('RegisterComponent', () => {
   it('goes back to sign in from the footer link', () => {
     const onBackToLogin = vi.fn();
     render(<RegisterComponent onLoginSuccess={() => {}} onBackToLogin={onBackToLogin} />);
+    confirmAge();
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(onBackToLogin).toHaveBeenCalled();
   });

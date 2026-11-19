@@ -14,6 +14,11 @@ vi.mock('../api/moderationApi', () => ({ useReportUserMutation: () => [mocks.rep
 const result = (value: Promise<unknown>) => ({ unwrap: () => value });
 
 describe('ReportUserDialog', () => {
+  it('links the Community Guidelines', () => {
+    render(<ReportUserDialog userId="42" name="Eve" onClose={vi.fn()} />);
+    expect(screen.getByRole('link', { name: 'Community Guidelines' })).toHaveAttribute('href', 'https://docs.messenger.viserix.com/#/guidelines/en');
+  });
+
   beforeEach(() => { mocks.report.mockReset(); mocks.toast.mockReset(); });
 
   it('needs a reason, sends the note and blocks by default', async () => {

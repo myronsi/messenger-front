@@ -12,8 +12,8 @@ The same React build can be used in two ways on a phone.
   the section. Inactive sections and controls behind a modal are excluded from Tab navigation.
 - Long-press a message link to copy or open it. Opening a link asks for confirmation before
   leaving the app. A tap outside an open context menu dismisses that menu first.
-- Help opens above the current view. Its Back button and browser Back return to the previous
-  URL with the existing draft, profile/settings state and scroll position preserved.
+- Help and the legal pages open on the help site in a new tab (the system browser in the
+  native app), so the current view, draft and scroll position stay as they are.
 - On desktop, drag the divider between the chat list and chat to change their widths.
   The split is saved locally; double-click the divider to reset it. Arrow keys also resize
   a focused divider. Chat headers keep the same height as the chat list header and hide

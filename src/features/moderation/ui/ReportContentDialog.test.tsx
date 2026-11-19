@@ -18,6 +18,11 @@ const result = (value: Promise<unknown>) => ({ unwrap: () => value });
 const message = { kind: 'message' as const, chatId: '7', messageId: '99', name: 'Eve' };
 
 describe('ReportContentDialog', () => {
+  it('links the Community Guidelines', () => {
+    render(<ReportContentDialog request={message} onClose={vi.fn()} />);
+    expect(screen.getByRole('link', { name: 'Community Guidelines' })).toHaveAttribute('href', 'https://docs.messenger.viserix.com/#/guidelines/en');
+  });
+
   beforeEach(() => { mocks.reportMessage.mockReset(); mocks.reportGroup.mockReset(); mocks.toast.mockReset(); });
 
   it('tells what moderators see and reports the message with the reason and note', async () => {

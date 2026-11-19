@@ -22,3 +22,21 @@ test('registers a user and logs back in', async ({ browser }) => {
     await context.close();
   }
 });
+
+test('links the help site instead of an in-app help page', async ({ browser }) => {
+  const context = await browser.newContext();
+  await context.addInitScript(() => {
+    window.localStorage.setItem('language', 'de');
+  });
+  const page = await context.newPage();
+
+  try {
+    await page.goto('/register');
+    const footer = page.getByRole('navigation', { name: 'Hilfe und rechtliche Hinweise' });
+    await expect(footer.getByRole('link', { name: 'Hilfe' })).toHaveAttribute('href', /^https:\/\/docs\.(staging\.)?messenger\.viserix\.com\/$/);
+    await expect(footer.getByRole('link', { name: 'Datenschutzerklärung' })).toHaveAttribute('href', /#\/privacy\/de$/);
+    await expect(page.getByRole('button', { name: 'Konto erstellen', exact: true })).toBeDisabled();
+  } finally {
+    await context.close();
+  }
+});

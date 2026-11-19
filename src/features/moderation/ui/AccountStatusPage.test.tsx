@@ -25,6 +25,14 @@ const limited: AccountStatus = {
 describe('AccountStatusPage', () => {
   beforeEach(() => { mocks.appeal.mockReset(); mocks.review.mockReset(); mocks.toast.mockReset(); mocks.status = limited; mocks.outcomes = undefined; });
 
+  it('links the Community Guidelines next to the status explanation', () => {
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    const link = screen.getByRole('link', { name: 'Community Guidelines' });
+    expect(link).toHaveAttribute('href', 'https://docs.messenger.viserix.com/#/guidelines/en');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link.closest('p')).toHaveTextContent('The rules are in the Community Guidelines.');
+  });
+
   it('shows a staff decision as reviewed by a person with the rule and the text from Messenger moderation', () => {
     mocks.status = {
       ...limited, status: 'restricted', can_appeal: false, decided_by: 'staff', reason_code: 'scam',

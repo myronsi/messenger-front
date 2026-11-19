@@ -1,7 +1,7 @@
 import React from 'react';
 import { MessageSquare, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { DocsLink } from '@/shared/ui/DocsLink';
+import { LegalFooter } from '@/shared/ui/LegalFooter';
 import { cn } from '@/shared/lib/utils';
 import { useAppWorkerRegistration } from '@/shared/lib/useAppWorkerRegistration';
 import { AuthToolbar } from './AuthToolbar';
@@ -46,7 +46,6 @@ export const RecoveryNote: React.FC = () => {
 };
 
 export const AuthShell: React.FC<{ aside?: React.ReactNode; children: React.ReactNode }> = ({ aside, children }) => {
-  const { translations } = useLanguage();
   useAppWorkerRegistration();
   return (
     <div className="flex min-h-[100dvh] bg-background sm:items-center sm:justify-center sm:bg-muted/50 sm:p-6">
@@ -61,9 +60,7 @@ export const AuthShell: React.FC<{ aside?: React.ReactNode; children: React.Reac
             <AuthToolbar />
           </div>
           <div className="mx-auto flex w-full max-w-sm flex-1 flex-col pb-8 pt-6 sm:pt-10 animate-fade-in lg:pt-[72px]">{children}</div>
-          <p className="text-center text-sm">
-            <DocsLink className="rounded-sm text-muted-foreground hover:text-primary hover:underline">{translations.docsLink}</DocsLink>
-          </p>
+          <LegalFooter />
         </main>
       </div>
     </div>

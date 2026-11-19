@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import AuthFlowPage from './AuthFlowPage';
@@ -92,5 +92,13 @@ describe('AuthFlowPage layout', () => {
     expect(screen.getByText('Chats that look the way you like')).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Language' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Theme: System' })).toBeInTheDocument();
+  });
+
+  it.each(['/login', '/register'])('shows the help and legal links under %s', (path) => {
+    renderAt(path);
+    const footer = screen.getByRole('navigation', { name: 'Help and legal information' });
+    expect(within(footer).getAllByRole('link').map((link) => link.textContent))
+      .toEqual(['Help', 'Privacy Policy', 'Terms of Use', 'Community Guidelines', 'Imprint']);
+    expect(within(footer).getByRole('link', { name: 'Terms of Use' })).toHaveAttribute('href', 'https://docs.messenger.viserix.com/#/terms/en');
   });
 });

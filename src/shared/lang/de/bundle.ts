@@ -9,7 +9,7 @@ import { errors } from './errors';
 import { fileTypes } from './fileTypes';
 import { supplemental } from './supplemental';
 import { update } from './update';
-import { docs } from './docs';
+import { legal } from './legal';
 import { recoveryUi } from './recoveryUi';
 import { securityUi } from './securityUi';
 import { qrLogin } from './qrLogin';
@@ -37,7 +37,7 @@ import { moderation } from './moderation';
 
 export const de = {
   ...auth, ...profile, ...chat, ...group, ...messages,
-  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...docs, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
+  ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...legal, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
   ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
   ...chatOrganizer, ...chatCleanup, ...profileRework, ...profileExtras, ...customEmoji, ...audioPlayer, ...groupCreate, ...mainNav, ...personalization,
   ...moderation,

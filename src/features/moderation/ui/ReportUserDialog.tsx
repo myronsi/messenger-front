@@ -7,6 +7,7 @@ import { toast } from '@/shared/ui/sonner';
 import type { EntityId } from '@/shared/api/entityId';
 import { useReportUserMutation, type ReportReason } from '../api/moderationApi';
 import { MAX_REPORT_NOTE, REPORT_REASONS } from '../model/accountStatus';
+import { GuidelinesHint } from './GuidelinesHint';
 
 interface ReportUserDialogProps {
   userId: EntityId;
@@ -50,7 +51,8 @@ export const ReportUserDialog = ({ userId, name, onClose, onReported }: ReportUs
           <X className="h-4 w-4" />
         </button>
         <h3 className="mb-2 text-lg font-semibold leading-none tracking-tight">{fillTemplate(t.reportTitle, values)}</h3>
-        <p className="mb-4 text-sm text-muted-foreground">{fillTemplate(t.reportDescription, values)}</p>
+        <p className="mb-2 text-sm text-muted-foreground">{fillTemplate(t.reportDescription, values)}</p>
+        <GuidelinesHint className="mb-4" />
         <fieldset className="mb-4">
           <legend className="mb-2 text-sm font-medium">{t.reasonLabel}</legend>
           <div className="space-y-1">
