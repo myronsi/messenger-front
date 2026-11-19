@@ -5,6 +5,7 @@ import { ModerationEvents } from './ModerationEvents';
 
 const mocks = vi.hoisted(() => ({
   listener: null as null | { onEvent?: (event: unknown) => void }, dispatch: vi.fn(), toast: vi.fn(), upsert: vi.fn(), invalidate: vi.fn(),
+  update: vi.fn(), markRead: vi.fn(), outcomes: undefined as unknown,
 }));
 
 vi.mock('@/shared/contexts/LanguageContext', async () => {
@@ -17,11 +18,49 @@ vi.mock('@/shared/api/realtime', () => ({
   realtime: { subscribe: (listener: { onEvent?: (event: unknown) => void }) => { mocks.listener = listener; return () => { mocks.listener = null; }; } },
 }));
 vi.mock('../api/moderationApi', () => ({
-  moderationApi: { util: { upsertQueryData: mocks.upsert, invalidateTags: mocks.invalidate } },
+  moderationApi: { util: { upsertQueryData: mocks.upsert, invalidateTags: mocks.invalidate, updateQueryData: mocks.update } },
+  useListReportOutcomesQuery: () => ({ data: mocks.outcomes }),
+  useMarkReportOutcomeReadMutation: () => [mocks.markRead],
 }));
 
+const outcome = (id: string, read: boolean, kind = 'action_taken') => ({
+  id, subject_type: 'user', subject_id: '9', outcome: kind, created_at: '2026-11-19T10:00:00Z', read,
+});
+
 describe('ModerationEvents', () => {
-  beforeEach(() => { vi.clearAllMocks(); mocks.upsert.mockReturnValue('upsert'); mocks.invalidate.mockReturnValue('invalidate'); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.upsert.mockReturnValue('upsert');
+    mocks.invalidate.mockReturnValue('invalidate');
+    mocks.update.mockReturnValue('update');
+    mocks.outcomes = undefined;
+  });
+
+  it('announces each unread report outcome once and marks it read', () => {
+    mocks.outcomes = { items: [outcome('2', false, 'no_violation'), outcome('1', true)] };
+    const { rerender } = render(<ModerationEvents onOpenDetails={vi.fn()} />);
+    expect(mocks.toast).toHaveBeenCalledTimes(1);
+    expect(mocks.toast).toHaveBeenCalledWith('Your report about a person', {
+      id: 'report-outcome:2', description: 'We reviewed it and found no violation of our rules.',
+    });
+    expect(mocks.markRead).toHaveBeenCalledWith('2');
+    mocks.outcomes = { items: [outcome('2', false, 'no_violation'), outcome('1', true)] };
+    rerender(<ModerationEvents onOpenDetails={vi.fn()} />);
+    expect(mocks.toast).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds a live report_outcome event to the list', () => {
+    render(<ModerationEvents onOpenDetails={vi.fn()} />);
+    const data = outcome('3', false);
+    mocks.listener?.onEvent?.({ type: 'report_outcome', event_id: '4', chat_id: null, data });
+    expect(mocks.update).toHaveBeenCalledWith('listReportOutcomes', undefined, expect.any(Function));
+    expect(mocks.dispatch).toHaveBeenCalledWith('update');
+    const recipe = mocks.update.mock.lastCall?.[2] as (draft: { items: unknown[] }) => void;
+    const draft = { items: [outcome('1', true)] };
+    recipe(draft);
+    recipe(draft);
+    expect(draft.items).toEqual([data, outcome('1', true)]);
+  });
 
   it('stores a live account_status event', () => {
     render(<ModerationEvents onOpenDetails={vi.fn()} />);

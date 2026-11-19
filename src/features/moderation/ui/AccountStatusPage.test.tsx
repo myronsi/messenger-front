@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountStatus } from '../api/moderationApi';
 import { AccountStatusPage } from './AccountStatusPage';
 
-const mocks = vi.hoisted(() => ({ status: undefined as unknown, appeal: vi.fn(), toast: vi.fn() }));
+const mocks = vi.hoisted(() => ({ status: undefined as unknown, outcomes: undefined as unknown, appeal: vi.fn(), toast: vi.fn() }));
 
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en } = await vi.importActual<typeof import('@/shared/lang/en')>('@/shared/lang/en');
@@ -13,6 +13,7 @@ vi.mock('@/shared/ui/sonner', () => ({ toast: mocks.toast }));
 vi.mock('../api/moderationApi', () => ({
   useGetAccountStatusQuery: () => ({ data: mocks.status, isLoading: false, isError: false, refetch: vi.fn() }),
   useAppealAccountStatusMutation: () => [mocks.appeal, { isLoading: false }],
+  useListReportOutcomesQuery: () => ({ data: mocks.outcomes }),
 }));
 
 const limited: AccountStatus = {
@@ -20,7 +21,46 @@ const limited: AccountStatus = {
 };
 
 describe('AccountStatusPage', () => {
-  beforeEach(() => { mocks.appeal.mockReset(); mocks.toast.mockReset(); mocks.status = limited; });
+  beforeEach(() => { mocks.appeal.mockReset(); mocks.toast.mockReset(); mocks.status = limited; mocks.outcomes = undefined; });
+
+  it('shows a staff decision as reviewed by a person with the rule and the text from Messenger moderation', () => {
+    mocks.status = {
+      ...limited, status: 'restricted', can_appeal: false, decided_by: 'staff', reason_code: 'scam',
+      reason_text: 'You asked several people for money.',
+    };
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    const decision = screen.getByTestId('staff-decision');
+    expect(decision).toHaveTextContent('Reviewed by a person');
+    expect(decision).toHaveTextContent('Rule: Scam or fraud');
+    expect(decision).toHaveTextContent('You asked several people for money.');
+    expect(decision).toHaveTextContent('Messenger moderation');
+    expect(screen.getByText(/A person on the moderation team reviewed your account/)).toBeInTheDocument();
+    expect(screen.getByText(/cannot be lowered by an automatic appeal/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Appeal now' })).not.toBeInTheDocument();
+  });
+
+  it('shows an unknown rule as other and no decision box for automatic statuses', () => {
+    mocks.status = { ...limited, decided_by: 'staff', reason_code: 'new_rule', reason_text: null };
+    const { unmount } = render(<AccountStatusPage onBack={vi.fn()} />);
+    expect(screen.getByTestId('staff-decision')).toHaveTextContent('Rule: Other');
+    unmount();
+    mocks.status = { ...limited, decided_by: 'automatic', reason_code: null, reason_text: null };
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    expect(screen.queryByTestId('staff-decision')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Appeal now' })).toBeEnabled();
+  });
+
+  it('lists the outcomes of the reports the user made', () => {
+    mocks.outcomes = { items: [
+      { id: '2', subject_type: 'sticker_pack', subject_id: '7', outcome: 'action_taken', created_at: '2026-11-19T10:00:00Z', read: false },
+      { id: '1', subject_type: 'channel', subject_id: '8', outcome: 'escalated', created_at: '2026-11-18T10:00:00Z', read: true },
+    ] };
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    const list = screen.getByTestId('report-outcomes');
+    expect(list).toHaveTextContent('Your report about a sticker pack');
+    expect(list).toHaveTextContent('We reviewed it and took action.');
+    expect(list).toHaveTextContent('Your reportWe reviewed it.');
+  });
 
   it('shows the status, what is restricted and the probation rules', () => {
     render(<AccountStatusPage onBack={vi.fn()} />);
