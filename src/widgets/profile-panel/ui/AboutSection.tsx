@@ -1,6 +1,6 @@
 import React from 'react';
-import { DocsLink } from '@/shared/ui/DocsLink';
-import { BookOpen, ChevronRight, Info } from 'lucide-react';
+import { HelpSiteLink } from '@/shared/ui/HelpSiteLink';
+import { BookOpen, ExternalLink, Info } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useGetServerVersionQuery } from '@/shared/api/versionApi';
 import { APP_COMMIT, APP_VERSION } from '@/shared/lib/appVersion';
@@ -32,13 +32,13 @@ const AboutSection: React.FC = () => {
           </span>
         </div>
       </div>
-      <DocsLink className="flex items-center gap-3 border-t border-border px-4 py-3 hover:bg-accent/60">
+      <HelpSiteLink className="flex items-center gap-3 border-t border-border px-4 py-3 hover:bg-accent/60">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-subtle-foreground">
           <BookOpen className="h-4 w-4" />
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{translations.docsLink}</span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </DocsLink>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{translations.legal.help}</span>
+        <ExternalLink className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      </HelpSiteLink>
     </section>
   );
 };

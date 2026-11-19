@@ -7,6 +7,7 @@ import { toast } from '@/shared/ui/sonner';
 import type { ContentReportRequest } from '@/entities/message';
 import { useReportGroupMutation, useReportMessageMutation, type ContentReportReason } from '../api/moderationApi';
 import { CONTENT_REPORT_REASONS, MAX_CONTENT_REPORT_NOTE } from '../model/accountStatus';
+import { GuidelinesHint } from './GuidelinesHint';
 
 interface ReportContentDialogProps {
   request: ContentReportRequest;
@@ -58,9 +59,10 @@ export const ReportContentDialog = ({ request, onClose }: ReportContentDialogPro
           <X className="h-4 w-4" />
         </button>
         <h3 className="mb-2 pr-6 text-lg font-semibold leading-none tracking-tight">{title}</h3>
-        <p className="mb-4 text-sm text-muted-foreground">
+        <p className="mb-2 text-sm text-muted-foreground">
           {fillTemplate(request.kind === 'message' ? t.reportMessageDescription : t.reportGroupDescription, values)}
         </p>
+        <GuidelinesHint className="mb-4" />
         <fieldset className="mb-4">
           <legend className="mb-2 text-sm font-medium">{t.reasonLabel}</legend>
           <div className="space-y-1">

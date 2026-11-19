@@ -40,6 +40,7 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await page.goto('/register');
     await page.getByLabel('Username').fill(user.username);
     await page.getByLabel('Password', { exact: true }).fill(user.password);
+    await page.getByRole('checkbox', { name: 'I am at least 13 years old. If I am under 16, a parent or guardian agrees.' }).check();
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     const key = await page.getByTestId('recovery-key').innerText();
     expect(key).toMatch(/^(?:[A-Z2-7]{4}-){7}[A-Z2-7]{4}$/);

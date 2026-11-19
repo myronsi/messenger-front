@@ -90,6 +90,7 @@ export const registerUser = async (page: Page, user: SmokeUser) => {
 
   await page.getByLabel('Username').fill(user.username);
   await page.getByLabel('Password', { exact: true }).fill(user.password);
+  await page.getByRole('checkbox', { name: 'I am at least 13 years old. If I am under 16, a parent or guardian agrees.' }).check();
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/auth/register') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   const response = await responsePromise;

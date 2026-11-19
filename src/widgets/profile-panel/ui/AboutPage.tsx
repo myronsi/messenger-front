@@ -4,6 +4,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/sh
 import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import AboutSection from './AboutSection';
+import LegalSection from './LegalSection';
 import { useSettingsLayout } from '../model/settingsLayout';
 
 const AboutPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
@@ -20,8 +21,9 @@ const AboutPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </BreadcrumbList>
         </Breadcrumb>
       </PageBackHeader>
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
         <AboutSection />
+        <LegalSection />
       </div>
     </div>
   );

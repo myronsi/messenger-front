@@ -8,6 +8,7 @@ import { toast } from '@/shared/ui/sonner';
 import { useAppealAccountStatusMutation, useGetAccountStatusQuery, useListReportOutcomesQuery } from '../api/moderationApi';
 import { decidedByStaff, decisionReasonLabel, outcomeNotice, restrictionLabel, statusLevel } from '../model/accountStatus';
 import { ReviewRequestSection } from './ReviewRequestSection';
+import { GuidelinesHint } from './GuidelinesHint';
 
 interface AccountStatusPageProps {
   onBack: () => void;
@@ -63,6 +64,7 @@ export const AccountStatusPage = ({ onBack, hideBack = false, isActive = true }:
           <section className="space-y-2">
             <span data-testid="account-status-level" className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${tone[level]}`}>{t.statuses[level]}</span>
             <p className="text-sm text-muted-foreground">{staff ? t.staffDescription : t.statusDescriptions[level]}</p>
+            <GuidelinesHint />
             {data.since && level !== 'good' && <p className="text-xs text-muted-foreground">{fillTemplate(t.since, { date: formatDate(data.since, language) })}</p>}
             {data.probation_until && (
               <p className="text-xs font-medium">{fillTemplate(t.probationUntil, { date: formatDate(data.probation_until, language) })}</p>

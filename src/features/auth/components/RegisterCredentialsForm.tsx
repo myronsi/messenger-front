@@ -3,6 +3,8 @@ import { Loader2, WandSparkles } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { HelpSiteLink } from '@/shared/ui/HelpSiteLink';
+import { fillTemplateNodes } from '@/shared/lib/fillTemplateNodes';
 import { validateRegisterField, type AccountField, type RegisterFieldErrors } from '../model/registerForm';
 import { generatePassword } from '../model/generatePassword';
 import { AuthField, PasswordInput } from './AuthFormParts';
@@ -28,6 +30,13 @@ export const RegisterCredentialsForm = ({
   const t = translations.authLayout;
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const legal = translations.legal;
+  const legalLink = (page: 'terms' | 'privacy') => (
+    <HelpSiteLink page={page} className="rounded-sm text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {legal.documents[page]}
+    </HelpSiteLink>
+  );
   const generate = () => {
     onPasswordChange(generatePassword());
     setGenerated(true);
@@ -47,7 +56,7 @@ export const RegisterCredentialsForm = ({
     onBlur: () => afterPointerRelease(() => onBlur(field)),
   });
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+    <form onSubmit={(event) => { if (ageConfirmed) onSubmit(event); else event.preventDefault(); }} noValidate className="flex flex-col gap-4">
       <AuthField id="register-username" label={translations.username} hint={t.usernameHint} alwaysShowHint error={errorText('username')}>
         <Input id="register-username" name="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
           maxLength={32} value={username} onChange={(event) => onUsernameChange(event.target.value)}
@@ -69,8 +78,18 @@ export const RegisterCredentialsForm = ({
           onChange={(event) => { setGenerated(false); onPasswordChange(event.target.value); }} {...described('register-password', 'password')}
           aria-describedby={`${fieldMessageId('register-password')} register-password-rules`} />
       </AuthField>
+      <div className="flex flex-col gap-3">
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-foreground">
+          <input type="checkbox" required checked={ageConfirmed} onChange={(event) => setAgeConfirmed(event.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary" />
+          <span>{legal.ageConfirm}</span>
+        </label>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {fillTemplateNodes(legal.consent, { terms: legalLink('terms'), privacy: legalLink('privacy') })}
+        </p>
+      </div>
       <Button type="submit" className="mt-1 h-11 w-full text-[15px] font-semibold"
-        disabled={isSubmitting || !username.trim() || !password || Boolean(fieldErrors.username || fieldErrors.password)}>
+        disabled={!ageConfirmed || isSubmitting || !username.trim() || !password || Boolean(fieldErrors.username || fieldErrors.password)}>
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {isSubmitting ? t.creatingAccount : t.createAccount}
       </Button>
