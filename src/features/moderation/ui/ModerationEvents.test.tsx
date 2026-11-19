@@ -25,7 +25,7 @@ describe('ModerationEvents', () => {
 
   it('stores a live account_status event', () => {
     render(<ModerationEvents onOpenDetails={vi.fn()} />);
-    const data = { status: 'warned', since: null, restrictions: [], can_appeal: true, probation_until: null };
+    const data = { status: 'warned', since: null, restrictions: [], can_appeal: true, probation_until: null, review_requested_at: null, can_request_review: true };
     mocks.listener?.onEvent?.({ type: 'account_status', event_id: '1', chat_id: null, data });
     expect(mocks.upsert).toHaveBeenCalledWith('getAccountStatus', undefined, data);
     expect(mocks.dispatch).toHaveBeenCalledWith('upsert');

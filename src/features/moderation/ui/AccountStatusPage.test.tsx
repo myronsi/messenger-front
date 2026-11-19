@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountStatus } from '../api/moderationApi';
 import { AccountStatusPage } from './AccountStatusPage';
 
-const mocks = vi.hoisted(() => ({ status: undefined as unknown, appeal: vi.fn(), toast: vi.fn() }));
+const mocks = vi.hoisted(() => ({ status: undefined as unknown, appeal: vi.fn(), review: vi.fn(), toast: vi.fn() }));
 
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en } = await vi.importActual<typeof import('@/shared/lang/en')>('@/shared/lang/en');
@@ -13,14 +13,16 @@ vi.mock('@/shared/ui/sonner', () => ({ toast: mocks.toast }));
 vi.mock('../api/moderationApi', () => ({
   useGetAccountStatusQuery: () => ({ data: mocks.status, isLoading: false, isError: false, refetch: vi.fn() }),
   useAppealAccountStatusMutation: () => [mocks.appeal, { isLoading: false }],
+  useRequestAccountReviewMutation: () => [mocks.review, { isLoading: false }],
 }));
 
 const limited: AccountStatus = {
   status: 'limited', since: '2026-11-10T09:00:00Z', restrictions: ['start_direct', 'invite_to_group', 'call'], can_appeal: true, probation_until: null,
+  review_requested_at: null, can_request_review: true,
 };
 
 describe('AccountStatusPage', () => {
-  beforeEach(() => { mocks.appeal.mockReset(); mocks.toast.mockReset(); mocks.status = limited; });
+  beforeEach(() => { mocks.appeal.mockReset(); mocks.review.mockReset(); mocks.toast.mockReset(); mocks.status = limited; });
 
   it('shows the status, what is restricted and the probation rules', () => {
     render(<AccountStatusPage onBack={vi.fn()} />);
@@ -31,10 +33,11 @@ describe('AccountStatusPage', () => {
   });
 
   it('has no appeal and no restrictions in good standing', () => {
-    mocks.status = { status: 'good', since: null, restrictions: [], can_appeal: false, probation_until: null };
+    mocks.status = { status: 'good', since: null, restrictions: [], can_appeal: false, probation_until: null, review_requested_at: null, can_request_review: false };
     render(<AccountStatusPage onBack={vi.fn()} />);
     expect(screen.getByText('Nothing is restricted.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Appeal now' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Request a review by a person' })).not.toBeInTheDocument();
   });
 
   it('appeals and announces the probation end', async () => {
@@ -56,5 +59,44 @@ describe('AccountStatusPage', () => {
     render(<AccountStatusPage onBack={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'Appeal now' })).toBeDisabled();
     expect(screen.getByText(/^Probation until /)).toBeInTheDocument();
+  });
+  it('sends a review request with the trimmed text', async () => {
+    mocks.review.mockReturnValue({ unwrap: () => Promise.resolve({ ...limited, review_requested_at: '2026-11-19T10:00:00Z', can_request_review: false }) });
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Request a review by a person' });
+    expect(button).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('What should the reviewer know?'), { target: { value: '  I only sent one link.  ' } });
+    expect(screen.getByText('25/500')).toBeInTheDocument();
+    fireEvent.click(button);
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('Request sent.'));
+    expect(mocks.review).toHaveBeenCalledWith('I only sent one link.');
+  });
+
+  it('shows the sent state while a request is open', () => {
+    mocks.status = { ...limited, review_requested_at: '2026-11-19T10:00:00Z', can_request_review: false };
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    expect(screen.getByTestId('review-request-sent')).toHaveTextContent('Request sent');
+    expect(screen.getByTestId('review-request-sent')).toHaveTextContent(/You asked for a review on .*2026.*\. A person from the moderation team/);
+    expect(screen.queryByRole('button', { name: 'Request a review by a person' })).not.toBeInTheDocument();
+  });
+
+  it('explains when no request is possible', () => {
+    mocks.status = { ...limited, can_request_review: false };
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Request a review by a person' })).toBeDisabled();
+    expect(screen.getByLabelText('What should the reviewer know?')).toBeDisabled();
+    expect(screen.getByText('You sent 3 requests in the last 30 days. You can ask again later.')).toBeInTheDocument();
+  });
+
+  it.each([
+    [409, 'You already have an open request. Wait for the decision.'],
+    [429, 'You sent 3 requests in the last 30 days. Try again later.'],
+    [503, 'Could not send the request. Try again.'],
+  ])('explains a refused review request (%i)', async (status, message) => {
+    mocks.review.mockReturnValue({ unwrap: () => Promise.reject({ status }) });
+    render(<AccountStatusPage onBack={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('What should the reviewer know?'), { target: { value: 'please check' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Request a review by a person' }));
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith(message));
   });
 });

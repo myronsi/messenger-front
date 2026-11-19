@@ -34,6 +34,17 @@ export const moderationApi = messengerApi.injectEndpoints({
         }
       },
     }),
+    requestAccountReview: builder.mutation<AccountStatus, string>({
+      queryFn: (text, { signal }) => apiTask(async () => contractData(await apiClient.POST('/me/account-status/review', { body: { text }, signal }))),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          await dispatch(moderationApi.util.upsertQueryData('getAccountStatus', undefined, data));
+        } catch {
+          dispatch(moderationApi.util.invalidateTags([{ type: 'Moderation', id: 'me' }]));
+        }
+      },
+    }),
     reportUser: builder.mutation<void, ReportUserArgs>({
       queryFn: ({ userId, reason, note, block }, { signal }) => apiTask(async () => {
         contractData(await apiClient.POST('/users/{user_id}/report', {
@@ -53,6 +64,7 @@ export const moderationApi = messengerApi.injectEndpoints({
 export const {
   useGetAccountStatusQuery,
   useAppealAccountStatusMutation,
+  useRequestAccountReviewMutation,
   useReportUserMutation,
   useUnreportUserMutation,
 } = moderationApi;
