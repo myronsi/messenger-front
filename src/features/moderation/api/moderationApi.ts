@@ -9,6 +9,9 @@ export type AccountStatus = Schema['AccountStatus'];
 export type AccountStatusLevel = Schema['AccountStatusLevel'];
 export type AccountRestriction = Schema['AccountRestriction'];
 export type ReportReason = Schema['ReportReason'];
+export type ModerationReason = Schema['ModerationReason'];
+export type ReportOutcome = Schema['ReportOutcome'];
+export type ReportOutcomeList = Schema['ReportOutcomeList'];
 
 export interface ReportUserArgs {
   userId: EntityId;
@@ -45,6 +48,20 @@ export const moderationApi = messengerApi.injectEndpoints({
         }
       },
     }),
+    listReportOutcomes: builder.query<ReportOutcomeList, void>({
+      queryFn: (_, { signal }) => apiTask(async () => contractData(await apiClient.GET('/me/report-outcomes', { signal }))),
+      providesTags: [{ type: 'Moderation', id: 'outcomes' }],
+    }),
+    markReportOutcomeRead: builder.mutation<void, string>({
+      queryFn: (id, { signal }) => apiTask(async () => {
+        contractData(await apiClient.POST('/me/report-outcomes/{outcome_id}/read', { params: { path: { outcome_id: id } }, signal }));
+      }),
+      onQueryStarted(id, { dispatch }) {
+        dispatch(moderationApi.util.updateQueryData('listReportOutcomes', undefined, (draft) => {
+          draft.items.forEach((item) => { if (item.id === id) item.read = true; });
+        }));
+      },
+    }),
     reportUser: builder.mutation<void, ReportUserArgs>({
       queryFn: ({ userId, reason, note, block }, { signal }) => apiTask(async () => {
         contractData(await apiClient.POST('/users/{user_id}/report', {
@@ -65,6 +82,8 @@ export const {
   useGetAccountStatusQuery,
   useAppealAccountStatusMutation,
   useRequestAccountReviewMutation,
+  useListReportOutcomesQuery,
+  useMarkReportOutcomeReadMutation,
   useReportUserMutation,
   useUnreportUserMutation,
 } = moderationApi;
