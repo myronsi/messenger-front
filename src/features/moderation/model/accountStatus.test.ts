@@ -31,7 +31,7 @@ describe('account status helpers', () => {
   });
 
   it('reads staff decisions and their rule', () => {
-    const base = { status: 'warned' as const, since: null, restrictions: [], can_appeal: false, probation_until: null };
+    const base = { status: 'warned' as const, since: null, restrictions: [], can_appeal: false, probation_until: null, review_requested_at: null, can_request_review: true };
     expect(decidedByStaff({ ...base, decided_by: 'staff' })).toBe(true);
     expect(decidedByStaff({ ...base, decided_by: 'automatic' })).toBe(false);
     expect(decidedByStaff(base)).toBe(false);

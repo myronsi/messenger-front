@@ -4,6 +4,7 @@ import type { AccountStatus, AccountStatusLevel, ReportOutcome } from '../api/mo
 
 export const REPORT_REASONS = ['spam', 'scam', 'harassment', 'impersonation', 'inappropriate_profile', 'other'] as const;
 export const MAX_REPORT_NOTE = 500;
+export const MAX_REVIEW_TEXT = 500;
 
 const LEVELS: AccountStatusLevel[] = ['good', 'warned', 'limited', 'restricted', 'suspended'];
 
