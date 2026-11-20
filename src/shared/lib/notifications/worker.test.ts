@@ -82,8 +82,8 @@ describe('background notification worker', () => {
       await w.push({ title: 'Mai', body, message_id: String(id), preview: true, avatar_token: 'a.1.2.9.sig', read_token: 'r.1' });
     }
     const [title, options] = w.registration.showNotification.mock.lastCall!;
-    expect(title).toBe('Mai (6)');
-    expect(options.body).toBe('two\nthree\nfour\nfive\nsix');
+    expect(title).toBe('Mai');
+    expect(options.body).toBe('six\nfive\nfour\nthree\ntwo\none');
     expect(options.icon).toBe('https://chat.test/api/v2/notifications/avatar/a.1.2.9.sig');
     expect(options.actions?.map((a: { title: string }) => a.title)).toEqual(['Ответить', 'Прочитано']);
     await w.push({ chat_id: '8', title: 'Bob', body: 'hi', message_id: '200', preview: true });
@@ -97,13 +97,13 @@ describe('background notification worker', () => {
       w.push({ title: 'Mai', body: 'two', message_id: '2', preview: true }),
       w.push({ title: 'Mai', body: 'three', message_id: '3', preview: true }),
     ]);
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['Mai (3)', expect.objectContaining({ body: 'one\ntwo\nthree' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Mai', expect.objectContaining({ body: 'three\ntwo\none' })]);
   });
   it('drops earlier message text once previews are turned off', async () => {
     const w = worker(); await w.account('1');
     await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
     await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false, avatar_token: 'a.x' });
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: '2 new messages', icon: '/pwa-192x192.png' })]);
   });
   it('marks the chat read without opening the app and keeps the notification when that fails', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: 'https://chat.test/api/v2' });
@@ -155,7 +155,7 @@ describe('background notification worker', () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
     await w.push({ title: 'Mai', body: 'hi', message_id: '1', preview: true, avatar_token: 'a.mai' });
     await w.push({ title: 'Bob', body: 'yo', message_id: '2', preview: true, avatar_token: 'a.bob' });
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Mai: hi\nBob: yo', icon: '/pwa-192x192.png' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Bob', expect.objectContaining({ body: 'Bob: yo\nMai: hi', icon: '/pwa-192x192.png' })]);
   });
   it('drops a queued push when the account logs out before it is shown', async () => {
     const w = worker(); await w.account('1');
@@ -174,7 +174,7 @@ describe('background notification worker', () => {
     const w = worker(); await w.account('1');
     await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
     await w.push({ title: 'Messenger', body: 'New message', message_id: '2', avatar_token: 'a.x' });
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message', icon: '/pwa-192x192.png' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: '2 new messages', icon: '/pwa-192x192.png' })]);
   });
   it('keeps the alert without Mark as read when the read link has expired', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
@@ -191,7 +191,7 @@ describe('background notification worker', () => {
     await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
     await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false });
     await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true });
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (2)', expect.objectContaining({ body: 'New message' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: '2 new messages' })]);
   });
   it('redacts a counted message that is delivered again after previews were turned off', async () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
@@ -221,8 +221,8 @@ describe('background notification worker', () => {
     await w.push({ title: 'Messenger', body: 'New message', message_id: '2', preview: false });
     await w.push({ title: 'Mai', body: 'secret', message_id: '1', preview: true, avatar_token: 'a.1' });
     const [title, options] = w.registration.showNotification.mock.lastCall!;
-    expect(title).toBe('Messenger (2)');
-    expect(options).toMatchObject({ body: 'New message', icon: '/pwa-192x192.png' });
+    expect(title).toBe('Messenger');
+    expect(options).toMatchObject({ body: '2 new messages', icon: '/pwa-192x192.png' });
   });
   it('still recognises a retry of a newer message that arrived before older ones', async () => {
     const w = worker(); await w.account('1');
@@ -255,7 +255,7 @@ describe('background notification worker', () => {
     const w = worker(); await w.account('1', 'https://chat.test', { api: '/api/v2' });
     await w.push({ title: 'Alex', body: 'one', message_id: '1', preview: true, sender_id: '5', avatar_token: 'a.5' });
     await w.push({ title: 'Alex', body: 'two', message_id: '2', preview: true, sender_id: '6', avatar_token: 'a.6' });
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['2 new messages', expect.objectContaining({ body: 'Alex: one\nAlex: two', icon: '/pwa-192x192.png' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Alex', expect.objectContaining({ body: 'Alex: two\nAlex: one', icon: '/pwa-192x192.png' })]);
   });
 });
 describe('birthday pushes', () => {

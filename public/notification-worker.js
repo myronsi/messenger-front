@@ -2,7 +2,7 @@
 const notificationCache = 'messenger-notification-account';
 const accountKey = new URL('/__notification_account', self.location.origin).href;
 const settingsKey = new URL('/__notification_settings', self.location.origin).href;
-const MAX_LINES = 5;
+const MAX_LINES = 10;
 const MAX_IDS = 200;
 const ACTION_TITLES = {
   en: {
@@ -206,7 +206,7 @@ async function showChatNotification(data) {
   if (repeated && previous && !(before.preview === true && data.preview !== true)) {
     if (user !== await notificationAccount()) return;
     await self.registration.showNotification(previous.title, {
-      body: previous.body, icon: previous.icon, badge: previous.badge, tag,
+      body: previous.body, icon: previous.icon, badge: previous.badge, tag, ...(previous.image ? { image: previous.image } : {}),
       renotify: false, silent: true, actions: previous.actions, data: before,
     });
     return;
@@ -223,9 +223,10 @@ async function showChatNotification(data) {
   const shown = lines.length ? lines : [line];
   const group = preview && data.chat_type === 'group' && typeof data.chat_title === 'string' && data.chat_title ? data.chat_title : '';
   const oneSender = !group && shown.every((entry) => entry.sender === sender);
-  const counted = (name) => (count > 1 ? `${name} (${count})` : name);
-  const title = group ? counted(group) : oneSender ? counted(from) : titles.many(count);
-  const body = shown.map((entry) => (oneSender ? entry.text : `${entry.from}: ${entry.text}`)).join('\n');
+  const title = group || from;
+  const newestFirst = [...shown].reverse();
+  const body = !preview ? (count > 1 ? titles.many(count) : titles.newMessage)
+    : newestFirst.map((entry) => (oneSender ? entry.text : `${entry.from}: ${entry.text}`)).join('\n');
   const iconKey = group ? `${user}:chat:${data.chat_id}` : `${user}:user:${data.sender_id}`;
   const icon = await notificationIcon((group || oneSender) && preview ? avatarUrl(data, settings) : null, iconKey);
   const incomingToken = !repeated && typeof data.read_token === 'string' ? data.read_token : '';
@@ -235,13 +236,16 @@ async function showChatNotification(data) {
   const actions = [{ action: 'reply', title: titles.reply }];
   const newestId = messageId && newerId(messageId, String(before.newest_id || '')) ? messageId : String(before.newest_id || messageId);
   if (readToken && settings.api && readMessageId === newestId) actions.push({ action: 'read', title: titles.read });
+  const imageToken = preview && typeof data.image_token === 'string' ? data.image_token : '';
+  const freshImage = imageToken && settings.api ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(imageToken)}`) : '';
+  const image = !preview ? '' : messageId === newestId ? freshImage || '' : String(before.image || '');
   if (user !== await notificationAccount()) return;
   await self.registration.showNotification(title, {
-    body, icon, badge: '/pwa-64x64.png',
+    body, icon, badge: '/pwa-64x64.png', ...(image ? { image } : {}),
     tag, renotify: false, silent: repeated || !data.sound, actions,
     data: {
       chat_id: String(data.chat_id), user_id: user, read_token: readToken, read_message_id: readMessageId, lines, count, preview, from,
-      chat_title: group,
+      chat_title: group, image,
       newest_id: newestId,
       ids: repeated || !messageId ? ids : [...ids, messageId].sort((a, b) => (a === b ? 0 : newerId(String(a), String(b)) ? 1 : -1)).slice(-MAX_IDS),
     },
