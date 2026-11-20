@@ -30,6 +30,7 @@ const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({ url, isMine }) => {
   const { ref, near } = useNearViewport<HTMLDivElement>();
   const { currentData: data } = useGetLinkPreviewQuery(url, { skip: !near || !isGoApi() });
   const [failedImage, setFailedImage] = useState<string | null>(null);
+  const [loadedImage, setLoadedImage] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const cardRef = useRef<HTMLAnchorElement>(null);
   const confirm = (event: React.MouseEvent) => {
@@ -39,14 +40,18 @@ const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({ url, isMine }) => {
   };
   const image = data?.image && data.image.url !== failedImage ? data.image : null;
   const large = !!image?.width && !!image.height && image.width >= 400 && image.width / image.height >= 1.3;
+  const imageShown = !!image && loadedImage === image.url;
   const imageNode = (className: string) => image && (
-    <AuthenticatedImage src={resolveMediaUrl(image.url)} alt="" draggable={false} onError={() => setFailedImage(image.url)} className={className} />
+    <AuthenticatedImage src={resolveMediaUrl(image.url)} alt="" draggable={false} data-testid="link-preview-image"
+      onError={() => setFailedImage(image.url)} onLoad={() => setLoadedImage(image.url)}
+      className={imageShown ? `media-fade-in ${className}` : 'pointer-events-none absolute h-px w-px opacity-0'} />
   );
 
-  const visible = !!data && (!!data.title || !!image);
+  const visible = !!data && (!!data.title || imageShown);
 
   return (
     <div ref={ref} className={visible ? 'max-w-full pb-[1.125rem] pt-1.5' : 'max-w-full'}>
+      {data && !visible && imageNode('')}
       {data && visible && (
         <a
           ref={cardRef}
@@ -56,7 +61,7 @@ const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({ url, isMine }) => {
           data-testid="link-preview"
           onClick={confirm}
           onAuxClick={(event) => { if (event.button === 1) confirm(event); }}
-          className={`flex max-w-full flex-col overflow-hidden rounded-lg border-l-[3px] no-underline transition-colors ${
+          className={`relative flex max-w-full flex-col overflow-hidden rounded-lg border-l-[3px] no-underline transition-colors ${
             isMine ? 'border-primary-foreground/80 bg-primary-foreground/15 hover:bg-primary-foreground/20' : 'border-primary bg-primary/10 hover:bg-primary/15'
           }`}
         >

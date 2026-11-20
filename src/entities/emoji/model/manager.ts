@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { configuredWebOrigin } from '@/shared/lib/webOrigin';
 
 export type EmojiManagerRequest = { kind: 'packs'; packId?: string } | { kind: 'link'; slug: string } | null;
 
@@ -22,10 +23,10 @@ export const useEmojiManagerRequest = () => useSyncExternalStore(subscribe, () =
 
 const LINK = /^\/emoji\/([A-Za-z0-9]{8,32})\/?$/;
 
-export const emojiSlugFromHref = (href: string) => {
+export const emojiSlugFromHref = (href: string, origin = window.location.origin, configured = configuredWebOrigin()) => {
   try {
-    const url = new URL(href, window.location.origin);
-    if (url.origin !== window.location.origin) return null;
+    const url = new URL(href, origin);
+    if (url.origin !== origin && url.origin !== configured) return null;
     return LINK.exec(url.pathname)?.[1] ?? null;
   } catch {
     return null;

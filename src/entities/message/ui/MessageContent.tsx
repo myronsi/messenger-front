@@ -16,6 +16,8 @@ import FileMessage from './FileMessage';
 import { LinkedMessageText } from './LinkedMessageText';
 import { MessageTextBody } from './MessageTextBody';
 import LinkPreviewCard from './LinkPreviewCard';
+import { AppLinkCard } from './AppLinkCard';
+import { appLinkFrom } from '../model/appLink';
 import { messageLinks } from '@/shared/lib/messageLinks';
 import { useImageDrawing } from '@/shared/ui/drawing';
 import { drawActionFor } from '../model/drawAction';
@@ -51,11 +53,19 @@ const MessageContent: React.FC<MessageContentProps> = ({
   if (message.type !== 'file' || typeof message.content === 'string') {
     const content = renderMessageContent(message);
     if (typeof content !== 'string') return <>{content}{trailing}</>;
-    const link = message.is_deleted || message.system_event ? undefined : messageLinks(content).find((part) => part.href)?.href;
+    const parts = message.is_deleted || message.system_event ? [] : messageLinks(content);
+    const links = parts.filter((part) => part.href);
+    const link = links[0]?.href;
+    const appLink = link ? appLinkFrom(link) : null;
+    const isMine = isOwnMessage(message);
+    const text = <MessageTextBody text={content} trailing={trailing} />;
+    if (appLink && links.length === 1 && parts.every((part) => part.href || !part.text.trim())) {
+      return <AppLinkCard link={appLink} isMine={isMine} standalone fallback={text} />;
+    }
     return (
       <>
-        <MessageTextBody text={content} trailing={trailing} />
-        {link && <LinkPreviewCard url={link} isMine={isOwnMessage(message)} />}
+        {text}
+        {appLink ? <AppLinkCard link={appLink} isMine={isMine} /> : link && <LinkPreviewCard url={link} isMine={isMine} />}
       </>
     );
   }
