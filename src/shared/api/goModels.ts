@@ -117,7 +117,7 @@ export const groupChatModel = (chat: Schema['Chat']) => ({
   chat_id: chat.id,
 });
 
-export const groupModel = (group: Schema['Group']) => {
+export const groupModel = (group: Omit<Schema['Group'], 'public_name'> & { public_name?: string | null }) => {
   const owner = group.members.find(({ user }) => user.id === group.owner_id)?.user;
   return {
     ...group,

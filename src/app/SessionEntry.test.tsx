@@ -21,12 +21,15 @@ vi.mock('@/shared/api/currentUserApi', () => ({
   currentUserApi: { endpoints: { getCurrentUser: { initiate: () => 'verify' } }, util: { upsertQueryEntries: () => 'seed' } },
 }));
 vi.mock('@/entities/chat', () => ({ chatApi: { util: { prefetch: () => 'prefetch' } } }));
-vi.mock('@/pages/auth', () => ({ AuthFlowPage: () => <input aria-label="Password" /> }));
+vi.mock('@/pages/auth', () => ({
+  AuthFlowPage: () => <input aria-label="Password" />,
+  PublicLinkPage: ({ target }: { target: { kind: string; name?: string; token?: string } }) => <p>public {target.kind} {target.name ?? target.token}</p>,
+}));
 vi.mock('@/pages/messenger', () => ({
   MessengerApp: ({ username }: { username: string }) => <p>Chats for {username}</p>,
 }));
 
-const setup = () => render(<LanguageProvider><MemoryRouter><SessionEntry /></MemoryRouter></LanguageProvider>);
+const setup = (path = '/') => render(<LanguageProvider><MemoryRouter initialEntries={[path]}><SessionEntry /></MemoryRouter></LanguageProvider>);
 
 const tokenFor = (claims: Record<string, string>) => `h.${btoa(JSON.stringify(claims)).replace(/=+$/, '')}.s`;
 
@@ -96,4 +99,29 @@ it('waits for the server when the saved user belongs to another session', async 
 
   expect(screen.getByRole('status')).toBeVisible();
   expect(screen.queryByText('Chats for alex')).not.toBeInTheDocument();
+});
+
+it.each([
+  ['/@anna_k', 'public name anna_k'],
+  [`/join/${'Ab3'.repeat(7)}x`, `public invite ${'Ab3'.repeat(7)}x`],
+])('shows the public page of %s to a signed-out visitor at once', async (path, text) => {
+  mocks.refresh.mockResolvedValue(null);
+  setup(path);
+  expect(await screen.findByText(text)).toBeVisible();
+  expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+});
+
+it('sends other unknown paths of a signed-out visitor to sign-in', async () => {
+  mocks.refresh.mockResolvedValue(null);
+  setup('/@an');
+  expect(await screen.findByLabelText('Password')).toBeVisible();
+});
+
+it('opens chats, not the public page, for a signed-in user on a public link', async () => {
+  mocks.token = tokenFor({ sub: '1', sid: 's1' });
+  rememberSignedInUser(mocks.token, { id: '1', username: 'alex' });
+  mocks.dispatch.mockImplementation(action => action === 'verify' ? new Promise(() => undefined) : undefined);
+  setup('/@anna_k');
+  expect(await screen.findByText('Chats for alex')).toBeVisible();
+  expect(screen.queryByText(/^public/)).not.toBeInTheDocument();
 });

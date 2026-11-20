@@ -36,6 +36,7 @@ export const privacyModel = async (settings: Schema['PrivacySettings'], signal?:
     typing_indicators_enabled: settings.typing_indicators_enabled ?? true,
     direct_messages: fromApi(settings.direct_messages), group_invites: fromApi(settings.group_invites),
     search_visibility: settings.search_visibility,
+    web_profile_visibility: settings.web_profile_visibility ?? 'everyone',
     voice_video_messages: settings.voice_video_messages === 'contacts' ? 'shared_chats' : 'everyone',
     forward_link: fromApi(settings.forward_link ?? 'everyone'), privacy_exceptions: {
       avatar_visibility: exceptions('avatar_visibility'), profile_visibility: exceptions('profile_visibility'),
@@ -52,6 +53,7 @@ export const privacyPatch = (patch: Partial<PrivacySettings>): Schema['UpdatePri
   presence_visibility: toApi(patch.presence_visibility), last_seen_visibility: toApi(patch.last_seen_visibility),
   birthday_visibility: toApi(patch.birthday_visibility), group_invites: toApi(patch.group_invites),
   direct_messages: toApi(patch.direct_messages), calls_from: toApi(patch.calls_from), search_visibility: patch.search_visibility,
+  web_profile_visibility: patch.web_profile_visibility,
   voice_video_messages: toApi(patch.voice_video_messages), forward_link: toApi(patch.forward_link),
   read_receipts_enabled: patch.read_receipts_enabled, typing_indicators_enabled: patch.typing_indicators_enabled,
 });

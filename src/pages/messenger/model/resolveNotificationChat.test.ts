@@ -1,16 +1,8 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { authFetch } from '@/shared/auth/session';
-import { notificationReturnPath, resolveNotificationChat } from './resolveNotificationChat';
+import { resolveNotificationChat } from './resolveNotificationChat';
 vi.mock('@/shared/auth/session', () => ({ authFetch: vi.fn() }));
 beforeEach(() => vi.clearAllMocks());
-it('keeps a notification destination through login and excludes arbitrary redirects', () => {
-  expect(notificationReturnPath('/chat/7', '?notification=1')).toBe('/chat/7?notification=1');
-  expect(notificationReturnPath('//outside.test', '?notification=1')).toBe('/');
-  expect(notificationReturnPath('/chat/7', '')).toBe('/');
-  expect(notificationReturnPath('/login', '', { notificationReturnPath: '/chat/7?notification=1' })).toBe('/chat/7?notification=1');
-  expect(notificationReturnPath('/login', '', { notificationReturnPath: 'https://outside.test?notification=1' })).toBe('/');
-  expect(notificationReturnPath('/login', '', { notificationReturnPath: '/chat/7?notification=1&reply=1' })).toBe('/chat/7?notification=1&reply=1');
-});
 it('resolves groups and direct conversations using authenticated data', async () => {
   vi.mocked(authFetch).mockResolvedValueOnce(new Response(JSON.stringify({ type: 'group', name: 'Project' })));
   expect(await resolveNotificationChat('7')).toMatchObject({ type: 'group', chatName: 'Project', chatId: '7' });

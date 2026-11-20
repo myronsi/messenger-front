@@ -102,3 +102,29 @@ it('opens the sticker pack preview instead of the leave-the-app question for sti
   expect(screen.queryByText('Open external link?')).not.toBeInTheDocument();
   expect(open).not.toHaveBeenCalled();
 });
+
+it.each([
+  ['/@anna_k', '/@anna_k'],
+  ['/dm/@anna_k', '/dm/@anna_k'],
+  [`/join/${'A'.repeat(22)}`, `/join/${'A'.repeat(22)}`],
+  ['/settings/privacy', '/settings/privacy'],
+])('opens the own link %s in the app instead of asking to leave', (path, expected) => {
+  window.history.replaceState({}, '', '/');
+  const open = vi.spyOn(window, 'open').mockReturnValue(null);
+  const moved = vi.fn();
+  window.addEventListener('popstate', moved, { once: true });
+  render(<LinkedMessageText text={`See ${window.location.origin}${path}`} />);
+  fireEvent.click(screen.getByRole('link'));
+  expect(window.location.pathname).toBe(expected);
+  expect(moved).toHaveBeenCalled();
+  expect(screen.queryByText('Open external link?')).not.toBeInTheDocument();
+  expect(open).not.toHaveBeenCalled();
+});
+
+it('opens a profile link over the open chat', () => {
+  window.history.replaceState({}, '', '/chat/7');
+  render(<LinkedMessageText text={`${window.location.origin}/@anna_k`} />);
+  fireEvent.click(screen.getByRole('link'));
+  expect(window.location.pathname).toBe('/chat/7/@anna_k');
+  window.history.replaceState({}, '', '/');
+});

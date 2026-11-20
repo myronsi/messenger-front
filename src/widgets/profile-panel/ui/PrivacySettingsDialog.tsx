@@ -194,7 +194,17 @@ const PrivacySettingsPanel: React.FC<PrivacySettingsPanelProps> = ({ isActive, d
               <>
                 {group(translations.privacyWhoCanSee || 'Who can see me', rowsOf('see'))}
                 {group(translations.privacyWhoCanContact || 'Who can contact me', rowsOf('contact'))}
-                {group(translations.privacyDiscovery || 'Discovery', rowsOf('discovery'))}
+                {group(translations.privacyDiscovery || 'Discovery', (<>
+                  {rowsOf('discovery')}
+                  <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground">{translations.sharing.webProfile}</span>
+                      <span className="block text-xs text-muted-foreground">{translations.sharing.webProfileHint}</span>
+                    </span>
+                    <Switch checked={(privacySettings?.web_profile_visibility ?? 'everyone') === 'everyone'} disabled={!privacySettings || isSaving}
+                      onCheckedChange={(checked) => handlePrivacyChange('web_profile_visibility', checked ? 'everyone' : 'nobody')} />
+                  </label>
+                </>))}
                 {group(translations.privacyMessages || 'Messages', (<>
                   <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
                     <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{translations.readReceipts || 'Read receipts'}</span>

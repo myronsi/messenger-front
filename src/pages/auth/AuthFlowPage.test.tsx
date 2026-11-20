@@ -64,8 +64,8 @@ describe('AuthFlowPage recovery chooser', () => {
 });
 
 const ReturnPath = () => {
-  const state = useLocation().state as { notificationReturnPath?: string } | null;
-  return <p>return to {state?.notificationReturnPath ?? 'nothing'}</p>;
+  const state = useLocation().state as { returnPath?: string } | null;
+  return <p>return to {state?.returnPath ?? 'nothing'}</p>;
 };
 
 describe('AuthFlowPage QR approval link', () => {

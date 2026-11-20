@@ -1,7 +1,6 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { authFetch } from '@/shared/auth/session';
 
-export { notificationReturnPath } from '@/shared/lib/notifications/navigation';
 
 export async function resolveNotificationChat(id: string) {
   const response = await authFetch(`${getApiBaseUrl()}/chats/${encodeURIComponent(id)}`);

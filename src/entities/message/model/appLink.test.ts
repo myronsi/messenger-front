@@ -15,5 +15,15 @@ describe('appLinkFrom', () => {
     expect(appLinkFrom('https://evil.example/emoji/EBKDJY57GBYH', origin, configured)).toBeNull();
     expect(appLinkFrom(`${origin}/settings`, origin, configured)).toBeNull();
     expect(appLinkFrom(`${origin}/dm/42`, origin, configured)).toBeNull();
+    expect(appLinkFrom('https://evil.example/@anna', origin, configured)).toBeNull();
+    expect(appLinkFrom(`${origin}/@an`, origin, configured)).toBeNull();
+    expect(appLinkFrom(`${origin}/join/short`, origin, configured)).toBeNull();
+  });
+
+  it('recognises public names and invite links', () => {
+    const token = 'Ab12'.repeat(5) + 'xy';
+    expect(appLinkFrom(`${origin}/@anna_k`, origin, configured)).toEqual({ kind: 'name', name: 'anna_k' });
+    expect(appLinkFrom(`${configured}/@Team_Chat/`, origin, configured)).toEqual({ kind: 'name', name: 'Team_Chat' });
+    expect(appLinkFrom(`${origin}/join/${token}`, origin, configured)).toEqual({ kind: 'invite', token });
   });
 });

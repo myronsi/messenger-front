@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
+import { openOwnLink, ownLinkUrl } from '@/shared/lib/ownLink';
 import { openStickerPack, stickerSlugFromHref } from '@/entities/sticker';
 import { emojiSlugFromHref, openEmojiPackLink } from '@/entities/emoji';
 
@@ -11,13 +12,15 @@ export function ExternalLinkConfirm({ href, open, onOpenChange, trigger }: {
   const { translations } = useLanguage();
   const stickerSlug = stickerSlugFromHref(href);
   const emojiSlug = emojiSlugFromHref(href);
+  const own = !!ownLinkUrl(href);
   useEffect(() => {
-    if (!open || (!stickerSlug && !emojiSlug)) return;
+    if (!open || !own) return;
     if (stickerSlug) openStickerPack({ slug: stickerSlug });
     else if (emojiSlug) openEmojiPackLink(emojiSlug);
+    else openOwnLink(href);
     onOpenChange(false);
-  }, [open, stickerSlug, emojiSlug, onOpenChange]);
-  if (!open || stickerSlug || emojiSlug) return null;
+  }, [open, own, href, stickerSlug, emojiSlug, onOpenChange]);
+  if (!open || own) return null;
   return createPortal(
     <ConfirmModal
       title={translations.externalLinkTitle}

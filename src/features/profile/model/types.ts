@@ -27,6 +27,7 @@ export interface PrivacySettings {
   direct_messages: DirectMessagePrivacyVisibility;
   group_invites: GroupInvitePrivacyVisibility;
   search_visibility: SearchVisibility;
+  web_profile_visibility: SearchVisibility;
   voice_video_messages: BasicPrivacyVisibility;
   forward_link: ForwardLinkVisibility;
   privacy_exceptions: PrivacyExceptionLists;

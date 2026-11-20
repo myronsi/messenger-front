@@ -7,8 +7,9 @@ import { getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { CurrentUsernameContext } from '@/shared/contexts/CurrentUsernameContext';
 import { pathOutsideAuth } from '@/shared/lib/authPaths';
-import { notificationReturnPath } from '@/shared/lib/notifications/navigation';
+import { inviteTokenFromPath, publicNameFromPath, returnPath } from '@/shared/lib/returnPath';
 import { Button } from '@/shared/ui/button';
 import { ChunkErrorBoundary } from '@/shared/ui/ChunkErrorBoundary';
 import { watchCurrentUser } from './watchCurrentUser';
@@ -17,6 +18,8 @@ import { watchSessionChanges } from './watchSessionChanges';
 const loadMessenger = () => import('@/pages/messenger').then(({ MessengerApp }) => ({ default: MessengerApp }));
 const MessengerApp = lazy(loadMessenger);
 const AuthFlowPage = lazy(() => import('@/pages/auth').then(module => ({ default: module.AuthFlowPage })));
+const PublicLinkPage = lazy(() => import('@/pages/auth').then(module => ({ default: module.PublicLinkPage })));
+const JoinGroupDialog = lazy(() => import('@/features/sharing').then(module => ({ default: module.JoinGroupDialog })));
 
 function SessionLoading({ failed = false }: { failed?: boolean }) {
   const { translations } = useLanguage();
@@ -97,25 +100,33 @@ export function SessionEntry() {
   useEffect(() => {
     const target = username ? pathOutsideAuth(location.pathname) : null;
     if (target === null) return;
-    navigate(target === '/' ? notificationReturnPath(location.pathname, location.search, location.state) : target, { replace: true });
+    navigate(target === '/' ? returnPath(location.pathname, location.search, location.state) : target, { replace: true });
   }, [username, location.pathname, location.search, location.state, navigate]);
 
   const handleLogin = (user: string) => {
     stopWatching.current();
     setUsername(user);
     setChecking(false);
-    navigate(notificationReturnPath(location.pathname, location.search, location.state));
+    navigate(returnPath(location.pathname, location.search, location.state));
   };
 
-  const publicEntry = location.pathname === '/' || pathOutsideAuth(location.pathname) !== null;
+  const publicName = publicNameFromPath(location.pathname);
+  const inviteToken = inviteTokenFromPath(location.pathname);
+  const publicTarget = publicName ? { kind: 'name' as const, name: publicName } : inviteToken ? { kind: 'invite' as const, token: inviteToken } : null;
+  const publicEntry = location.pathname === '/' || pathOutsideAuth(location.pathname) !== null || !!publicTarget;
   if (checking && (getAccessToken() || !publicEntry)) return <SessionLoading />;
 
   return (
     <ChunkErrorBoundary key={username ? 'messenger' : 'auth'} fallback={<SessionLoading failed />}>
       <Suspense fallback={username ? <main className="min-h-[100dvh] bg-background" /> : <SessionLoading />}>
         {username
-          ? <MessengerApp username={username} onLogout={() => setUsername('')} />
-          : <AuthFlowPage onLoginSuccess={handleLogin} />}
+          ? (
+            <CurrentUsernameContext.Provider value={username}>
+              <MessengerApp username={username} onLogout={() => setUsername('')} />
+              {inviteToken && <Suspense fallback={null}><JoinGroupDialog key={inviteToken} token={inviteToken} onClose={() => navigate('/', { replace: true })} /></Suspense>}
+            </CurrentUsernameContext.Provider>
+          )
+          : publicTarget ? <PublicLinkPage target={publicTarget} /> : <AuthFlowPage onLoginSuccess={handleLogin} />}
       </Suspense>
     </ChunkErrorBoundary>
   );

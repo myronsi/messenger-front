@@ -4,7 +4,7 @@ import {
   type RecoveryMethod, type RegisterStep,
 } from '@/features/auth';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { notificationReturnPath } from '@/shared/lib/notifications/navigation';
+import { returnPath } from '@/shared/lib/returnPath';
 import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import {
   LoginComponent,
@@ -20,7 +20,7 @@ interface AuthFlowPageProps {
 const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const authState = { notificationReturnPath: notificationReturnPath(location.pathname, location.search, location.state) };
+  const authState = { returnPath: returnPath(location.pathname, location.search, location.state) };
   const { translations } = useLanguage();
   const [identifier, setIdentifier] = useState('');
   const [registerStep, setRegisterStep] = useState<RegisterStep>('account');
@@ -35,7 +35,7 @@ const AuthFlowPage: React.FC<AuthFlowPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <AuthShell aside={aside}>
-      {location.pathname === '/login' && qrLoginRequestId(authState.notificationReturnPath) && (
+      {location.pathname === '/login' && qrLoginRequestId(authState.returnPath) && (
         <p role="status" className="mb-6 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">{translations.qrLogin.signInToApprove}</p>
       )}
       <Routes>
