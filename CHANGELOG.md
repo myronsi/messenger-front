@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.30](https://github.com/myronsi/messenger-front/compare/v0.6.29...v0.6.30) (2026-11-20)
+
+
+### Features
+
+* **chat:** calmer menus, loading states, link cards and report flows ([#245](https://github.com/myronsi/messenger-front/issues/245)) ([f93aaef](https://github.com/myronsi/messenger-front/commit/f93aaefa541b9d6f1b2876b212022a4704a968f6))
+* **notifications:** pictures, no title counter, ten stacked messages ([#243](https://github.com/myronsi/messenger-front/issues/243)) ([bbb6376](https://github.com/myronsi/messenger-front/commit/bbb6376f5db913982392494cba12984578d06a18))
+
 ## [0.6.29](https://github.com/myronsi/messenger-front/compare/v0.6.28...v0.6.29) (2026-11-20)
 
 
