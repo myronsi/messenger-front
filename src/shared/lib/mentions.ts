@@ -1,7 +1,7 @@
 export type MentionPart = { text: string; mention?: string };
 
 export const MENTION_ALL = 'all';
-const MENTION = /(^|[^A-Za-z0-9_])@([A-Za-z0-9_]{3,32})(?![A-Za-z0-9_])/g;
+const MENTION = /(^|[^A-Za-z0-9_@])@([A-Za-z0-9_]{3,32})(?![A-Za-z0-9_])/g;
 
 export function splitMentions(text: string): MentionPart[] {
   const parts: MentionPart[] = [];

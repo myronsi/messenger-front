@@ -90,6 +90,12 @@ export const groupSharingApi = messengerApi.injectEndpoints({
       }))),
       keepUnusedDataFor: 30,
     }),
+    searchPublicGroups: builder.query<GroupPreview[], string>({
+      queryFn: (q, { signal }) => apiTask(async () => contractData(await apiClient.GET('/public-groups', {
+        params: { query: { q, limit: 10 } }, signal,
+      })).items),
+      keepUnusedDataFor: 30,
+    }),
     joinGroup: builder.mutation<JoinedChat, { token?: string; name?: string }>({
       queryFn: ({ token, name }, { signal }) => apiTask(async () => contractData(token
         ? await apiClient.POST('/invites/{token}/join', { params: { path: { token } }, signal })
@@ -110,5 +116,5 @@ export const {
   useGetInviteLinksQuery, useCreateInviteLinkMutation, useRevokeInviteLinkMutation,
   useGetPublicNameAvailabilityQuery, useSetGroupPublicNameMutation, useClearGroupPublicNameMutation,
   useGetGroupBansQuery, useUnbanGroupUserMutation,
-  useGetInviteQuery, useGetPublicGroupQuery, useJoinGroupMutation, useLazyGetUnreadMentionsQuery,
+  useGetInviteQuery, useGetPublicGroupQuery, useSearchPublicGroupsQuery, useJoinGroupMutation, useLazyGetUnreadMentionsQuery,
 } = groupSharingApi;

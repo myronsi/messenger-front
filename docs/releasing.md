@@ -63,7 +63,7 @@ One-time setup:
    `/etc/nginx/conf.d/messenger-link-preview-map.conf`). `cache-headers.conf` uses its `$messenger_link_preview_bot`
    to send link preview crawlers (Telegram, WhatsApp, Slack, Facebook, X, Discord, LinkedIn, Skype) on `/@name` and
    `/join/<token>` to the API's Open Graph pages `/api/v2/og/names/<name>` and `/api/v2/og/invites/<token>` through the
-   server's `/api/` proxy; everyone else gets `index.html`. Both paths send `X-Robots-Tag: noindex`. Without the map
+   server's `/api/` proxy; everyone else gets `index.html`. Both paths send `X-Robots-Tag: noindex, nofollow`. Without the map
    `nginx -t` fails with an unknown variable, so copy it first.
    Releases cannot get this wrong on their own: `deploy.yml` and `deploy-staging.yml` only upload the built `dist`
    archive and switch the `current` symlink; they never copy `deploy/nginx/*` or reload nginx. The snippet also sends

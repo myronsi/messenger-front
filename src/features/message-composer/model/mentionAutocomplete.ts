@@ -1,6 +1,6 @@
 import { MENTION_ALL } from '@/shared/lib/mentions';
 
-const QUERY = /(^|[^A-Za-z0-9_])@([A-Za-z0-9_]{0,32})$/;
+const QUERY = /(^|[^A-Za-z0-9_@])@([A-Za-z0-9_]{0,32})$/;
 export const MAX_MENTION_SUGGESTIONS = 6;
 
 export interface MentionCandidate {

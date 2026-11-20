@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useSearchUsersQuery } from '@/entities/user';
+import { useSearchPublicGroupsQuery } from '@/entities/group';
+import { openOwnLink } from '@/shared/lib/ownLink';
+import { PublicAvatar } from '@/shared/ui/profile/PublicAvatar';
 import { selfName } from '@/shared/lib/selfName';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
 
@@ -28,7 +31,11 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
 
   const { currentData: searchData, isError, isFetching } = useSearchUsersQuery(debouncedSearch, { skip: !debouncedSearch || debouncedSearch.length < 2 });
 
-  const settled = query === debouncedSearch && query.length >= 2 && !isFetching;
+  const { currentData: groups = [], isFetching: isFetchingGroups } = useSearchPublicGroupsQuery(debouncedSearch, {
+    skip: !debouncedSearch || debouncedSearch.length < 2 || debouncedSearch.length > 64,
+  });
+  const publicGroups = query === debouncedSearch ? groups.filter((preview) => !!preview.group.public_name) : [];
+  const settled = query === debouncedSearch && query.length >= 2 && !isFetching && !isFetchingGroups;
 
   return (
     <div className="border-b border-border">
@@ -45,7 +52,7 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
             className="w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-ellipsis"
           />
 
-          {settled && (isError || searchData?.users.length === 0) && (
+          {settled && (isError || (searchData?.users.length === 0 && !publicGroups.length)) && (
             <p role="status" className="mt-3 px-3 py-2 text-sm text-muted-foreground">
               {isError ? translations.appShell.peopleSearchFailed : translations.appShell.noPeopleFound}
             </p>
@@ -78,6 +85,23 @@ const SearchUsers: React.FC<SearchUsersProps> = ({ currentUsername, translations
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+          {publicGroups.length > 0 && (
+            <div className="mt-3" data-testid="group-search-results">
+              <p className="mb-1 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{translations.sharing.publicGroups}</p>
+              <div className="max-h-56 overflow-auto rounded-md border border-border bg-card">
+                {publicGroups.map(({ group }) => (
+                  <button type="button" key={group.public_name} onClick={() => openOwnLink(`/@${group.public_name}`)} data-testid="group-search-result"
+                    className="flex w-full items-center rounded-lg p-3 text-left transition-all hover:bg-accent hover:text-accent-foreground">
+                    <PublicAvatar src={group.avatar_url} name={group.name} className="mr-3 h-10 w-10 rounded-full object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{group.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">@{group.public_name}</div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}

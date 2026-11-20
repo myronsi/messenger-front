@@ -62,6 +62,7 @@ export const sharing = {
     linkLimit: "Este grupo ya tiene 50 enlaces activos. Revoca uno primero.",
     actionFailed: "Algo salió mal. Inténtalo de nuevo.",
     accountLimited: "Tu cuenta no puede compartir grupos ahora mismo.",
+    publicGroups: "Grupos públicos",
     publicGroup: "Grupo público",
     publicGroupHint: "Un grupo público se puede encontrar por su nombre y cualquiera puede unirse con su enlace.",
     publicName: "Nombre público",

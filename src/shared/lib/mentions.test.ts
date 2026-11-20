@@ -23,8 +23,8 @@ describe('splitMentions', () => {
     expect(splitMentions(text).some((part) => part.mention)).toBe(false);
   });
 
-  it('reads @@name as one mention after the first @', () => {
-    expect(splitMentions('@@anna')).toEqual([{ text: '@' }, { text: '@anna', mention: 'anna' }]);
+  it('does not read @@name as a mention, like the server', () => {
+    expect(splitMentions('@@anna')).toEqual([{ text: '@@anna' }]);
   });
 
   it('accepts exactly 32 characters and stops at a dash', () => {

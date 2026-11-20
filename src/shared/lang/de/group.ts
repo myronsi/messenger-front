@@ -39,7 +39,7 @@ export const group = {
   groupNameRequired: "Ein Gruppenname ist erforderlich",
   groupSettings: "Gruppeneinstellungen",
   removeParticipant: "Teilnehmer entfernen",
-  removeParticipantConfirm: "Diese Person aus der Gruppe entfernen? Sie verliert den Zugriff auf den Gruppenchat, bis jemand sie wieder hinzufügt.",
+  removeParticipantConfirm: "Diese Person aus der Gruppe entfernen? Sie verliert den Zugriff auf den Gruppenchat und kann weder per Link beitreten noch wieder hinzugefügt werden, bis ein Besitzer oder Admin es unter „Entfernte Mitglieder“ erlaubt.",
   save: "Speichern",
   deleteGroup: "Gruppe löschen",
   deleteGroupConfirm: "Wenn du diese Gruppe löschst, hat das folgende Auswirkungen:",

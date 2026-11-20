@@ -98,7 +98,7 @@ export const useGroupManagement = ({
     window.setTimeout(() => {
       setGroupConfirm({
         title: translations.removeParticipant || 'Remove participant',
-        message: translations.removeParticipantConfirm || `Remove @${participantUsername} from this group? They will lose access to the group chat until someone adds them again.`,
+        message: translations.removeParticipantConfirm || `Remove @${participantUsername} from this group? They cannot rejoin until an owner or admin allows it.`,
         confirmText: translations.remove || 'Remove',
         isDestructive: true,
         onConfirm: async () => {
