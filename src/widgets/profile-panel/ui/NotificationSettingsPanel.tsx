@@ -1,14 +1,17 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { useSettingsLayout } from '../model/settingsLayout';
+import { useSettingsLayout } from '../model/settingsLayout';
+
 import { TimeZoneSetting } from '@/features/profile';
 import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import { AlertCircle, Bell, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import {
   Breadcrumb,
-  BreadcrumbItem,
+  BreadcrumbItem,
+
   BreadcrumbList,
-  BreadcrumbPage,
+  BreadcrumbPage,
+
 } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
@@ -67,6 +70,7 @@ export default function NotificationSettingsPanel({ isActive, onBack }: Props) {
     ['sound', t.sound, t.soundHint],
     ['previews', t.previews, t.previewsHint],
     ['birthday_reminders', translations.profileExtras.birthdayReminders, translations.profileExtras.birthdayRemindersHint],
+    ['mentions_in_muted', translations.sharing.mentionsInMuted, translations.sharing.mentionsInMutedHint],
   ] as const;
 
   const deviceDescription = !supported

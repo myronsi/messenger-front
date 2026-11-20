@@ -1,6 +1,9 @@
 import { messageLinks } from '@/shared/lib/messageLinks';
 import { splitByQuery, useSearchHighlight } from '@/shared/lib/searchHighlight';
+import { isMentionOf, MENTION_ALL, splitMentions } from '@/shared/lib/mentions';
+import { useCurrentUsername } from '@/shared/contexts/CurrentUsernameContext';
 import { MessageLink } from './MessageLink';
+import { MentionLink } from './MentionLink';
 import { splitEmoji } from '@/shared/lib/customEmoji';
 import { CustomEmoji } from '@/shared/ui/CustomEmoji';
 
@@ -15,10 +18,21 @@ const Highlighted = ({ text, query, large }: { text: string; query: string; larg
     : <CustomEmoji key={index} id={part.token.id} shortcode={part.token.shortcode} large={large} />))}</>
 );
 
-export function LinkedMessageText({ text, large }: { text: string; large?: boolean }) {
+const WithMentions = ({ text, query, large, mentionsAll }: { text: string; query: string; large?: boolean; mentionsAll?: boolean }) => {
+  const self = useCurrentUsername();
+  return <>{splitMentions(text).map((part, index) => {
+    if (!part.mention) return <Highlighted key={index} text={part.text} query={query} large={large} />;
+    if (mentionsAll && part.mention.toLowerCase() === MENTION_ALL) {
+      return <span key={index} data-mention-all className="rounded bg-primary/20 px-0.5 font-medium"><Marked text={part.text} query={query} /></span>;
+    }
+    return <MentionLink key={index} name={part.mention} own={isMentionOf(part.mention, self)}><Marked text={part.text} query={query} /></MentionLink>;
+  })}</>;
+};
+
+export function LinkedMessageText({ text, large, mentionsAll }: { text: string; large?: boolean; mentionsAll?: boolean }) {
   const query = useSearchHighlight();
   const displayText = text.replace(/[ \t]+(?=\r?$)/gm, '');
   return <>{messageLinks(displayText).map((part, index) => part.href
     ? <MessageLink key={index} href={part.href}><Highlighted text={part.text} query={query} /></MessageLink>
-    : <Highlighted key={index} text={part.text} query={query} large={large} />)}</>;
+    : <WithMentions key={index} text={part.text} query={query} large={large} mentionsAll={mentionsAll} />)}</>;
 }

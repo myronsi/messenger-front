@@ -142,6 +142,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
               unread_count: readerUserId === currentUserIdRef.current
                 ? parsedData.unread_count ?? 0
                 : existing.unread_count ?? baseChat?.unread_count ?? 0,
+              ...(readerUserId === currentUserIdRef.current && !parsedData.unread_count ? { unread_mentions_count: 0 } : {}),
               first_unread_message_id: readerUserId === currentUserIdRef.current
                 ? parsedData.first_unread_message_id ?? null
                 : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,
@@ -178,6 +179,7 @@ export function handleChatListWebSocketMessage(parsedData: WebSocketMessage, ctx
               unread_count: readerUserId === currentUserIdRef.current
                 ? parsedData.unread_count ?? 0
                 : existing.unread_count ?? baseChat?.unread_count ?? 0,
+              ...(readerUserId === currentUserIdRef.current && !parsedData.unread_count ? { unread_mentions_count: 0 } : {}),
               first_unread_message_id: readerUserId === currentUserIdRef.current
                 ? parsedData.first_unread_message_id ?? null
                 : existing.first_unread_message_id ?? baseChat?.first_unread_message_id ?? null,

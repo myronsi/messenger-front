@@ -12,6 +12,7 @@ import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog, SelectionBar, u
 import { useBackToClose } from '@/shared/lib/useBackToClose';
 import GroupProfileDialog from './GroupProfileDialog';
 import GroupChatHeader from './GroupChatHeader';
+import MentionJumpButton from './MentionJumpButton';
 
 import type { GroupChatViewModel } from './groupChatTypes';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
@@ -104,6 +105,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         onOpenReadStatus={onListReadStatus}
         onOpenReactionDetails={onListReactionDetails}
         scrollToBottomKey={chatId}
+        bottomAction={<MentionJumpButton chatId={chatId} username={username} onJump={jumpToSearchResult} />}
         selection={selection} onSwipeReply={startReply}
         onScrollStart={onListScrollStart}
       />
@@ -129,6 +131,10 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           onVoiceUploadProgress={updateOptimisticUploadProgress}
           onVoiceUploadError={markOptimisticUploadFailed}
           onVoiceUploadComplete={settleOptimisticUpload}
+          mentions={groupDetails ? {
+            members: groupDetails.participants,
+            canMentionAll: groupDetails.current_user_role === 'owner' || groupDetails.current_user_role === 'admin',
+          } : undefined}
         />
       </div>
 
