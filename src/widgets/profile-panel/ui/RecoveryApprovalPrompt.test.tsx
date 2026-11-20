@@ -162,8 +162,8 @@ describe('RecoveryApprovalPrompt', () => {
     render(<RecoveryApprovalPrompt />);
     emit(request('a'));
     await approveWith(33);
-    fireEvent.change(await screen.findByLabelText('Authenticator or backup code'), { target: { value: '123456' } });
-    fireEvent.submit(screen.getByLabelText('Authenticator or backup code').closest('form')!);
+    fireEvent.change(await screen.findByLabelText('Authenticator code'), { target: { value: '123456' } });
+    fireEvent.submit(screen.getByLabelText('Authenticator code').closest('form')!);
     await waitFor(() => expect(toast).toHaveBeenCalledWith(t.approvedToast, { action: undefined }));
     expect(confirmWithPasskey).toHaveBeenCalledTimes(1);
     expect(post).toHaveBeenLastCalledWith('/auth/recovery-requests/{requestId}/approve', {
@@ -194,9 +194,9 @@ describe('RecoveryApprovalPrompt', () => {
     render(<RecoveryApprovalPrompt />);
     emit(request('a'));
     await approveWith(11);
-    expect(await screen.findByLabelText('Authenticator or backup code')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Authenticator code')).toBeInTheDocument();
     emit(request('b', 600_000, [44, 55, 66]));
-    await waitFor(() => expect(screen.queryByLabelText('Authenticator or backup code')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByLabelText('Authenticator code')).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: t.approve })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Choose 55' }));
     expect(screen.getByRole('button', { name: t.approve })).toBeEnabled();
