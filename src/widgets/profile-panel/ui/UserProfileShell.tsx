@@ -1,5 +1,7 @@
 import React from 'react';
-import { ArrowLeft, UserRound } from 'lucide-react';
+import { UserRound } from 'lucide-react';
+import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { ProfileCloseButton } from '@/shared/ui/profile/ProfileHero';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { UserProfileSkeleton } from '@/shared/ui/messenger-skeletons';
 import { ProfilePageBackdrop } from '@/shared/ui/profile/ProfileBackgroundFill';
@@ -15,13 +17,15 @@ interface UserProfileShellProps {
 
 export const UserProfileShell: React.FC<UserProfileShellProps> = ({ children, onClose, hideBackOnMobile = false, hideBack = false, background }) => {
   const { translations } = useLanguage();
+  const isMobile = useIsMobile();
   return (
     <div className="relative isolate flex h-full min-h-0 w-full flex-col bg-background text-foreground">
       <ProfilePageBackdrop background={background} />
       <h2 className="sr-only">{translations.userProfile}</h2>
-      {!hideBack && <button type="button" onClick={onClose} className={`absolute left-1.5 top-3 z-20 text-white motion-press ${hideBackOnMobile ? 'max-md:hidden' : ''} flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20`} aria-label={translations.back || 'Back'}>
-        <ArrowLeft className="h-5 w-5" />
-      </button>}
+      {!hideBack && !(isMobile && hideBackOnMobile) && (
+        <ProfileCloseButton mobile={isMobile} onClick={onClose} backLabel={translations.back || 'Back'} closeLabel={translations.close}
+          className={`absolute top-3 z-20 text-white ${isMobile ? 'left-1.5' : 'right-1.5'}`} />
+      )}
       <div className="min-h-0 flex-1 overflow-hidden overscroll-contain">{children}</div>
     </div>
   );

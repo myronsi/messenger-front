@@ -137,7 +137,6 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         onMarkAsRead={model.handleMarkChatRead}
         onTogglePinned={model.handleTogglePinnedChat}
         onToggleArchived={model.handleToggleArchived}
-        onClearHistory={() => askCleanup('clear', menuChat)}
         onDeleteChat={menuChat?.type === 'one-on-one' ? () => askCleanup('delete', menuChat) : undefined}
         canMute={!menuChat?.is_saved}
         onClose={model.closeChatContextMenu}

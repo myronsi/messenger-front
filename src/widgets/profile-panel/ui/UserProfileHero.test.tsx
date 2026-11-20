@@ -53,15 +53,11 @@ describe('UserProfileHero', () => {
     expect(props.onEditContactName).toHaveBeenCalledOnce();
   });
 
-  it('shows your own chat tools without call, mute and block', () => {
+  it('shows no call, mute or more menu on your own profile', () => {
     renderHero({ isCurrentUser: true, canMessage: false });
     expect(screen.queryByText('mute')).not.toBeInTheDocument();
     expect(screen.queryByText('call')).not.toBeInTheDocument();
-    openMenu();
-    expect(screen.getByRole('menuitem', { name: en.chatCleanup.clearHistory })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: en.chatCleanup.deleteChat })).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: en.profileRework.block })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: en.profileRework.rename })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: en.profileRework.more })).not.toBeInTheDocument();
   });
 
   it('shows online status for others but not on your own profile', () => {

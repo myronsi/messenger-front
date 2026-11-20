@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Ban, Cake, Eraser, Flag, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { Ban, Cake, Eraser, Flag, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import { ProfileActions, ProfileBanner, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { ProfileActions, ProfileBanner, ProfileCloseButton, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { usePresenceLabel } from '@/shared/utils/presenceFormatters';
 import { copyText } from '@/shared/lib/copyText';
@@ -73,18 +74,22 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
       { key: 'mute', label: t.mute, primary: !props.canMessage, render: (className: string) => <ChatMuteAction chatId={props.directChatId!} className={className} /> },
     ] : []),
   ];
-  const menu: ProfileMenuItem[] = [
-    ...(!props.isCurrentUser ? [{ key: 'rename', label: t.rename, icon: <Pencil className="h-4 w-4" />, onSelect: props.onEditContactName }] : []),
+  const menu: ProfileMenuItem[] = props.isCurrentUser ? [] : [
+    { key: 'rename', label: t.rename, icon: <Pencil className="h-4 w-4" />, onSelect: props.onEditContactName },
     ...(hasChat ? [{ key: 'clear', label: translations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: clearHistory }] : []),
     ...(props.canDeleteChat ? [{ key: 'delete', label: translations.chatCleanup.deleteChat, danger: true, icon: <Trash2 className="h-4 w-4" />, onSelect: props.onDeleteChat }] : []),
-    ...(!props.isCurrentUser ? [{
+    {
       key: 'block', label: props.isBlocked ? t.unblock : t.block, danger: !props.isBlocked, icon: <Ban className="h-4 w-4" />, onSelect: props.onBlock,
-    }] : []),
-    ...(!props.isCurrentUser && props.userId ? [{
+    },
+    ...(props.userId ? [{
       key: 'report', label: translations.moderation.report, danger: true, icon: <Flag className="h-4 w-4" />, onSelect: () => setReportOpen(true),
     }] : []),
   ];
 
+  const isMobile = useIsMobile();
+  const closeButton = props.onClose && (
+    <ProfileCloseButton mobile={isMobile} onClick={props.onClose} backLabel={translations.back || 'Back'} closeLabel={translations.close} />
+  );
   const copyUsername = () => void copyText(`@${props.username}`).then((ok) => { if (ok) toast(translations.messagesCopied); });
 
   return (
@@ -106,9 +111,8 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
             <span data-testid="profile-presence" className="min-w-0 truncate">{props.isOnline ? t.onlineNow : presence}</span>
           </>}
         </>}
-        topLeft={props.onClose && (
-          <button type="button" onClick={props.onClose} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"><ArrowLeft className="h-5 w-5" /></button>
-        )}
+        topLeft={isMobile && closeButton}
+        topRight={!isMobile && closeButton}
       />
       <ProfileTabs tabs={props.tabs.map((key) => ({ key, label: tabLabels[key] }))} active={props.activeView} onSelect={props.onSelectView} />
       <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />

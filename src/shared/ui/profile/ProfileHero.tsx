@@ -1,11 +1,26 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { profileHue } from './profileHue';
 import { hasVisibleBackground, type ProfileBackgroundValue } from './backgroundPresets';
 import { ProfileBackgroundFill } from './ProfileBackgroundFill';
 
 const ARC_COUNT = 10;
+
+interface ProfileCloseButtonProps {
+  mobile: boolean;
+  onClick: () => void;
+  backLabel: string;
+  closeLabel: string;
+  className?: string;
+}
+
+export const ProfileCloseButton = ({ mobile, onClick, backLabel, closeLabel, className = '' }: ProfileCloseButtonProps) => (
+  <button type="button" onClick={onClick} aria-label={mobile ? backLabel : closeLabel} title={mobile ? undefined : closeLabel}
+    className={`motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 ${className}`}>
+    {mobile ? <ArrowLeft className="h-5 w-5" /> : <X className="h-5 w-5" />}
+  </button>
+);
 const OUTLINE_BUTTON = 'motion-press flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border bg-transparent transition-colors hover:bg-accent';
 
 interface ProfileBannerProps {
@@ -16,11 +31,12 @@ interface ProfileBannerProps {
   subtitle?: ReactNode;
   actions?: ReactNode;
   topLeft?: ReactNode;
+  topRight?: ReactNode;
   background?: ProfileBackgroundValue | null;
   avatarOverlay?: ReactNode;
 }
 
-export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, actions, topLeft, background, avatarOverlay }: ProfileBannerProps) => (
+export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, actions, topLeft, topRight, background, avatarOverlay }: ProfileBannerProps) => (
   <div data-testid="profile-banner" style={{ '--wave-h': String(profileHue(seed)) } as CSSProperties}>
     <div data-morph="cover" className="relative h-32 overflow-hidden bg-[hsl(var(--wave-h)_42%_40%)] dark:bg-[hsl(var(--wave-h)_38%_30%)]">
       {hasVisibleBackground(background) ? (
@@ -36,6 +52,7 @@ export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, a
         </svg>
       )}
       {topLeft && <div className="absolute left-1.5 top-3 text-white">{topLeft}</div>}
+      {topRight && <div className="absolute right-1.5 top-3 text-white">{topRight}</div>}
     </div>
     <div className="flex items-start justify-between gap-3 px-5">
       <div data-morph="avatar" className="relative -mt-14 h-28 w-28 shrink-0 rounded-full bg-background p-1">

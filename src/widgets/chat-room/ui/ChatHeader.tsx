@@ -4,7 +4,8 @@ import { ArrowLeft, Search } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { usePresenceLabel } from '@/shared/utils/presenceFormatters';
 import { useLongPress } from '@/shared/lib/useLongPress';
-import type { EntityId } from '@/shared/api/entityId';
+import { isPersistedId, type EntityId } from '@/shared/api/entityId';
+import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
 import { AudioPlayerBar } from '@/features/audio-player';
 import { useGetCurrentUserQuery } from '@/features/profile';
@@ -29,7 +30,7 @@ interface ChatHeaderProps {
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
-  chatId, chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onOpenProfile,
+  chatId, chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onDeleteChat, onOpenProfile,
   onOpenSearch, interlocutorAvatar,
 }) => {
   const { translations } = useLanguage();
@@ -40,6 +41,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const displayName = saved ? selfName(chatDisplayName || chatName, translations) : chatDisplayName || chatName;
   const longPress = useLongPress(onOpenSearch);
   const { data: peer } = useGetUserByUsernameQuery(chatName, { skip: saved || interlocutorDeleted || !chatName });
+  const isMobile = useIsMobile();
+  const persistedChatId = chatId !== undefined && isPersistedId(chatId) ? chatId : undefined;
 
   return (
     <>
@@ -78,7 +81,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <Search className="h-5 w-5" />
             </button>
           )}
-          {!interlocutorDeleted && !saved && peer?.id && <ChatHeaderMenu userId={peer.id} name={displayName} />}
+          {!isMobile && !interlocutorDeleted && !saved && peer?.id && (
+            <ChatHeaderMenu userId={peer.id} name={displayName} chatId={persistedChatId} onDeleteChat={onDeleteChat} />
+          )}
         </div>
       </div>
       <AudioPlayerBar />

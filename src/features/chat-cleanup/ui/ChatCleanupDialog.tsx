@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
@@ -23,8 +24,9 @@ export const ChatCleanupDialog = ({ request, onCancel, onConfirm }: ChatCleanupD
     setForEveryone(false);
     run();
   };
-  return (
+  return createPortal(
     <ConfirmModal
+      overlayClassName="z-[11002]"
       title={kind === 'delete' ? fillTemplate(t.deleteTitle, name) : t.clearTitle}
       message={kind === 'delete' ? t.deleteMessage : t.clearMessage}
       confirmText={kind === 'delete' ? t.delete : t.clear}
@@ -32,6 +34,7 @@ export const ChatCleanupDialog = ({ request, onCancel, onConfirm }: ChatCleanupD
       checkbox={offersEveryone(request) ? { label: checkboxLabel, checked: forEveryone, onChange: setForEveryone } : undefined}
       onCancel={() => close(onCancel)}
       onConfirm={() => close(() => onConfirm(forEveryone))}
-    />
+    />,
+    document.body,
   );
 };

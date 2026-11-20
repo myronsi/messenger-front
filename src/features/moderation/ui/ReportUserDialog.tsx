@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -40,11 +41,11 @@ export const ReportUserDialog = ({ userId, name, onClose, onReported }: ReportUs
     }
   };
 
-  return (
+  return createPortal(
     <ModalSurface label={fillTemplate(t.reportTitle, values)}
-      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[11002] flex animate-fade-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
       onClick={(event) => event.stopPropagation()} onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
-      <form className="motion-panel-in relative w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-lg"
+      <form className="motion-panel-in relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg"
         onSubmit={(event) => { event.preventDefault(); void submit(); }}>
         <button type="button" onClick={onClose} aria-label={t.cancel}
           className="motion-press absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100">
@@ -84,6 +85,7 @@ export const ReportUserDialog = ({ userId, name, onClose, onReported }: ReportUs
           </button>
         </div>
       </form>
-    </ModalSurface>
+    </ModalSurface>,
+    document.body,
   );
 };

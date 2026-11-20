@@ -1,11 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { UserProfileShell, UserProfileState } from './UserProfileShell';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { userProfile: 'User profile', accountDeletedOrUnavailable: 'Unavailable' } }),
+  useLanguage: () => ({ translations: { userProfile: 'User profile', accountDeletedOrUnavailable: 'Unavailable', back: 'Back', close: 'Close' } }),
 }));
+const mobile = vi.hoisted(() => ({ current: true }));
+vi.mock('@/shared/hooks/use-mobile', () => ({ useIsMobile: () => mobile.current }));
+
+beforeEach(() => { mobile.current = true; });
 
 it('closes with the back arrow and keeps clicks inside the profile', async () => {
   const user = userEvent.setup();
@@ -14,6 +18,17 @@ it('closes with the back arrow and keeps clicks inside the profile', async () =>
   await user.click(screen.getByText('Profile action'));
   expect(onClose).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button', { name: 'Back' }));
+  expect(onClose).toHaveBeenCalledOnce();
+});
+
+it('closes with an X in the top right corner on desktop', async () => {
+  mobile.current = false;
+  const onClose = vi.fn();
+  render(<UserProfileShell onClose={onClose}><p>Profile</p></UserProfileShell>);
+  expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+  const close = screen.getByRole('button', { name: 'Close' });
+  expect(close).toHaveClass('right-1.5');
+  await userEvent.setup().click(close);
   expect(onClose).toHaveBeenCalledOnce();
 });
 

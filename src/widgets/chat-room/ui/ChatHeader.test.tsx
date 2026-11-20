@@ -11,12 +11,19 @@ vi.mock('@/features/moderation', async () => ({
   ...await vi.importActual<typeof import('@/features/moderation')>('@/features/moderation'),
   ReportUserDialog: ({ name }: { name: string }) => <div role="dialog">report {name}</div>,
 }));
+const cleanup = vi.hoisted(() => ({ open: vi.fn() }));
+vi.mock('@/features/chat-cleanup', () => ({
+  useChatCleanup: () => ({ request: null, open: cleanup.open, close: vi.fn(), confirm: vi.fn(), busy: false }),
+  ChatCleanupDialog: () => null,
+}));
+const mobile = vi.hoisted(() => ({ current: false }));
+vi.mock('@/shared/hooks/use-mobile', () => ({ useIsMobile: () => mobile.current }));
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en } = await import('@/shared/lang/en');
   return { useLanguage: () => ({ language: 'en', translations: { ...en, search: 'Search', back: 'Back' } }) };
 });
 
-beforeEach(() => { vi.useFakeTimers(); peer.current = undefined; });
+beforeEach(() => { vi.useFakeTimers(); peer.current = undefined; mobile.current = false; cleanup.open.mockReset(); });
 afterEach(() => vi.useRealTimers());
 
 it('opens the direct chat search with a long press on the header', () => {
@@ -68,3 +75,28 @@ it('has no report menu or label for the chat with yourself', () => {
   expect(screen.queryByTestId('restricted-account-label')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
 });
+
+const openMenu = () => fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), { button: 0, ctrlKey: false, pointerType: 'mouse' });
+
+it('offers clear history, delete chat and report in the desktop menu', () => {
+  peer.current = { id: '42' };
+  const onDeleteChat = vi.fn();
+  render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={onDeleteChat}
+    onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
+  openMenu();
+  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Clear history', 'Delete chat', 'Report']);
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Clear history' }));
+  expect(cleanup.open).toHaveBeenCalledWith({ kind: 'clear', target: expect.objectContaining({ chatId: '77', name: 'Eve', isGroup: false }) });
+  openMenu();
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Delete chat' }));
+  expect(onDeleteChat).toHaveBeenCalled();
+});
+
+it('has no three-dot menu on phones', () => {
+  mobile.current = true;
+  peer.current = { id: '42' };
+  render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+    onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
+  expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+});
+
