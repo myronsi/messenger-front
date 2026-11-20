@@ -16,11 +16,35 @@ The destination route resolves the conversation through the authenticated API be
 the worker account and removes the subscription and visible alerts. API session checks protect delivery if the
 client is offline during cleanup. Browser permission denial must be reversed through browser/OS settings.
 
-Visible, focused clients report a healthy live connection periodically, suppressing push on that device. In-app
-alerts skip own messages, stale messages, muted chats, chats in the Requests folder and the focused conversation. Web Locks and a bounded replay
+Visible clients with a healthy live connection report activity every ten seconds, suppressing push on that device;
+the in-app toast covers them, focused or not, so a visible window never gets both. Hiding or closing the page
+reports inactivity at once with a `keepalive` request (`visibilitychange`, `pagehide`); the backend checks a
+skipped device once more after its lease, so a tab closed right after a message still gets the push. In-app
+alerts skip own messages, stale messages, muted chats, chats in the Requests folder and the focused conversation.
+"Stale" means older than a minute by the server's clock: when live messages show that the device clock runs more
+than a minute ahead, the alert subtracts that lead. Web Locks and a bounded replay
 marker prevent duplicate live alerts across tabs. Separate devices receive independent alerts. Notification
 delivery is best effort at the OS/provider boundary; a worker crash just after provider acceptance can repeat an
 alert, although notification tags/collapse identifiers replace the previous conversation alert.
+
+## What a message notification shows
+
+The worker never shows English placeholder text from the server. Without previews it shows the localized
+"New message". With previews it uses `content_type` from the push: text shows the text; a photo, video, audio, file
+or album shows its caption or else the localized label ("Photo", "Video", "Audio", "File", "Album"); a voice
+message shows "Voice message"; a sticker shows "😀 Sticker", like the chat list. The labels follow the app language
+(English, Russian, German, Spanish).
+
+A direct chat shows the sender as the title (`Mai (3)` once several messages are stacked) and their lines. A group
+(`chat_type: "group"` with `chat_title`) shows the group name as the title and `Sender: text` on every line.
+
+The icon is the sender's photo (direct chat) or the group picture (group), cut to a circle, with the app icon in a
+white ring in its bottom-right corner. The worker draws it with `OffscreenCanvas`, keeps it for ten minutes per
+sender or group, and drops the cache when the account changes. Without `OffscreenCanvas`, or when the photo cannot
+be loaded or drawn, it uses the plain photo URL; without previews the app icon. Call and birthday notifications use
+the same icon. Where the icon appears is up to the system: Windows, macOS and ChromeOS show it on the left; Android
+shows a web notification's icon on the right and the installed app's icon on the left. The Android layout with the
+contact photo on the left needs a native app with conversation notifications (`MessagingStyle`).
 
 ## Call notifications
 
@@ -72,7 +96,8 @@ Reference: [Capacitor push plugin setup](https://capacitorjs.com/docs/apis/push-
 ## Local checks and release
 
 Run lint, typecheck, Vitest, contract pin validation and the production build. Notification tests cover live
-privacy/suppression, replay, account changes and background worker actions. Real delivery needs configured
+privacy/suppression, replay, account changes, background worker actions, localized content labels, group stacks
+and the drawn icon. Real delivery needs configured
 providers and a deployed HTTPS origin; these unit tests do not exercise Google or Apple delivery.
 
 The frontend pins the released contract `2.1.0-alpha.2` and uses its generated notification types. The smoke stack

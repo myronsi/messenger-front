@@ -128,7 +128,7 @@ export async function reportNotificationActivity(active: boolean) {
   if (!raw) return;
   const device = JSON.parse(raw) as { id: string; user: string };
   if (device.user !== notificationAccount()) return;
-  await notificationRequest(`/me/notification-devices/${device.id}/activity`, 'PUT', { active, client_id: activityClientId });
+  await notificationRequest(`/me/notification-devices/${device.id}/activity`, 'PUT', { active, client_id: activityClientId }, !active);
 }
 export async function restoreNotificationDevice() {
   if (!notificationDeviceEnabled()) return;
