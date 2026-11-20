@@ -6,7 +6,7 @@ type Shown = { title: string; tag: string; data: Record<string, unknown>; close:
 
 const seconds = (offsetMs: number) => Math.floor((Date.now() + offsetMs) / 1000);
 
-function worker() {
+function worker(globals: Record<string, unknown> = {}) {
   const events: Record<string, (event: unknown) => void> = {};
   const storage = new Map<string, Response>();
   const timers: { callback: () => void; delay: number }[] = [];
@@ -19,8 +19,9 @@ function worker() {
     getNotifications: async (filter?: { tag?: string }) => shown.filter((n) => !filter?.tag || n.tag === filter.tag),
   };
   const navigate = vi.fn(); const focus = vi.fn(); const openWindow = vi.fn(); const postMessage = vi.fn();
+  const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }));
   runInNewContext(readFileSync('public/notification-worker.js', 'utf8'), {
-    URL, Response, Date, encodeURIComponent, fetch: vi.fn(),
+    URL, Response, Date, encodeURIComponent, fetch, ...globals,
     setTimeout: (callback: () => void, delay: number) => { timers.push({ callback, delay }); return timers.length; },
     caches: { open: async () => ({
       put: async (key: string, value: Response) => storage.set(key, value),
@@ -41,9 +42,12 @@ function worker() {
     type: 'call', action: 'ring', call_id: '500', call_chat_id: '77', user_id: '1', kind: 'direct', title: 'Alice', preview: true,
     sender_id: '2', expires_at: seconds(30_000), ...extra,
   }) } });
+  const message = (extra: Record<string, unknown> = {}) => dispatch('push', { data: { json: () => ({
+    user_id: '1', chat_id: '7', message_id: '9', title: 'Messenger', expires_at: Date.now() / 1000 + 300, ...extra,
+  }) } });
   const account = (user: string, extra = {}) => dispatch('message', { origin: 'https://chat.test', data: { type: 'notification-account', user, ...extra } });
   const settle = async () => { for (let i = 0; i < 5; i += 1) await new Promise((resolve) => { globalThis.setTimeout(resolve, 0); }); };
-  return { registration, timers, shown: () => shown, navigate, focus, postMessage, dispatch, push, account, settle };
+  return { registration, timers, shown: () => shown, navigate, focus, postMessage, fetch, dispatch, push, message, account, settle };
 }
 
 describe('call notifications in the service worker', () => {
@@ -149,5 +153,66 @@ describe('call notifications in the service worker', () => {
     const w = worker(); await w.account('1');
     await w.dispatch('push', { data: { json: () => ({ user_id: '1', chat_id: '7', message_id: '9', title: 'Mai', body: 'hi', expires_at: Date.now() / 1000 + 300 }) } });
     expect(w.registration.showNotification).toHaveBeenCalledWith('Messenger', expect.objectContaining({ tag: 'chat-7' }));
+  });
+});
+
+describe('message text and look', () => {
+  it('names attachments in the chosen language instead of English text', async () => {
+    const w = worker(); await w.account('1', { api: '/api/v2', language: 'ru' });
+    const shownBody = async (extra: Record<string, unknown>) => {
+      await w.message({ chat_id: String(extra.message_id), title: 'Mai', preview: true, body: '', ...extra });
+      return w.registration.showNotification.mock.lastCall?.[1].body;
+    };
+    expect(await shownBody({ message_id: '1', content_type: 'photo' })).toBe('Фото');
+    expect(await shownBody({ message_id: '2', content_type: 'photo', body: 'Sea' })).toBe('Sea');
+    expect(await shownBody({ message_id: '3', content_type: 'voice' })).toBe('Голосовое сообщение');
+    expect(await shownBody({ message_id: '4', content_type: 'sticker', body: '😀' })).toBe('😀 Стикер');
+    expect(await shownBody({ message_id: '5', content_type: 'album' })).toBe('Альбом');
+    expect(await shownBody({ message_id: '6', preview: false, title: 'Messenger' })).toBe('Новое сообщение');
+  });
+  it('shows a group by its name with each sender on its own line', async () => {
+    const w = worker(); await w.account('1', { api: '/api/v2' });
+    const group = { chat_type: 'group', chat_title: 'Family', preview: true, avatar_token: 'c.7' };
+    await w.message({ ...group, title: 'Mai', body: 'hi', message_id: '1', sender_id: '5' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Family', expect.objectContaining({
+      body: 'Mai: hi', icon: 'https://chat.test/api/v2/notifications/avatar/c.7',
+    })]);
+    await w.message({ ...group, title: 'Bob', body: 'yo', message_id: '2', sender_id: '6' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Family (2)', expect.objectContaining({ body: 'Mai: hi\nBob: yo' })]);
+    await w.message({ ...group, chat_title: undefined, preview: false, title: 'Messenger', message_id: '3' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (3)', expect.objectContaining({ icon: '/pwa-192x192.png' })]);
+  });
+  it('draws the round photo with the app badge in its corner and reuses it', async () => {
+    const drawn: { x: number; y: number; width: number }[] = [];
+    const context = {
+      save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), closePath: vi.fn(), clip: vi.fn(), arc: vi.fn(), fill: vi.fn(), fillStyle: '',
+      drawImage: (_image: unknown, x: number, y: number, width: number) => { drawn.push({ x, y, width }); },
+    };
+    class FakeCanvas {
+      getContext() { return context; }
+      async convertToBlob() { return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'image/png' } }).blob(); }
+    }
+    const w = worker({
+      OffscreenCanvas: FakeCanvas, createImageBitmap: async () => ({ width: 100, height: 50 }), btoa, Uint8Array, String, Math,
+    });
+    w.fetch.mockImplementation(async () => new Response(new Uint8Array([0]), { status: 200 }));
+    await w.account('1', { api: '/api/v2' });
+    await w.message({ title: 'Mai', body: 'hi', message_id: '1', preview: true, sender_id: '5', avatar_token: 'a.5' });
+    const icon = w.registration.showNotification.mock.lastCall?.[1].icon;
+    expect(icon).toBe(`data:image/png;base64,${btoa(String.fromCharCode(1, 2, 3))}`);
+    expect(w.fetch).toHaveBeenCalledWith('https://chat.test/api/v2/notifications/avatar/a.5', expect.objectContaining({ credentials: 'omit' }));
+    expect(w.fetch).toHaveBeenCalledWith('https://chat.test/maskable-icon-512x512.png', expect.anything());
+    expect(drawn).toHaveLength(2);
+    expect(drawn[1].x).toBeGreaterThan(drawn[0].x);
+    const fetches = w.fetch.mock.calls.length;
+    await w.message({ title: 'Mai', body: 'again', message_id: '2', preview: true, sender_id: '5', avatar_token: 'a.5' });
+    expect(w.fetch.mock.calls.length).toBe(fetches);
+  });
+  it('falls back to the plain photo when it cannot be drawn', async () => {
+    const w = worker({ OffscreenCanvas: class {}, createImageBitmap: async () => { throw new Error('broken'); } });
+    w.fetch.mockImplementation(async () => new Response(null, { status: 200 }));
+    await w.account('1', { api: '/api/v2' });
+    await w.message({ title: 'Mai', body: 'hi', message_id: '1', preview: true, sender_id: '5', avatar_token: 'a.5' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].icon).toBe('https://chat.test/api/v2/notifications/avatar/a.5');
   });
 });

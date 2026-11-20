@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 
-function worker(withWindow = true, globals: Record<string, unknown> = {}) {
+function worker(withWindow = true) {
   const events: Record<string, (event: unknown) => void> = {};
   const storage = new Map<string, Response>();
   const close = vi.fn();
@@ -18,7 +18,7 @@ function worker(withWindow = true, globals: Record<string, unknown> = {}) {
   const navigate = vi.fn(); const focus = vi.fn(); const openWindow = vi.fn(); const postMessage = vi.fn();
   const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }));
   runInNewContext(readFileSync('public/notification-worker.js', 'utf8'), {
-    URL, Response, Date, fetch, encodeURIComponent, ...globals,
+    URL, Response, Date, fetch, encodeURIComponent,
     caches: { open: async () => ({
       put: async (key: string, value: Response) => storage.set(key, value),
       match: async (key: string) => storage.get(key)?.clone(),
@@ -40,7 +40,6 @@ function worker(withWindow = true, globals: Record<string, unknown> = {}) {
   const account = (user: string, origin = 'https://chat.test', extra = {}) => dispatch('message', { origin, data: { type: 'notification-account', user, ...extra } });
   return { registration, close, navigate, focus, openWindow, postMessage, fetch, dispatch, push, account };
 }
-
 describe('background notification worker', () => {
   it('retains unread system notifications when the same account reconnects', async () => {
     const w = worker(); await w.account('1'); w.close.mockClear();
