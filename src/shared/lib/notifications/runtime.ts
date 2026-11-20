@@ -3,7 +3,7 @@ import { cleanupNotificationDevice, reportNotificationActivity, restoreNotificat
 import { resumeNotificationNavigation, startNativeNotifications } from './device';
 import { clearMessageAlerts, prepareNotificationSound } from './alerts';
 let live = false;
-const foreground = () => document.visibilityState === 'visible' && document.hasFocus();
+const foreground = () => document.visibilityState === 'visible';
 export const setNotificationLive = (value: boolean) => {
   live = value; void reportNotificationActivity(value && foreground()).catch(() => undefined);
 };
@@ -25,6 +25,8 @@ export function startNotifications(userId: string) {
   window.addEventListener('focus', activity);
   window.addEventListener('blur', activity);
   window.addEventListener('messenger:notification-device', activity);
+  const leave = () => { void reportNotificationActivity(false).catch(() => undefined); };
+  window.addEventListener('pagehide', leave);
   const logout = () => { clearMessageAlerts(); cleanupNotificationDevice(); resetNotifications(); };
   window.addEventListener('messenger:logout', logout);
   window.addEventListener('focus', refresh);
@@ -38,6 +40,7 @@ export function startNotifications(userId: string) {
     window.removeEventListener('focus', activity);
     window.removeEventListener('blur', activity);
     window.removeEventListener('messenger:notification-device', activity);
+    window.removeEventListener('pagehide', leave);
     clearInterval(interval);
     resetNotifications();
   };

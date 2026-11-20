@@ -9,21 +9,29 @@ const ACTION_TITLES = {
     reply: 'Reply', read: 'Mark as read', many: (n) => `${n} new messages`, call: 'Incoming call', groupCall: 'Incoming group call',
     missed: 'Missed call', ended: 'Call ended', answered: 'Answered on another device',
     birthday: (name) => `${name} has a birthday today`, someoneBirthday: 'Someone you chat with has a birthday today',
+    newMessage: 'New message', photo: 'Photo', video: 'Video', audio: 'Audio', voice: 'Voice message', file: 'File', album: 'Album',
+    sticker: 'Sticker',
   },
   ru: {
     reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}`, call: 'Входящий звонок', groupCall: 'Входящий групповой звонок',
     missed: 'Пропущенный звонок', ended: 'Звонок завершён', answered: 'Принят на другом устройстве',
     birthday: (name) => `У ${name} сегодня день рождения`, someoneBirthday: 'У одного из собеседников сегодня день рождения',
+    newMessage: 'Новое сообщение', photo: 'Фото', video: 'Видео', audio: 'Аудио', voice: 'Голосовое сообщение', file: 'Файл', album: 'Альбом',
+    sticker: 'Стикер',
   },
   es: {
     reply: 'Responder', read: 'Marcar como leído', many: (n) => `${n} mensajes nuevos`, call: 'Llamada entrante', groupCall: 'Llamada grupal entrante',
     missed: 'Llamada perdida', ended: 'Llamada finalizada', answered: 'Respondida en otro dispositivo',
     birthday: (name) => `${name} cumple años hoy`, someoneBirthday: 'Alguien con quien chateas cumple años hoy',
+    newMessage: 'Nuevo mensaje', photo: 'Foto', video: 'Vídeo', audio: 'Audio', voice: 'Mensaje de voz', file: 'Archivo', album: 'Álbum',
+    sticker: 'Sticker',
   },
   de: {
     reply: 'Antworten', read: 'Als gelesen markieren', many: (n) => `${n} neue Nachrichten`, call: 'Eingehender Anruf', groupCall: 'Eingehender Gruppenanruf',
     missed: 'Verpasster Anruf', ended: 'Anruf beendet', answered: 'Auf einem anderen Gerät angenommen',
     birthday: (name) => `${name} hat heute Geburtstag`, someoneBirthday: 'Jemand, mit dem du schreibst, hat heute Geburtstag',
+    newMessage: 'Neue Nachricht', photo: 'Foto', video: 'Video', audio: 'Audio', voice: 'Sprachnachricht', file: 'Datei', album: 'Album',
+    sticker: 'Sticker',
   },
 };
 const CALL_MAX_RING_MS = 120000;
@@ -31,6 +39,81 @@ const cancelledCalls = new Map();
 const CALL_REASONS = new Set(['missed', 'declined', 'answered', 'ended']);
 const chatQueues = new Map();
 const readUpTo = new Map();
+const CONTENT_LABELS = new Set(['photo', 'video', 'audio', 'voice', 'file', 'album', 'sticker']);
+const APP_ICON = '/pwa-192x192.png';
+const BADGE_SOURCE = '/maskable-icon-512x512.png';
+const ICON_SIZE = 192;
+const ICON_LIFETIME_MS = 10 * 60 * 1000;
+const ICON_CACHE_LIMIT = 64;
+const icons = new Map();
+function titlesFor(settings) {
+  return ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+}
+function messageText(data, titles, preview) {
+  if (!preview) return titles.newMessage;
+  const body = typeof data.body === 'string' ? data.body : '';
+  const type = String(data.content_type || '');
+  if (!CONTENT_LABELS.has(type)) return body || titles.newMessage;
+  if (type === 'sticker') return body ? `${body} ${titles.sticker}` : titles.sticker;
+  if (type === 'voice') return titles.voice;
+  return body || titles[type];
+}
+function avatarUrl(data, settings) {
+  return typeof data.avatar_token === 'string' && data.avatar_token && settings.api
+    ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
+}
+async function bitmap(url) {
+  const response = await fetch(url, { credentials: 'omit' });
+  if (!response.ok) throw new Error('image unavailable');
+  return createImageBitmap(await response.blob());
+}
+function drawCircle(context, image, x, y, radius) {
+  context.save();
+  context.beginPath();
+  context.arc(x, y, radius, 0, Math.PI * 2);
+  context.closePath();
+  context.clip();
+  const scale = Math.max((radius * 2) / image.width, (radius * 2) / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+  context.drawImage(image, x - width / 2, y - height / 2, width, height);
+  context.restore();
+}
+async function toDataUrl(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return `data:${blob.type || 'image/png'};base64,${btoa(binary)}`;
+}
+async function composeIcon(url) {
+  const [avatar, badge] = await Promise.all([bitmap(url), bitmap(new URL(BADGE_SOURCE, self.location.origin).href)]);
+  const canvas = new OffscreenCanvas(ICON_SIZE, ICON_SIZE);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('canvas unavailable');
+  drawCircle(context, avatar, 90, 90, 90);
+  context.beginPath();
+  context.arc(158, 158, 34, 0, Math.PI * 2);
+  context.fillStyle = '#ffffff';
+  context.fill();
+  drawCircle(context, badge, 158, 158, 30);
+  return toDataUrl(await canvas.convertToBlob({ type: 'image/png' }));
+}
+async function notificationIcon(url, key) {
+  if (!url) return APP_ICON;
+  if (typeof OffscreenCanvas !== 'function' || typeof createImageBitmap !== 'function') return url;
+  const now = Date.now();
+  const cached = icons.get(key);
+  if (cached && now - cached.at < ICON_LIFETIME_MS) return cached.icon;
+  try {
+    const icon = await composeIcon(url);
+    icons.delete(key);
+    icons.set(key, { icon, at: now });
+    if (icons.size > ICON_CACHE_LIMIT) icons.delete(icons.keys().next().value);
+    return icon;
+  } catch {
+    return url;
+  }
+}
 async function notificationAccount() {
   const cache = await caches.open(notificationCache);
   const response = await cache.match(accountKey);
@@ -83,6 +166,7 @@ self.addEventListener('message', (event) => {
     await cache.put(accountKey, new Response(next));
     await saveSettings(event.data);
     if (!next || previous !== next) {
+      icons.clear();
       for (const notification of await self.registration.getNotifications()) notification.close();
     }
   }));
@@ -97,14 +181,13 @@ function stackedLine(entry, fallback) {
 async function showBirthdayNotification(data) {
   const user = String(data.user_id);
   const settings = await notificationSettings();
-  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
+  const titles = titlesFor(settings);
   const preview = data.preview === true && typeof data.title === 'string' && data.title;
-  const avatar = preview && typeof data.avatar_token === 'string' && settings.api
-    ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
+  const icon = await notificationIcon(preview ? avatarUrl(data, settings) : null, `${user}:user:${data.sender_id}`);
   if (user !== await notificationAccount()) return;
   await self.registration.showNotification(preview ? data.title : 'Messenger', {
     body: preview ? titles.birthday(data.title) : titles.someoneBirthday,
-    icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png', tag: `birthday-${data.chat_id}`, renotify: false, silent: !data.sound,
+    icon, badge: '/pwa-64x64.png', tag: `birthday-${data.chat_id}`, renotify: false, silent: !data.sound,
     data: { chat_id: String(data.chat_id), user_id: user, kind: 'birthday' },
   });
 }
@@ -131,18 +214,20 @@ async function showChatNotification(data) {
   const preview = data.preview === true && !(before.preview === false && !newerId(messageId, String(before.newest_id || '')));
   const keepLines = preview && before.preview === true;
   const count = repeated ? Number(before.count) || 1 : (Number(before.count) || 0) + 1;
+  const titles = titlesFor(settings);
   const from = preview ? String(data.title || 'Messenger') : 'Messenger';
   const sender = preview && /^\d+$/.test(String(data.sender_id)) ? `id:${data.sender_id}` : from;
-  const line = { from, sender, text: preview ? String(data.body || 'New message') : 'New message' };
+  const line = { from, sender, text: messageText(data, titles, preview) };
   const earlier = keepLines && Array.isArray(before.lines) ? before.lines.map((entry) => stackedLine(entry, String(before.from || from))) : [];
   const lines = repeated ? earlier : [...earlier, line].slice(-MAX_LINES);
   const shown = lines.length ? lines : [line];
-  const oneSender = shown.every((entry) => entry.sender === sender);
-  const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
-  const title = oneSender ? (count > 1 ? `${from} (${count})` : from) : titles.many(count);
+  const group = preview && data.chat_type === 'group' && typeof data.chat_title === 'string' && data.chat_title ? data.chat_title : '';
+  const oneSender = !group && shown.every((entry) => entry.sender === sender);
+  const counted = (name) => (count > 1 ? `${name} (${count})` : name);
+  const title = group ? counted(group) : oneSender ? counted(from) : titles.many(count);
   const body = shown.map((entry) => (oneSender ? entry.text : `${entry.from}: ${entry.text}`)).join('\n');
-  const avatar = oneSender && preview && typeof data.avatar_token === 'string' && settings.api
-    ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
+  const iconKey = group ? `${user}:chat:${data.chat_id}` : `${user}:user:${data.sender_id}`;
+  const icon = await notificationIcon((group || oneSender) && preview ? avatarUrl(data, settings) : null, iconKey);
   const incomingToken = !repeated && typeof data.read_token === 'string' ? data.read_token : '';
   const takeToken = !!incomingToken && (!before.read_token || newerId(messageId, String(before.read_message_id || '')));
   const readToken = takeToken ? incomingToken : before.read_token || '';
@@ -152,10 +237,11 @@ async function showChatNotification(data) {
   if (readToken && settings.api && readMessageId === newestId) actions.push({ action: 'read', title: titles.read });
   if (user !== await notificationAccount()) return;
   await self.registration.showNotification(title, {
-    body, icon: avatar || '/pwa-192x192.png', badge: '/pwa-64x64.png',
+    body, icon, badge: '/pwa-64x64.png',
     tag, renotify: false, silent: repeated || !data.sound, actions,
     data: {
       chat_id: String(data.chat_id), user_id: user, read_token: readToken, read_message_id: readMessageId, lines, count, preview, from,
+      chat_title: group,
       newest_id: newestId,
       ids: repeated || !messageId ? ids : [...ids, messageId].sort((a, b) => (a === b ? 0 : newerId(String(a), String(b)) ? 1 : -1)).slice(-MAX_IDS),
     },
@@ -170,11 +256,10 @@ function rememberCancel(callId, reason) {
   cancelledCalls.set(callId, reason);
   if (cancelledCalls.size > 200) cancelledCalls.delete(cancelledCalls.keys().next().value);
 }
-function ringLook(data, settings) {
+async function ringLook(data, settings) {
   const preview = data.preview === true;
-  const avatar = preview && typeof data.avatar_token === 'string' && settings.api
-    ? apiUrl(settings.api, `/notifications/avatar/${encodeURIComponent(data.avatar_token)}`) : null;
-  return { title: preview ? String(data.title || 'Messenger') : 'Messenger', icon: avatar || '/pwa-192x192.png' };
+  const icon = await notificationIcon(preview ? avatarUrl(data, settings) : null, `${data.user_id}:user:${data.sender_id}`);
+  return { title: preview ? String(data.title || 'Messenger') : 'Messenger', icon };
 }
 function endedText(titles, reason) {
   if (reason === 'answered') return titles.answered;
@@ -225,7 +310,7 @@ async function handleCallPush(data) {
   if (data.action !== 'ring') return;
   const settings = await notificationSettings();
   const titles = ACTION_TITLES[settings.language] || ACTION_TITLES.en;
-  const look = ringLook(data, settings);
+  const look = await ringLook(data, settings);
   const expiresAt = callExpiry(data.expires_at);
   const remaining = expiresAt - Date.now();
   const ringing = await inCallOrder(callId, async () => {

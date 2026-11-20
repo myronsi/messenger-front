@@ -36,3 +36,11 @@ it('registers after an explicit request and clears delivered notifications when 
   expect(native.removeAllDeliveredNotifications).toHaveBeenCalled(); expect(native.unregister).toHaveBeenCalled();
   expect(device.notificationDeviceEnabled()).toBe(false);
 });
+it('reports leaving with a request that outlives the page and staying without one', async () => {
+  const device = await import('./device');
+  localStorage.setItem('messenger:notification-device', JSON.stringify({ id: 'device-id', user: '1' }));
+  await device.reportNotificationActivity(false);
+  expect(request).toHaveBeenLastCalledWith('/me/notification-devices/device-id/activity', 'PUT', expect.objectContaining({ active: false }), true);
+  await device.reportNotificationActivity(true);
+  expect(request).toHaveBeenLastCalledWith('/me/notification-devices/device-id/activity', 'PUT', expect.objectContaining({ active: true }), false);
+});

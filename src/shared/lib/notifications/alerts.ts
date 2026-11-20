@@ -8,18 +8,36 @@ import { notificationSettings as ruWords } from '@/shared/lang/ru/notificationSe
 import { notificationSettings as esWords } from '@/shared/lang/es/notificationSettings';
 import { notificationSettings as deWords } from '@/shared/lang/de/notificationSettings';
 
-const NOTIFICATION_WORDS: Record<AppLanguage, { newMessage: string; open: string }> = {
+export type MessageKind = 'text' | 'photo' | 'video' | 'audio' | 'voice' | 'file' | 'album' | 'sticker';
+type Words = { newMessage: string; open: string } & Record<Exclude<MessageKind, 'text'>, string>;
+const NOTIFICATION_WORDS: Record<AppLanguage, Words> = {
   en: enWords.notificationSettings, ru: ruWords.notificationSettings, es: esWords.notificationSettings, de: deWords.notificationSettings,
 };
 
-interface IncomingMessage { chatId: string; messageId: string; senderId: string; title: string; body: string; timestamp: string }
+interface IncomingMessage {
+  chatId: string; messageId: string; senderId: string; title: string; body: string; timestamp: string; kind?: MessageKind; live?: boolean;
+}
+const STALE_MS = 60_000;
 const seen = new Set<string>();
 const activeToasts = new Set<string | number>();
 let generation = 0;
+let clockLead = Infinity;
 export function clearMessageAlerts() {
-  generation++;
+  generation++; clockLead = Infinity;
   activeToasts.forEach((id) => toast.dismiss(id)); activeToasts.clear(); seen.clear();
 }
+const messageAge = (message: IncomingMessage) => {
+  const lag = Date.now() - Date.parse(message.timestamp);
+  if (message.live) clockLead = Math.min(clockLead, lag);
+  return Number.isFinite(clockLead) && clockLead > STALE_MS ? lag - clockLead : lag;
+};
+export const describeMessage = (message: Pick<IncomingMessage, 'body' | 'kind'>, words: Words) => {
+  const kind = message.kind ?? 'text';
+  if (kind === 'text') return message.body || words.newMessage;
+  if (kind === 'sticker') return message.body ? `${message.body} ${words.sticker}` : words.sticker;
+  if (kind === 'voice') return words.voice;
+  return message.body || words[kind];
+};
 let audio: AudioContext | null = null;
 export const prepareNotificationSound = () => {
   if (!audio && 'AudioContext' in window) audio = new AudioContext();
@@ -29,7 +47,7 @@ export function alertIncomingMessage(message: IncomingMessage, activeChatId?: st
   const settings = notificationSnapshot();
   const user = notificationAccount(); const scheduledGeneration = generation;
   if (!settings?.preferences.enabled || message.senderId === notificationAccount()) return;
-  if (!message.messageId || !message.chatId || Date.now() - Date.parse(message.timestamp) > 60_000) return;
+  if (!message.messageId || !message.chatId || messageAge(message) > STALE_MS) return;
   if (settings.mutes.some((m) => m.chat_id === message.chatId && Date.parse(m.until) > Date.now())) return;
   const key = `${notificationAccount()}:${message.messageId}`;
   if (seen.has(key)) return;
@@ -48,7 +66,7 @@ export function alertIncomingMessage(message: IncomingMessage, activeChatId?: st
     localStorage.setItem(marker, JSON.stringify([...recent.slice(-99), message.messageId]));
     const words = NOTIFICATION_WORDS[preferredLanguage()];
     const id = toast(latest.preferences.previews ? message.title : 'Messenger', {
-      description: latest.preferences.previews ? message.body : words.newMessage,
+      description: latest.preferences.previews ? describeMessage(message, words) : words.newMessage,
       action: { label: words.open, onClick: () => {
         if (user === notificationAccount() && scheduledGeneration === generation) openNotificationChatInApp(message.chatId);
       } },

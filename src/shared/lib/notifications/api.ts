@@ -20,11 +20,11 @@ export const resetNotifications = (userId = '') => {
   account = userId; current = null; emit();
 };
 
-export async function notificationRequest(path: string, method = 'GET', body?: unknown) {
+export async function notificationRequest(path: string, method = 'GET', body?: unknown, keepalive = false) {
   const controller = new AbortController(); pending.add(controller);
   try {
     const response = await authFetch(`${base}${path}`, {
-      method, signal: controller.signal,
+      method, signal: controller.signal, ...(keepalive ? { keepalive } : {}),
       ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
     });
     if (!response.ok) throw new Error('Unable to update notifications. Please try again.');

@@ -107,6 +107,26 @@ describe('incoming message alerts', () => {
   it('dismisses displayed notification toasts on runtime cleanup', () => {
     alertIncomingMessage(incoming()); clearMessageAlerts(); expect(toast.dismiss).toHaveBeenCalledWith('notification-toast');
   });
+  it('names attachments in the app language instead of English placeholders', async () => {
+    localStorage.setItem('language', 'ru');
+    await configure(settings({ preferences: { enabled: true, previews: true, sound: false } }));
+    const frame = (id: string, message: Record<string, unknown>) => notifyMessageFrame({ type: 'message', chat_id: '7', data: { message: {
+      id, sender: { id: '2', display_name: 'Alice' }, created_at: new Date().toISOString(), ...message,
+    } } });
+    frame('901', { type: 'file', content: null, attachment: { kind: 'image' } });
+    frame('902', { type: 'voice', content: null, attachment: { kind: 'voice' } });
+    frame('903', { type: 'sticker', content: '😀', sticker: { id: '1' } });
+    frame('904', { type: 'file', content: 'Look', attachment: { kind: 'video' } });
+    const descriptions = vi.mocked(toast).mock.calls.map((call) => (call[1] as { description: string }).description);
+    expect(descriptions).toEqual(['Фото', 'Голосовое сообщение', '😀 Стикер', 'Look']);
+  });
+  it('still alerts when the device clock runs ahead of the server', () => {
+    const ahead = (offset: number) => ({ ...incoming(), timestamp: new Date(Date.now() - 5 * 60_000 - offset).toISOString(), live: true });
+    alertIncomingMessage(ahead(0));
+    alertIncomingMessage(ahead(1000));
+    alertIncomingMessage({ ...ahead(0), timestamp: new Date(Date.now() - 10 * 60_000).toISOString() });
+    expect(toast).toHaveBeenCalledTimes(2);
+  });
   it('suppresses replayed messages that contain a read receipt for the current account', () => {
     const message = incoming();
     notifyMessageFrame({ type: 'message', chat_id: '7', data: { message: {
