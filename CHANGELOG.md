@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.29](https://github.com/myronsi/messenger-front/compare/v0.6.28...v0.6.29) (2026-11-20)
+
+
+### Bug Fixes
+
+* **notifications:** localized content, group layout and badged photo icon ([#241](https://github.com/myronsi/messenger-front/issues/241)) ([24377de](https://github.com/myronsi/messenger-front/commit/24377deb4b316cf557f727053f80ac0208e5fd7d))
+
 ## [0.6.28](https://github.com/myronsi/messenger-front/compare/v0.6.27...v0.6.28) (2026-11-19)
 
 
