@@ -5,7 +5,9 @@ import SearchUsers from './SearchUsers';
 
 const state = vi.hoisted(() => ({ users: [] as unknown[], groups: [] as unknown[] }));
 vi.mock('@/entities/user', () => ({
-  useSearchUsersQuery: (q: string, { skip }: { skip: boolean }) => ({ currentData: skip ? undefined : { users: state.users }, isError: false, isFetching: false }),
+  useSearchUsersQuery: (q: string, { skip }: { skip: boolean }) => ({
+    currentData: skip ? undefined : { users: state.users }, isError: false, isFetching: false,
+  }),
 }));
 vi.mock('@/entities/group', () => ({
   useSearchPublicGroupsQuery: (q: string, { skip }: { skip: boolean }) => ({ currentData: skip ? undefined : state.groups, isFetching: false }),
