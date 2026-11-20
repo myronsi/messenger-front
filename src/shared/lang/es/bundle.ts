@@ -22,6 +22,7 @@ import { connections } from './connections';
 import { presence } from './presence';
 import { drawing } from './drawing';
 import { typingStatus } from './typingStatus';
+import { appLinks } from './appLinks';
 import { stickers } from './stickers';
 import { stickerPacks } from './stickerPacks';
 import { chatOrganizer } from './chatOrganizer';
@@ -38,7 +39,7 @@ import { moderation } from './moderation';
 export const es = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...legal, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
-  ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...stickers, ...stickerPacks,
+  ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...appLinks, ...stickers, ...stickerPacks,
   ...chatOrganizer, ...chatCleanup, ...profileRework, ...profileExtras, ...customEmoji, ...audioPlayer, ...groupCreate, ...mainNav, ...personalization,
   ...moderation,
 };

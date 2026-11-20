@@ -13,6 +13,7 @@ import GroupParticipantsPanel from './GroupParticipantsPanel';
 import GroupProfileDialogShell from './GroupProfileDialogShell';
 import GroupRoleHistoryPage from './GroupRoleHistoryPage';
 import { GroupEmojiPanel } from '@/features/emoji-packs';
+import { useGetGroupEmojiQuery } from '@/entities/emoji';
 export type { GroupRole, GroupParticipant, GroupPendingInvite, GroupPermissions, GroupDetails, GroupProfileConfirmState } from './GroupProfileTypes';
 
 const emptyParticipants: GroupParticipant[] = [];
@@ -79,6 +80,8 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const permissions = groupDetails?.permissions;
   const canEdit = !!permissions?.can_edit_group;
   const canManage = !!permissions?.can_manage_participants;
+  const { data: groupEmoji } = useGetGroupEmojiQuery(String(chatId), { skip: !open || !isPersistedId(chatId) });
+  const showGroupEmoji = isPersistedId(chatId) && (canEdit || !!groupEmoji?.is_mine || !!groupEmoji?.emoji.length);
   const canAssignRoles = !!permissions?.can_assign_roles;
   const canTransferOwnership = !!permissions?.can_transfer_ownership;
   const canDeleteGroup = !!permissions?.can_delete_group;
@@ -143,7 +146,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     ...(canShowFilesAction ? (['files'] as const) : []),
     ...(linksQuery.data?.length ? (['links'] as const) : []),
     ...(voiceItems.length ? (['voice'] as const) : []),
-    ...(isPersistedId(chatId) ? (['emoji'] as const) : []),
+    ...(showGroupEmoji ? (['emoji'] as const) : []),
   ];
   const canMute = isPersistedId(chatId);
   const hasGroupChanges = groupForm.name.trim() !== currentGroupName || groupForm.description.trim() !== (groupDetails?.description || '');

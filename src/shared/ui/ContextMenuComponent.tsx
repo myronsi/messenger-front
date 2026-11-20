@@ -1,5 +1,6 @@
 import React, { forwardRef, useState, useEffect } from 'react';
-import { ArrowLeft, CheckSquare, Edit, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag } from 'lucide-react';
+import { ArrowLeft, CheckSquare, ChevronRight, Edit, MoreHorizontal, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 interface ContextMenuProps {
@@ -22,6 +23,15 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
+type MenuView = 'main' | 'delete' | 'more';
+
+interface MenuAction {
+  key: string;
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}
+
 const EDGE = 8;
 const REACTION_MENU_OFFSET = 48;
 
@@ -34,9 +44,22 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
     const [adjustedX, setAdjustedX] = useState(x);
     const [adjustedY, setAdjustedY] = useState(y);
     const [isAnimated, setIsAnimated] = useState(false);
-    const [view, setView] = useState<{ name: 'main' | 'delete'; direction: 'forward' | 'back' | null }>({ name: 'main', direction: null });
+    const [view, setView] = useState<{ name: MenuView; direction: 'forward' | 'back' | null }>({ name: 'main', direction: null });
     const itemClass = 'flex items-center w-full whitespace-nowrap px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors';
     const slideClass = view.direction === 'forward' ? 'profile-panel-slide-in-right' : view.direction === 'back' ? 'profile-panel-slide-in-left' : '';
+    const moreActions: MenuAction[] = [
+      ...(onSelect ? [{ key: 'select', icon: CheckSquare, label: translations.selectMessage, onClick: onSelect }] : []),
+      ...(onMakeSticker ? [{ key: 'sticker', icon: Sticker, label: translations.makeSticker, onClick: onMakeSticker }] : []),
+      ...(onReport ? [{ key: 'report', icon: Flag, label: translations.moderation.reportMessage, onClick: onReport }] : []),
+    ];
+    const showMorePage = moreActions.length > 1;
+    const goBack = () => setView({ name: 'main', direction: 'back' });
+    const renderAction = ({ key, icon: Icon, label, onClick }: MenuAction) => (
+      <button key={key} type="button" className={itemClass} onClick={onClick}>
+        <Icon className="w-4 h-4 mr-2" />
+        <span className="truncate">{label}</span>
+      </button>
+    );
 
     useEffect(() => {
       if (ref && 'current' in ref && ref.current) {
@@ -84,7 +107,7 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
       >
         {view.name === 'delete' ? (
           <div key="delete" className={slideClass}>
-            <button type="button" className={`${itemClass} font-medium`} onClick={() => setView({ name: 'main', direction: 'back' })}>
+            <button type="button" className={`${itemClass} font-medium`} onClick={goBack}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               <span className="truncate">{translations.deleteMessage}</span>
             </button>
@@ -97,6 +120,15 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
               <Trash2 className="w-4 h-4 mr-2" />
               <span className="truncate">{forBoth ? translations.deleteForBothShort : translations.deleteForEveryoneShort || 'For everyone'}</span>
             </button>
+          </div>
+        ) : view.name === 'more' ? (
+          <div key="more" className={slideClass}>
+            <button type="button" className={`${itemClass} font-medium`} onClick={goBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="truncate">{translations.moreMessageActions}</span>
+            </button>
+            <div className="my-1 border-t border-border" />
+            {moreActions.map(renderAction)}
           </div>
         ) : (
           <div key="main" className={slideClass}>
@@ -132,30 +164,19 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
                 </button>
               </>
             )}
-            {onMakeSticker && (
-              <button type="button" className={itemClass} onClick={onMakeSticker}>
-                <Sticker className="w-4 h-4 mr-2" />
-                <span className="truncate">{translations.makeSticker}</span>
-              </button>
-            )}
-            {onSelect && (
-              <button type="button" className={itemClass} onClick={onSelect}>
-                <CheckSquare className="w-4 h-4 mr-2" />
-                <span className="truncate">{translations.selectMessage}</span>
-              </button>
-            )}
-            {onReport && (
-              <button type="button" className={itemClass} onClick={onReport}>
-                <Flag className="w-4 h-4 mr-2" />
-                <span className="truncate">{translations.moderation.reportMessage}</span>
-              </button>
-            )}
             {isMine && onEdit && (
               <button type="button" className={itemClass} onClick={onEdit}>
                 <Edit className="w-4 h-4 mr-2" />
                 <span className="truncate">{translations.editMessage}</span>
               </button>
             )}
+            {showMorePage ? (
+              <button type="button" className={itemClass} onClick={() => setView({ name: 'more', direction: 'forward' })}>
+                <MoreHorizontal className="w-4 h-4 mr-2" />
+                <span className="truncate mr-4">{translations.moreMessageActions}</span>
+                <ChevronRight className="w-4 h-4 ml-auto shrink-0 text-muted-foreground" />
+              </button>
+            ) : moreActions.map(renderAction)}
             {onDeleteForMe && (
               <>
                 <div className="my-1 border-t border-border" />
@@ -165,7 +186,8 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
                   onClick={() => (onDeleteForEveryone ? setView({ name: 'delete', direction: 'forward' }) : onDeleteForMe())}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  <span className="truncate">{onDeleteForEveryone ? translations.deleteMessage : translations.deleteForMe || 'Delete for me'}</span>
+                  <span className={`truncate${onDeleteForEveryone ? ' mr-4' : ''}`}>{onDeleteForEveryone ? translations.deleteMessage : translations.deleteForMe || 'Delete for me'}</span>
+                  {onDeleteForEveryone && <ChevronRight data-testid="delete-submenu-chevron" className="w-4 h-4 ml-auto shrink-0 opacity-70" />}
                 </button>
               </>
             )}

@@ -10,3 +10,5 @@ export {
 export * from './api/ownPacksApi';
 export { StickerImage } from './ui/StickerImage';
 export { StickerPackDialog } from './ui/StickerPackDialog';
+export { StickerPeekOverlay } from './ui/StickerPeekOverlay';
+export { useStickerPeek } from './model/useStickerPeek';

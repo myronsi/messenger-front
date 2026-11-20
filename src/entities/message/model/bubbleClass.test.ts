@@ -14,3 +14,8 @@ it('shows a sticker without a bubble, border or tail', () => {
   expect(sticker).not.toMatch(/bg-primary|bg-accent|border|message-tail/);
   expect(sticker).toContain('p-0');
 });
+
+it('pops the bubble only while the message is being deleted', () => {
+  expect(bubbleClass({ ...base, deleting: true })).toContain('message-pop');
+  expect(bubbleClass(base)).not.toContain('message-pop');
+});

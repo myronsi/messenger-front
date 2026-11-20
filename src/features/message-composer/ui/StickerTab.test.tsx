@@ -9,6 +9,8 @@ vi.mock('@/entities/sticker', () => ({
   useListStickerPacksQuery: () => packs(),
   useListRecentStickersQuery: () => recent(),
   StickerImage: ({ emoji }: { emoji: string }) => <span>{emoji}</span>,
+  StickerPeekOverlay: () => null,
+  useStickerPeek: () => ({ peekRef: () => undefined, peekIndex: null }),
 }));
 vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({ translations: {

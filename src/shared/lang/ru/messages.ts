@@ -90,6 +90,7 @@ export const messages = {
   deleteForBothShort: "Для обоих",
   deleteForBoth: "Удалить для обоих",
   selectMessage: "Выбрать",
+  moreMessageActions: "Ещё",
   selectedMessages: "Выбрано: {count}",
   cancelSelection: "Отменить выбор",
   selectAll: "Выбрать все",

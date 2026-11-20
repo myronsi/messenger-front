@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { emojiImageUrl, splitEmoji } from '@/shared/lib/customEmoji';
 import { cn } from '@/shared/lib/utils';
+import { useMediaReveal } from '@/shared/lib/useMediaReveal';
 
 interface CustomEmojiProps {
   id: string;
@@ -12,12 +13,17 @@ interface CustomEmojiProps {
 
 export const CustomEmoji = ({ id, shortcode, className, large = false }: CustomEmojiProps) => {
   const [broken, setBroken] = useState(false);
+  const { loaded, pop, onLoad } = useMediaReveal(id);
   const label = shortcode ? `:${shortcode}:` : ':emoji:';
   if (broken) return <span data-custom-emoji-fallback>{label}</span>;
   return (
-    <AuthenticatedImage src={emojiImageUrl(id, !large)} fallbackSrc={large ? undefined : emojiImageUrl(id)} alt={label} title={label} draggable={false} loading="eager" data-custom-emoji={id}
-      onError={() => setBroken(true)}
-      className={cn('inline-block h-[1.375em] w-[1.375em] object-contain align-[-0.3em]', className)} />
+    <span className={cn('media-standin-box relative inline-block h-[1.375em] w-[1.375em] align-[-0.3em]', className)}>
+      {!loaded && <span aria-hidden="true" data-testid="emoji-standin" data-standin={(shortcode?.[0] ?? '').toUpperCase()}
+        className="media-standin emoji-standin absolute inset-[8%] rounded-[30%]" />}
+      <AuthenticatedImage src={emojiImageUrl(id, !large)} fallbackSrc={large ? undefined : emojiImageUrl(id)} alt={label} title={label} draggable={false} loading="eager" data-custom-emoji={id}
+        onError={() => setBroken(true)} onLoad={onLoad}
+        className={cn('block h-full w-full object-contain', loaded ? pop && 'media-pop-in' : 'opacity-0')} />
+    </span>
   );
 };
 

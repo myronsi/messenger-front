@@ -1,0 +1,145 @@
+.media-standin-box {
+  container-type: size;
+}
+
+.media-standin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: media-standin-in 200ms ease-out 150ms both, media-standin 1.8s ease-in-out 350ms infinite;
+}
+
+.media-standin::before {
+  content: attr(data-standin);
+  line-height: 1;
+}
+
+.sticker-standin::before {
+  font-size: 55cqmin;
+  filter: grayscale(0.4);
+}
+
+.emoji-standin {
+  background: hsl(var(--muted-foreground) / 0.18);
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.emoji-standin::before {
+  font-size: 55cqmin;
+}
+
+.media-pop-in {
+  animation: media-pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes media-standin {
+  0%, 100% { opacity: 0.35; transform: scale(0.94); }
+  50% { opacity: 0.6; transform: scale(1); }
+}
+
+@keyframes media-standin-in {
+  from { opacity: 0; }
+  to { opacity: 0.35; }
+}
+
+@keyframes media-pop-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-standin { animation: none; opacity: 0.45; }
+  .media-pop-in { animation: none; }
+}
+
+.dialog-motion[data-state='open'] {
+  animation: dialog-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dialog-motion[data-state='closed'] {
+  animation: dialog-out 150ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes dialog-out {
+  from { opacity: 1; translate: 0 0; }
+  to { opacity: 0; translate: 0 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-motion[data-state='open'] { animation: dialog-fade-in 120ms ease-out both; }
+  .dialog-motion[data-state='closed'] { animation: dialog-fade-out 100ms ease-in both; }
+}
+
+@keyframes dialog-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes dialog-fade-out {
+  to { opacity: 0; }
+}
+
+.sticker-peek-backdrop {
+  animation: sticker-peek-fade 150ms ease-out both;
+}
+
+.sticker-peek-image {
+  animation: sticker-peek-in 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.sticker-peek-swap {
+  animation: sticker-peek-swap 160ms ease-out both;
+}
+
+[data-peek-index] {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+@keyframes sticker-peek-fade {
+  from { opacity: 0; }
+}
+
+@keyframes sticker-peek-in {
+  from { opacity: 0; transform: scale(0.7); }
+}
+
+@keyframes sticker-peek-swap {
+  from { transform: scale(0.92); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker-peek-backdrop, .sticker-peek-image, .sticker-peek-swap { animation: none; }
+}
+
+.app-link-card-in {
+  display: grid;
+  animation: app-link-card-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes app-link-card-in {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-link-card-in { animation: none; }
+}
+
+.media-fade-in {
+  animation: media-fade-in 200ms ease-out both;
+}
+
+@keyframes media-fade-in {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-fade-in { animation: none; }
+}

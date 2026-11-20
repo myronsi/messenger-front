@@ -5,9 +5,10 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import { ChatMuteAction } from '@/features/chat-mute';
-import { ArrowLeft, Eraser, UserPlus } from 'lucide-react';
+import { Eraser, UserPlus } from 'lucide-react';
 import { CallButton, useCallsAvailable } from '@/features/calls';
-import { ProfileActions, ProfileBanner, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { ProfileActions, ProfileBanner, ProfileCloseButton, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { ProfilePageBackdrop } from '@/shared/ui/profile/ProfileBackgroundFill';
 import type { ProfileBackground } from '@/entities/user';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
@@ -58,6 +59,10 @@ const GroupProfileDialogShell: React.FC<Props> = ({
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
   const requestClose = () => onOpenChange(false);
+  const isMobile = useIsMobile();
+  const closeButton = (
+    <ProfileCloseButton mobile={isMobile} onClick={requestClose} backLabel={rawTranslations.back || 'Back'} closeLabel={rawTranslations.close} />
+  );
   const hasCustomAvatar = !!currentGroupAvatar && currentGroupAvatar !== getAvatarSrc(DEFAULT_GROUP_AVATAR);
   const t = rawTranslations.profileRework;
   const callsAvailable = useCallsAvailable();
@@ -113,7 +118,8 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                   actions={<ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
                   title={<h3 className="break-words">{currentGroupName}</h3>}
                   subtitle={<span>{online ? fillTemplate(t.membersHere, { count, online: String(online) }) : fillTemplate(t.membersCount, { count })}</span>}
-                  topLeft={<button type="button" onClick={requestClose} aria-label={rawTranslations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"><ArrowLeft className="h-5 w-5" /></button>}
+                  topLeft={isMobile && closeButton}
+                  topRight={!isMobile && closeButton}
                 />
                 <ProfileTabs tabs={visibleViews.map((key) => ({ key, label: tabLabels[key] }))} active={activeView} onSelect={onSelectView} />
               </div>

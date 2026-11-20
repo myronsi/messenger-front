@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Flag } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -9,6 +10,8 @@ import { openStickerPacks } from '../model/manager';
 import type { StickerPackRef } from '../model/types';
 import { StickerImage } from './StickerImage';
 import { StickerPackReport } from './StickerPackReport';
+import { StickerPeekOverlay } from './StickerPeekOverlay';
+import { useStickerPeek } from '../model/useStickerPeek';
 import { SheetGrip } from '@/shared/ui/SheetGrip';
 
 const CLOSE_FALLBACK_MS = 700;
@@ -53,7 +56,19 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
   const subtitle = pack?.is_official ? translations.stickerPackOfficial : pack?.is_mine ? translations.stickerPackMine : translations.stickerPackByUser;
   const Title = isMobile ? DrawerTitle : DialogTitle;
   const Description = isMobile ? DrawerDescription : DialogDescription;
-  const body = (
+  const [report, setReport] = useState<{ ref: StickerPackRef | null; step: 'page' | 'sent' }>();
+  const reportStep = report?.ref === ref ? report.step : undefined;
+  const { peekRef, peekIndex } = useStickerPeek();
+  const peeked = peekIndex === null ? undefined : pack?.stickers[peekIndex];
+  const reportView = pack && reportStep === 'page' && (
+    <StickerPackReport packId={pack.id} mobile={isMobile} onClose={() => setReport(undefined)} onSent={() => setReport({ ref, step: 'sent' })} />
+  );
+  const body = reportView && isMobile ? (
+    <>
+      <Title className="sr-only">{pack.title}</Title>
+      {reportView}
+    </>
+  ) : (
     <>
       <div className={isMobile ? 'min-w-0 text-center' : 'min-w-0 pr-8'}>
         <Title className="truncate text-base">{pack?.title ?? translations.stickerPack}</Title>
@@ -63,9 +78,9 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
       </div>
       <div className="min-h-24 overflow-y-auto">
         {pack ? (
-          <ul className="grid grid-cols-4 gap-2 sm:grid-cols-5" aria-label={pack.title}>
-            {pack.stickers.map((sticker) => (
-              <li key={sticker.id} className="aspect-square">
+          <ul ref={peekRef} className="grid grid-cols-4 gap-2 sm:grid-cols-5" aria-label={pack.title}>
+            {pack.stickers.map((sticker, index) => (
+              <li key={sticker.id} data-peek-index={index} className="aspect-square">
                 <StickerImage url={sticker.image.url} stillUrl={sticker.image.panel_url} emoji={sticker.emoji} className="h-full w-full" />
               </li>
             ))}
@@ -90,7 +105,13 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
             </Button>
           )}
           {pack.is_mine && <Button variant="ghost" onClick={() => { onClose(); openStickerPacks(pack.id); }}>{translations.editStickerPack}</Button>}
-          {!pack.is_mine && !pack.is_official && <StickerPackReport packId={pack.id} />}
+          {!pack.is_mine && !pack.is_official && (reportStep === 'sent'
+            ? <p role="status" className="text-center text-sm text-muted-foreground">{translations.reportStickerPackSent}</p>
+            : (
+              <Button variant="ghost" size="sm" className="self-center text-muted-foreground" onClick={() => setReport({ ref, step: 'page' })}>
+                <Flag className="mr-2 h-4 w-4" />{translations.reportStickerPack}
+              </Button>
+            ))}
         </div>
       )}
     </>
@@ -103,6 +124,7 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
           onClick={(event) => event.stopPropagation()}>
           <div className="-mt-3 flex h-5 shrink-0 items-center justify-center"><SheetGrip /></div>
           {body}
+          <StickerPeekOverlay index={peekIndex} sticker={peeked && { url: peeked.image.url, emoji: peeked.emoji }} />
         </DrawerContent>
       </Drawer>
     );
@@ -112,6 +134,8 @@ export const StickerPackDialog = ({ pack: ref, onClose }: StickerPackDialogProps
       <DialogContent className="max-h-[85dvh] max-w-md grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-4 sm:p-5" onClick={(event) => event.stopPropagation()}
         onAnimationEnd={(event) => { if (!exit.open && event.target === event.currentTarget) exit.finish(); }}>
         {body}
+        {reportView}
+        <StickerPeekOverlay index={peekIndex} sticker={peeked && { url: peeked.image.url, emoji: peeked.emoji }} />
       </DialogContent>
     </Dialog>
   );

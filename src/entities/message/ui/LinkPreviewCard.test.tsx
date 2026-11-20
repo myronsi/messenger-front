@@ -9,8 +9,8 @@ vi.mock('./ExternalLinkConfirm', () => ({
   ExternalLinkConfirm: ({ href, open }: { href: string; open: boolean }) => (open ? <div role="dialog">{href}</div> : null),
 }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({
-  AuthenticatedImage: (props: { src: string; className: string; onError?: () => void }) => (
-    <img alt="" data-testid="preview-image" src={props.src} className={props.className} onError={props.onError} />
+  AuthenticatedImage: (props: { src: string; className: string; onError?: () => void; onLoad?: () => void }) => (
+    <img alt="" data-testid="preview-image" src={props.src} className={props.className} onError={props.onError} onLoad={props.onLoad} />
   ),
 }));
 
@@ -33,6 +33,7 @@ describe('LinkPreviewCard', () => {
     expect(screen.getByText('Example')).toBeInTheDocument();
     expect(screen.getByText('A post')).toBeInTheDocument();
     expect(screen.getByText('About it')).toBeInTheDocument();
+    fireEvent.load(screen.getByTestId('preview-image'));
     expect(screen.getByTestId('preview-image').className).toContain('w-full');
     expect(query).toHaveBeenCalledWith('https://example.com/post', { skip: false });
   });
@@ -40,7 +41,18 @@ describe('LinkPreviewCard', () => {
   it('uses a small thumbnail when the image size is unknown', () => {
     query.mockReturnValue({ currentData: { url: 'https://example.com', title: 'Home', description: null, site_name: null, image: { url: '/i', width: null, height: null } } });
     render(<LinkPreviewCard url="https://example.com" isMine />);
+    fireEvent.load(screen.getByTestId('preview-image'));
     expect(screen.getByTestId('preview-image').className).toContain('h-14');
+  });
+
+  it('never draws an empty image frame while the image loads or after it fails', () => {
+    query.mockReturnValue({ currentData: { url: 'https://example.com', title: 'Home', description: null, site_name: null, image: { url: '/i', width: null, height: null } } });
+    render(<LinkPreviewCard url="https://example.com" isMine={false} />);
+    expect(screen.getByTestId('preview-image')).toHaveClass('opacity-0');
+    expect(screen.getByTestId('preview-image').className).not.toContain('h-14');
+    fireEvent.error(screen.getByTestId('preview-image'));
+    expect(screen.queryByTestId('preview-image')).not.toBeInTheDocument();
+    expect(screen.getByText('Home')).toBeInTheDocument();
   });
 
   it('shows nothing until there is a preview', () => {

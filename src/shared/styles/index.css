@@ -1,6 +1,7 @@
 @import './base.css';
 @import './motion.css';
 @import './responsive.css';
+@import './media-motion.css';
 
 @tailwind base;
 @tailwind components;
