@@ -23,7 +23,7 @@ const padding = ({ isMine, isImage, isText, isSticker }: BubbleOptions) => {
 
 export const bubbleClass = (options: BubbleOptions) => [
   'motion-message-bubble relative w-fit min-w-0 max-w-full rounded-bubble [overflow-wrap:anywhere]',
-  options.deleting ? 'message-dissolve' : '',
+  options.deleting ? 'message-pop' : '',
   surface(options),
   padding(options),
   options.hasReactions ? (options.isImage ? 'mb-4' : 'mb-3.5') : '',

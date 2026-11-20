@@ -172,7 +172,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         <div className="mt-0.5 flex min-w-0 items-center gap-2">
           <div className={`min-w-0 flex-1 truncate text-sm leading-5 ${isActive ? `${previewTone} md:text-primary-foreground/80` : previewTone}`}>
             {typingUsers.length ? (
-              <TypingLabel users={typingUsers} isGroup={chat.type === 'group'} className={`italic ${isActive ? 'text-primary md:text-primary-foreground' : 'text-primary'}`} />
+              <TypingLabel users={typingUsers} isGroup={chat.type === 'group'} className={`typing-label-in italic ${isActive ? 'text-primary md:text-primary-foreground' : 'text-primary'}`} />
             ) : showDraft ? (
               <span data-testid="chat-draft-preview">
                 <span className="text-destructive">{draft.kind === 'edit' ? translations.chatEditPrefix : translations.chatDraftPrefix} </span>

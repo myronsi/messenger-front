@@ -3,7 +3,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import React, { MutableRefObject, memo, useCallback, useMemo, useState } from 'react';
+import React, { MutableRefObject, memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import { combineTouchHandlers, useSwipeAction } from '@/shared/lib/useSwipeAction';
 import SwipeReplyIcon from './SwipeReplyIcon';
@@ -24,35 +24,18 @@ import { bubbleClass } from '../model/bubbleClass';
 import { readDoubleTapReaction } from '../model/reactionUsage';
 import { AlertCircle, Check } from 'lucide-react';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
-const PARTICLE_COUNT = 36;
-
-const DissolveParticles: React.FC = () => {
-  const particles = React.useMemo(() => Array.from({ length: PARTICLE_COUNT }, () => ({
-    left: Math.random() * 100,
-    top: Math.random() * 100,
-    dx: 20 + Math.random() * 50,
-    dy: -30 + Math.random() * 60,
-    size: 2 + Math.random() * 3,
-    delay: Math.random() * 250,
-  })), []);
-  return (
-    <div className="message-particles" aria-hidden="true">
-      {particles.map((particle, index) => (
-        <span
-          key={index}
-          style={{
-            left: `${particle.left}%`,
-            top: `${particle.top}%`,
-            width: particle.size,
-            height: particle.size,
-            animationDelay: `${particle.delay}ms`,
-            '--dx': `${particle.dx}px`,
-            '--dy': `${particle.dy}px`,
-          } as React.CSSProperties}
-        />
-      ))}
-    </div>
-  );
+const PopRing: React.FC<{ isMine: boolean }> = ({ isMine }) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const ring = ref.current;
+    const bubble = ring?.previousElementSibling;
+    if (!ring || !(bubble instanceof HTMLElement)) return;
+    ring.style.left = `${bubble.offsetLeft}px`;
+    ring.style.top = `${bubble.offsetTop}px`;
+    ring.style.width = `${bubble.offsetWidth}px`;
+    ring.style.height = `${bubble.offsetHeight}px`;
+  }, []);
+  return <span ref={ref} aria-hidden="true" data-testid="message-pop-ring" className={`message-pop-ring rounded-bubble ${isMine ? 'text-primary' : 'text-muted-foreground'}`} />;
 };
 
 // Only primitives, the message itself and stable callbacks are passed so React.memo can skip
@@ -113,6 +96,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const canSwipe = !!onSwipeReply && !onToggleSelect && isPersistedId(message.id) && !message.is_deleted && !interlocutorDeleted;
   const swipe = useSwipeAction(isMine ? -1 : 1, canSwipe ? () => onSwipeReply?.(message) : undefined);
   const reducedMotion = prefersReducedMotion();
+  useLayoutEffect(() => {
+    if (!message.is_deleting) return;
+    const row = messageRefs.current[messageId];
+    row?.style.setProperty('--msg-h', `${row.offsetHeight}px`);
+  }, [message.is_deleting, messageId, messageRefs]);
   const isOutgoingSend = isMine && (!isPersistedId(message.id) || !!message.client_temp_id);
   const isUploadingMessage = isMine && message.upload_status === 'uploading';
   const hasReactions = !!message.reactions?.length;
@@ -182,14 +170,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
         data-image-message={isImage || undefined}
         data-message-id={String(message.id)}
         ref={setRowRef}
-        className={`${isOutgoingSend ? 'motion-message-send' : 'motion-message'} ${onToggleSelect || swipe.offset ? 'relative' : ''} ${canSwipe ? 'touch-pan-y' : ''} flex ${isMine ? 'justify-end' : 'justify-start'} ${
+        className={`${message.is_deleting ? '' : isOutgoingSend ? 'motion-message-send' : 'motion-message'} ${onToggleSelect || swipe.offset ? 'relative' : ''} ${canSwipe ? 'touch-pan-y' : ''} flex ${isMine ? 'justify-end' : 'justify-start'} ${
           isHighlighted ? 'highlight' : ''
         } ${isContextHighlighted || isSelected ? 'context-menu-highlight' : ''} ${onToggleSelect ? 'selectable-row' : ''} ${
           message.is_deleting ? (reducedMotion ? 'message-deleting message-deleting-reduced' : 'message-deleting') : ''
         }`}
         style={{
           ...(groupedWithPrevious ? { marginTop: '0.25rem' } : {}),
-          ...(message.is_deleting ? { '--msg-h': `${messageRefs.current[message.id]?.offsetHeight ?? 0}px`, pointerEvents: 'none' } as React.CSSProperties : {}),
+          ...(message.is_deleting ? { pointerEvents: 'none' as const } : {}),
         }}
         onClick={(event) => {
           event.preventDefault();
@@ -246,7 +234,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   onClick={interlocutorDeleted ? undefined : handleReply} />
               )}
               <div className={isSticker ? `relative w-fit ${isMine ? 'ml-auto' : 'mr-auto'}` : 'relative'}>
-                {message.is_deleting && !reducedMotion && <DissolveParticles />}
                 <MessageContent
                   message={message}
                   isMobile={isMobile} mediaBroken={mediaBroken} onMediaBroken={() => setBrokenMedia(mediaKey)} translations={translations}
@@ -287,6 +274,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 </div>
               )}
             </div>
+            {message.is_deleting && !reducedMotion && <PopRing isMine={isMine} />}
           </div>
         </div>
         </div>
