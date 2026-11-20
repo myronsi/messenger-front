@@ -23,6 +23,7 @@ import { presence } from './presence';
 import { drawing } from './drawing';
 import { typingStatus } from './typingStatus';
 import { appLinks } from './appLinks';
+import { sharing } from './sharing';
 import { stickers } from './stickers';
 import { stickerPacks } from './stickerPacks';
 import { chatOrganizer } from './chatOrganizer';
@@ -41,5 +42,5 @@ export const es = {
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...legal, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
   ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...appLinks, ...stickers, ...stickerPacks,
   ...chatOrganizer, ...chatCleanup, ...profileRework, ...profileExtras, ...customEmoji, ...audioPlayer, ...groupCreate, ...mainNav, ...personalization,
-  ...moderation,
+  ...moderation, ...sharing,
 };

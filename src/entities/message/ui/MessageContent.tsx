@@ -58,7 +58,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
     const link = links[0]?.href;
     const appLink = link ? appLinkFrom(link) : null;
     const isMine = isOwnMessage(message);
-    const text = <MessageTextBody text={content} trailing={trailing} />;
+    const text = <MessageTextBody text={content} trailing={trailing} mentionsAll={message.mentions_all} />;
     if (appLink && links.length === 1 && parts.every((part) => part.href || !part.text.trim())) {
       return <AppLinkCard link={appLink} isMine={isMine} standalone fallback={text} />;
     }
@@ -81,7 +81,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
       {content}
       {caption && (
         <div data-testid="message-caption" className={`whitespace-pre-wrap text-sm leading-snug ${isImage ? 'w-0 min-w-full px-3 pb-2 pt-1' : 'mt-2'}`}>
-          <LinkedMessageText text={caption} />
+          <LinkedMessageText text={caption} mentionsAll={message.mentions_all} />
         </div>
       )}
     </>

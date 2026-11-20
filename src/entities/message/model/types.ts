@@ -138,6 +138,8 @@ export interface Message {
   forwarded_from?: ForwardedFrom | null;
   reactions?: ReactionInfo[];
   read_by: ReadReceiptInfo[];
+  mentions?: EntityId[];
+  mentions_all?: boolean;
 }
 
 export interface MessageSelection {
@@ -238,6 +240,7 @@ export interface Chat {
   type: 'one-on-one' | 'group';
   last_message?: ChatLastMessage | null;
   unread_count?: number;
+  unread_mentions_count?: number;
   first_unread_message_id?: EntityId | null;
   is_pinned?: boolean;
   pin_position?: number | null;

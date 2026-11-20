@@ -6,6 +6,8 @@ import type { GroupTranslations } from './groupChatTypes';
 import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import { roleLabel } from './groupProfileHelpers';
 import GroupRoleHistoryRow from './GroupRoleHistoryRow';
+import GroupSharingRows from './GroupSharingRows';
+import type { GroupSharingView } from './GroupSharingPage';
 import { ProfileBackgroundEditor } from '@/features/profile';
 import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '@/features/groups';
 import { requestContentReport } from '@/entities/message';
@@ -15,10 +17,11 @@ interface Props {
   model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
   currentRole: GroupRole; participants: GroupParticipant[]; pendingInvites: GroupPendingInvite[];
   onOpenRoleHistory: () => void;
+  onOpenSharing: (view: GroupSharingView) => void;
 }
 
 const GroupProfileDetailsPanel: React.FC<Props> = ({
-  model, canEdit, canDeleteGroup, hasGroupChanges, currentRole, participants, pendingInvites, onOpenRoleHistory,
+  model, canEdit, canDeleteGroup, hasGroupChanges, currentRole, participants, pendingInvites, onOpenRoleHistory, onOpenSharing,
 }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
@@ -118,6 +121,10 @@ const GroupProfileDetailsPanel: React.FC<Props> = ({
           </div>
         </div>
       </section>
+
+      {isGoApi() && (currentRole === 'owner' || currentRole === 'admin') && (
+        <GroupSharingRows publicName={groupDetails?.public_name ?? null} onOpen={onOpenSharing} />
+      )}
 
       <GroupRoleHistoryRow chatId={model.chatId} onOpen={onOpenRoleHistory} />
 

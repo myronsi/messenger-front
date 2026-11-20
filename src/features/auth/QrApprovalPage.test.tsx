@@ -51,7 +51,7 @@ describe('QrApprovalPage', () => {
     approve.mockRejectedValueOnce(new ApiProblem(401, { code: 'two_factor_required', status: 401 })).mockResolvedValueOnce(undefined);
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
-    fireEvent.change(await screen.findByLabelText('Authenticator or backup code'), { target: { value: '123456' } });
+    fireEvent.change(await screen.findByLabelText('Authenticator code'), { target: { value: '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     expect(await screen.findByText('Done — the other device is signed in')).toBeInTheDocument();
     expect(approve).toHaveBeenLastCalledWith(requestId, '123456');
@@ -119,10 +119,10 @@ describe('QrApprovalPage', () => {
       .mockRejectedValueOnce(new ApiProblem(400, { code: 'invalid_credentials', status: 400, detail: 'Check the code.' }));
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
-    fireEvent.change(await screen.findByLabelText('Authenticator or backup code'), { target: { value: '000000' } });
+    fireEvent.change(await screen.findByLabelText('Authenticator code'), { target: { value: '000000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     expect(await screen.findByText('Check the code.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Authenticator or backup code')).toBeInTheDocument();
+    expect(screen.getByLabelText('Authenticator code')).toBeInTheDocument();
   });
 
   it('does not expire a request on a fast device clock and lets the server decide', async () => {

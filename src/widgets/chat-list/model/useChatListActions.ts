@@ -155,6 +155,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
     const chat = chatsByIdRef.current[chatId];
     if (chat?.is_request) return;
     const previousUnreadCount = chat?.unread_count ?? 0;
+    const previousMentionCount = chat?.unread_mentions_count ?? 0;
     const previousFirstUnreadId = chat?.first_unread_message_id ?? null;
     setChatContextMenu((current) => current?.chatId === chatId
       ? { ...current, unreadCount: 0 }
@@ -165,6 +166,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
         ...(prev[chatId] || {}),
         unread_count: 0,
         first_unread_message_id: null,
+        unread_mentions_count: 0,
       },
     }));
 
@@ -180,6 +182,7 @@ export function useChatListActions(params: UseChatListActionsParams) {
           ...(prev[chatId] || {}),
           unread_count: previousUnreadCount,
           first_unread_message_id: previousFirstUnreadId,
+          unread_mentions_count: previousMentionCount,
         },
       }));
       setChatContextMenu((current) => current?.chatId === chatId

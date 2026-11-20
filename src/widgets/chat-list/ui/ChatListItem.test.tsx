@@ -68,6 +68,25 @@ describe('ChatListItem', () => {
     expect(screen.getByText('3')).toHaveClass('bg-primary');
   });
 
+  it('shows an @ badge for unread mentions, in the accent colour even when the chat is muted', () => {
+    snapshot = { ...snapshot, mutes: [{ chat_id: '7', until: '9999-01-01T00:00:00Z' }] };
+    render(
+      <ChatListItem
+        chat={{ ...chat, type: 'group', unread_mentions_count: 2 } as Chat} activeChatId="8" isContextSelected={false} translations={en}
+        getLastMessagePreview={() => ''} getLastMessageTime={() => ''} isOwnLastMessage={() => false} isOwnLastMessageRead={() => false} onClick={vi.fn()} onContextMenu={vi.fn()}
+      />,
+    );
+    const badge = screen.getByRole('img', { name: 'You were mentioned' });
+    expect(badge).toHaveTextContent('@');
+    expect(badge).toHaveClass('bg-primary');
+    expect(screen.getByText('3')).toHaveClass('bg-muted-foreground');
+  });
+
+  it('shows no @ badge without unread mentions', () => {
+    renderItem();
+    expect(screen.queryByTestId('chat-mention-badge')).toBeNull();
+  });
+
   it('marks a muted chat with an icon and a grey unread count', () => {
     snapshot = { ...snapshot, mutes: [{ chat_id: '7', until: '9999-01-01T00:00:00Z' }] };
     renderItem();

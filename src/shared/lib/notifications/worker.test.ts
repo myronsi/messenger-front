@@ -157,6 +157,19 @@ describe('background notification worker', () => {
     await w.push({ title: 'Bob', body: 'yo', message_id: '2', preview: true, avatar_token: 'a.bob' });
     expect(w.registration.showNotification.mock.lastCall).toEqual(['Bob', expect.objectContaining({ body: 'Bob: yo\nMai: hi', icon: '/pwa-192x192.png' })]);
   });
+  it('says who mentioned you and where', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ kind: 'mention', title: 'Mai', body: '@me look', message_id: '1', preview: true, chat_type: 'group', chat_title: 'Hikers' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Mai mentioned you in Hikers', expect.objectContaining({ body: 'Mai: @me look' })]);
+  });
+  it('keeps a mention private without previews and ignores unknown kinds', async () => {
+    const w = worker(); await w.account('1');
+    await w.push({ kind: 'mention', message_id: '1' });
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: 'You were mentioned' })]);
+    const other = worker(); await other.account('1');
+    await other.push({ kind: 'something_new', title: 'Mai', body: 'hi', message_id: '1', preview: true });
+    expect(other.registration.showNotification.mock.lastCall).toEqual(['Mai', expect.objectContaining({ body: 'hi' })]);
+  });
   it('drops a queued push when the account logs out before it is shown', async () => {
     const w = worker(); await w.account('1');
     let release: () => void = () => undefined;

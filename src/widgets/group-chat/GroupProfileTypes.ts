@@ -49,6 +49,7 @@ export interface GroupDetails {
   participants: GroupParticipant[];
   pending_invites?: GroupPendingInvite[];
   background?: ProfileBackground | null;
+  public_name?: string | null;
 }
 
 export type GroupProfileConfirmState = {

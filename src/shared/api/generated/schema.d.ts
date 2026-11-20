@@ -2238,7 +2238,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a participant */
+        /**
+         * Remove a participant
+         * @description The removed user is also banned from the group (`GET /groups/{chat_id}/bans`): they cannot rejoin by invite
+         *     link or public name and cannot be added again until an admin lifts the ban.
+         */
         delete: operations["removeGroupParticipant"];
         options?: never;
         head?: never;
@@ -2354,6 +2358,494 @@ export interface paths {
          * @description Who made whom an admin or a member, or transferred ownership, and when. Members only.
          */
         get: operations["getGroupRoleLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{chat_id}/invite-links": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Invite links of the group
+         * @description Owner and admins only (`403` for other members). Newest first, revoked and expired links included.
+         */
+        get: operations["listGroupInviteLinks"];
+        put?: never;
+        /**
+         * Create an invite link
+         * @description Owner and admins only. Anyone with the link joins the group directly, unless banned from it. At most 50
+         *     active links per group (`409` `limit_reached`). Accounts at `limited` or above get `403`
+         *     `account_restricted` (`share_group`).
+         */
+        post: operations["createGroupInviteLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{chat_id}/invite-links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                link_id: components["parameters"]["InviteLinkId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke an invite link
+         * @description Owner and admins only. The link stops working at once; it stays in the list as revoked. Idempotent.
+         */
+        delete: operations["revokeGroupInviteLink"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename an invite link or change its expiry or use limit
+         * @description Owner and admins only. A revoked link cannot be changed (`409`).
+         */
+        patch: operations["updateGroupInviteLink"];
+        trace?: never;
+    };
+    "/groups/{chat_id}/public-name": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Make the group public under a name, or change that name
+         * @description Owner and admins only. A public group can be found in `GET /public-groups` and joined by anyone through
+         *     `/@name`, unless banned. The name shares one name space with usernames, ignoring case: a name in use is
+         *     `409` `already_exists`, a reserved name `422`. The old name is free at once. Accounts at `limited` or above
+         *     get `403` `account_restricted` (`share_group`).
+         */
+        put: operations["setGroupPublicName"];
+        post?: never;
+        /**
+         * Make the group private again
+         * @description Owner and admins only. The name is free at once; members and invite links stay. Idempotent.
+         */
+        delete: operations["clearGroupPublicName"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{chat_id}/bans": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Users banned from the group
+         * @description Owner and admins only. Removing a member (`DELETE /groups/{chat_id}/participants/{user_id}`) bans them: they
+         *     cannot rejoin by invite link or public name and cannot be added again until an admin lifts the ban. Leaving
+         *     the group yourself does not ban. Newest first.
+         */
+        get: operations["listGroupBans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{chat_id}/bans/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Lift a ban
+         * @description Owner and admins only. The user is not added back; they can join again by link or be added. Idempotent.
+         */
+        delete: operations["unbanGroupUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The group behind an invite link
+         * @description `404` when the token is unknown, revoked, expired or used up. `chat_id` is set when the caller is already a
+         *     member. Rate limited per user.
+         */
+        get: operations["getInvite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invites/{token}/join": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join a group through an invite link
+         * @description Joins directly and posts a `member_joined` system message. A member gets the chat back without a change.
+         *     `404` for an unknown, revoked, expired or used-up link; `403` `forbidden` when banned from the group; `403`
+         *     `account_restricted` (`join_by_link`) at `restricted` or above. At most 20 joins by link or public name per
+         *     hour (`429`).
+         */
+        post: operations["joinByInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public-groups": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** Search public groups by public name or group name */
+        get: operations["searchPublicGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public-groups/{public_name}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        /**
+         * A public group by its public name
+         * @description `chat_id` is set when the caller is a member. Rate limited per user.
+         */
+        get: operations["getPublicGroup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public-groups/{public_name}/join": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join a public group
+         * @description The same rules as `POST /invites/{token}/join`.
+         */
+        post: operations["joinPublicGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public-names/{public_name}/availability": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Whether a public name is free for a group
+         * @description Rate limited per user.
+         */
+        get: operations["getPublicNameAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/mentions": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The caller's unread mentions in a chat
+         * @description IDs of the messages that mention the caller (by `@username`, or `@all` from an owner or admin) and are newer
+         *     than the caller's read marker, oldest first, at most 100. `Chat.unread_mentions_count` counts them; reading
+         *     past a message removes it.
+         */
+        get: operations["listUnreadMentions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/names/{public_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        /**
+         * What a public link `/@name` shows to someone without an account
+         * @description No authentication. A user is `user` only when their `web_profile_visibility` is `everyone`, their
+         *     `search_visibility` is `everyone` and their account is not `restricted` or `suspended`; a group is `group` only
+         *     when it has this public name. Everything else, including unknown names, is `unavailable`, so the answer does
+         *     not tell whether a name exists. Rate limited per IP. `X-Robots-Tag: noindex`.
+         */
+        get: operations["getPublicName"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        /**
+         * What an invite link shows to someone without an account
+         * @description No authentication. `404` when the token is unknown, revoked, expired or used up. Rate limited per IP.
+         *     `X-Robots-Tag: noindex`.
+         */
+        get: operations["getPublicInvite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/names/{public_name}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Avatar of a public user or group
+         * @description No authentication. For a user: only while `GET /public/names/{public_name}` shows them and their
+         *     `avatar_visibility` is `everyone`. For a public group: its avatar. `404` otherwise (no default image).
+         *     `avatar_url` in `PublicUser` and `PublicGroup` carries `rev`; while it matches, the answer may be cached for
+         *     a day. Rate limited per IP.
+         */
+        get: operations["getPublicNameAvatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/invites/{token}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Avatar of the group behind an invite link
+         * @description No authentication. `404` when the link does not work or the group has no avatar. Rate limited per IP.
+         */
+        get: operations["getPublicInviteAvatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/og/names/{public_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Link preview page for `/@name`, for crawlers
+         * @description No authentication. A small HTML page with Open Graph and Twitter tags (`og:title`, `og:description`,
+         *     `og:image`, `og:url`) built from the same card as `GET /public/names/{public_name}`, and
+         *     `<meta name="robots" content="noindex">`. The web server sends link-preview crawlers of other apps here;
+         *     people get the web app. An unavailable name gets a generic Messenger card. Rate limited per IP.
+         */
+        get: operations["getOpenGraphName"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/og/invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Link preview page for `/join/{token}`, for crawlers
+         * @description Like `GET /og/names/{public_name}`, for an invite link. A link that does not work gets a generic card.
+         */
+        get: operations["getOpenGraphInvite"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4040,6 +4532,11 @@ export interface components {
              *     by the server; when a `PUT` leaves it out, it stays as it is. Defaults to `true`.
              */
             birthday_reminders?: boolean;
+            /**
+             * @description A push when someone mentions you (`@username`, or `@all` from an owner or admin) in a chat you muted.
+             *     Always sent by the server; when a `PUT` leaves it out, it stays as it is. Defaults to `true`.
+             */
+            mentions_in_muted?: boolean;
         };
         NotificationSettings: {
             preferences: components["schemas"]["NotificationPreferences"];
@@ -4412,6 +4909,7 @@ export interface components {
              *     stays.
              */
             forward_link: components["schemas"]["ForwardLinkPolicy"];
+            web_profile_visibility: components["schemas"]["WebProfileVisibility"];
             exceptions: components["schemas"]["PrivacyExceptions"];
         };
         UpdatePrivacySettingsRequest: {
@@ -4433,6 +4931,7 @@ export interface components {
             typing_indicators_enabled?: boolean;
             voice_video_messages?: components["schemas"]["VoiceVideoPolicy"];
             forward_link?: components["schemas"]["ForwardLinkPolicy"];
+            web_profile_visibility?: components["schemas"]["WebProfileVisibility"];
         };
         PrivacyExceptionsRequest: {
             user_ids: components["schemas"]["Id"][];
@@ -4522,7 +5021,7 @@ export interface components {
          * @description An action the account status blocks. Unknown values must be shown as a generic restriction.
          * @enum {string}
          */
-        AccountRestriction: "start_direct" | "invite_to_group" | "call" | "create_group" | "upload" | "forward" | "edit_profile" | "publish_pack" | "search" | "send" | "manage_group";
+        AccountRestriction: "start_direct" | "invite_to_group" | "call" | "create_group" | "upload" | "forward" | "edit_profile" | "publish_pack" | "search" | "send" | "manage_group" | "share_group" | "join_by_link";
         AccountStatus: {
             status: components["schemas"]["AccountStatusLevel"];
             /** @description When the account reached this status; `null` when it never changed. */
@@ -5009,6 +5508,14 @@ export interface components {
             moderation_reason?: components["schemas"]["ModerationRemovalReason"];
             system_event?: components["schemas"]["SystemEvent"];
             client_temp_id?: components["schemas"]["ClientTempId"];
+            /**
+             * @description Group members the text mentions by `@username` (ignoring case), found by the server when the message was
+             *     sent or last edited; at most 20. Absent when there are none and in direct chats. Clients render every
+             *     `@name` token as a link to `/@name`; these IDs only decide highlighting and notifications.
+             */
+            mentions?: components["schemas"]["Id"][];
+            /** @description `true` when an owner or admin wrote `@all`; it mentions every member. Absent otherwise. */
+            mentions_all?: boolean;
         };
         LinkPreview: {
             /** @description The page after redirects */
@@ -5162,6 +5669,11 @@ export interface components {
             is_request: boolean;
             unread_count: number;
             /**
+             * @description Unread messages that mention the caller (`GET /chats/{chat_id}/mentions`). Clients show an `@` badge while
+             *     it is above 0. Always 0 in direct chats.
+             */
+            unread_mentions_count: number;
+            /**
              * @description The oldest message the caller has not read (the same messages `unread_count` counts: not their own,
              *     not system messages, not deleted); `null` when nothing is unread. Clients open the chat around it and
              *     show the "new messages" divider above it.
@@ -5223,6 +5735,8 @@ export interface components {
             my_role: components["schemas"]["GroupRole"];
             members: components["schemas"]["GroupMember"][];
             created_at: components["schemas"]["Timestamp"];
+            /** @description The group's public name (`/@name`); `null` for a private group. */
+            public_name: components["schemas"]["PublicName"] | null;
         };
         CreateGroupRequest: {
             name: string;
@@ -5242,6 +5756,113 @@ export interface components {
         };
         TransferOwnerRequest: {
             user_id: components["schemas"]["Id"];
+        };
+        /**
+         * @description A username or a group's public name. One name space for both, unique ignoring case; links are `/@name` on the
+         *     web app's origin.
+         */
+        PublicName: string;
+        /** @description The secret part of an invite link `/join/{token}`. */
+        InviteToken: string;
+        /**
+         * @description Whether people without an account (and link previews in other apps) see the profile card at `/@username`:
+         *     display name, username, and the avatar and bio when `avatar_visibility` and `profile_visibility` are
+         *     `everyone`. Defaults to `everyone`.
+         * @enum {string}
+         */
+        WebProfileVisibility: "everyone" | "nobody";
+        /** @description The card of a user for someone without an account. Never carries an ID, presence or other fields. */
+        PublicUser: {
+            username: components["schemas"]["Username"];
+            display_name: string;
+            /** @description `/api/v2/public/names/{username}/avatar?rev=…`; `null` when hidden or unset. */
+            avatar_url: string | null;
+            /** @description `null` when `profile_visibility` is not `everyone` or the bio is empty. */
+            bio: string | null;
+        };
+        /** @description The card of a group for someone without an account. No members and no messages. */
+        PublicGroup: {
+            name: string;
+            /** @description Set for a public group. */
+            public_name: components["schemas"]["PublicName"] | null;
+            description: string | null;
+            /** @description A public avatar URL (`/api/v2/public/names/…/avatar` or `/api/v2/public/invites/…/avatar`), or `null`. */
+            avatar_url: string | null;
+            member_count: number;
+        };
+        /**
+         * @description Unknown values must be treated like `unavailable`.
+         * @enum {string}
+         */
+        PublicNameKind: "user" | "group" | "unavailable";
+        PublicNameLookup: {
+            kind: components["schemas"]["PublicNameKind"];
+            /** @description Set when `kind` is `user`. */
+            user?: components["schemas"]["PublicUser"];
+            /** @description Set when `kind` is `group`. */
+            group?: components["schemas"]["PublicGroup"];
+        };
+        /** @description A group the caller may join, as seen before joining. */
+        GroupPreview: {
+            group: components["schemas"]["PublicGroup"];
+            /** @description The chat when the caller is already a member; `null` otherwise. */
+            chat_id: components["schemas"]["Id"] | null;
+        };
+        GroupPreviewPage: {
+            items: components["schemas"]["GroupPreview"][];
+            next_cursor: components["schemas"]["Cursor"];
+        };
+        PublicNameAvailability: {
+            public_name: components["schemas"]["PublicName"];
+            /** @description `false` when a user or another group has the name (ignoring case) or it is reserved. */
+            available: boolean;
+        };
+        InviteLink: {
+            id: components["schemas"]["Id"];
+            token: components["schemas"]["InviteToken"];
+            name: string | null;
+            /** @description The user who created the link; `null` after that account was deleted. */
+            created_by: components["schemas"]["Id"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            /** @description `null`: never expires. */
+            expires_at: components["schemas"]["Timestamp"] | null;
+            /** @description `null`: no limit. */
+            max_uses: number | null;
+            use_count: number;
+            revoked_at: components["schemas"]["Timestamp"] | null;
+            /** @description Not revoked, not expired and not used up. */
+            is_active: boolean;
+        };
+        InviteLinkList: {
+            items: components["schemas"]["InviteLink"][];
+        };
+        CreateInviteLinkRequest: {
+            name?: string | null;
+            /** @description In the future, at most 366 days ahead; `null` or absent for a link that never expires. */
+            expires_at?: components["schemas"]["Timestamp"] | null;
+            /** @description `null` or absent for no limit. */
+            max_uses?: number | null;
+        };
+        /** @description Fields left out stay as they are; `null` clears the expiry or the limit. */
+        UpdateInviteLinkRequest: {
+            name?: string | null;
+            expires_at?: components["schemas"]["Timestamp"] | null;
+            max_uses?: number | null;
+        };
+        SetPublicNameRequest: {
+            public_name: components["schemas"]["PublicName"];
+        };
+        GroupBan: {
+            user: components["schemas"]["User"];
+            banned_by: components["schemas"]["Id"] | null;
+            created_at: components["schemas"]["Timestamp"];
+        };
+        GroupBanPage: {
+            items: components["schemas"]["GroupBan"][];
+            next_cursor: components["schemas"]["Cursor"];
+        };
+        MentionList: {
+            message_ids: components["schemas"]["Id"][];
         };
         /** @enum {string} */
         ApprovalRequestType: "direct_message" | "group_invite";
@@ -5676,6 +6297,9 @@ export interface components {
         ChatId: components["schemas"]["Id"];
         MessageId: components["schemas"]["Id"];
         UserId: components["schemas"]["Id"];
+        InviteLinkId: components["schemas"]["Id"];
+        InviteToken: components["schemas"]["InviteToken"];
+        PublicNameParam: components["schemas"]["PublicName"];
         ReportOutcomeId: components["schemas"]["Id"];
         RequestId: components["schemas"]["Id"];
         AttachmentId: components["schemas"]["AttachmentRef"];
@@ -9547,6 +10171,681 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listGroupInviteLinks: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The links */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteLinkList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    createGroupInviteLink: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInviteLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The new link */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    revokeGroupInviteLink: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                link_id: components["parameters"]["InviteLinkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    updateGroupInviteLink: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                link_id: components["parameters"]["InviteLinkId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInviteLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    setGroupPublicName: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPublicNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    clearGroupPublicName: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listGroupBans: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque `next_cursor` of the previous page */
+                after?: components["parameters"]["After"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of bans */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupBanPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    unbanGroupUser: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lifted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getInvite: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    joinByInvite: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group chat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Chat"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    searchPublicGroups: {
+        parameters: {
+            query: {
+                q: string;
+                /** @description Page size */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque `next_cursor` of the previous page */
+                after?: components["parameters"]["After"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of public groups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupPreviewPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getPublicGroup: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    joinPublicGroup: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group chat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Chat"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getPublicNameAvailability: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Availability */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNameAvailability"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listUnreadMentions: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unread mentions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MentionList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getPublicName: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The public card */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNameLookup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getPublicInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group card */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicGroup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getPublicNameAvatar: {
+        parameters: {
+            query?: {
+                rev?: string;
+                /** @description As in `GET /users/{user_id}/avatar`. */
+                size?: number;
+            };
+            header?: never;
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            /** @description Not modified (`If-None-Match` with the `ETag` of an earlier answer) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getPublicInviteAvatar: {
+        parameters: {
+            query?: {
+                rev?: string;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            /** @description Not modified (`If-None-Match` with the `ETag` of an earlier answer) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getOpenGraphName: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_name: components["parameters"]["PublicNameParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description HTML page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getOpenGraphInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: components["parameters"]["InviteToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description HTML page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     listStickerPacks: {

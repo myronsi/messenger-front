@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { notificationReturnPath } from './notifications/navigation';
+import { returnPath } from './returnPath';
 import { parseScannedQrCode, qrLoginRequestId } from './qrLoginPath';
 
 const id = 'Ab3_-Ab3_-Ab3_-Ab3_-Ab3_-Ab3_-Ab';
@@ -40,8 +40,8 @@ describe('qr sign-in return path', () => {
   });
 
   it('returns to the approval page after sign-in', () => {
-    expect(notificationReturnPath(`/qr/${id}`, '')).toBe(`/qr/${id}`);
-    expect(notificationReturnPath('/login', '', { notificationReturnPath: `/qr/${id}` })).toBe(`/qr/${id}`);
-    expect(notificationReturnPath('/login', '', { notificationReturnPath: '/qr/bad' })).toBe('/');
+    expect(returnPath(`/qr/${id}`, '')).toBe(`/qr/${id}`);
+    expect(returnPath('/login', '', { returnPath: `/qr/${id}` })).toBe(`/qr/${id}`);
+    expect(returnPath('/login', '', { returnPath: '/qr/bad' })).toBe('/');
   });
 });

@@ -13,4 +13,8 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
   });
 }
 
+if (typeof document !== 'undefined' && typeof document.elementFromPoint !== 'function') {
+  Object.defineProperty(document, 'elementFromPoint', { writable: true, value: () => null });
+}
+
 afterEach(() => cleanup());

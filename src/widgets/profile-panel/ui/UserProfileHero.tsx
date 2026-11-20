@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ban, Cake, Eraser, Flag, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { Ban, Cake, Eraser, Flag, MessageCircle, Pencil, Share2, Trash2 } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { ProfileActions, ProfileBanner, ProfileCloseButton, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -12,6 +12,7 @@ import { ChatMuteAction } from '@/features/chat-mute';
 import { CallButton, useCallsAvailable } from '@/features/calls';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
 import { ReportUserDialog, RestrictedAccountLabel } from '@/features/moderation';
+import { publicNameLink, ShareLinkDialog } from '@/features/sharing';
 import { ContactNameHeading } from './ContactNameHeading';
 import type { ProfilePanelView } from './UserProfilePanelContent';
 import type { ProfileBackground } from '@/entities/user';
@@ -53,6 +54,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
   const hasChat = !!props.directChatId && isPersistedId(props.directChatId);
   const callsAvailable = useCallsAvailable();
   const [reportOpen, setReportOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const cleanup = useChatCleanup(() => toast(translations.chatCleanup.cleared), (message) => toast(message || translations.errorLoading));
   const clearHistory = () => props.directChatId && cleanup.open({ kind: 'clear', target: {
     chatId: props.directChatId, name: props.displayName, isGroup: false, isSaved: props.isCurrentUser, canClearForEveryone: false,
@@ -66,6 +68,9 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
     ...(props.isCurrentUser && props.onEditProfile ? [
       { key: 'edit', label: translations.editProfileAction, primary: true, icon: <Pencil className="h-5 w-5" />, onClick: props.onEditProfile },
     ] : []),
+    ...(props.isCurrentUser ? [
+      { key: 'share', label: translations.sharing.shareProfile, icon: <Share2 className="h-5 w-5" />, onClick: () => setShareOpen(true) },
+    ] : []),
     ...(props.canMessage ? [{ key: 'chat', label: t.chat, primary: true, icon: <MessageCircle className="h-5 w-5" />, onClick: props.onMessage }] : []),
     ...(hasChat && callsAvailable && !props.isCurrentUser ? [
       { key: 'call', label: t.call, render: (className: string) => <span className={`${className} [&>button]:h-full [&>button]:w-full [&>button]:rounded-xl`}><CallButton chatId={props.directChatId} /></span> },
@@ -75,6 +80,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
     ] : []),
   ];
   const menu: ProfileMenuItem[] = props.isCurrentUser ? [] : [
+    { key: 'share', label: translations.sharing.shareProfile, icon: <Share2 className="h-4 w-4" />, onSelect: () => setShareOpen(true) },
     { key: 'rename', label: t.rename, icon: <Pencil className="h-4 w-4" />, onSelect: props.onEditContactName },
     ...(hasChat ? [{ key: 'clear', label: translations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: clearHistory }] : []),
     ...(props.canDeleteChat ? [{ key: 'delete', label: translations.chatCleanup.deleteChat, danger: true, icon: <Trash2 className="h-4 w-4" />, onSelect: props.onDeleteChat }] : []),
@@ -116,6 +122,10 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
       />
       <ProfileTabs tabs={props.tabs.map((key) => ({ key, label: tabLabels[key] }))} active={props.activeView} onSelect={props.onSelectView} />
       <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
+      {shareOpen && (
+        <ShareLinkDialog title={translations.sharing.shareProfile} hint={translations.sharing.shareProfileHint}
+          url={publicNameLink(props.username)} onClose={() => setShareOpen(false)} />
+      )}
       {reportOpen && props.userId && <ReportUserDialog userId={props.userId} name={props.displayName} onClose={() => setReportOpen(false)} />}
     </div>
   );

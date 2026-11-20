@@ -14,7 +14,12 @@ const Harness = ({ enabled }: { enabled?: boolean }) => {
 };
 const problem = (code: string, status = 401) => new ApiProblem(status, { code, status, detail: `${code} detail` });
 const enterCode = (code: string) => {
-  fireEvent.change(screen.getByLabelText('Authenticator or backup code'), { target: { value: code } });
+  fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: code } });
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+};
+const enterBackup = (code: string) => {
+  if (!screen.queryByLabelText('Backup code')) fireEvent.click(screen.getByRole('button', { name: 'Use a backup code instead' }));
+  fireEvent.change(screen.getByLabelText('Backup code'), { target: { value: code } });
   fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 };
 
@@ -36,9 +41,9 @@ it('asks first when the account is known to use two-factor authentication', asyn
   let pending!: Promise<unknown>;
   act(() => { pending = confirm(run); });
   expect(await screen.findByRole('dialog', { name: 'Confirm with two-factor authentication' })).toBeInTheDocument();
-  expect(screen.getByLabelText('Authenticator or backup code')).toHaveFocus();
+  expect(screen.getByLabelText('Authenticator code')).toHaveFocus();
   expect(run).not.toHaveBeenCalled();
-  enterCode(' 123456 ');
+  enterCode('123456');
   await expect(pending).resolves.toBe('123456');
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 });
@@ -47,17 +52,17 @@ it('opens the dialog when the server asks for a second factor and keeps it open 
   render(<Harness />);
   const run = vi.fn(async (code?: string) => {
     if (!code) throw problem('two_factor_required');
-    if (code === 'wrong') throw problem('invalid_two_factor_code');
+    if (code === '000000') throw problem('invalid_two_factor_code');
     return code;
   });
   let pending!: Promise<unknown>;
   act(() => { pending = confirm(run); });
   await screen.findByRole('dialog');
-  enterCode('wrong');
+  enterCode('000000');
   expect(await screen.findByRole('alert')).toHaveTextContent("That code didn't work");
   expect(screen.getByRole('dialog')).toBeInTheDocument();
-  enterCode('backup-code-1');
-  await expect(pending).resolves.toBe('backup-code-1');
+  enterBackup(' aaaabbbb-ccccdddd ');
+  await expect(pending).resolves.toBe('aaaabbbb-ccccdddd');
 });
 
 it('rejects with a cancellation the caller can ignore', async () => {
@@ -81,11 +86,22 @@ it('closes the dialog and passes other failures to the caller', async () => {
 it('shows a rejected recovery code in the dialog but leaves a wrong password to the form', async () => {
   render(<Harness enabled />);
   let pending!: Promise<unknown>;
-  act(() => { pending = confirm(async code => { throw problem('invalid_credentials', code === 'public' ? 400 : 403); }); });
-  enterCode('public');
+  act(() => { pending = confirm(async code => { throw problem('invalid_credentials', code === 'aaaaaaaa-00000000' ? 400 : 403); }); });
+  enterBackup('aaaaaaaa-00000000');
   expect(await screen.findByRole('alert')).toHaveTextContent('invalid_credentials detail');
-  enterCode('signed-in');
+  enterBackup('bbbbbbbb-11111111');
   const error = await pending.catch(caught => caught);
   expect(problemCode(error)).toBe('invalid_credentials');
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+
+it('keeps only digits when a code is pasted and waits for all six', async () => {
+  render(<Harness enabled />);
+  act(() => { void confirm(async (code?: string) => code).catch(() => undefined); });
+  const input = await screen.findByLabelText('Authenticator code');
+  fireEvent.change(input, { target: { value: '12a' } });
+  expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+  fireEvent.paste(input, { clipboardData: { getData: () => '123 456' } });
+  await waitFor(() => expect(input).toHaveValue('123456'));
+  expect(screen.getByRole('button', { name: 'Confirm' })).toBeEnabled();
 });

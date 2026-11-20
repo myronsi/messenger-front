@@ -59,12 +59,18 @@ One-time setup:
    `server` block before the includes, for example `set $messenger_calls_host calls.example.com;`, on staging with the
    staging media host; a host without calls can set it to the app's own host name. Without it `nginx -t` fails with an
    unknown variable, so define it before copying the new snippet, then `nginx -t && systemctl reload nginx`.
+   Copy `deploy/nginx/link-preview-map.conf` into the `http` block (for example
+   `/etc/nginx/conf.d/messenger-link-preview-map.conf`). `cache-headers.conf` uses its `$messenger_link_preview_bot`
+   to send link preview crawlers (Telegram, WhatsApp, Slack, Facebook, X, Discord, LinkedIn, Skype) on `/@name` and
+   `/join/<token>` to the API's Open Graph pages `/api/v2/og/names/<name>` and `/api/v2/og/invites/<token>` through the
+   server's `/api/` proxy; everyone else gets `index.html`. Both paths send `X-Robots-Tag: noindex, nofollow`. Without the map
+   `nginx -t` fails with an unknown variable, so copy it first.
    Releases cannot get this wrong on their own: `deploy.yml` and `deploy-staging.yml` only upload the built `dist`
    archive and switch the `current` symlink; they never copy `deploy/nginx/*` or reload nginx. The snippet also sends
    `Permissions-Policy: microphone=(self), camera=(self), geolocation=()`; the camera stays allowed for the QR sign-in
    scanner.
 2. GitHub: create the environment `production` and add the secrets `SSH_HOST`, `SSH_USER`, `SSH_KEY` and `SSH_KNOWN_HOSTS` (output of `ssh-keyscan <host>`), as in the backend repository.
-3. GitHub repository variables (they are baked into the build): `VITE_BASE_URL` (for example `https://chat.example.com/api`) and `VITE_WS_URL` (for example `wss://chat.example.com/api`).
+3. GitHub repository variables (they are baked into the build): `VITE_BASE_URL` (for example `https://chat.example.com/api`) and `VITE_WS_URL` (for example `wss://chat.example.com/api`), optionally `VITE_WEB_ORIGIN` (for example `https://chat.example.com`): the origin used in every link the app copies or shares (`/@name`, `/join/<token>`, sticker and emoji packs) and also recognised as an own link in messages. Without it the app uses the origin it runs on. Set it in builds that do not run on the public web origin, such as the mobile apps.
 4. Repository settings → Actions → General: allow workflows to create pull requests (needed by release-please).
 
 The frontend deploy is triggered by its own release, so keep the order from this document: deploy the backend first, then merge the frontend release PR.

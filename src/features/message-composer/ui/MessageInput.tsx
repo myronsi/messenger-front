@@ -25,7 +25,7 @@ import { addToSelection, canAddToSelection, planUploads } from '../model/fileSel
 import type { Drawing } from '@/shared/ui/drawing';
 import type { Sticker } from '@/entities/sticker';
 import EmojiStickerButton from './EmojiStickerButton';
-import { EmojiAutocomplete } from './EmojiAutocomplete';
+import { ComposerSuggestions, type ComposerMentions } from './ComposerSuggestions';
 
 interface MessageInputProps {
   messageInput: string;
@@ -46,6 +46,7 @@ interface MessageInputProps {
   onVoiceUploadProgress?: (messageId: EntityId, percent: number) => void;
   onVoiceUploadError?: (messageId: EntityId, errorMessage?: string) => void;
   onVoiceUploadComplete?: (messageId: EntityId, created?: unknown) => void;
+  mentions?: ComposerMentions;
 }
 
 const editableCaption = (message: Message | null) => (typeof message?.content === 'string' ? message.content : message?.content?.caption || '');
@@ -61,7 +62,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   disableVoice = false, voiceVideoBlocked = false,
   isSending = false,
   disabled = false,
-  onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete,
+  onVoiceUploadStart, onVoiceUploadProgress, onVoiceUploadError, onVoiceUploadComplete, mentions,
 }, ref) => {
   const { translations } = useLanguage();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -88,7 +89,6 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
   });
   const canSend = ((hasDraft || isEditing) && !isUnchangedEdit) || !!voicePreview;
   const setChoosingSticker = useTypingStatus({ chatId, text: messageInput, canType: !isEditing && !disabled, isRecording });
-
   useLayoutEffect(() => {
     const field = inputRef.current;
     if (!field) return;
@@ -274,7 +274,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
                 disabled={isDisabled}
               />
             )}
-            {!isRecording && !voicePreview && <EmojiAutocomplete inputRef={inputRef} value={messageInput} onChange={setMessageInput} />}
+            {!isRecording && !voicePreview && <ComposerSuggestions inputRef={inputRef} value={messageInput} onChange={setMessageInput} mentions={mentions} />}
             {!isRecording && !voicePreview && <EmojiStickerButton inputRef={inputRef} value={messageInput} onChange={setMessageInput}
               disabled={isDisabled} dock={emojiDock} onStickersVisible={setChoosingSticker}
               onSticker={onSendSticker && !isEditing && !hasSelectedFile ? onSendSticker : undefined} />}

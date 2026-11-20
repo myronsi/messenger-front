@@ -39,7 +39,7 @@ export const group = {
   groupNameRequired: "El nombre del grupo es obligatorio",
   groupSettings: "Ajustes del grupo",
   removeParticipant: "Eliminar participante",
-  removeParticipantConfirm: "¿Eliminar a este participante del grupo? Perderá el acceso al chat del grupo hasta que alguien lo vuelva a añadir.",
+  removeParticipantConfirm: "¿Eliminar a este participante del grupo? Perderá el acceso al chat del grupo y no podrá volver por enlace ni ser añadido de nuevo hasta que un propietario o admin lo permita en Miembros eliminados.",
   save: "Guardar",
   deleteGroup: "Eliminar grupo",
   deleteGroupConfirm: "Al eliminar este grupo, ocurrirá lo siguiente:",

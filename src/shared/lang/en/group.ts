@@ -39,7 +39,7 @@ export const group = {
   groupNameRequired: "Group name is required",
   groupSettings: "Group settings",
   removeParticipant: "Remove participant",
-  removeParticipantConfirm: "Remove this participant from the group? They will lose access to the group chat until someone adds them again.",
+  removeParticipantConfirm: "Remove this participant from the group? They lose access to the group chat and cannot rejoin by link or be added again until an owner or admin allows it under Removed members.",
   save: "Save",
   deleteGroup: "Delete Group",
   deleteGroupConfirm: "After deleting this group, the following consequences will apply:",

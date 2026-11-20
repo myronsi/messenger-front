@@ -56,6 +56,7 @@ export const useGroupDetails = ({
       participants,
       pending_invites: pendingInvites,
       background: raw.background ?? null,
+      public_name: raw.public_name ?? null,
     };
   }, [groupName, username]);
 

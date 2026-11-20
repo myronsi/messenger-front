@@ -11,6 +11,7 @@ const ACTION_TITLES = {
     birthday: (name) => `${name} has a birthday today`, someoneBirthday: 'Someone you chat with has a birthday today',
     newMessage: 'New message', photo: 'Photo', video: 'Video', audio: 'Audio', voice: 'Voice message', file: 'File', album: 'Album',
     sticker: 'Sticker',
+    mentioned: (name, chat) => (chat ? `${name} mentioned you in ${chat}` : `${name} mentioned you`), mentionHidden: 'You were mentioned',
   },
   ru: {
     reply: 'Ответить', read: 'Прочитано', many: (n) => `Новых сообщений: ${n}`, call: 'Входящий звонок', groupCall: 'Входящий групповой звонок',
@@ -18,6 +19,7 @@ const ACTION_TITLES = {
     birthday: (name) => `У ${name} сегодня день рождения`, someoneBirthday: 'У одного из собеседников сегодня день рождения',
     newMessage: 'Новое сообщение', photo: 'Фото', video: 'Видео', audio: 'Аудио', voice: 'Голосовое сообщение', file: 'Файл', album: 'Альбом',
     sticker: 'Стикер',
+    mentioned: (name, chat) => (chat ? `${name} упоминает вас в ${chat}` : `${name} упоминает вас`), mentionHidden: 'Вас упомянули',
   },
   es: {
     reply: 'Responder', read: 'Marcar como leído', many: (n) => `${n} mensajes nuevos`, call: 'Llamada entrante', groupCall: 'Llamada grupal entrante',
@@ -25,6 +27,7 @@ const ACTION_TITLES = {
     birthday: (name) => `${name} cumple años hoy`, someoneBirthday: 'Alguien con quien chateas cumple años hoy',
     newMessage: 'Nuevo mensaje', photo: 'Foto', video: 'Vídeo', audio: 'Audio', voice: 'Mensaje de voz', file: 'Archivo', album: 'Álbum',
     sticker: 'Sticker',
+    mentioned: (name, chat) => (chat ? `${name} te mencionó en ${chat}` : `${name} te mencionó`), mentionHidden: 'Te mencionaron',
   },
   de: {
     reply: 'Antworten', read: 'Als gelesen markieren', many: (n) => `${n} neue Nachrichten`, call: 'Eingehender Anruf', groupCall: 'Eingehender Gruppenanruf',
@@ -32,6 +35,7 @@ const ACTION_TITLES = {
     birthday: (name) => `${name} hat heute Geburtstag`, someoneBirthday: 'Jemand, mit dem du schreibst, hat heute Geburtstag',
     newMessage: 'Neue Nachricht', photo: 'Foto', video: 'Video', audio: 'Audio', voice: 'Sprachnachricht', file: 'Datei', album: 'Album',
     sticker: 'Sticker',
+    mentioned: (name, chat) => (chat ? `${name} hat dich in ${chat} erwähnt` : `${name} hat dich erwähnt`), mentionHidden: 'Du wurdest erwähnt',
   },
 };
 const CALL_MAX_RING_MS = 120000;
@@ -223,9 +227,10 @@ async function showChatNotification(data) {
   const shown = lines.length ? lines : [line];
   const group = preview && data.chat_type === 'group' && typeof data.chat_title === 'string' && data.chat_title ? data.chat_title : '';
   const oneSender = !group && shown.every((entry) => entry.sender === sender);
-  const title = group || from;
+  const mention = data.kind === 'mention';
+  const title = mention && preview ? titles.mentioned(from, group) : group || from;
   const newestFirst = [...shown].reverse();
-  const body = !preview ? (count > 1 ? titles.many(count) : titles.newMessage)
+  const body = !preview ? (mention ? titles.mentionHidden : count > 1 ? titles.many(count) : titles.newMessage)
     : newestFirst.map((entry) => (oneSender ? entry.text : `${entry.from}: ${entry.text}`)).join('\n');
   const iconKey = group ? `${user}:chat:${data.chat_id}` : `${user}:user:${data.sender_id}`;
   const icon = await notificationIcon((group || oneSender) && preview ? avatarUrl(data, settings) : null, iconKey);

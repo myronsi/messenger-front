@@ -142,6 +142,7 @@ export function useChatsData(username: string) {
       type: 'group' as const,
       last_message: group.last_message || null,
       unread_count: group.unread_count || 0,
+      unread_mentions_count: group.unread_mentions_count || 0,
       first_unread_message_id: group.first_unread_message_id || null,
       is_pinned: !!group.is_pinned,
       pin_position: group.pin_position ?? null,

@@ -55,6 +55,7 @@ interface MessageListProps {
   selection?: MessageSelection;
   onSwipeReply?: (message: Message) => void;
   chatId?: EntityId;
+  bottomAction?: React.ReactNode;
 }
 
 const MESSAGE_LIST_BOTTOM_SPACE = 'pb-32 md:pb-36';
@@ -279,7 +280,8 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
       </div>
     </div>
     <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-40 ${bottomSpaceClass}`} style={bottomSpaceStyle}>
-      <div className="flex justify-end px-4 md:mx-auto md:w-2/3 md:px-0">
+      <div className="flex flex-col items-end gap-2 px-4 md:mx-auto md:w-2/3 md:px-0">
+        {props.bottomAction}
         <ScrollToBottomButton
           visible={showScrollToBottom}
           count={unseenCount}

@@ -11,7 +11,7 @@ const empty = { allow: [], deny: [] };
 const settings = (overrides: Partial<Settings> = {}): Settings => ({
   avatar_visibility: 'everyone', profile_visibility: 'everyone', presence_visibility: 'everyone', last_seen_visibility: 'everyone',
   birthday_visibility: 'contacts', read_receipts_enabled: true, direct_messages: 'everyone', group_invites: 'contacts',
-  search_visibility: 'everyone', calls_enabled: true, calls_from: 'everyone', typing_indicators_enabled: true,
+  search_visibility: 'everyone', web_profile_visibility: 'everyone', calls_enabled: true, calls_from: 'everyone', typing_indicators_enabled: true,
   voice_video_messages: 'everyone', forward_link: 'everyone', exceptions: {},
   ...overrides,
 });
@@ -83,5 +83,13 @@ describe('voice/video and forward link privacy', () => {
       voice_video_messages: 'everyone', forward_link: 'nobody',
     });
     expect(privacyPatch({ read_receipts_enabled: false }).voice_video_messages).toBeUndefined();
+  });
+});
+
+describe('web profile visibility', () => {
+  it('reads the setting, defaults to everyone and sends a change', async () => {
+    expect((await privacyModel(settings({ web_profile_visibility: 'nobody' }))).web_profile_visibility).toBe('nobody');
+    expect((await privacyModel({ ...settings(), web_profile_visibility: undefined as unknown as 'everyone' })).web_profile_visibility).toBe('everyone');
+    expect(privacyPatch({ web_profile_visibility: 'nobody' })).toMatchObject({ web_profile_visibility: 'nobody' });
   });
 });

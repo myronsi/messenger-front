@@ -73,6 +73,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   const isActive = chat.id === activeChatId;
   const callEvent = chat.last_message?.system_event?.kind === 'call' ? chat.last_message.system_event : null;
   const unreadCount = chat.unread_count || 0;
+  const mentionCount = chat.unread_mentions_count || 0;
   const isMuted = !!useChatMuteStatus(chat.id).mute;
   const typingUsers = useTypingUsers(chat.id);
   const liveDraft = useChatDraft(chat.id);
@@ -191,6 +192,11 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
             </>)}
           </div>
           {chat.is_pinned && !unreadCount && <Pin aria-label={translations.pinned} className={`h-3.5 w-3.5 shrink-0 rotate-45 ${muted}`} />}
+          {mentionCount > 0 && (
+            <span data-testid="chat-mention-badge" role="img" aria-label={translations.sharing.mentionBadge} title={translations.sharing.mentionBadge}
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                isActive ? 'bg-primary text-primary-foreground md:bg-primary-foreground md:text-primary' : 'bg-primary text-primary-foreground'}`}>@</span>
+          )}
           <span
             aria-hidden={unreadCount === 0}
             className={`motion-unread-indicator flex shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold ${unreadCount ? `is-visible ${unreadBadgeClass}` : ''}`}
