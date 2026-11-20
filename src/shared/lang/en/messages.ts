@@ -70,6 +70,7 @@ export const messages = {
   deleteForBothShort: "For both",
   deleteForBoth: "Delete for both",
   selectMessage: "Select",
+  moreMessageActions: "More",
   selectedMessages: "{count} selected",
   cancelSelection: "Cancel selection",
   selectAll: "Select all",

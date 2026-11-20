@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ContextMenuComponent from './ContextMenuComponent';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply', copy: 'Copy', forward: 'Forward', selectMessage: 'Select', editMessage: 'Edit', moderation: { reportMessage: 'Report' } } }),
+  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply', copy: 'Copy', forward: 'Forward', selectMessage: 'Select', editMessage: 'Edit', makeSticker: 'Make sticker', moreMessageActions: 'More', moderation: { reportMessage: 'Report' } } }),
 }));
 
 describe('ContextMenuComponent report', () => {
@@ -27,11 +27,29 @@ const renderMenu = (props: { onDeleteForMe?: () => void; onDeleteForEveryone?: (
   <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine onReply={vi.fn()} isClosing={false} onClose={vi.fn()} {...props} />,
 );
 
+describe('ContextMenuComponent more', () => {
+  it('moves select, make sticker and report to a More step and can go back', () => {
+    const onReport = vi.fn();
+    render(
+      <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine={false} onReply={vi.fn()} onForward={vi.fn()} onSelect={vi.fn()}
+        onMakeSticker={vi.fn()} onReport={onReport} onDeleteForMe={vi.fn()} isClosing={false} onClose={vi.fn()} />,
+    );
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Forward', 'More', 'Delete for me']);
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['More', 'Select', 'Make sticker', 'Report']);
+    fireEvent.click(screen.getByRole('button', { name: 'Report' }));
+    expect(onReport).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByRole('button', { name: 'Reply' })).toBeInTheDocument();
+  });
+});
+
 describe('ContextMenuComponent delete', () => {
   it('opens the delete step inside the menu and can go back', () => {
     const onDeleteForMe = vi.fn();
     const onDeleteForEveryone = vi.fn();
     renderMenu({ onDeleteForMe, onDeleteForEveryone });
+    expect(screen.getByTestId('delete-submenu-chevron')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onDeleteForMe).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Reply' })).not.toBeInTheDocument();
@@ -46,6 +64,7 @@ describe('ContextMenuComponent delete', () => {
     const onDeleteForMe = vi.fn();
     renderMenu({ onDeleteForMe });
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('delete-submenu-chevron')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Delete for me' }));
     expect(onDeleteForMe).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'For everyone' })).not.toBeInTheDocument();
@@ -53,12 +72,12 @@ describe('ContextMenuComponent delete', () => {
 });
 
 describe('ContextMenuComponent order', () => {
-  it('lists reply, copy, forward, select and edit, then delete last after a separator', () => {
+  it('lists reply, copy, forward and edit, a single extra action in place of More, then delete last after a separator', () => {
     const { container } = render(
       <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine onReply={vi.fn()} onCopy={vi.fn()} onForward={vi.fn()}
         onSelect={vi.fn()} onEdit={vi.fn()} onDeleteForMe={vi.fn()} onDeleteForEveryone={vi.fn()} isClosing={false} onClose={vi.fn()} />,
     );
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Copy', 'Forward', 'Select', 'Edit', 'Delete']);
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Copy', 'Forward', 'Edit', 'Select', 'Delete']);
     expect(container.querySelector('.border-t')?.nextElementSibling).toHaveTextContent('Delete');
   });
 
