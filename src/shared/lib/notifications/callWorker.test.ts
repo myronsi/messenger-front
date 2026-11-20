@@ -178,9 +178,9 @@ describe('message text and look', () => {
       body: 'Mai: hi', icon: 'https://chat.test/api/v2/notifications/avatar/c.7',
     })]);
     await w.message({ ...group, title: 'Bob', body: 'yo', message_id: '2', sender_id: '6' });
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['Family (2)', expect.objectContaining({ body: 'Mai: hi\nBob: yo' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Family', expect.objectContaining({ body: 'Bob: yo\nMai: hi' })]);
     await w.message({ ...group, chat_title: undefined, preview: false, title: 'Messenger', message_id: '3' });
-    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger (3)', expect.objectContaining({ icon: '/pwa-192x192.png' })]);
+    expect(w.registration.showNotification.mock.lastCall).toEqual(['Messenger', expect.objectContaining({ body: '3 new messages', icon: '/pwa-192x192.png' })]);
   });
   it('draws the round photo with the app badge in its corner and reuses it', async () => {
     const drawn: { x: number; y: number; width: number }[] = [];
@@ -207,6 +207,22 @@ describe('message text and look', () => {
     const fetches = w.fetch.mock.calls.length;
     await w.message({ title: 'Mai', body: 'again', message_id: '2', preview: true, sender_id: '5', avatar_token: 'a.5' });
     expect(w.fetch.mock.calls.length).toBe(fetches);
+  });
+  it('shows the picture of the newest message and only with previews', async () => {
+    const w = worker(); await w.account('1', { api: '/api/v2' });
+    await w.message({ title: 'Mai', preview: true, message_id: '1', content_type: 'photo', image_token: 'm.1' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].image).toBe('https://chat.test/api/v2/notifications/avatar/m.1');
+    await w.message({ title: 'Mai', preview: true, message_id: '2', body: 'and this' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].image).toBeUndefined();
+    await w.message({ chat_id: '8', title: 'Messenger', preview: false, message_id: '3', image_token: 'm.3' });
+    expect(w.registration.showNotification.mock.lastCall?.[1].image).toBeUndefined();
+  });
+  it('keeps the ten newest messages, newest first, without a counter in the title', async () => {
+    const w = worker(); await w.account('1', { api: '/api/v2' });
+    for (let id = 1; id <= 12; id += 1) await w.message({ title: 'Mai', preview: true, message_id: String(id), body: `m${id}` });
+    const [title, options] = w.registration.showNotification.mock.lastCall!;
+    expect(title).toBe('Mai');
+    expect(String(options.body).split('\n')).toEqual(['m12', 'm11', 'm10', 'm9', 'm8', 'm7', 'm6', 'm5', 'm4', 'm3']);
   });
   it('falls back to the plain photo when it cannot be drawn', async () => {
     const w = worker({ OffscreenCanvas: class {}, createImageBitmap: async () => { throw new Error('broken'); } });

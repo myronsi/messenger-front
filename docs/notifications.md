@@ -35,8 +35,17 @@ or album shows its caption or else the localized label ("Photo", "Video", "Audio
 message shows "Voice message"; a sticker shows "😀 Sticker", like the chat list. The labels follow the app language
 (English, Russian, German, Spanish).
 
-A direct chat shows the sender as the title (`Mai (3)` once several messages are stacked) and their lines. A group
-(`chat_type: "group"` with `chat_title`) shows the group name as the title and `Sender: text` on every line.
+A direct chat shows the sender as the title and their lines; a group (`chat_type: "group"` with `chat_title`) shows
+the group name and `Sender: text` on every line. The title never carries a message count. Up to ten messages are
+stacked in one notification, newest first, so the collapsed view and systems that cut long text (Windows shows about
+three lines) still show the newest message. Without previews the notification says "New message", or "3 new
+messages" once several are stacked.
+
+With previews, a photo, video, album, sticker or a message that is one custom emoji shows its picture as the
+notification's large image (`image`, loaded by the system from `/notifications/avatar/<image_token>`): the photo,
+the video's still, the album's first item, the sticker or the emoji. Only the newest message's picture is shown; a
+newer text message removes it. Chrome on Android shows the image; on desktop it depends on the browser and system
+(Firefox and Safari do not support it), and without it the text label stays.
 
 The icon is the sender's photo (direct chat) or the group picture (group), cut to a circle, with the app icon in a
 white ring in its bottom-right corner. The worker draws it with `OffscreenCanvas`, keeps it for ten minutes per
