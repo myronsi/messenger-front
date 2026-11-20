@@ -12,6 +12,7 @@ import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';
 import GroupProfileDialogShell from './GroupProfileDialogShell';
 import GroupRoleHistoryPage from './GroupRoleHistoryPage';
+import GroupSharingPage, { type GroupSharingView } from './GroupSharingPage';
 import { GroupEmojiPanel } from '@/features/emoji-packs';
 import { useGetGroupEmojiQuery } from '@/entities/emoji';
 export type { GroupRole, GroupParticipant, GroupPendingInvite, GroupPermissions, GroupDetails, GroupProfileConfirmState } from './GroupProfileTypes';
@@ -32,6 +33,11 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const [isRoleHistoryOpen, setIsRoleHistoryOpen] = useState(false);
   useBackToClose(open && isRoleHistoryOpen, () => setIsRoleHistoryOpen(false), 'groupRoleHistory');
   const roleHistoryPage = useDelayedUnmount(isRoleHistoryOpen, WINDOW_MOTION_MS);
+  const [sharingView, setSharingView] = useState<GroupSharingView | null>(null);
+  const [lastSharingView, setLastSharingView] = useState<GroupSharingView>('invites');
+  useBackToClose(open && !!sharingView, () => setSharingView(null), 'groupSharing');
+  const sharingPage = useDelayedUnmount(!!sharingView, WINDOW_MOTION_MS);
+  const openSharing = (view: GroupSharingView) => { setLastSharingView(view); setSharingView(view); };
   const panelTransitionTimeoutRef = useRef<number | null>(null);
   const {
     data: chatPhotosData,
@@ -55,6 +61,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const linksQuery = useGetChatLinksQuery(chatId, { skip: !open || !isPersistedId(chatId) });
   useEffect(() => {
     setIsRoleHistoryOpen(false);
+    setSharingView(null);
     if (!open) return;
     setActiveView('details');
     setPanelTransition(null);
@@ -205,7 +212,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
       <GroupProfileDetailsPanel
         model={model} canEdit={canEdit} canDeleteGroup={canDeleteGroup} hasGroupChanges={hasGroupChanges}
         currentRole={currentRole} participants={participants} pendingInvites={pendingInvites}
-        onOpenRoleHistory={() => setIsRoleHistoryOpen(true)}
+        onOpenRoleHistory={() => setIsRoleHistoryOpen(true)} onOpenSharing={openSharing}
       />
     );
   };
@@ -223,6 +230,9 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     subPage={roleHistoryPage.mounted ? (
       <GroupRoleHistoryPage chatId={chatId} rolesKey={participants.map((participant) => `${participant.id}:${participant.role}`).join(',')}
         onBack={() => setIsRoleHistoryOpen(false)} closing={roleHistoryPage.closing} />
+    ) : sharingPage.mounted ? (
+      <GroupSharingPage view={sharingView ?? lastSharingView} chatId={chatId} groupName={currentGroupName}
+        publicName={groupDetails?.public_name ?? null} onBack={() => setSharingView(null)} closing={sharingPage.closing} />
     ) : null}
   />;
 

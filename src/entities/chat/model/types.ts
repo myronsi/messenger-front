@@ -73,6 +73,7 @@ export interface GroupChatResponse {
     pin_position?: number | null;
     is_archived?: boolean;
     my_role?: string | null;
+    unread_mentions_count?: number;
   }>;
 }
 
@@ -133,6 +134,7 @@ export interface RawGroupDetails {
   owner_username?: string; admin_id?: EntityId; admin_username?: string; current_user_role?: GroupRole;
   participants?: RawGroupParticipant[]; pending_invites?: RawGroupPendingInvite[];
   background?: components['schemas']['ProfileBackground'] | null;
+  public_name?: string | null;
 }
 export interface GroupRoleLogUser { id: EntityId; username: string; display_name: string }
 export interface GroupRoleEvent { id: EntityId; actor: GroupRoleLogUser | null; target: GroupRoleLogUser; role: GroupRole; created_at: string }

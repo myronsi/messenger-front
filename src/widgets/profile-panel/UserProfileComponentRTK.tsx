@@ -16,6 +16,7 @@ import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import UserProfileInfoPanel from './ui/UserProfileInfoPanel';
 import UserProfileHero from './ui/UserProfileHero';
 import { UserProfileShell, UserProfileState } from './ui/UserProfileShell';
+import { PublicGroupFallback } from '@/features/sharing';
 import UserProfileConfirmations from './ui/UserProfileConfirmations';
 import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanelContent';
 import UserProfilePanelView from './ui/UserProfilePanelView';
@@ -195,9 +196,14 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   };
 
   if (isLoading || !!error || !userData) {
-    return (
+    const state = (
       <UserProfileState isLoading={isLoading} unavailable={!!error || !userData} onClose={onClose}
         hideBackOnMobile={hideBackOnMobile} hideBack={hideBack} />
+    );
+    if (isLoading) return state;
+    return (
+      <PublicGroupFallback name={username} fallback={state}
+        frame={(card) => <UserProfileShell onClose={onClose} hideBackOnMobile={hideBackOnMobile} hideBack={hideBack}>{card}</UserProfileShell>} />
     );
   }
 

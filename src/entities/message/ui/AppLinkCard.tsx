@@ -3,8 +3,11 @@ import { Check } from 'lucide-react';
 import { openEmojiPackLink, useGetEmojiPackByLinkQuery, useSetEmojiPackInstalledMutation } from '@/entities/emoji';
 import { openStickerPack, StickerImage, useGetStickerPackQuery, useSetStickerPackInstalledMutation } from '@/entities/sticker';
 import { useGetUserByUsernameQuery } from '@/entities/user';
+import { useGetInviteQuery, useGetPublicGroupQuery, type GroupPreview } from '@/entities/group';
+import { PublicAvatar } from '@/shared/ui/profile/PublicAvatar';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { localeOf } from '@/shared/lang/languages';
+import { navigateInApp, openOwnLink } from '@/shared/lib/ownLink';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { CustomEmoji } from '@/shared/ui/CustomEmoji';
@@ -21,10 +24,8 @@ const stop = (event: MouseEvent, action: () => void) => {
   action();
 };
 
-const openChat = (username: string) => {
-  window.history.pushState({}, '', `/dm/@${encodeURIComponent(username)}`);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-};
+const openChat = (username: string) => navigateInApp(`/dm/@${encodeURIComponent(username)}`);
+const openProfile = (name: string) => { openOwnLink(`/@${name}`); };
 
 interface ShellProps {
   isMine: boolean;
@@ -159,14 +160,15 @@ const StickerPackCard = ({ link, isMine, standalone, fallback }: CardProps<{ slu
   );
 };
 
-const ProfileCard = ({ link, isMine, standalone, fallback }: CardProps<{ username: string }>) => {
+const ProfileCard = ({ link, isMine, standalone, fallback, profile = false }: CardProps<{ username: string }> & { profile?: boolean }) => {
   const { translations } = useLanguage();
   const { data: user } = useGetUserByUsernameQuery(link.username);
   const grow = useGrowsIn(!!user);
   if (!user) return <>{fallback}</>;
   const name = user.contact_display_name || user.display_name;
   return (
-    <Shell isMine={isMine} grow={grow} standalone={standalone} label={name} title={name} subtitle={`@${user.username}`} onOpen={() => openChat(user.username)}
+    <Shell isMine={isMine} grow={grow} standalone={standalone} label={name} title={name} subtitle={`@${user.username}`}
+      onOpen={() => (profile ? openProfile(user.username) : openChat(user.username))}
       media={(
         <span className="flex justify-center py-2">
           <AuthenticatedImage src={resolveMediaUrl(user.avatar_url)} initialsFrom={name} alt={name} className="h-[72px] w-[72px] rounded-full object-cover" />
@@ -174,6 +176,38 @@ const ProfileCard = ({ link, isMine, standalone, fallback }: CardProps<{ usernam
       )}
       action={<ActionButton isMine={isMine} label={translations.appLinks.message} onClick={() => openChat(user.username)} />} />
   );
+};
+
+const GroupCard = ({ preview, isMine, standalone, onOpen }: { preview: GroupPreview; isMine: boolean; standalone: boolean; onOpen: () => void }) => {
+  const { translations } = useLanguage();
+  const count = useCount();
+  const grow = useGrowsIn(true);
+  const { group } = preview;
+  const members = count(translations.sharing.members, group.member_count);
+  return (
+    <Shell isMine={isMine} grow={grow} standalone={standalone} label={group.name} title={group.name}
+      subtitle={group.public_name ? `@${group.public_name} · ${members}` : members} onOpen={onOpen}
+      media={(
+        <span className="flex justify-center py-2">
+          <PublicAvatar src={group.avatar_url} name={group.name} className="h-[72px] w-[72px] rounded-full object-cover" />
+        </span>
+      )}
+      action={<ActionButton isMine={isMine} label={preview.chat_id ? translations.appLinks.open : translations.sharing.join} onClick={onOpen} />} />
+  );
+};
+
+const NameCard = ({ link, isMine, standalone, fallback }: CardProps<{ name: string }>) => {
+  const { data: user, isError } = useGetUserByUsernameQuery(link.name);
+  const { data: group } = useGetPublicGroupQuery(link.name, { skip: !isError });
+  if (user) return <ProfileCard link={{ username: link.name }} profile isMine={isMine} standalone={standalone} fallback={fallback} />;
+  if (group) return <GroupCard preview={group} isMine={isMine} standalone={standalone} onOpen={() => openProfile(link.name)} />;
+  return <>{fallback}</>;
+};
+
+const InviteCard = ({ link, isMine, standalone, fallback }: CardProps<{ token: string }>) => {
+  const { data } = useGetInviteQuery(link.token);
+  if (!data) return <>{fallback}</>;
+  return <GroupCard preview={data} isMine={isMine} standalone={standalone} onOpen={() => navigateInApp(`/join/${link.token}`)} />;
 };
 
 interface AppLinkCardProps {
@@ -186,5 +220,7 @@ interface AppLinkCardProps {
 export const AppLinkCard = ({ link, isMine, standalone = false, fallback = null }: AppLinkCardProps) => {
   if (link.kind === 'emoji') return <EmojiPackCard link={link} isMine={isMine} standalone={standalone} fallback={fallback} />;
   if (link.kind === 'sticker') return <StickerPackCard link={link} isMine={isMine} standalone={standalone} fallback={fallback} />;
-  return <ProfileCard link={link} isMine={isMine} standalone={standalone} fallback={fallback} />;
+  if (link.kind === 'profile') return <ProfileCard link={link} isMine={isMine} standalone={standalone} fallback={fallback} />;
+  if (link.kind === 'name') return <NameCard link={link} isMine={isMine} standalone={standalone} fallback={fallback} />;
+  return <InviteCard link={link} isMine={isMine} standalone={standalone} fallback={fallback} />;
 };
