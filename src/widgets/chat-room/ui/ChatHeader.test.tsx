@@ -26,12 +26,23 @@ vi.mock('@/features/chat-cleanup', async () => {
 });
 const mobile = vi.hoisted(() => ({ current: false }));
 vi.mock('@/shared/hooks/use-mobile', () => ({ useIsMobile: () => mobile.current }));
+const goApi = vi.hoisted(() => ({ current: true }));
+vi.mock('@/shared/api/goSocket', async () => ({
+  ...await vi.importActual<typeof import('@/shared/api/goSocket')>('@/shared/api/goSocket'),
+  isGoApi: () => goApi.current,
+}));
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en } = await import('@/shared/lang/en');
   return { useLanguage: () => ({ language: 'en', translations: { ...en, search: 'Search', back: 'Back' } }) };
 });
 
-beforeEach(() => { vi.useFakeTimers(); peer.current = undefined; mobile.current = false; Object.values(actions).forEach((fn) => fn.mockReset()); });
+beforeEach(() => {
+  vi.useFakeTimers();
+  peer.current = undefined;
+  mobile.current = false;
+  goApi.current = true;
+  Object.values(actions).forEach((fn) => fn.mockReset());
+});
 afterEach(() => vi.useRealTimers());
 
 it('opens the direct chat search with a long press on the header', () => {
@@ -101,6 +112,15 @@ it('offers pinned messages, clear history, delete chat, block and report in the 
   openMenu();
   fireEvent.click(screen.getByRole('menuitem', { name: 'Block' }));
   expect(actions.openBlock).toHaveBeenCalledWith(target);
+});
+
+it('leaves pinned messages out of the menu on the old API', () => {
+  goApi.current = false;
+  peer.current = { id: '42' };
+  render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
+    onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
+  openMenu();
+  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Clear history', 'Delete chat', 'Block', 'Report']);
 });
 
 it('has no three-dot menu on phones', () => {
