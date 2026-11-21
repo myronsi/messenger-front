@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.32](https://github.com/myronsi/messenger-front/compare/v0.6.31...v0.6.32) (2026-11-21)
+
+
+### Features
+
+* **pins:** pin messages for yourself or for everyone ([#250](https://github.com/myronsi/messenger-front/issues/250)) ([19daf21](https://github.com/myronsi/messenger-front/commit/19daf214a49380f1932cbcb004d04bd7b31be386))
+
 ## [0.6.31](https://github.com/myronsi/messenger-front/compare/v0.6.30...v0.6.31) (2026-11-21)
 
 
