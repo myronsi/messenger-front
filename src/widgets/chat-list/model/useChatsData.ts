@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { Chat } from '@/entities/message';
 import { useGetApprovalRequestInboxQuery, useGetOneOnOneChatsQuery, useGetGroupChatsQuery, useCreateChatMutation, useSetChatPinnedMutation, useMarkChatReadMutation } from '@/entities/chat';
 import { useGetCurrentUserQuery } from '@/features/profile';
+import { usePendingChatRemovals } from '@/features/chat-cleanup';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
@@ -168,6 +169,8 @@ export function useChatsData(username: string) {
       })
       .map(({ chat }) => chat);
   }, [oneOnOneChatsData, groupChatsData, presenceByUsername, chatOverrides, username]);
+  const hiddenChats = usePendingChatRemovals();
+  const visibleChats = React.useMemo(() => (hiddenChats.size ? chats.filter((chat) => !hiddenChats.has(String(chat.id))) : chats), [chats, hiddenChats]);
 
   const chatsByIdRef = useRef<Record<EntityId, Chat>>({});
   useEffect(() => {
@@ -178,7 +181,7 @@ export function useChatsData(username: string) {
   }, [chats]);
 
   return {
-    chats,
+    chats: visibleChats,
     isLoading,
     error,
     refetch,

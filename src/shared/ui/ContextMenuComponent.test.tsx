@@ -104,4 +104,20 @@ describe('ContextMenuComponent placement', () => {
   it('flips above the tap, leaving room for the reaction bar, when it would run off the bottom', () => {
     expect(place(window.innerHeight - 50)).toBe(`${window.innerHeight - 50 - 200 - 48}px`);
   });
+
+  it('keeps the Delete sub-menu above the tap, against the same edge, when the menu opened above', () => {
+    const heights = { current: 200 };
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(() => heights.current);
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(150);
+    const y = window.innerHeight - 150;
+    render(<ContextMenuComponent ref={createRef<HTMLDivElement>()} x={100} y={y} isMine onReply={vi.fn()}
+      onDeleteForMe={vi.fn()} onDeleteForEveryone={vi.fn()} isClosing={false} onClose={vi.fn()} />);
+    expect(screen.getByRole('menu').style.top).toBe(`${y - 200 - 48}px`);
+    heights.current = 110;
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getByRole('button', { name: 'For everyone' })).toBeInTheDocument();
+    expect(screen.getByRole('menu').style.top).toBe(`${y - 110 - 48}px`);
+    height.mockRestore();
+    width.mockRestore();
+  });
 });

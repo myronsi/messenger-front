@@ -10,7 +10,7 @@ import { toast } from '@/shared/ui/sonner';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { ChatMuteAction } from '@/features/chat-mute';
 import { CallButton, useCallsAvailable } from '@/features/calls';
-import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
+import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
 import { ReportUserDialog, RestrictedAccountLabel } from '@/features/moderation';
 import { publicNameLink, ShareLinkDialog } from '@/features/sharing';
 import { ContactNameHeading } from './ContactNameHeading';
@@ -31,15 +31,13 @@ interface UserProfileHeroProps extends HeadingProps {
   directChatId?: EntityId;
   canMessage: boolean;
   isBlocked: boolean;
-  canDeleteChat: boolean;
   tabs: ProfilePanelView[];
   activeView: ProfilePanelView;
   onSelectView: (view: ProfilePanelView) => void;
   onMessage: () => void;
   onAvatarHistory: () => void;
   onClose?: () => void;
-  onDeleteChat: () => void;
-  onBlock: () => void;
+  onChatDeleted?: () => void;
   onEditProfile?: () => void;
   pronouns?: string | null;
   background?: ProfileBackground | null;
@@ -53,12 +51,12 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
   const presence = usePresenceLabel(props.isOnline, props.lastSeen);
   const hasChat = !!props.directChatId && isPersistedId(props.directChatId);
   const callsAvailable = useCallsAvailable();
-  const [reportOpen, setReportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const cleanup = useChatCleanup(() => toast(translations.chatCleanup.cleared), (message) => toast(message || translations.errorLoading));
-  const clearHistory = () => props.directChatId && cleanup.open({ kind: 'clear', target: {
-    chatId: props.directChatId, name: props.displayName, isGroup: false, isSaved: props.isCurrentUser, canClearForEveryone: false,
-  } });
+  const actions = useChatActions({ onDeleted: () => props.onChatDeleted?.() });
+  const target: ChatActionTarget = {
+    chatId: hasChat ? props.directChatId : undefined, userId: props.userId, username: props.username,
+    name: props.displayName, isSaved: props.isCurrentUser,
+  };
   const avatar = <AuthenticatedImage src={props.avatarUrl} alt={props.displayName} className="h-full w-full object-cover" />;
   const tabLabels: Record<ProfilePanelView, string> = {
     details: t.info, photos: t.media, audios: t.audio, files: t.files, links: t.links, voice: t.voice,
@@ -82,13 +80,13 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
   const menu: ProfileMenuItem[] = props.isCurrentUser ? [] : [
     { key: 'share', label: translations.sharing.shareProfile, icon: <Share2 className="h-4 w-4" />, onSelect: () => setShareOpen(true) },
     { key: 'rename', label: t.rename, icon: <Pencil className="h-4 w-4" />, onSelect: props.onEditContactName },
-    ...(hasChat ? [{ key: 'clear', label: translations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: clearHistory }] : []),
-    ...(props.canDeleteChat ? [{ key: 'delete', label: translations.chatCleanup.deleteChat, danger: true, icon: <Trash2 className="h-4 w-4" />, onSelect: props.onDeleteChat }] : []),
+    ...(hasChat ? [{ key: 'clear', label: translations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: () => actions.openClear(target) }] : []),
+    ...(hasChat && !props.isCurrentUser ? [{ key: 'delete', label: translations.chatCleanup.deleteChat, danger: true, icon: <Trash2 className="h-4 w-4" />, onSelect: () => actions.openDelete(target) }] : []),
     {
-      key: 'block', label: props.isBlocked ? t.unblock : t.block, danger: !props.isBlocked, icon: <Ban className="h-4 w-4" />, onSelect: props.onBlock,
+      key: 'block', label: props.isBlocked ? t.unblock : t.block, danger: !props.isBlocked, icon: <Ban className="h-4 w-4" />, onSelect: () => actions.openBlock(target),
     },
     ...(props.userId ? [{
-      key: 'report', label: translations.moderation.report, danger: true, icon: <Flag className="h-4 w-4" />, onSelect: () => setReportOpen(true),
+      key: 'report', label: translations.moderation.report, danger: true, icon: <Flag className="h-4 w-4" />, onSelect: () => void actions.openReport(target),
     }] : []),
   ];
 
@@ -121,12 +119,12 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
         topRight={!isMobile && closeButton}
       />
       <ProfileTabs tabs={props.tabs.map((key) => ({ key, label: tabLabels[key] }))} active={props.activeView} onSelect={props.onSelectView} />
-      <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
+      {actions.dialogs}
       {shareOpen && (
         <ShareLinkDialog title={translations.sharing.shareProfile} hint={translations.sharing.shareProfileHint}
           url={publicNameLink(props.username)} onClose={() => setShareOpen(false)} />
       )}
-      {reportOpen && props.userId && <ReportUserDialog userId={props.userId} name={props.displayName} onClose={() => setReportOpen(false)} />}
+      {actions.reporting && <ReportUserDialog userId={actions.reporting.userId} name={actions.reporting.name} onClose={actions.closeReport} />}
     </div>
   );
 };

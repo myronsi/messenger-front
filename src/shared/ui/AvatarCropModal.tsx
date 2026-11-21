@@ -2,7 +2,7 @@ import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { createPinchTracker } from '@/shared/lib/pinchTracker';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Loader2, X } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
 type CropShape = 'circle' | 'banner';
@@ -164,19 +164,9 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
       }}
     >
       <div className="w-full max-w-md rounded-lg bg-background p-5 shadow-lg">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h3 className="text-lg font-semibold text-foreground">
-            {title ?? (translations.cropProfilePicture || 'Crop profile picture')}
-          </h3>
-          <button
-            onClick={onCancel}
-            disabled={isBusy}
-            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
-            aria-label="Close crop dialog"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        <h3 className="mb-4 text-lg font-semibold text-foreground">
+          {title ?? (translations.cropProfilePicture || 'Crop profile picture')}
+        </h3>
 
         <div className="flex flex-col items-center gap-4">
           <div

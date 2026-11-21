@@ -57,7 +57,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     handleDirectChatCreated,
     backToChats,
     handleChatDeleted,
-    handleDeleteCurrentChat,
+    handleCurrentChatDeleted,
     mobileChatPanelClass,
     mobilePanelChat,
   } = useMessengerController(username);
@@ -71,8 +71,8 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     onMessage: openDirectChatFromProfile,
     onOpenGroup: openGroupFromProfile,
     hideMessageAction: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
-    onDeleteChat: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
-      ? handleDeleteCurrentChat
+    onChatDeleted: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
+      ? handleCurrentChatDeleted
       : undefined,
   }), [
     profileUsername,
@@ -226,7 +226,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
                   activeChatId={currentChat?.id}
                   activeChatName={currentChat?.name}
                   onActiveChatUpdate={updateActiveChatFromList}
-                  onChatDeleted={handleChatDeleted}
+                  onChatDeleted={handleChatDeleted} hidden={mainTab.active !== 'chats'}
                 />
                 {tabPanes}
                 {isProfileOpen && renderOwnProfile('sheet', true)}
@@ -263,7 +263,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
                     activeChatId={currentChat?.id}
                     activeChatName={currentChat?.name}
                     onActiveChatUpdate={updateActiveChatFromList}
-                    onChatDeleted={handleChatDeleted}
+                    onChatDeleted={handleChatDeleted} hidden={mainTab.active !== 'chats'}
                   />
                   <div ref={setSettingsNavTarget} className="absolute inset-0 z-30 flex rounded-lg bg-background empty:hidden" />
                 </div>}>

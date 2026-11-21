@@ -1,167 +1,63 @@
-import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
-import { Camera, Check, Flag, Loader2, LogOut, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { ProfileBio } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { isGoApi } from '@/shared/api/goSocket';
 import type { GroupTranslations } from './groupChatTypes';
-import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
-import { roleLabel } from './groupProfileHelpers';
+import type { GroupProfileDialogProps, GroupRole } from './GroupProfileTypes';
 import GroupRoleHistoryRow from './GroupRoleHistoryRow';
 import GroupSharingRows from './GroupSharingRows';
 import type { GroupSharingView } from './GroupSharingPage';
-import { ProfileBackgroundEditor } from '@/features/profile';
-import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '@/features/groups';
-import { requestContentReport } from '@/entities/message';
-import { isGoApi } from '@/shared/api/goSocket';
 
 interface Props {
-  model: GroupProfileDialogProps; canEdit: boolean; canDeleteGroup: boolean; hasGroupChanges: boolean;
-  currentRole: GroupRole; participants: GroupParticipant[]; pendingInvites: GroupPendingInvite[];
+  model: GroupProfileDialogProps;
+  canDeleteGroup: boolean;
+  currentRole: GroupRole;
   onOpenRoleHistory: () => void;
   onOpenSharing: (view: GroupSharingView) => void;
 }
 
-const GroupProfileDetailsPanel: React.FC<Props> = ({
-  model, canEdit, canDeleteGroup, hasGroupChanges, currentRole, participants, pendingInvites, onOpenRoleHistory, onOpenSharing,
-}) => {
-  const { translations: rawTranslations } = useLanguage();
-  const translations = rawTranslations as unknown as GroupTranslations;
-  const {
-    groupAvatarInputRef, onAvatarUpload, groupForm, setGroupForm,
-    isSavingGroup, onSaveGroup, groupDetails, onLeaveGroup, onDeleteGroup, currentUsername, getAvatarSrc,
-  } = model;
-  const me = participants.find((participant) => participant.username.toLowerCase() === currentUsername.toLowerCase());
-  const changeAvatarLabel = translations.changeAvatar || 'Change avatar';
-  const descriptionLabel = translations.groupDescription || 'Description';
+const Heading = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{children}</h3>
+);
+
+const GroupProfileDetailsPanel: React.FC<Props> = ({ model, canDeleteGroup, currentRole, onOpenRoleHistory, onOpenSharing }) => {
+  const { translations: raw } = useLanguage();
+  const t = raw as unknown as GroupTranslations;
+  const { groupDetails, onDeleteGroup } = model;
+  const manages = currentRole === 'owner' || currentRole === 'admin';
+  const description = groupDetails?.description?.trim();
   return (
-    <div className="min-h-full space-y-3 px-5 py-4 md:py-3">
-      <section className="rounded-lg border border-border bg-card p-3">
-        <div className="flex items-center gap-3">
-          <AuthenticatedImage src={getAvatarSrc(me?.avatar_url)} alt="" initialsFrom={me?.display_name || me?.username || currentUsername}
-            className="h-12 w-12 shrink-0 rounded-full border border-border object-cover" />
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium text-muted-foreground">{translations.yourRole || 'Your role'}</div>
-            <div className="mt-1 inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-subtle-foreground">
-              {roleLabel(currentRole, translations)}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {canEdit ? (
-        <section className="space-y-3 rounded-lg border border-border bg-card p-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => groupAvatarInputRef.current?.click()}
-              className="inline-flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm font-medium text-subtle-foreground transition-colors hover:bg-accent/60"
-            >
-              <Camera className="h-4 w-4" aria-hidden="true" />
-              {changeAvatarLabel}
-            </button>
-            <input ref={groupAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{translations.groupName || 'Group name'}</label>
-            <input
-              value={groupForm.name}
-              onChange={(event) => setGroupForm((form) => ({ ...form, name: event.target.value }))}
-              placeholder={translations.groupName || 'Group name'}
-              maxLength={GROUP_NAME_MAX_LENGTH}
-              className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{descriptionLabel}</label>
-            <textarea
-              value={groupForm.description}
-              onChange={(event) => setGroupForm((form) => ({ ...form, description: event.target.value }))}
-              placeholder={descriptionLabel}
-              rows={4}
-              maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
-              className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={onSaveGroup}
-            disabled={isSavingGroup || !groupForm.name.trim() || !hasGroupChanges}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSavingGroup ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {translations.save || 'Save'}
-          </button>
+    <div data-testid="group-info-panel" className="min-h-full space-y-5 px-5 py-4 md:py-3">
+      {description && (
+        <section className="space-y-1">
+          <Heading>{t.groupAbout}</Heading>
+          <ProfileBio text={description} />
         </section>
-      ) : null}
-      {canEdit && (
-        <ProfileBackgroundEditor title={rawTranslations.profileExtras.groupBackground} background={groupDetails?.background} onSave={model.onSaveBackground} />
-      )}
-      {canEdit ? null : (
-        <>
-          {groupDetails?.description && (
-            <section className="rounded-lg border border-border bg-card p-3">
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {descriptionLabel}
-              </div>
-              <p className="whitespace-pre-wrap break-words text-sm leading-5 text-foreground">{groupDetails.description}</p>
-            </section>
-          )}
-        </>
       )}
 
-      <section className="rounded-lg border border-border bg-muted/50 p-3">
-        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{translations.group || 'Group'}</div>
-        <div className="mt-2 space-y-1.5 text-sm">
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-muted-foreground">{translations.participants || 'Participants'}</span>
-            <span className="font-medium text-foreground">{participants.length + pendingInvites.length}</span>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-muted-foreground">{translations.owner || 'Owner'}</span>
-            <span className="min-w-0 truncate font-medium text-foreground">@{groupDetails?.owner_username || groupDetails?.admin_username || '-'}</span>
-          </div>
-        </div>
-      </section>
-
-      {isGoApi() && (currentRole === 'owner' || currentRole === 'admin') && (
-        <GroupSharingRows publicName={groupDetails?.public_name ?? null} onOpen={onOpenSharing} />
+      {manages ? (
+        <section className="space-y-2">
+          <Heading>{t.manageGroup}</Heading>
+          {isGoApi() && <GroupSharingRows publicName={groupDetails?.public_name ?? null} onOpen={onOpenSharing} />}
+          <GroupRoleHistoryRow chatId={model.chatId} onOpen={onOpenRoleHistory} />
+        </section>
+      ) : (
+        <GroupRoleHistoryRow chatId={model.chatId} onOpen={onOpenRoleHistory} />
       )}
-
-      <GroupRoleHistoryRow chatId={model.chatId} onOpen={onOpenRoleHistory} />
-
-      {isGoApi() && currentRole !== 'owner' && (
-        <button
-          type="button"
-          onClick={() => requestContentReport({ kind: 'group', chatId: model.chatId, name: model.currentGroupName })}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-medium text-subtle-foreground transition-colors hover:bg-accent/60"
-        >
-          <Flag className="h-4 w-4" />
-          {rawTranslations.moderation.reportGroup}
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={onLeaveGroup}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-destructive/30 px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive-soft"
-      >
-        <LogOut className="h-4 w-4" />
-        {translations.leaveGroup || 'Leave group'}
-      </button>
 
       {canDeleteGroup && (
         <button
           type="button"
           onClick={onDeleteGroup}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-destructive/30 px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive-soft"
         >
           <Trash2 className="h-4 w-4" />
-          {translations.deleteGroup || 'Delete group'}
+          {t.deleteGroup || 'Delete group'}
         </button>
       )}
     </div>
   );
-
-
 };
 
 export default GroupProfileDetailsPanel;

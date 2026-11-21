@@ -10,14 +10,13 @@ import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetChatAudiosQuery, useGetChatFilesQuery, useGetChatLinksQuery, useGetChatPhotosQuery } from '@/entities/message';
 import {
   useGetUserByUsernameQuery, useUpdateContactDisplayNameMutation, useDeleteContactDisplayNameMutation,
-  useBlockUserMutation, useGetBlockedUsersQuery, useUnblockUserMutation,
+  useGetBlockedUsersQuery,
 } from '@/entities/user';
 import AvatarHistoryViewer from './ui/AvatarHistoryViewer';
 import UserProfileInfoPanel from './ui/UserProfileInfoPanel';
 import UserProfileHero from './ui/UserProfileHero';
 import { UserProfileShell, UserProfileState } from './ui/UserProfileShell';
 import { PublicGroupFallback } from '@/features/sharing';
-import UserProfileConfirmations from './ui/UserProfileConfirmations';
 import UserProfilePanelContent, { ProfilePanelView } from './ui/UserProfilePanelContent';
 import UserProfilePanelView from './ui/UserProfilePanelView';
 import { useProfilePanelTransition } from './useProfilePanelTransition';
@@ -34,7 +33,7 @@ interface UserProfileComponentRTKProps {
     isOnline?: boolean;
     lastSeen?: string | null;
   }) => void;
-  onDeleteChat?: (scope: 'me' | 'everyone') => void;
+  onChatDeleted?: () => void;
   hideMessageAction?: boolean;
   onJumpToMessage?: (messageId: EntityId) => void;
   onOpenGroup?: (group: { id: EntityId; name: string; avatarUrl?: string }) => void;
@@ -48,7 +47,7 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   directChatId,
   onClose,
   onMessage,
-  onDeleteChat,
+  onChatDeleted,
   hideMessageAction = false,
   onJumpToMessage,
   onOpenGroup,
@@ -62,8 +61,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const [actionError, setActionError] = useState<string | null>(null);
   const [customNameInput, setCustomNameInput] = useState('');
   const [isEditingContactName, setIsEditingContactName] = useState(false);
-  const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
-  const [isDeleteChatConfirmOpen, setIsDeleteChatConfirmOpen] = useState(false);
   const storedUser = useStoredValue<typeof fetchedUser>(username ? userByNameKey(username) : null);
 
   // Use username-based query instead of user ID
@@ -75,8 +72,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const userData = fetchedUser ?? storedUser;
   const { data: currentUser } = useGetCurrentUserQuery();
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
-  const [blockUser, { isLoading: isBlockingUser }] = useBlockUserMutation();
-  const [unblockUser, { isLoading: isUnblockingUser }] = useUnblockUserMutation();
   const [updateContactDisplayName, { isLoading: isUpdatingContactName }] = useUpdateContactDisplayNameMutation();
   const [deleteContactDisplayName, { isLoading: isDeletingContactName }] = useDeleteContactDisplayNameMutation();
   const isSavingContactName = isUpdatingContactName || isDeletingContactName;
@@ -105,7 +100,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   const contactDisplayName = userData?.contact_display_name?.trim();
   const isBlocked = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username === username);
   const isCurrentUser = currentUser?.username === username;
-  const isBlockActionLoading = isBlockingUser || isUnblockingUser;
   const dmPhotos = useMemo(() => (
     toProfilePhotos(chatPhotosData?.photos || [], translations.photoMessage || 'Photo')
   ), [chatPhotosData?.photos, translations.photoMessage]);
@@ -119,17 +113,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
     ? translations.errorLoadingMessages || translations.errorLoading || 'Error loading messages.'
     : null;
   const dmFilesError = dmFilesQueryError ? translations.errorLoadingMessages || translations.errorLoading || 'Error loading messages.' : null;
-  const blockUserConsequences = translations.blockUserConsequences || [
-    'They will not be able to send you direct messages.',
-    'They will not be able to invite you to groups.',
-    'They will not be able to see your private profile details.',
-    'Existing chats remain in your list, but messaging requires unblocking them first.',
-  ];
-  const deleteChatConsequences = translations.deleteChatConsequences || [
-    'This chat will be removed from your chat list.',
-    'You will lose access to this conversation history in the app.',
-    'This does not block the user or change your privacy settings.',
-  ];
 
   useEffect(() => { setActionError(null); }, [directChatId, username]);
 
@@ -139,22 +122,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
   }, [userData?.contact_display_name, username]);
 
   const getAvatarUrl = (avatarUrl?: string | null) => resolveMediaUrl(avatarUrl);
-
-  const handleBlockToggle = async () => {
-    if (isCurrentUser || isBlockActionLoading) return;
-    setActionError(null);
-    try {
-      if (isBlocked) {
-        await unblockUser(username).unwrap();
-      } else {
-        await blockUser(username).unwrap();
-      }
-      setIsBlockConfirmOpen(false);
-    } catch (caught) {
-      const error = asApiError(caught);
-      setActionError(error?.data?.detail || (isBlocked ? 'Failed to unblock user' : 'Failed to block user'));
-    }
-  };
 
   const handleMessage = () => {
     if (onMessage) {
@@ -266,9 +233,8 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
           isSavingContactName={isSavingContactName} accountDisplayName={accountDisplayName}
           isOnline={!!userData.is_online} lastSeen={userData.last_seen} onAvatarHistory={() => setIsAvatarViewerOpen(true)}
           bio={bio} createdAt={canShowCreatedAt ? userData.created_at ?? undefined : undefined} directChatId={canShowDmSections ? directChatId : undefined}
-          canMessage={canShowMessageAction} isBlocked={isBlocked} canDeleteChat={!!onDeleteChat} tabs={visiblePanelOrder} activeView={activeView}
-          onSelectView={selectView} onMessage={handleMessage} onDeleteChat={() => setIsDeleteChatConfirmOpen(true)}
-          onBlock={isBlocked ? handleBlockToggle : () => setIsBlockConfirmOpen(true)} onEditProfile={onEditProfile}
+          canMessage={canShowMessageAction} isBlocked={isBlocked} tabs={visiblePanelOrder} activeView={activeView}
+          onSelectView={selectView} onMessage={handleMessage} onChatDeleted={onChatDeleted} onEditProfile={onEditProfile}
           pronouns={userData.pronouns} background={userData.background} birthdayToday={isBirthdayToday(userData.birthday)}
           accountLabel={userData.account_label}
         />
@@ -276,13 +242,6 @@ const UserProfileComponentRTK: React.FC<UserProfileComponentRTKProps> = ({
         <UserProfilePanelContent activeView={activeView} visibleViews={visiblePanelOrder} onSelectView={selectView}
           transition={panelTransition} renderPanelContent={renderPanelContent} />
       </div>
-      <UserProfileConfirmations
-        isBlockConfirmOpen={isBlockConfirmOpen} isDeleteChatConfirmOpen={isDeleteChatConfirmOpen}
-        displayName={displayName} blockConsequences={blockUserConsequences} deleteConsequences={deleteChatConsequences}
-        onCancelBlock={() => setIsBlockConfirmOpen(false)} onConfirmBlock={handleBlockToggle}
-        onCancelDeleteChat={() => setIsDeleteChatConfirmOpen(false)}
-        onConfirmDeleteChat={(scope) => { setIsDeleteChatConfirmOpen(false); onDeleteChat?.(scope); }}
-      />
       {isAvatarViewerOpen && hasCustomAvatar && (
         <AvatarHistoryViewer
           username={username}

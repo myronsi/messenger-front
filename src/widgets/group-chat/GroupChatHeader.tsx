@@ -1,5 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import type { GroupTranslations } from './groupChatTypes';
@@ -37,11 +39,11 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
           <button
             type="button"
             onClick={() => { if (!longPress.consumeClick()) onOpenProfile(); }}
-            className="motion-press flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left outline-none focus:outline-none md:space-x-0"
+            className="flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left outline-none motion-header-press hover:bg-accent/50 focus:outline-none active:bg-accent md:space-x-0"
           >
-            <AuthenticatedImage src={avatar} alt={name} className="motion-avatar h-9 w-9 rounded-full border border-border object-cover md:hidden" />
-            <span className="flex min-w-0 flex-col items-start">
-              <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg">{name}</span>
+            <AuthenticatedImage src={avatar} alt={plainEmoji(name)} className="motion-avatar h-9 w-9 rounded-full border border-border object-cover md:hidden" />
+            <span className="motion-header-text flex min-w-0 flex-col items-start">
+              <span className="max-w-full truncate text-base font-semibold leading-tight sm:text-lg"><EmojiText text={name} /></span>
               <span className="max-w-full truncate text-xs font-normal text-muted-foreground">
                 {participantCount === undefined ? String.fromCharCode(160) : participantCountLabel(participantCount, translations, language)}
                 {participantCount !== undefined && description ? ` - ${description}` : ''}

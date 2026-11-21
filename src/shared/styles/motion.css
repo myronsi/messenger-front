@@ -496,7 +496,9 @@
 
   .motion-message-bubble:hover,
   .motion-avatar:hover,
-  .motion-press:active {
+  .motion-press:active,
+  .motion-header-press:active .motion-avatar,
+  .motion-header-press:active .motion-header-text {
     transform: none;
   }
 

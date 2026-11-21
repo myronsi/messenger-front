@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/button';
 import ChatListItem from './ChatListItem';
 import { usePinnedReorder } from '../model/usePinnedReorder';
 import { selfName } from '@/shared/lib/selfName';
-import { plainEmoji } from '@/shared/lib/customEmoji';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 const PULL_TO_REVEAL = 64;
 const isCoarsePointer = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
@@ -32,6 +32,7 @@ interface ChatListBodyProps {
 
 const ArchivedRow = ({ chats, translations, onOpen }: { chats: Chat[]; translations: Translations; onOpen: () => void }) => {
   const unread = chats.reduce((sum, chat) => sum + (chat.unread_count || 0), 0);
+  const names = chats.map((chat) => (chat.is_saved ? selfName(chat.display_name || chat.name, translations) : chat.display_name || chat.name)).join(', ');
   return (
     <button type="button" data-testid="archived-chats-row" onClick={onOpen}
       className="motion-list-item flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left [@media(hover:hover)]:hover:bg-accent">
@@ -40,7 +41,7 @@ const ArchivedRow = ({ chats, translations, onOpen }: { chats: Chat[]; translati
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-medium leading-5">{translations.chatOrganizer.archivedChats}</span>
-        <span className="block truncate text-sm text-muted-foreground">{chats.map((chat) => plainEmoji(chat.is_saved ? selfName(chat.display_name || chat.name, translations) : chat.display_name || chat.name)).join(', ')}</span>
+        <span className="block truncate text-sm text-muted-foreground"><EmojiText text={names} /></span>
       </span>
       {unread > 0 && (
         <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-muted-foreground px-1.5 text-xs font-semibold text-background">

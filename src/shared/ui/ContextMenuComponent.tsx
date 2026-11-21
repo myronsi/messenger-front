@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect } from 'react';
+import React, { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowLeft, CheckSquare, ChevronRight, Edit, MoreHorizontal, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -61,13 +61,17 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
       </button>
     );
 
-    useEffect(() => {
+    const placement = useRef<{ x: number; y: number; above: boolean } | null>(null);
+    useLayoutEffect(() => {
       if (ref && 'current' in ref && ref.current) {
         const menu = ref.current;
         const left = openLeft ? x - menu.offsetWidth : x;
-        const top = y + menu.offsetHeight > window.innerHeight - EDGE ? y - menu.offsetHeight - REACTION_MENU_OFFSET : y;
+        if (placement.current?.x !== x || placement.current.y !== y) {
+          placement.current = { x, y, above: y + menu.offsetHeight > window.innerHeight - EDGE };
+        }
+        const top = placement.current.above ? y - menu.offsetHeight - REACTION_MENU_OFFSET : y;
         setAdjustedX(Math.max(EDGE, Math.min(left, window.innerWidth - menu.offsetWidth - EDGE)));
-        setAdjustedY(Math.max(EDGE, top));
+        setAdjustedY(Math.max(EDGE, Math.min(top, window.innerHeight - menu.offsetHeight - EDGE)));
       }
     }, [x, y, openLeft, ref, view.name]);
 

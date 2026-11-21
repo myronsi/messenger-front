@@ -41,7 +41,7 @@ export const GroupJoinCard = ({ preview, token, name, onDone }: GroupJoinCardPro
     }
   };
   return (
-    <PublicCard seed={group.public_name || group.name} name={group.name} avatarUrl={group.avatar_url} text={group.description}
+    <PublicCard signedIn seed={group.public_name || group.name} name={group.name} avatarUrl={group.avatar_url} text={group.description}
       subtitle={<>{group.public_name && <><span>@{group.public_name}</span><span aria-hidden="true">·</span></>}<span>{members}</span></>}>
       {error && <p role="alert" className="text-sm text-destructive">{messages[error]}</p>}
       {chatId ? (

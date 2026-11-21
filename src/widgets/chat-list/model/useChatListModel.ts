@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { clearAuthTokens, useAccessToken } from '@/shared/auth/session';
 import { useChatsData } from './useChatsData';
 import { useChatFormatters } from './useChatFormatters';
-import { useChatSearchOverlay } from './useChatSearchOverlay';
+import { useChatSearchOverlay, useCloseSearchWhenHidden } from './useChatSearchOverlay';
 import { useChatListWebSocket } from './useChatListWebSocket';
 import { useChatListActions } from './useChatListActions';
 import { useChatOrganizer } from './useChatOrganizer';
@@ -13,7 +13,7 @@ import type { ChatContextMenuState, ChatListModal, ChatsListComponentProps } fro
 // the WebSocket live-update connection, user-action handlers, and the
 // search-overlay animation into a single object consumed by the view.
 export function useChatListModel(props: ChatsListComponentProps) {
-  const { username, onChatOpen, activeChatId, activeChatName, onActiveChatUpdate, onChatDeleted } = props;
+  const { username, onChatOpen, activeChatId, activeChatName, onActiveChatUpdate, onChatDeleted, hidden = false } = props;
 
   const [modal, setModal] = useState<ChatListModal | null>(null);
   const [chatContextMenu, setChatContextMenu] = useState<ChatContextMenuState | null>(null);
@@ -29,6 +29,7 @@ export function useChatListModel(props: ChatsListComponentProps) {
     useChatFormatters(currentUserData?.id);
 
   const searchOverlay = useChatSearchOverlay();
+  useCloseSearchWhenHidden(hidden, searchOverlay.overlayVisible, searchOverlay.handleCloseSearch);
 
   const actions = useChatListActions({
     username,

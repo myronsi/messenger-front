@@ -100,4 +100,11 @@ describe('ChatListBody', () => {
     expect(screen.queryByTestId('chat-swipe-action')).not.toBeInTheDocument();
     vi.useRealTimers();
   });
+
+  it('shows custom emoji in the names of the Archived row', () => {
+    renderBody([chat('2', 'Ben <:cat:7>', { is_archived: true })]);
+    const row = screen.getByTestId('archived-chats-row');
+    expect(within(row).getByAltText(':cat:')).toBeInTheDocument();
+    expect(row).not.toHaveTextContent('<:cat:7>');
+  });
 });

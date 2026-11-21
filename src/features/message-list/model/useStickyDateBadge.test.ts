@@ -69,3 +69,37 @@ it('shows no badge above the first day', () => {
   rerender({ on: true });
   expect(result.current.label).toBeNull();
 });
+
+it('never shows the old day back in place while the next day takes over', () => {
+  at(yesterday, 40);
+  at(today, 108);
+  const badge = document.createElement('div');
+  Object.defineProperty(badge, 'offsetHeight', { value: 28 });
+  let rendered: string | null = null;
+  const seen: { transform: string; label: string | null }[] = [];
+  let transform = '';
+  Object.defineProperty(badge.style, 'transform', {
+    configurable: true,
+    get: () => transform,
+    set: (value: string) => { transform = value; seen.push({ transform: value, label: rendered }); },
+  });
+  const { rerender } = renderHook(({ on }) => {
+    const result = useStickyDateBadge({ chatContainerRef: { current: container }, active: on, contentKey: 1 });
+    result.badgeRef.current = badge;
+    rendered = result.label;
+    return result;
+  }, { initialProps: { on: false } });
+  rerender({ on: true });
+  expect(rendered).toBe('Yesterday');
+  expect(transform).toBe('translateY(-30px)');
+
+  seen.length = 0;
+  at(today, 101);
+  act(() => {
+    container.dispatchEvent(new Event('scroll'));
+    vi.advanceTimersByTime(20);
+  });
+  expect(rendered).toBe('Today');
+  expect(transform).toBe('');
+  expect(seen.some((entry) => entry.transform === '' && entry.label === 'Yesterday')).toBe(false);
+});

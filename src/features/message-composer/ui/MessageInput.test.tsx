@@ -211,4 +211,29 @@ describe('MessageInput', () => {
     expect(screen.queryByTitle('dropped.png')).not.toBeInTheDocument();
     expect(setErrorMessage).toHaveBeenCalledWith('Not while editing');
   });
+
+  it('attaches a file pasted into the field', () => {
+    const { field } = renderInput('');
+    const file = new File(['x'], 'pasted.png', { type: 'image/png' });
+    const clipboardData = { types: ['Files'], files: [file], items: [{ kind: 'file', getAsFile: () => file }] };
+    const notPrevented = fireEvent.paste(field, { clipboardData });
+    expect(notPrevented).toBe(false);
+    expect(screen.getByTitle('pasted.png')).toBeInTheDocument();
+  });
+
+  it('keeps a text paste as text even when the clipboard also has an image', () => {
+    const { field } = renderInput('');
+    const file = new File(['x'], 'picture.png', { type: 'image/png' });
+    const clipboardData = { types: ['text/plain', 'Files'], files: [file], items: [{ kind: 'file', getAsFile: () => file }] };
+    expect(fireEvent.paste(field, { clipboardData })).toBe(true);
+    expect(screen.queryByTitle('picture.png')).not.toBeInTheDocument();
+  });
+
+  it('refuses a pasted file while editing', () => {
+    const { field } = renderInput('Old text', editing);
+    const file = new File(['x'], 'pasted.png', { type: 'image/png' });
+    fireEvent.paste(field, { clipboardData: { types: ['Files'], files: [file], items: [{ kind: 'file', getAsFile: () => file }] } });
+    expect(screen.queryByTitle('pasted.png')).not.toBeInTheDocument();
+    expect(setErrorMessage).toHaveBeenCalledWith('Not while editing');
+  });
 });

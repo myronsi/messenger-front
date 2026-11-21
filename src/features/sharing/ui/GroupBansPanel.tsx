@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 import type { EntityId } from '@/shared/api/entityId';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
@@ -35,7 +36,7 @@ export const GroupBansPanel = ({ chatId }: { chatId: EntityId }) => {
               <AuthenticatedImage src={resolveMediaUrl(user.avatar_url)} initialsFrom={user.display_name} alt=""
                 className="h-9 w-9 shrink-0 rounded-full object-cover" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{user.display_name}</p>
+                <p className="truncate text-sm font-medium"><EmojiText text={user.display_name} /></p>
                 <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
               </div>
               <Button type="button" size="sm" variant="outline" disabled={unbanning && originalArgs?.userId === user.id}

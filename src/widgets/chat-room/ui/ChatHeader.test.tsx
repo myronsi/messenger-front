@@ -11,11 +11,19 @@ vi.mock('@/features/moderation', async () => ({
   ...await vi.importActual<typeof import('@/features/moderation')>('@/features/moderation'),
   ReportUserDialog: ({ name }: { name: string }) => <div role="dialog">report {name}</div>,
 }));
-const cleanup = vi.hoisted(() => ({ open: vi.fn() }));
-vi.mock('@/features/chat-cleanup', () => ({
-  useChatCleanup: () => ({ request: null, open: cleanup.open, close: vi.fn(), confirm: vi.fn(), busy: false }),
-  ChatCleanupDialog: () => null,
-}));
+const actions = vi.hoisted(() => ({ openDelete: vi.fn(), openClear: vi.fn(), openBlock: vi.fn() }));
+vi.mock('@/features/chat-cleanup', async () => {
+  const { useState } = await vi.importActual<typeof import('react')>('react');
+  return {
+    useChatActions: () => {
+      const [reporting, setReporting] = useState<{ userId: string; name: string } | null>(null);
+      return {
+        ...actions, isBlocked: () => false, dialogs: null, reporting, closeReport: () => setReporting(null),
+        openReport: async (target: { userId?: string; name: string }) => setReporting({ userId: target.userId ?? '0', name: target.name }),
+      };
+    },
+  };
+});
 const mobile = vi.hoisted(() => ({ current: false }));
 vi.mock('@/shared/hooks/use-mobile', () => ({ useIsMobile: () => mobile.current }));
 vi.mock('@/shared/contexts/LanguageContext', async () => {
@@ -23,13 +31,13 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
   return { useLanguage: () => ({ language: 'en', translations: { ...en, search: 'Search', back: 'Back' } }) };
 });
 
-beforeEach(() => { vi.useFakeTimers(); peer.current = undefined; mobile.current = false; cleanup.open.mockReset(); });
+beforeEach(() => { vi.useFakeTimers(); peer.current = undefined; mobile.current = false; Object.values(actions).forEach((fn) => fn.mockReset()); });
 afterEach(() => vi.useRealTimers());
 
 it('opens the direct chat search with a long press on the header', () => {
   const onOpenSearch = vi.fn();
   const onOpenProfile = vi.fn();
-  render(<ChatHeader chatName="alice" chatDisplayName="Alice" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+  render(<ChatHeader chatName="alice" chatDisplayName="Alice" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={onOpenProfile} onOpenSearch={onOpenSearch} interlocutorAvatar="/a.png" />);
   longPress(screen.getByText('Alice'));
   expect(onOpenSearch).toHaveBeenCalledOnce();
@@ -37,7 +45,7 @@ it('opens the direct chat search with a long press on the header', () => {
 });
 
 it('names the chat with yourself after you without presence', () => {
-  render(<ChatHeader chatName="me" chatDisplayName="Mia Stone" isOnline interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+  render(<ChatHeader chatName="me" chatDisplayName="Mia Stone" isOnline interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={vi.fn()} interlocutorAvatar="/me.png" />);
   expect(screen.getByText('Mia Stone (you)')).toBeInTheDocument();
   expect(screen.queryByText(/online/i)).not.toBeInTheDocument();
@@ -47,7 +55,7 @@ it('keeps last seen on one short line on phones and gives the full wording as a 
   vi.setSystemTime(new Date(2026, 10, 17, 19, 43));
   const lastSeen = new Date(2026, 10, 16, 3, 11).toISOString();
   render(<ChatHeader chatName="mai" chatDisplayName="Mai" isOnline={false} lastSeen={lastSeen} interlocutorDeleted={false} onBack={vi.fn()}
-    onDeleteChat={vi.fn()} onOpenProfile={vi.fn()} interlocutorAvatar="/m.png" />);
+    onChatDeleted={vi.fn()} onOpenProfile={vi.fn()} interlocutorAvatar="/m.png" />);
   const presence = screen.getByTestId('chat-header-presence');
   expect(presence).toHaveClass('truncate');
   expect(presence).toHaveAttribute('title', expect.stringMatching(/^last seen yesterday at /));
@@ -60,7 +68,7 @@ it('keeps last seen on one short line on phones and gives the full wording as a 
 
 it('shows the restricted account label and offers a report from the header menu', () => {
   peer.current = { id: '42', account_label: 'restricted' };
-  render(<ChatHeader chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+  render(<ChatHeader chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
   expect(screen.getByTestId('restricted-account-label')).toHaveTextContent('Restricted account');
   fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), { button: 0, ctrlKey: false, pointerType: 'mouse' });
@@ -70,7 +78,7 @@ it('shows the restricted account label and offers a report from the header menu'
 
 it('has no report menu or label for the chat with yourself', () => {
   peer.current = { id: '1', account_label: 'restricted' };
-  render(<ChatHeader chatName="me" chatDisplayName="Mia" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+  render(<ChatHeader chatName="me" chatDisplayName="Mia" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={vi.fn()} interlocutorAvatar="/me.png" />);
   expect(screen.queryByTestId('restricted-account-label')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
@@ -78,24 +86,27 @@ it('has no report menu or label for the chat with yourself', () => {
 
 const openMenu = () => fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), { button: 0, ctrlKey: false, pointerType: 'mouse' });
 
-it('offers clear history, delete chat and report in the desktop menu', () => {
+it('offers clear history, delete chat, block and report in the desktop menu', () => {
   peer.current = { id: '42' };
-  const onDeleteChat = vi.fn();
-  render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={onDeleteChat}
+  render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
   openMenu();
-  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Clear history', 'Delete chat', 'Report']);
+  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Clear history', 'Delete chat', 'Block', 'Report']);
+  const target = expect.objectContaining({ chatId: '77', username: 'eve', name: 'Eve', userId: '42' });
   fireEvent.click(screen.getByRole('menuitem', { name: 'Clear history' }));
-  expect(cleanup.open).toHaveBeenCalledWith({ kind: 'clear', target: expect.objectContaining({ chatId: '77', name: 'Eve', isGroup: false }) });
+  expect(actions.openClear).toHaveBeenCalledWith(target);
   openMenu();
   fireEvent.click(screen.getByRole('menuitem', { name: 'Delete chat' }));
-  expect(onDeleteChat).toHaveBeenCalled();
+  expect(actions.openDelete).toHaveBeenCalledWith(target);
+  openMenu();
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Block' }));
+  expect(actions.openBlock).toHaveBeenCalledWith(target);
 });
 
 it('has no three-dot menu on phones', () => {
   mobile.current = true;
   peer.current = { id: '42' };
-  render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onDeleteChat={vi.fn()}
+  render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
   expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
 });

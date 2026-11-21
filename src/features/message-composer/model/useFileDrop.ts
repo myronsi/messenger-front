@@ -2,6 +2,12 @@ import { RefObject, useEffect, useRef, useState } from 'react';
 
 const hasFiles = (event: DragEvent) => !!event.dataTransfer && Array.from(event.dataTransfer.types).includes('Files');
 
+export const pastedFiles = (data: DataTransfer | null): File[] => {
+  if (!data || Array.from(data.types).includes('text/plain')) return [];
+  const fromItems = Array.from(data.items ?? []).filter((item) => item.kind === 'file').map((item) => item.getAsFile()).filter((file): file is File => !!file);
+  return fromItems.length ? fromItems : Array.from(data.files ?? []);
+};
+
 export const useFileDrop = (anchorRef: RefObject<HTMLElement | null>, onFiles: (files: File[]) => void) => {
   const [zone, setZone] = useState<HTMLElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -52,6 +58,19 @@ export const useFileDrop = (anchorRef: RefObject<HTMLElement | null>, onFiles: (
       target.removeEventListener('drop', onDrop);
       window.removeEventListener('dragend', reset);
     };
+  }, [anchorRef]);
+
+  useEffect(() => {
+    const composer = anchorRef.current;
+    if (!composer) return undefined;
+    const onPaste = (event: ClipboardEvent) => {
+      const files = pastedFiles(event.clipboardData);
+      if (!files.length) return;
+      event.preventDefault();
+      onFilesRef.current(files);
+    };
+    composer.addEventListener('paste', onPaste);
+    return () => composer.removeEventListener('paste', onPaste);
   }, [anchorRef]);
 
   return { zone, isDragging };

@@ -10,6 +10,7 @@ import { Image as ImageIcon, Loader2, Music, Search } from 'lucide-react';
 import type { ChatAudio, ChatPhoto } from '../model/types';
 import { useSearchChatMessagesQuery } from '../api/messageApi';
 import { getSearchText } from '../model/searchText';
+import { LinkedMessageText } from './LinkedMessageText';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 import { ImageViewer } from '@/shared/ui/image-viewer';
@@ -282,3 +283,9 @@ export const ProfileAudiosPanel: React.FC<{
     </section>
   );
 };
+
+export const ProfileBio = ({ text }: { text: string }) => (
+  <p data-testid="profile-bio" className="mt-0.5 whitespace-pre-wrap break-words text-[17px] leading-6 text-foreground [&_a]:text-primary">
+    <LinkedMessageText text={text} />
+  </p>
+);

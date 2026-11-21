@@ -34,6 +34,7 @@ export interface ChatsListComponentProps {
   activeChatName?: string;
   onActiveChatUpdate?: (chat: Chat) => void;
   onChatDeleted?: (chatId: EntityId) => void;
+  hidden?: boolean;
 }
 
 // WebSocket message interface

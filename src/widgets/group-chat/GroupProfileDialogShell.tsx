@@ -3,9 +3,12 @@ import { mobileWindowSlide } from '@/shared/ui/windowMotion';
 import { SwipeProfilePanels } from '@/shared/ui/SwipeProfilePanels';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
+import { createPortal } from 'react-dom';
 import type { EntityId } from '@/shared/api/entityId';
 import { ChatMuteAction } from '@/features/chat-mute';
-import { Eraser, UserPlus } from 'lucide-react';
+import { Eraser, Flag, LogOut, Pencil, Trash2, UserMinus } from 'lucide-react';
+import { requestContentReport } from '@/entities/message';
+import { isGoApi } from '@/shared/api/goSocket';
 import { CallButton, useCallsAvailable } from '@/features/calls';
 import { ProfileActions, ProfileBanner, ProfileCloseButton, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -15,6 +18,9 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { toast } from '@/shared/ui/sonner';
 import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
+import { ActionDialog } from '@/shared/ui/ActionDialog';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { GroupTranslations } from './groupChatTypes';
 import GroupAvatarViewer from './GroupAvatarViewer';
@@ -49,12 +55,14 @@ interface Props {
   setIsAvatarViewerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   subPage?: React.ReactNode;
   background?: ProfileBackground | null;
+  onLeaveGroup?: () => void;
+  onEdit?: () => void;
 }
 
 const GroupProfileDialogShell: React.FC<Props> = ({
   chatId, canMute, open, isClosing, onOpenChange, currentGroupName, currentGroupAvatar, participants, visibleViews, currentRole,
   activeView, panelTransition, onSelectView, renderPanelContent,
-  groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null, background,
+  groupConfirm, onCloseGroupConfirm, isAvatarViewerOpen, setIsAvatarViewerOpen, subPage = null, background, onLeaveGroup, onEdit,
 }) => {
   const { translations: rawTranslations } = useLanguage();
   const translations = rawTranslations as unknown as GroupTranslations;
@@ -77,17 +85,25 @@ const GroupProfileDialogShell: React.FC<Props> = ({
     ...(callsAvailable ? [{
       key: 'call', label: t.call, render: (className: string) => <span className={`${className} [&>button]:h-full [&>button]:w-full [&>button]:rounded-xl`}><CallButton chatId={chatId} /></span>,
     }] : []),
-    ...(currentRole === 'owner' || currentRole === 'admin' ? [
-      { key: 'invite', label: t.invite, primary: !canMute, icon: <UserPlus className="h-5 w-5" />, onClick: () => onSelectView('participants') },
-    ] : []),
     ...(canMute ? [{ key: 'mute', label: t.mute, primary: true, render: (className: string) => <ChatMuteAction chatId={chatId} className={className} /> }] : []),
   ];
-  const menu: ProfileMenuItem[] = [{
-    key: 'clear', label: rawTranslations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: () => cleanup.open({ kind: 'clear', target: {
-      chatId, name: currentGroupName, isGroup: true, isSaved: false, canClearForEveryone: currentRole === 'owner' || currentRole === 'admin',
-    } }),
-  }];
-  const groupAvatar = <AuthenticatedImage src={currentGroupAvatar} alt={currentGroupName} className="h-full w-full object-cover" />;
+  const isOwner = currentRole === 'owner';
+  if (onEdit) tiles.unshift({ key: 'edit', label: (rawTranslations as unknown as GroupTranslations).editGroupShort, primary: true, icon: <Pencil className="h-5 w-5" />, onClick: onEdit });
+  const clearHistory = () => cleanup.open({ kind: 'clear', target: {
+    chatId, name: currentGroupName, isGroup: true, isSaved: false, canClearForEveryone: isOwner || currentRole === 'admin',
+  } });
+  if (isOwner) tiles.push({ key: 'clear', label: rawTranslations.chatCleanup.clearHistory, icon: <Eraser className="h-5 w-5" />, onClick: clearHistory });
+  const menu: ProfileMenuItem[] = isOwner ? [] : [
+    { key: 'clear', label: rawTranslations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: clearHistory },
+    ...(isGoApi() ? [{
+      key: 'report', label: rawTranslations.moderation.reportGroup, danger: true, icon: <Flag className="h-4 w-4" />,
+      onSelect: () => requestContentReport({ kind: 'group', chatId, name: currentGroupName }),
+    }] : []),
+    ...(onLeaveGroup ? [{
+      key: 'leave', label: rawTranslations.leaveGroup || 'Leave group', danger: true, icon: <LogOut className="h-4 w-4" />, onSelect: onLeaveGroup,
+    }] : []),
+  ];
+  const groupAvatar = <AuthenticatedImage src={currentGroupAvatar} alt={plainEmoji(currentGroupName)} className="h-full w-full object-cover" />;
 
   if (!open) return null;
 
@@ -116,7 +132,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                   background={background}
                   avatar={hasCustomAvatar ? <button type="button" aria-label="View group picture" onClick={() => setIsAvatarViewerOpen(true)} className="block h-full w-full">{groupAvatar}</button> : groupAvatar}
                   actions={<ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
-                  title={<h3 className="break-words">{currentGroupName}</h3>}
+                  title={<h3 className="break-words"><EmojiText text={currentGroupName} /></h3>}
                   subtitle={<span>{online ? fillTemplate(t.membersHere, { count, online: String(online) }) : fillTemplate(t.membersCount, { count })}</span>}
                   topLeft={isMobile && closeButton}
                   topRight={!isMobile && closeButton}
@@ -130,8 +146,19 @@ const GroupProfileDialogShell: React.FC<Props> = ({
           </div>
         </div>
         {subPage}
-        <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
-        {groupConfirm && (
+        <ChatCleanupDialog request={cleanup.request} busy={cleanup.busy} onCancel={cleanup.close}
+          onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
+        {groupConfirm?.kind && !groupConfirm.isError && (
+          <ActionDialog
+            icon={groupConfirm.kind === 'leave' ? <LogOut /> : groupConfirm.kind === 'remove' ? <UserMinus /> : <Trash2 />}
+            title={groupConfirm.title}
+            points={groupConfirm.consequences?.length ? groupConfirm.consequences : [groupConfirm.message]}
+            confirmText={groupConfirm.confirmText || groupConfirm.title}
+            onConfirm={groupConfirm.onConfirm}
+            onCancel={onCloseGroupConfirm}
+          />
+        )}
+        {groupConfirm && (!groupConfirm.kind || groupConfirm.isError) && createPortal(
           <ConfirmModal
             title={groupConfirm.title}
             message={groupConfirm.message}
@@ -141,8 +168,9 @@ const GroupProfileDialogShell: React.FC<Props> = ({
             confirmText={groupConfirm.confirmText}
             isError={!!groupConfirm.isError}
             isDestructive={!!groupConfirm.isDestructive}
-            contained
-          />
+            overlayClassName="z-[11002]"
+          />,
+          document.body,
         )}
         {isAvatarViewerOpen && hasCustomAvatar && (
           <GroupAvatarViewer

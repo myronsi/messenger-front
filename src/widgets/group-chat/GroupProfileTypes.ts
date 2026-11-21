@@ -59,9 +59,16 @@ export type GroupProfileConfirmState = {
   confirmText?: string;
   isDestructive?: boolean;
   isError?: boolean;
+  kind?: 'leave' | 'delete' | 'remove';
   onConfirm: () => void;
 };
 
+
+export interface GroupEdits {
+  info?: { name: string; description: string };
+  avatar?: File;
+  background?: SetBackgroundBody | null;
+}
 
 export interface GroupProfileDialogProps {
   open: boolean;
@@ -82,6 +89,7 @@ export interface GroupProfileDialogProps {
   onAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSaveBackground: (body: SetBackgroundBody | null) => Promise<void>;
   onSaveGroup: () => void;
+  onSaveGroupEdits: (edits: GroupEdits) => Promise<boolean>;
   onAddParticipant: (usernameOverride?: string) => void;
   onRemoveParticipant: (username: string) => void;
   onRoleChange: (username: string, role: GroupRole) => void;
