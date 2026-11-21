@@ -13,6 +13,7 @@ import { useBackToClose } from '@/shared/lib/useBackToClose';
 import GroupProfileDialog from './GroupProfileDialog';
 import GroupChatHeader from './GroupChatHeader';
 import MentionJumpButton from './MentionJumpButton';
+import { MessagePins } from '@/features/message-pins';
 
 import type { GroupChatViewModel } from './groupChatTypes';
 import { useElementHeight } from '@/shared/lib/useElementHeight';
@@ -66,6 +67,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
         description={groupDetails?.description} translations={translations} onBack={onBack} onOpenProfile={openGroupProfile}
         onOpenSearch={isPersistedId(chatId) ? () => setIsSearchOpen(true) : undefined} />
       )}
+      <MessagePins chatId={chatId} onJump={jumpToSearchResult} hideBar={isSearchOpen} context={{ kind: 'group', role: groupDetails?.current_user_role }} />
 
       <ImageDrawingProvider chatId={chatId} enabled={isPersistedId(chatId)} onSent={settleOptimisticUpload}>
       <MessageList

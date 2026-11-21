@@ -86,12 +86,12 @@ it('has no report menu or label for the chat with yourself', () => {
 
 const openMenu = () => fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), { button: 0, ctrlKey: false, pointerType: 'mouse' });
 
-it('offers clear history, delete chat, block and report in the desktop menu', () => {
+it('offers pinned messages, clear history, delete chat, block and report in the desktop menu', () => {
   peer.current = { id: '42' };
   render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
   openMenu();
-  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Clear history', 'Delete chat', 'Block', 'Report']);
+  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Pinned messages', 'Clear history', 'Delete chat', 'Block', 'Report']);
   const target = expect.objectContaining({ chatId: '77', username: 'eve', name: 'Eve', userId: '42' });
   fireEvent.click(screen.getByRole('menuitem', { name: 'Clear history' }));
   expect(actions.openClear).toHaveBeenCalledWith(target);

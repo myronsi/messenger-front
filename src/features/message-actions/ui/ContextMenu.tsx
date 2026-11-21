@@ -7,6 +7,7 @@ import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
 import { discardServerUnsent, notifyMessageDeletedLocally } from '@/entities/message';
 import { messageAudioTrack, queueLast, queueNext, requestAddToPlaylist, requestContentReport } from '@/entities/message';
+import { findPin, isPinnableMessage, requestPinChange, useGetPinnedMessagesQuery } from '@/entities/message';
 import { isPersistedId } from '@/shared/api/entityId';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { makeStickerFrom } from '@/entities/sticker';
@@ -91,6 +92,10 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
     const song = message ? messageAudioTrack(message, translations.voiceMessage) : null;
     const musicTrack = song?.kind === 'music' ? song : null;
+    const pinsOn = isGoApi() && isPersistedId(chatId);
+    const { data: pinState } = useGetPinnedMessagesQuery(chatId, { skip: !pinsOn });
+    const pin = message ? findPin(pinState, message.id) : null;
+    const canPin = pinsOn && !!message && isPinnableMessage(message);
     const canReport = isGoApi() && !!message && !contextMenu.isMine && !message.is_own && isPersistedId(message.id)
       && !message.is_deleted && !message.system_event && !message.is_system;
 
@@ -179,6 +184,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         onReply={handleReply}
         onForward={onForward && message ? handleForward : undefined}
         onSelect={onSelect && message ? () => { onSelect(message); closeMenu(); } : undefined}
+        onTogglePin={canPin && message ? () => { closeMenu(); requestPinChange({ chatId, message, pin }); } : undefined}
+        pinned={!!pin}
         onReport={canReport && message ? () => {
           closeMenu();
           requestContentReport({ kind: 'message', chatId, messageId: message.id, name: message.sender });

@@ -1,9 +1,10 @@
-import { Ban, Eraser, Flag, MoreVertical, Trash2 } from 'lucide-react';
+import { Ban, Eraser, Flag, MoreVertical, Pin, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { EntityId } from '@/shared/api/entityId';
 import { ReportUserDialog } from '@/features/moderation';
 import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
+import { openPinnedPanel, pinsEnabled } from '@/features/message-pins';
 
 interface ChatHeaderMenuProps {
   userId: EntityId;
@@ -30,6 +31,11 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
         <DropdownMenuContent align="end">
           {chatId !== undefined && (
             <>
+              {pinsEnabled(chatId) && (
+                <DropdownMenuItem onSelect={() => openPinnedPanel(chatId)}>
+                  <Pin className="mr-2 h-4 w-4" />{translations.messagePins.pinnedMessages}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={() => actions.openClear(target)}>
                 <Eraser className="mr-2 h-4 w-4" />{translations.chatCleanup.clearHistory}
               </DropdownMenuItem>

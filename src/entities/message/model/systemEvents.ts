@@ -18,7 +18,17 @@ const callText = (call: CallSummaryInfo | undefined, translations: Translations,
   }
 };
 
-export const systemEventText = (event: SystemEventInfo, translations: Translations, isMe: (id?: EntityId | null) => boolean) => {
+const pinText = (event: SystemEventInfo, translations: Translations, actorIsMe: boolean) => {
+  const t = translations.messagePins;
+  const pinned = event.kind === 'message_pinned';
+  const kind = event.message_type === 'voice' || event.message_type === 'sticker' ? t.kinds[event.message_type] : t.kinds.message;
+  const template = event.snippet
+    ? (pinned ? (actorIsMe ? t.systemPinnedYou : t.systemPinned) : (actorIsMe ? t.systemUnpinnedYou : t.systemUnpinned))
+    : (pinned ? (actorIsMe ? t.systemPinnedKindYou : t.systemPinnedKind) : (actorIsMe ? t.systemUnpinnedKindYou : t.systemUnpinnedKind));
+  return fillTemplate(template, { actor: event.actor_name || translations.systemSomeone, snippet: event.snippet ?? '', kind });
+};
+
+export const systemEventText =(event: SystemEventInfo, translations: Translations, isMe: (id?: EntityId | null) => boolean) => {
   const actorIsMe = isMe(event.actor_id);
   const targetIsMe = isMe(event.target_id);
   const fill = (template: string) => fillTemplate(template, {
@@ -34,6 +44,7 @@ export const systemEventText = (event: SystemEventInfo, translations: Translatio
     case 'member_removed': return fill(actorIsMe ? translations.systemMemberRemovedByYou : translations.systemMemberRemoved);
     case 'member_left': return fill(actorIsMe ? translations.systemMemberLeftYou : translations.systemMemberLeft);
     case 'call': return callText(event.call, translations, actorIsMe);
+    case 'message_pinned': case 'message_unpinned': return pinText(event, translations, actorIsMe);
     default: return '';
   }
 };

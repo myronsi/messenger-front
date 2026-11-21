@@ -25,6 +25,7 @@ import { useChatRequest } from './model/useChatRequest';
 import ChatRequestBanner from './ui/ChatRequestBanner';
 import { useVoiceVideoBlocked } from './model/useVoiceVideoBlocked';
 import { DeletedChatFooter } from './ui/DeletedChatFooter';
+import { MessagePins, type PinChatContext } from '@/features/message-pins';
 
 export type { ChatProps } from './model/types';
 
@@ -44,6 +45,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const { data: blockedUsersData } = useGetBlockedUsersQuery();
   const voiceVideoBlocked = useVoiceVideoBlocked(chatId, username);
   const isBlockedByMe = !!blockedUsersData?.users?.some((blockedUser) => blockedUser.username.toLowerCase() === chatName.toLowerCase());
+  const isSaved = !!me?.username && me.username.toLowerCase() === chatName.toLowerCase();
 
   const {
     previewMessageInput,
@@ -172,18 +174,12 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   return (
     <div data-chat-drop-zone data-chat-id={String(chatId)} className="relative flex h-full flex-col overflow-hidden">
       {isSearchOpen ? <ChatHeaderSearch chatId={chatId} onClose={() => setIsSearchOpen(false)} onJumpToMessage={jumpToSearchResult} /> : (<ChatHeader
-        chatId={chatId}
-        chatName={chatName}
-        chatDisplayName={chatDisplayName}
-        isOnline={presence.is_online}
-        lastSeen={presence.last_seen}
-        interlocutorDeleted={interlocutorDeleted}
-        onBack={onBack}
-        onChatDeleted={onBack}
-        onOpenProfile={onOpenProfile}
+        chatId={chatId} chatName={chatName} chatDisplayName={chatDisplayName} isOnline={presence.is_online} lastSeen={presence.last_seen}
+        interlocutorDeleted={interlocutorDeleted} onBack={onBack} onChatDeleted={onBack} onOpenProfile={onOpenProfile} interlocutorAvatar={interlocutorAvatar}
         onOpenSearch={!isPreview && !interlocutorDeleted ? () => setIsSearchOpen(true) : undefined}
-        interlocutorAvatar={interlocutorAvatar}
       />)}
+      {!isPreview && <MessagePins chatId={chatId} onJump={jumpToSearchResult} hideBar={isSearchOpen} context={{ kind: 'direct', peerName: chatDisplayName || chatName,
+        personalOnly: isSaved || request.isRequest || isBlockedByMe || interlocutorDeleted } satisfies PinChatContext} />}
       {request.isRequest && !isSearchOpen && <ChatRequestBanner request={request} chatName={chatName} displayName={chatDisplayName || chatName}
         avatar={interlocutorAvatar} translations={translations} onOpenProfile={onOpenProfile} />}
       <ImageDrawingProvider chatId={chatId} enabled={!isPreview} onSent={settleOptimisticUpload}>
