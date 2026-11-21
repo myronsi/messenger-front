@@ -1,5 +1,3 @@
-import { apiClient } from '@/shared/api/client';
-import { contractData } from '@/shared/api/tasks';
 import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import { useCallback, useState } from 'react';
@@ -209,16 +207,9 @@ export const useMessengerController = (username: string) => {
     }
   };
 
-  const handleDeleteCurrentChat = async (scope: 'me' | 'everyone' = 'everyone') => {
-    if (!currentChat || currentChat.type !== 'one-on-one' || !isPersistedId(currentChat.id)) return;
-
-    try {
-      contractData(await apiClient.DELETE('/chats/{chat_id}', { params: { path: { chat_id: String(currentChat.id) }, query: { scope } } }));
-      setCurrentChat(null);
-      navigate('/');
-    } catch (err) {
-      console.error('Error deleting chat from user profile:', err);
-    }
+  const handleCurrentChatDeleted = () => {
+    setCurrentChat(null);
+    navigate('/');
   };
 
   return {
@@ -242,7 +233,7 @@ export const useMessengerController = (username: string) => {
     handleDirectChatCreated,
     backToChats,
     handleChatDeleted,
-    handleDeleteCurrentChat,
+    handleCurrentChatDeleted,
     mobileChatPanelClass,
     mobilePanelChat,
   };

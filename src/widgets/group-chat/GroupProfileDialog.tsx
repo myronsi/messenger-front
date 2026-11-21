@@ -11,6 +11,7 @@ import type { GroupProfileDialogProps, GroupParticipant, GroupPendingInvite, Gro
 import GroupProfileDetailsPanel from './GroupProfileDetailsPanel';
 import GroupParticipantsPanel from './GroupParticipantsPanel';
 import GroupProfileDialogShell from './GroupProfileDialogShell';
+import EditGroupPage from './EditGroupPage';
 import GroupRoleHistoryPage from './GroupRoleHistoryPage';
 import GroupSharingPage, { type GroupSharingView } from './GroupSharingPage';
 import { GroupEmojiPanel } from '@/features/emoji-packs';
@@ -22,7 +23,7 @@ const emptyPendingInvites: GroupPendingInvite[] = [];
 
 const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   const {
-    open, isClosing, onOpenChange, chatId, groupDetails, currentGroupName, currentGroupAvatar, groupForm,
+    open, isClosing, onOpenChange, chatId, groupDetails, currentGroupName, currentGroupAvatar,
     participantInput, currentUsername, groupConfirm, onCloseGroupConfirm,
   } = model;
   const { translations } = useLanguage();
@@ -38,6 +39,8 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   useBackToClose(open && !!sharingView, () => setSharingView(null), 'groupSharing');
   const sharingPage = useDelayedUnmount(!!sharingView, WINDOW_MOTION_MS);
   const openSharing = (view: GroupSharingView) => { setLastSharingView(view); setSharingView(view); };
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const editPage = useDelayedUnmount(isEditOpen, WINDOW_MOTION_MS);
   const panelTransitionTimeoutRef = useRef<number | null>(null);
   const {
     data: chatPhotosData,
@@ -62,6 +65,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
   useEffect(() => {
     setIsRoleHistoryOpen(false);
     setSharingView(null);
+    setIsEditOpen(false);
     if (!open) return;
     setActiveView('details');
     setPanelTransition(null);
@@ -156,7 +160,6 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     ...(showGroupEmoji ? (['emoji'] as const) : []),
   ];
   const canMute = isPersistedId(chatId);
-  const hasGroupChanges = groupForm.name.trim() !== currentGroupName || groupForm.description.trim() !== (groupDetails?.description || '');
 
   const selectView = (view: GroupProfileView) => {
     if (view === activeView) return;
@@ -210,8 +213,7 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     }
     return (
       <GroupProfileDetailsPanel
-        model={model} canEdit={canEdit} canDeleteGroup={canDeleteGroup} hasGroupChanges={hasGroupChanges}
-        currentRole={currentRole} participants={participants} pendingInvites={pendingInvites}
+        model={model} canDeleteGroup={canDeleteGroup} currentRole={currentRole}
         onOpenRoleHistory={() => setIsRoleHistoryOpen(true)} onOpenSharing={openSharing}
       />
     );
@@ -226,8 +228,13 @@ const GroupProfileDialog: React.FC<GroupProfileDialogProps> = (model) => {
     activeView={activeView} panelTransition={panelTransition} onSelectView={selectView}
     renderPanelContent={renderPanelContent} groupConfirm={groupConfirm}
     onCloseGroupConfirm={onCloseGroupConfirm} isAvatarViewerOpen={isAvatarViewerOpen}
-    setIsAvatarViewerOpen={setIsAvatarViewerOpen} background={groupDetails?.background}
-    subPage={roleHistoryPage.mounted ? (
+    setIsAvatarViewerOpen={setIsAvatarViewerOpen} background={groupDetails?.background} onLeaveGroup={model.onLeaveGroup}
+    onEdit={canEdit ? () => setIsEditOpen(true) : undefined}
+    subPage={editPage.mounted ? (
+      <EditGroupPage name={groupDetails?.name ?? currentGroupName} description={groupDetails?.description ?? ''} avatarUrl={currentGroupAvatar}
+        background={groupDetails?.background ?? null} isSaving={model.isSavingGroup} onSave={model.onSaveGroupEdits}
+        onBack={() => setIsEditOpen(false)} closing={editPage.closing} />
+    ) : roleHistoryPage.mounted ? (
       <GroupRoleHistoryPage chatId={chatId} rolesKey={participants.map((participant) => `${participant.id}:${participant.role}`).join(',')}
         onBack={() => setIsRoleHistoryOpen(false)} closing={roleHistoryPage.closing} />
     ) : sharingPage.mounted ? (

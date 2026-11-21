@@ -20,7 +20,7 @@ import { useChatPartners } from '../model/useChatPartners';
 import PrivacySettingPage from './PrivacySettingPage';
 import PrivacyExceptionsPage from './PrivacyExceptionsPage';
 import { usePrivacySettings } from './usePrivacySettings';
-import { LeaveUnsavedDialog, UnsavedChangesBar } from './UnsavedChanges';
+import { LeaveUnsavedDialog, UnsavedChangesBar } from '@/shared/ui/UnsavedChanges';
 
 type Translations = ReturnType<typeof usePrivacySettings>['translations'];
 

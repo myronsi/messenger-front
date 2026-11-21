@@ -24,6 +24,7 @@ import { useGetBlockedUsersQuery } from '@/entities/user';
 import { useChatRequest } from './model/useChatRequest';
 import ChatRequestBanner from './ui/ChatRequestBanner';
 import { useVoiceVideoBlocked } from './model/useVoiceVideoBlocked';
+import { DeletedChatFooter } from './ui/DeletedChatFooter';
 
 export type { ChatProps } from './model/types';
 
@@ -77,7 +78,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     hasMoreMessages, hasMoreNewerMessages, scrollToMessage, loadOlderMessages, loadNewerMessages, loadLatestMessages, loadMessagesAround,
     markMessagesRead, handleSendMessage, handleSendSticker, handleResendMessage, handleFileUpload,
     createOptimisticUploadMessage, updateOptimisticUploadProgress, markOptimisticUploadFailed,
-    settleOptimisticUpload, handleDeleteChat, getFormattedDateLabel, getMessageTime,
+    settleOptimisticUpload, getFormattedDateLabel, getMessageTime,
     renderMessageContent, wsRef,
   } = useChatRoomState({
     isPreview, chatId, username, token, onBack, userId: userId || 0, firstUnreadMessageId,
@@ -178,7 +179,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         lastSeen={presence.last_seen}
         interlocutorDeleted={interlocutorDeleted}
         onBack={onBack}
-        onDeleteChat={handleDeleteChat}
+        onChatDeleted={onBack}
         onOpenProfile={onOpenProfile}
         onOpenSearch={!isPreview && !interlocutorDeleted ? () => setIsSearchOpen(true) : undefined}
         interlocutorAvatar={interlocutorAvatar}
@@ -260,11 +261,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
         <ChatUnblockButton username={chatName} onError={(message) => setModal({ type: 'error', message })} />
       )}
       {interlocutorDeleted && !isPreview && (
-        <div className="p-4 border-t border-border">
-          <button onClick={handleDeleteChat} className="w-full p-3 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors">
-            Delete Chat
-          </button>
-        </div>
+        <DeletedChatFooter chatId={chatId} chatName={chatName} onDeleted={onBack} />
       )}
       <ChatOverlays
         contextMenu={contextMenu}

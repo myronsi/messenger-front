@@ -8,7 +8,8 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
 });
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 vi.mock('./UserProfileConnections', () => ({ default: () => <div data-testid="profile-connections-slot" /> }));
-vi.mock('@/entities/message', () => ({
+vi.mock('@/entities/message', async () => ({
+  ProfileBio: (await vi.importActual<typeof import('@/entities/message/ui/ProfileChatPanels')>('@/entities/message/ui/ProfileChatPanels')).ProfileBio,
   formatAudioTime: (value: number) => `0:${String(Math.round(value)).padStart(2, '0')}`,
   playAudio: vi.fn(), pauseAudio: vi.fn(), useAudioPlayer: () => false, TrackMenu: () => null,
 }));
@@ -44,4 +45,12 @@ it('shows the birthday chip and plays the profile music', async () => {
   expect(screen.getByText('Song')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Play' }));
   expect(playAudio).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1', src: '/api/v2/attachments/a1/content', title: 'Song', artist: 'Band', kind: 'music', duration: 20 }));
+});
+
+it('makes links and @names in the bio clickable', () => {
+  render(<UserProfileInfoPanel userId="5" actionError={null} isCurrentUser={false} bio="Blog: https://example.com/posts and ask @anna_b" />);
+  const bio = screen.getByTestId('profile-bio');
+  expect(bio.querySelector('a[href="https://example.com/posts"]')).not.toBeNull();
+  expect(bio.querySelector('a[href="/@anna_b"]')).toHaveTextContent('@anna_b');
+  expect(bio).toHaveTextContent('Blog: https://example.com/posts and ask @anna_b');
 });

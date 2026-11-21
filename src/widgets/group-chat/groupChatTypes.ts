@@ -6,7 +6,7 @@ import type { GroupRole } from '@/entities/chat';
 import type { ComposerDraftHandle } from '@/features/message-composer';
 import type { Sticker } from '@/entities/sticker';
 import type { SetBackgroundBody } from '@/features/profile';
-import type { GroupDetails, GroupParticipant, GroupProfileConfirmState } from './GroupProfileTypes';
+import type { GroupDetails, GroupEdits, GroupParticipant, GroupProfileConfirmState } from './GroupProfileTypes';
 
 export type { RawGroupDetails, RawGroupParticipant, RawGroupPendingInvite } from '@/entities/chat';
 
@@ -20,7 +20,9 @@ export interface GroupComponentProps {
   messageJumpRequest?: { messageId: EntityId; key: number } | null;
 }
 
-export type GroupTranslations = Record<string, string> & { leaveGroupConsequences?: string[]; deleteGroupConsequences?: string[] };
+export type GroupTranslations = Record<string, string> & {
+  leaveGroupPoints?: string[]; deleteGroupConsequences?: string[];
+};
 
 type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
 type ContextMenuState = { x: number; y: number; messageId: EntityId; isMine: boolean; openLeft?: boolean; isClosing?: boolean } | null;
@@ -106,6 +108,7 @@ export interface GroupChatViewModel {
   handleGroupAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
   handleGroupBackground: (body: SetBackgroundBody | null) => Promise<void>;
   handleSaveGroup: () => void | Promise<void>;
+  saveGroupEdits: (edits: GroupEdits) => Promise<boolean>;
   handleAddParticipant: (usernameOverride?: string) => void | Promise<void>;
   handleRemoveParticipant: (username: string) => void;
   handleRoleChange: (username: string, role: GroupRole) => void | Promise<void>;

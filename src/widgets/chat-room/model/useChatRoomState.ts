@@ -68,7 +68,6 @@ export const useChatRoomState = ({
     updateOptimisticUploadProgress: (_messageId: EntityId, _percent: number) => {},
     markOptimisticUploadFailed: (_messageId: EntityId, _errorMessage?: string) => {},
     settleOptimisticUpload: (_messageId: EntityId) => {},
-    handleDeleteChat: () => {},
     getFormattedDateLabel: (timestamp: string) => formatDateLabel(timestamp, 'en', new Date(), new Date()),
     getMessageTime: (timestamp: string) => formatTime(timestamp, 'en'),
     renderMessageContent: (message: Message) => typeof message.content === 'string' ? message.content : '',

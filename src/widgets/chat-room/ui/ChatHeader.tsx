@@ -23,14 +23,14 @@ interface ChatHeaderProps {
   lastSeen?: string | null;
   interlocutorDeleted: boolean;
   onBack: () => void;
-  onDeleteChat: () => void;
+  onChatDeleted: () => void;
   onOpenProfile: () => void;
   onOpenSearch?: () => void;
   interlocutorAvatar: string;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
-  chatId, chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onDeleteChat, onOpenProfile,
+  chatId, chatName, chatDisplayName, isOnline, lastSeen, interlocutorDeleted, onBack, onChatDeleted, onOpenProfile,
   onOpenSearch, interlocutorAvatar,
 }) => {
   const { translations } = useLanguage();
@@ -51,9 +51,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <button onClick={onBack} aria-label={translations.back || 'Back'} className="motion-press flex h-11 w-11 shrink-0 items-center justify-center hover:bg-accent rounded-full transition-colors md:hidden">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="motion-press flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left md:space-x-0">
+          <button onClick={() => { if (!longPress.consumeClick() && !interlocutorDeleted) onOpenProfile(); }} className="flex min-w-0 flex-1 items-center space-x-2 rounded-lg px-1 py-1 text-left motion-header-press hover:bg-accent/50 active:bg-accent md:space-x-0">
             <AuthenticatedImage src={interlocutorAvatar} alt={displayName} className="motion-avatar w-9 h-9 rounded-full border border-border object-cover md:hidden" />
-            <span className="flex min-w-0 flex-col items-start">
+            <span className="motion-header-text flex min-w-0 flex-col items-start">
               <span className="flex max-w-full items-center gap-2">
                 <span className="truncate text-base font-semibold leading-tight sm:text-lg">{interlocutorDeleted ? translations.deletedUser || 'Deleted User' : <EmojiText text={displayName} />}</span>
                 {!interlocutorDeleted && !saved && <RestrictedAccountLabel label={peer?.account_label} className="shrink-0" />}
@@ -82,7 +82,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             </button>
           )}
           {!isMobile && !interlocutorDeleted && !saved && peer?.id && (
-            <ChatHeaderMenu userId={peer.id} name={displayName} chatId={persistedChatId} onDeleteChat={onDeleteChat} />
+            <ChatHeaderMenu userId={peer.id} username={chatName} name={displayName} chatId={persistedChatId} onChatDeleted={onChatDeleted} />
           )}
         </div>
       </div>

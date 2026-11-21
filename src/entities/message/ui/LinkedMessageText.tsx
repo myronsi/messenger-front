@@ -22,7 +22,8 @@ const WithMentions = ({ text, query, large, mentionsAll }: { text: string; query
   const self = useCurrentUsername();
   return <>{splitMentions(text).map((part, index) => {
     if (!part.mention) return <Highlighted key={index} text={part.text} query={query} large={large} />;
-    if (mentionsAll && part.mention.toLowerCase() === MENTION_ALL) {
+    if (part.mention.toLowerCase() === MENTION_ALL) {
+      if (!mentionsAll) return <Highlighted key={index} text={part.text} query={query} large={large} />;
       return <span key={index} data-mention-all className="rounded bg-primary/20 px-0.5 font-medium"><Marked text={part.text} query={query} /></span>;
     }
     return <MentionLink key={index} name={part.mention} own={isMentionOf(part.mention, self)}><Marked text={part.text} query={query} /></MentionLink>;

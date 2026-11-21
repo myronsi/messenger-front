@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
 
 const ANIM_DURATION = 120; // ms
 
@@ -79,3 +80,10 @@ export function useChatSearchOverlay() {
     handleCloseSearch,
   };
 }
+
+export const useCloseSearchWhenHidden = (hidden: boolean, visible: boolean, close: () => void) => {
+  const closeRef = useLatestRef(close);
+  useEffect(() => {
+    if (hidden && visible) closeRef.current();
+  }, [hidden, visible, closeRef]);
+};

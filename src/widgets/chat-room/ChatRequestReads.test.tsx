@@ -21,6 +21,12 @@ vi.mock('@/entities/user', () => ({
   useGetUserByUsernameQuery: () => ({ data: { id: '2' } }),
 }));
 vi.mock('@/features/moderation', () => ({ ReportUserDialog: () => null }));
+vi.mock('@/features/chat-cleanup', () => ({
+  useChatActions: () => ({
+    isBlocked: () => false, openDelete: vi.fn(), openClear: vi.fn(), openBlock: vi.fn(), openReport: vi.fn(),
+    dialogs: null, reporting: null, closeReport: vi.fn(),
+  }),
+}));
 vi.mock('@/entities/chat', () => ({
   chatApi: { util: { invalidateTags: (tags: string[]) => ({ type: 'invalidate', tags }) } },
   useGetOneOnOneChatsQuery: (_: string, options: { selectFromResult: (result: { data: unknown }) => unknown }) =>
@@ -66,7 +72,7 @@ vi.mock('./model/useChatRoomState', () => ({
     loadOlderMessages: vi.fn(), loadNewerMessages: vi.fn(), loadLatestMessages: vi.fn(), loadMessagesAround: vi.fn(),
     markMessagesRead: state.markMessagesRead, handleSendMessage: vi.fn(), handleSendSticker: vi.fn(), handleResendMessage: vi.fn(),
     handleFileUpload: vi.fn(), createOptimisticUploadMessage: vi.fn(), updateOptimisticUploadProgress: vi.fn(),
-    markOptimisticUploadFailed: vi.fn(), settleOptimisticUpload: vi.fn(), handleDeleteChat: vi.fn(),
+    markOptimisticUploadFailed: vi.fn(), settleOptimisticUpload: vi.fn(),
     getFormattedDateLabel: vi.fn(), getMessageTime: vi.fn(), renderMessageContent: vi.fn(), wsRef: { current: null },
   }),
 }));

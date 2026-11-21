@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link2Off, Loader2, UserRound } from 'lucide-react';
+import { plainEmoji } from '@/shared/lib/customEmoji';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { PublicCard } from '@/shared/ui/profile/PublicCard';
@@ -53,7 +54,7 @@ export const PublicLinkPage = ({ target }: { target: Target }) => {
     const { user } = result;
     body = (
       <PublicCard seed={user.username} name={user.display_name} avatarUrl={user.avatar_url} subtitle={<span>@{user.username}</span>} text={user.bio}>
-        <p className="text-sm text-muted-foreground">{fillTemplate(t.signUpToMessage, { name: user.display_name })}</p>
+        <p className="text-sm text-muted-foreground">{fillTemplate(t.signUpToMessage, { name: plainEmoji(user.display_name) })}</p>
         {actions}
       </PublicCard>
     );

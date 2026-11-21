@@ -71,7 +71,7 @@ describe('ReportUserDialog', () => {
   it('closes on cancel without reporting', () => {
     const onClose = vi.fn();
     render(<ReportUserDialog userId="42" name="Eve" onClose={onClose} />);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' })[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalled();
     expect(mocks.report).not.toHaveBeenCalled();
   });

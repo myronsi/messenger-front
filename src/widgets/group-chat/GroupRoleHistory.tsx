@@ -5,6 +5,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseUtcDate } from '@/shared/utils/dateFormatters';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { localeOf } from '@/shared/lang/languages';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface Props {
   chatId: EntityId;
@@ -34,7 +35,7 @@ const GroupRoleHistory: React.FC<Props> = ({ chatId, rolesKey }) => {
       className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
       {items.map((event) => (
         <li key={event.id} className="flex flex-col gap-1 px-4 py-3 text-sm">
-          <span className="break-words text-foreground">{describe(event)}</span>
+          <span className="break-words text-foreground"><EmojiText text={describe(event)} /></span>
           <time dateTime={event.created_at} className="text-xs text-muted-foreground">{formatter.format(parseUtcDate(event.created_at))}</time>
         </li>
       ))}

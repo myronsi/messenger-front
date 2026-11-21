@@ -53,6 +53,10 @@ it('shows @all as a highlight only when the server counted it', () => {
   expect(container.querySelector('[data-mention-all]')?.textContent).toBe('@all');
   rerender(<LinkedMessageText text="@all look" />);
   expect(container.querySelector('[data-mention-all]')).toBeNull();
+  expect(container.querySelector('a')).toBeNull();
+  expect(container).toHaveTextContent('@all look');
+  rerender(<LinkedMessageText text="@ALL look" />);
+  expect(container.querySelector('a')).toBeNull();
 });
 
 it('opens the profile in the app when a mention is clicked', () => {

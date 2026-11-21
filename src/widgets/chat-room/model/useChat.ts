@@ -13,7 +13,6 @@ import {
   type ServerEvent,
 } from '@/features/chat-core';
 import type { ComposerDraftHandle } from '@/features/message-composer';
-import { createDeleteChatAction } from './useChatActions';
 import { useShortcodeEncoder } from '@/entities/emoji';
 
 const renderMessageContent = (message: Message) => (
@@ -87,8 +86,6 @@ export const useChat = (
   useUnsentMessageStorage({ chatId, messages, setMessages, resend: resendPending, notConfirmed: translations.messageDeliveryNotConfirmed });
   useServerOutbox({ chatId, setMessages, username, senderId: currentUserId, translationsRef });
 
-  const handleDeleteChat = createDeleteChatAction({ chatId, translations, onBack, setModal });
-
   const handleExtraEvent = useCallback((event: ServerEvent) => {
     if (event.type === 'presence_update' && event.username) {
       presenceUpdateRef.current?.({
@@ -161,7 +158,6 @@ export const useChat = (
     updateOptimisticUploadProgress,
     markOptimisticUploadFailed,
     settleOptimisticUpload,
-    handleDeleteChat,
     getFormattedDateLabel,
     getMessageTime,
     renderMessageContent,

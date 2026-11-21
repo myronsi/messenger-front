@@ -10,7 +10,7 @@ import { ProfileBanner } from '@/shared/ui/profile/ProfileHero';
 import type { ProfileExtrasDraft } from '../model/useProfileExtrasDraft';
 import { useEditableAvatar } from './EditableAvatar';
 import { ProfileExtrasFields } from './ProfileExtrasFields';
-import { LeaveUnsavedDialog } from './UnsavedChanges';
+import { LeaveUnsavedDialog } from '@/shared/ui/UnsavedChanges';
 import { BackToClose } from '@/shared/ui/BackToClose';
 
 const BIO_MAX = 500;

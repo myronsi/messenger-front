@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
-import { ModalSurface } from '@/shared/ui/ModalSurface';
+import { Flag } from 'lucide-react';
+import { ActionDialog } from '@/shared/ui/ActionDialog';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { toast } from '@/shared/ui/sonner';
@@ -8,6 +8,7 @@ import type { ContentReportRequest } from '@/entities/message';
 import { useReportGroupMutation, useReportMessageMutation, type ContentReportReason } from '../api/moderationApi';
 import { CONTENT_REPORT_REASONS, MAX_CONTENT_REPORT_NOTE } from '../model/accountStatus';
 import { GuidelinesHint } from './GuidelinesHint';
+import { ReasonChips } from './ReasonChips';
 
 interface ReportContentDialogProps {
   request: ContentReportRequest;
@@ -49,50 +50,28 @@ export const ReportContentDialog = ({ request, onClose }: ReportContentDialogPro
   };
 
   return (
-    <ModalSurface label={title}
-      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
-      onClick={(event) => event.stopPropagation()} onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
-      <form className="motion-panel-in relative max-h-full w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg"
-        onSubmit={(event) => { event.preventDefault(); void submit(); }}>
-        <button type="button" onClick={onClose} aria-label={t.cancel}
-          className="motion-press absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100">
-          <X className="h-4 w-4" />
-        </button>
-        <h3 className="mb-2 pr-6 text-lg font-semibold leading-none tracking-tight">{title}</h3>
-        <p className="mb-2 text-sm text-muted-foreground">
-          {fillTemplate(request.kind === 'message' ? t.reportMessageDescription : t.reportGroupDescription, values)}
-        </p>
-        <GuidelinesHint className="mb-4" />
-        <fieldset className="mb-4">
-          <legend className="mb-2 text-sm font-medium">{t.reasonLabel}</legend>
-          <div className="space-y-1">
-            {CONTENT_REPORT_REASONS.map((key) => (
-              <label key={key} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent">
-                <input type="radio" name="content-report-reason" value={key} checked={reason === key}
-                  onChange={() => { setReason(key); setError(null); }} className="h-4 w-4 accent-primary" />
-                <span>{t.contentReasons[key]}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <label className="mb-1 block text-sm font-medium" htmlFor="content-report-note">{illegal ? t.illegalNoteLabel : t.noteLabel}</label>
-        <textarea id="content-report-note" value={note} maxLength={MAX_CONTENT_REPORT_NOTE} rows={illegal ? 5 : 3}
-          placeholder={illegal ? t.illegalNotePlaceholder : t.notePlaceholder} required={illegal} aria-invalid={!!error && missingNote}
-          onChange={(event) => { setNote(event.target.value.slice(0, MAX_CONTENT_REPORT_NOTE)); setError(null); }}
-          className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <p className="mb-3 text-right text-xs text-muted-foreground">{fillTemplate(t.contentNoteCounter, { count: String(note.length) })}</p>
-        {illegal && <p className="mb-4 text-xs text-muted-foreground">{t.illegalHint}</p>}
-        {error && <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="motion-press rounded-md bg-secondary px-4 py-2 text-secondary-foreground transition-colors hover:bg-secondary/90">
-            {t.cancel}
-          </button>
-          <button type="submit" disabled={!reason || busy || missingNote}
-            className="motion-press rounded-md bg-destructive px-4 py-2 text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50">
-            {t.submit}
-          </button>
-        </div>
-      </form>
-    </ModalSurface>
+    <ActionDialog
+      icon={<Flag />}
+      title={title}
+      points={[fillTemplate(request.kind === 'message' ? t.reportMessageDescription : t.reportGroupDescription, values)]}
+      confirmText={t.submit}
+      cancelText={t.cancel}
+      busy={busy}
+      confirmDisabled={!reason || missingNote}
+      error={error}
+      onCancel={onClose}
+      onConfirm={() => void submit()}
+    >
+      <GuidelinesHint className="-mt-2 mb-4" />
+      <ReasonChips name="content-report-reason" legend={t.reasonLabel} reasons={CONTENT_REPORT_REASONS} labels={t.contentReasons}
+        value={reason} onChange={(key) => { setReason(key); setError(null); }} />
+      <label className="mb-1 block text-sm text-muted-foreground" htmlFor="content-report-note">{illegal ? t.illegalNoteLabel : t.noteLabel}</label>
+      <textarea id="content-report-note" value={note} maxLength={MAX_CONTENT_REPORT_NOTE} rows={illegal ? 5 : 3}
+        placeholder={illegal ? t.illegalNotePlaceholder : t.notePlaceholder} required={illegal} aria-invalid={!!error && missingNote}
+        onChange={(event) => { setNote(event.target.value.slice(0, MAX_CONTENT_REPORT_NOTE)); setError(null); }}
+        className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm" />
+      <p className="mb-3 text-right text-xs text-muted-foreground">{fillTemplate(t.contentNoteCounter, { count: String(note.length) })}</p>
+      {illegal && <p className="mb-4 text-xs text-muted-foreground">{t.illegalHint}</p>}
+    </ActionDialog>
   );
 };

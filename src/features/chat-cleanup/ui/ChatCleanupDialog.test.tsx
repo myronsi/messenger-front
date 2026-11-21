@@ -16,7 +16,7 @@ describe('ChatCleanupDialog', () => {
   it('deletes for me by default and for both when the box is ticked', () => {
     const onConfirm = renderDialog({ kind: 'delete', target });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Also delete for Anna' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete chat' }));
     expect(onConfirm).toHaveBeenCalledWith(true);
   });
 
@@ -27,7 +27,19 @@ describe('ChatCleanupDialog', () => {
     expect(offersEveryone({ kind: 'clear', target: { ...target, isSaved: true } })).toBe(false);
     const onConfirm = renderDialog({ kind: 'clear', target: { ...target, isGroup: true } });
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear history' }));
     expect(onConfirm).toHaveBeenCalledWith(false);
+  });
+  it('says what happens for you and for the other person', () => {
+    renderDialog({ kind: 'delete', target });
+    expect(screen.getByText('Delete the chat with Anna?')).toBeInTheDocument();
+    expect(screen.getByText('Anna keeps their copy unless you tick the box below.')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Also delete for Anna' })).not.toBeChecked();
+  });
+
+  it('tells group members without the box that the others keep the messages', () => {
+    renderDialog({ kind: 'clear', target: { ...target, name: 'Team', isGroup: true } });
+    expect(screen.getByText('Clear the history of Team?')).toBeInTheDocument();
+    expect(screen.getByText('The other members still see every message.')).toBeInTheDocument();
   });
 });

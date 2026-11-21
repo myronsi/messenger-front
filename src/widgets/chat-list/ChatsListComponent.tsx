@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Inbox, ChevronRight } from 'lucide-react';
+import { Ban, ChevronRight, Eraser, Flag, Inbox, Trash2 } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { toast } from '@/shared/ui/sonner';
 import { useGetCurrentUserQuery } from '@/features/profile';
@@ -11,9 +11,10 @@ import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
 import ChatsListHeader from './ChatsListHeader';
 import ChatListBody from './ui/ChatListBody';
 import ChatSearchOverlay from './ui/ChatSearchOverlay';
-import ChatContextMenu from './ui/ChatContextMenu';
+import ChatContextMenu, { type ChatMenuAction } from './ui/ChatContextMenu';
 import { useChatListModel } from './model/useChatListModel';
-import { ChatCleanupDialog, useChatCleanup } from '@/features/chat-cleanup';
+import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
+import { ReportUserDialog } from '@/features/moderation';
 import type { Chat } from '@/entities/message';
 import type { ChatsListComponentProps } from './model/types';
 import { selfName } from '@/shared/lib/selfName';
@@ -44,19 +45,38 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
     void model.refetch();
   });
   const pendingRequests = model.requestInbox?.unread_count || 0;
-  const cleanup = useChatCleanup((request) => {
-    toast(request.kind === 'delete' ? model.translations.chatCleanup.deleted : model.translations.chatCleanup.cleared);
-    if (request.kind === 'delete') props.onChatDeleted?.(request.target.chatId);
-    void model.refetch();
-  }, (message) => model.setModal({ type: 'error', message: message || model.translations.errorLoading }));
+  const actions = useChatActions({
+    onDeleted: (chatId) => {
+      props.onChatDeleted?.(chatId);
+      void model.refetch();
+    },
+    onCleared: () => void model.refetch(),
+  });
   const menuChat = model.chats.find((chat) => chat.id === model.chatContextMenu?.chatId);
-  const askCleanup = (kind: 'delete' | 'clear', chat?: Chat) => {
-    model.closeChatContextMenu();
-    if (!chat) return;
-    cleanup.open({ kind, target: {
-      chatId: chat.id, name: plainEmoji(chat.is_saved ? selfName(chat.display_name || chat.name, model.translations) : chat.display_name || chat.name),
-      isGroup: chat.type === 'group', isSaved: !!chat.is_saved, canClearForEveryone: chat.my_role === 'owner' || chat.my_role === 'admin',
-    } });
+  const menuActions = (chat?: Chat): ChatMenuAction[] => {
+    if (!chat) return [];
+    const t = model.translations;
+    const target: ChatActionTarget = {
+      chatId: chat.id, username: chat.name, isGroup: chat.type === 'group', isSaved: !!chat.is_saved,
+      name: plainEmoji(chat.is_saved ? selfName(chat.display_name || chat.name, t) : chat.display_name || chat.name),
+      canClearForEveryone: chat.my_role === 'owner' || chat.my_role === 'admin',
+    };
+    const run = (action: (target: ChatActionTarget) => void) => () => {
+      model.closeChatContextMenu();
+      action(target);
+    };
+    const direct = chat.type === 'one-on-one' && !chat.is_saved && !chat.interlocutor_deleted;
+    const blocked = direct && actions.isBlocked(chat.name);
+    return [
+      { key: 'clear', label: t.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: run(actions.openClear) },
+      ...(chat.type === 'one-on-one' ? [
+        { key: 'delete', label: t.chatCleanup.deleteChat, icon: <Trash2 className="h-4 w-4" />, danger: true, onSelect: run(actions.openDelete) },
+      ] : []),
+      ...(direct ? [
+        { key: 'block', label: blocked ? t.blockUser.unblock : t.blockUser.block, icon: <Ban className="h-4 w-4" />, danger: !blocked, onSelect: run(actions.openBlock) },
+        { key: 'report', label: t.moderation.report, icon: <Flag className="h-4 w-4" />, danger: true, onSelect: run((value) => void actions.openReport(value)) },
+      ] : []),
+    ];
   };
   const openSaved = () => {
     const saved = model.chats.find((chat) => chat.is_saved);
@@ -137,13 +157,14 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         onMarkAsRead={model.handleMarkChatRead}
         onTogglePinned={model.handleTogglePinnedChat}
         onToggleArchived={model.handleToggleArchived}
-        onDeleteChat={menuChat?.type === 'one-on-one' ? () => askCleanup('delete', menuChat) : undefined}
+        actions={menuActions(menuChat)}
         canMute={!menuChat?.is_saved}
         onClose={model.closeChatContextMenu}
         onError={(message) => model.setModal({ type: 'error', message })}
       />
 
-      <ChatCleanupDialog request={cleanup.request} onCancel={cleanup.close} onConfirm={(forEveryone) => void cleanup.confirm(forEveryone)} />
+      {actions.dialogs}
+      {actions.reporting && <ReportUserDialog userId={actions.reporting.userId} name={actions.reporting.name} onClose={actions.closeReport} />}
 
       {groupModal.mounted && (
         <GroupCreateModal currentUsername={model.username} closing={groupModal.closing} onClose={() => setCreatingGroup(false)} onCreate={createGroup} />

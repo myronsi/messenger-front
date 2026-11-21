@@ -211,6 +211,27 @@
     transform: scale(0.96);
   }
 
+  .motion-header-press {
+    transition: background-color 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .motion-header-press .motion-avatar,
+  .motion-header-press .motion-header-text {
+    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 160ms ease;
+  }
+
+  .motion-header-press:active .motion-avatar {
+    transform: scale(0.88);
+    transition-duration: 90ms;
+  }
+
+  .motion-header-press:active .motion-header-text {
+    transform: translateX(3px);
+    opacity: 0.75;
+    transition-duration: 90ms;
+  }
+
   .motion-avatar {
     transition: transform 180ms ease, opacity 160ms ease, box-shadow 180ms ease;
   }

@@ -48,13 +48,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onClick={event => event.stopPropagation()} onTouchStart={event => event.stopPropagation()}
       onTouchEnd={event => event.stopPropagation()} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}>
       <div className="motion-panel-in relative bg-card w-full max-w-lg p-6 rounded-lg shadow-lg border border-border">
-        <button
+        {(isError || hideCancel) && <button
           onClick={onCancel}
           className="motion-press absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <X className="h-4 w-4" />
           <span className="sr-only">{translations.close}</span>
-        </button>
+        </button>}
         <h3 className="text-lg font-semibold leading-none tracking-tight mb-2">{title}</h3>
         <p className="text-muted-foreground mb-3">{message}</p>
         {details}

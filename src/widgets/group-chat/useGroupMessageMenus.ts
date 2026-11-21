@@ -34,22 +34,22 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
     setContextMenu({ ...placement.context, openLeft: placement.openLeft, messageId: message.id, isMine: isOwnMessage(message) });
   }, [isOwnMessage]);
 
+  const openOrCloseMenus = useCallback((message: Message, event: { clientX: number; clientY: number }) => {
+    if (contextMenu || reactionMenu) {
+      setIsClosing(true);
+      setTimeout(closeMenus, 200);
+      return;
+    }
+    openMenus(message, event);
+  }, [closeMenus, contextMenu, openMenus, reactionMenu]);
+
   const handleMessageClick = useCallback((event: React.MouseEvent, message: Message) => {
     if (window.innerWidth < 768 || event.type === 'contextmenu') {
       event.preventDefault();
       event.stopPropagation();
-      if (contextMenu?.messageId === message.id && reactionMenu?.message.id === message.id) {
+      if (contextMenu || reactionMenu) {
         setIsClosing(true);
         setTimeout(closeMenus, 200);
-        return;
-      }
-      if (contextMenu || reactionMenu) {
-        const point = { clientX: event.clientX, clientY: event.clientY };
-        setIsClosing(true);
-        setTimeout(() => {
-          closeMenus();
-          if (event.type === 'contextmenu') openMenus(message, point);
-        }, 200);
         return;
       }
       openMenus(message, event);
@@ -85,6 +85,6 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
     contextMenu, setContextMenu, reactionMenu, setReactionMenu, isClosing,
     highlightedMessageId, setHighlightedMessageId, tempHighlightedMessageId, setTempHighlightedMessageId,
     messageRefs, contextMenuRef, reactionMenuRef,
-    closeMenus, openMenus, handleMessageClick, scrollToMessage, jumpToSearchResult,
+    closeMenus, openMenus: openOrCloseMenus, handleMessageClick, scrollToMessage, jumpToSearchResult,
   };
 };

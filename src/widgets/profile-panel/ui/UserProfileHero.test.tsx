@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
 import UserProfileHero from './UserProfileHero';
 
-const cleanupOpen = vi.fn();
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en } = await vi.importActual<typeof import('@/shared/lang/en')>('@/shared/lang/en');
   return { useLanguage: () => ({ language: 'en', translations: en }) };
@@ -16,16 +15,26 @@ vi.mock('@/features/moderation', async () => ({
   ...await vi.importActual<typeof import('@/features/moderation')>('@/features/moderation'),
   ReportUserDialog: ({ name }: { name: string }) => <div role="dialog">report {name}</div>,
 }));
-vi.mock('@/features/chat-cleanup', () => ({
-  useChatCleanup: () => ({ request: null, open: cleanupOpen, close: vi.fn(), confirm: vi.fn() }), ChatCleanupDialog: () => null,
-}));
+const actions = vi.hoisted(() => ({ openDelete: vi.fn(), openClear: vi.fn(), openBlock: vi.fn() }));
+vi.mock('@/features/chat-cleanup', async () => {
+  const { useState } = await vi.importActual<typeof import('react')>('react');
+  return {
+    useChatActions: () => {
+      const [reporting, setReporting] = useState<{ userId: string; name: string } | null>(null);
+      return {
+        ...actions, isBlocked: () => false, dialogs: null, reporting, closeReport: () => setReporting(null),
+        openReport: async (target: { userId?: string; name: string }) => setReporting({ userId: target.userId ?? '0', name: target.name }),
+      };
+    },
+  };
+});
 
 const renderHero = (overrides: Partial<React.ComponentProps<typeof UserProfileHero>> = {}) => {
   const props: React.ComponentProps<typeof UserProfileHero> = {
     username: 'bea', displayName: 'Bea', accountDisplayName: 'Bea', avatarUrl: '/bea.png', hasCustomAvatar: false,
-    isOnline: false, directChatId: '7', canMessage: true, isBlocked: false, canDeleteChat: true,
+    isOnline: false, directChatId: '7', canMessage: true, isBlocked: false,
     tabs: ['details'], activeView: 'details', onSelectView: vi.fn(), onMessage: vi.fn(), onAvatarHistory: vi.fn(),
-    onDeleteChat: vi.fn(), onBlock: vi.fn(), isCurrentUser: false, isEditingContactName: false, customNameInput: '',
+    onChatDeleted: vi.fn(), isCurrentUser: false, isEditingContactName: false, customNameInput: '',
     setCustomNameInput: vi.fn(), onSaveContactName: vi.fn(), onCancelContactNameEdit: vi.fn(), onEditContactName: vi.fn(),
     isSavingContactName: false, ...overrides,
   };
@@ -41,13 +50,14 @@ describe('UserProfileHero', () => {
     expect(screen.queryByRole('button', { name: en.profileRework.block })).not.toBeInTheDocument();
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: en.chatCleanup.clearHistory }));
-    expect(cleanupOpen).toHaveBeenCalledWith(expect.objectContaining({ kind: 'clear' }));
+    const target = expect.objectContaining({ chatId: '7', username: 'bea', name: 'Bea' });
+    expect(actions.openClear).toHaveBeenCalledWith(target);
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: en.chatCleanup.deleteChat }));
-    expect(props.onDeleteChat).toHaveBeenCalledOnce();
+    expect(actions.openDelete).toHaveBeenCalledWith(target);
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: en.profileRework.block }));
-    expect(props.onBlock).toHaveBeenCalledOnce();
+    expect(actions.openBlock).toHaveBeenCalledWith(target);
     openMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: en.profileRework.rename }));
     expect(props.onEditContactName).toHaveBeenCalledOnce();

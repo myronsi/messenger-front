@@ -93,8 +93,7 @@ export const useChatInteractions = ({
     if (interlocutorDeleted) return;
     const point = { clientX: event.clientX, clientY: event.clientY };
     if (contextMenu || reactionMenu) {
-      const sameMessage = contextMenu?.messageId === message.id;
-      closeThen(event.type === 'contextmenu' && !sameMessage ? () => openMenusAt(message, point) : undefined);
+      closeThen();
       return;
     }
     openMenusAt(message, point);
@@ -103,8 +102,7 @@ export const useChatInteractions = ({
   const onOpenReactionMenu = (message: Message, event: React.MouseEvent) => {
     const point = { clientX: event.clientX, clientY: event.clientY };
     if (contextMenu || reactionMenu) {
-      const sameMessage = contextMenu?.messageId === message.id;
-      closeThen(sameMessage ? undefined : () => openMenusAt(message, point));
+      closeThen();
       return;
     }
     openMenusAt(message, point);

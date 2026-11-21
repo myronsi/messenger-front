@@ -1,7 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import { Archive, ArchiveRestore, CheckCheck, Pin, PinOff, Trash2 } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Archive, ArchiveRestore, CheckCheck, Pin, PinOff } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChatMuteMenuItems } from '@/features/chat-mute';
 import type { ChatContextMenuState } from '../model/types';
 import { useDismissFirstMenu } from '@/shared/lib/useDismissFirstMenu';
@@ -16,16 +16,24 @@ interface ChatContextMenuProps {
   onMarkAsRead: (chatId: EntityId) => void;
   onTogglePinned: (chatId: EntityId) => void;
   onToggleArchived: (chatId: EntityId) => void;
-  onDeleteChat?: (chatId: EntityId) => void;
+  actions?: ChatMenuAction[];
   onClose: () => void;
   onError: (message: string) => void;
   canMute?: boolean;
 }
 
+export interface ChatMenuAction {
+  key: string;
+  label: string;
+  icon: ReactNode;
+  danger?: boolean;
+  onSelect: () => void;
+}
+
 type MenuView = { chatId: EntityId | null; name: 'main' | 'mute'; direction: 'forward' | 'back' | null };
 
 const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, translations, onMarkAsRead, onTogglePinned,
-  onToggleArchived, onDeleteChat, onClose, onError, canMute = true }) => {
+  onToggleArchived, actions = [], onClose, onError, canMute = true }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   useDismissFirstMenu(!!menu, menuRef, onClose);
   const [shown, setShown] = useState(menu);
@@ -121,16 +129,6 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
               {shown.isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
               <span>{shown.isArchived ? translations.chatOrganizer.unarchive : translations.chatOrganizer.archive}</span>
             </button>
-            {onDeleteChat && (
-              <button
-                type="button"
-                onClick={() => onDeleteChat(shown.chatId)}
-                className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>{translations.chatCleanup.deleteChat}</span>
-              </button>
-            )}
           </>
         )}
         {canMute && (
@@ -142,6 +140,24 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
             onDone={onClose}
             onError={onError}
           />
+        )}
+        {!isChoosingMute && actions.length > 0 && (
+          <>
+            <div role="separator" className="my-1 h-px bg-border" />
+            {actions.map((action) => (
+              <button
+                key={action.key}
+                type="button"
+                onClick={action.onSelect}
+                className={`flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm transition-colors ${
+                  action.danger ? 'text-destructive hover:bg-destructive/10' : 'hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                {action.icon}
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </>
         )}
       </div>
     </div>
