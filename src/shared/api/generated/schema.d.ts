@@ -1922,6 +1922,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chats/{chat_id}/messages/{message_id}/pin": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pin a message
+         * @description `me` pins the message only for the caller. `everyone` pins it for every member: in a direct chat either
+         *     user may, in a group only a moderator, admin or owner (`403` otherwise). Saved Messages, a chat in the
+         *     caller's Requests folder and a direct chat with a block allow only `me` (`403` for `everyone`). System and
+         *     call messages cannot be pinned (`422`); a message the caller cannot see is `404`. A chat holds at most 500
+         *     pins for everyone, and each member at most 500 own pins in it (`409` `limit_reached`).
+         *
+         *     Pinning a pinned message changes nothing, except that `me` shows a pin for everyone again that the caller
+         *     hid. Pinning for everyone a message the caller pinned for themselves keeps their own pin underneath: it
+         *     shows again when the pin for everyone is removed. Pinning or unpinning for everyone posts a system message
+         *     (`message_pinned`, `message_unpinned`) without a push notification. Every change sends `pin_update`.
+         */
+        put: operations["pinMessage"];
+        post?: never;
+        /**
+         * Unpin a message
+         * @description `me` removes the caller's own pin, or hides a pin for everyone only for the caller (it stays pinned for the
+         *     others). `everyone` removes the pin for everyone: in a direct chat either user may; in a group a moderator,
+         *     admin or owner whose role is at least the role the pinner has now (owner > admin > moderator; a pinner who
+         *     left or is a member counts as member), otherwise `403`. `PinnedMessage.can_unpin_for_everyone` tells the
+         *     client in advance. Unpinning a message that is not pinned changes nothing.
+         */
+        delete: operations["unpinMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/pins": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The pinned messages of a chat as the caller sees them
+         * @description Pins for everyone the caller did not hide, and the caller's own pins, newest pin first. A message pinned
+         *     both ways appears once, as `everyone`. Messages the caller cannot see (deleted, deleted for them, cleared
+         *     from their history) are left out. `Chat.pinned_message_count` counts the same pins.
+         */
+        get: operations["listPinnedMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chats/{chat_id}/messages/forward": {
         parameters: {
             query?: never;
@@ -5532,12 +5606,12 @@ export interface components {
             height: number | null;
         };
         /** @enum {string} */
-        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call";
+        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call" | "message_pinned" | "message_unpinned";
         /**
          * @description What a `system` message records; set on system messages only, whose `content` is then `null`. The names
          *     are the display names at the time of the event. `target` fields are set for `member_added` and
          *     `member_removed`. `call` is set for `call` messages: one per call, posted when the call ends, `actor` is the
-         *     initiator.
+         *     initiator. `message_id` and `snippet` are set for `message_pinned` and `message_unpinned`.
          */
         SystemEvent: {
             kind: components["schemas"]["SystemEventKind"];
@@ -5546,6 +5620,14 @@ export interface components {
             target_id?: components["schemas"]["Id"];
             target_name?: string;
             call?: components["schemas"]["CallSummary"];
+            /** @description The pinned or unpinned message. */
+            message_id?: components["schemas"]["Id"];
+            /**
+             * @description Start of the pinned message's text at the time of the event (at most 60 characters plus `…`); empty for a
+             *     message without text, which clients name by its `message_type`.
+             */
+            snippet?: string;
+            message_type?: components["schemas"]["MessageType"];
         };
         MessagePage: {
             /** @description Oldest to newest */
@@ -5684,6 +5766,8 @@ export interface components {
             last_message: components["schemas"]["Message"] | null;
             /** @description Only for groups. */
             my_role?: components["schemas"]["GroupRole"] | null;
+            /** @description Pinned messages the caller sees (`GET /chats/{chat_id}/pins`); clients show the pinned bar above 0. */
+            pinned_message_count: number;
             created_at: components["schemas"]["Timestamp"];
         };
         ChatRequestCount: {
@@ -5699,6 +5783,28 @@ export interface components {
         };
         PinOrderRequest: {
             chat_ids: components["schemas"]["Id"][];
+        };
+        /**
+         * @description `me`: only for the caller. `everyone`: for every member of the chat.
+         * @enum {string}
+         */
+        PinScope: "me" | "everyone";
+        PinMessageRequest: {
+            scope: components["schemas"]["PinScope"];
+        };
+        PinnedMessage: {
+            message: components["schemas"]["Message"];
+            scope: components["schemas"]["PinScope"];
+            /** @description Who pinned it; the caller for `me`. */
+            pinned_by: components["schemas"]["Id"];
+            pinned_at: components["schemas"]["Timestamp"];
+            /** @description Whether `DELETE …/pin?scope=everyone` is allowed for the caller; always `false` for `me`. */
+            can_unpin_for_everyone: boolean;
+        };
+        PinnedMessagePage: {
+            /** @description Newest pin first */
+            items: components["schemas"]["PinnedMessage"][];
+            next_cursor: components["schemas"]["Cursor"];
         };
         CreateChatRequest: {
             user_id: components["schemas"]["Id"];
@@ -9367,6 +9473,114 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    pinMessage: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PinMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description The pin as the caller sees it */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PinnedMessage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    unpinMessage: {
+        parameters: {
+            query: {
+                scope: components["schemas"]["PinScope"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unpinned */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listPinnedMessages: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque `next_cursor` of the previous page */
+                after?: components["parameters"]["After"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pinned messages, newest pin first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PinnedMessagePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
         };
     };

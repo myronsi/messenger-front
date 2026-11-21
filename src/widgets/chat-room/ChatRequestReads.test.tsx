@@ -39,6 +39,7 @@ vi.mock('@/features/message-list', () => ({
   MessageList: (props: Record<string, unknown>) => { state.listProps = props; return null; },
 }));
 vi.mock('@/features/message-composer', () => ({ MessageComposer: () => null }));
+vi.mock('@/features/message-pins', () => ({ MessagePins: () => null }));
 vi.mock('@/features/image-drawing', () => ({ ImageDrawingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('@/features/message-actions', () => ({
   useMessageSelection: () => ({ selection: { active: false }, start: vi.fn(), clear: vi.fn(), selectAll: vi.fn(), intercept: (fn: unknown) => fn }),

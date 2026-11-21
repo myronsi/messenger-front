@@ -55,7 +55,8 @@ export interface ForwardedFrom {
   sender_username?: string | null;
 }
 
-export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call';
+export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call'
+  | 'message_pinned' | 'message_unpinned';
 
 export interface CallSummaryInfo {
   call_id: EntityId;
@@ -71,6 +72,9 @@ export interface SystemEventInfo {
   target_id?: EntityId;
   target_name?: string;
   call?: CallSummaryInfo;
+  message_id?: EntityId;
+  snippet?: string;
+  message_type?: 'text' | 'file' | 'voice' | 'system' | 'sticker';
 }
 
 export interface ChatLastMessage {
@@ -250,6 +254,23 @@ export interface Chat {
   my_role?: string | null;
   pending_approval_request?: boolean;
   pending_request_id?: EntityId;
+  pinned_message_count?: number;
+}
+
+export type PinScope = 'me' | 'everyone';
+
+export interface PinnedMessage {
+  message: Message;
+  scope: PinScope;
+  pinned_by: EntityId;
+  pinned_at: string;
+  can_unpin_for_everyone: boolean;
+}
+
+export interface PinnedMessages {
+  items: PinnedMessage[];
+  next_cursor: string | null;
+  count: number | null;
 }
 
 export interface ContextMenuState {

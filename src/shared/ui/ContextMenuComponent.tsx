@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowLeft, CheckSquare, ChevronRight, Edit, MoreHorizontal, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag } from 'lucide-react';
+import { ArrowLeft, CheckSquare, ChevronRight, Edit, MoreHorizontal, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag, Pin, PinOff } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
@@ -18,6 +18,8 @@ interface ContextMenuProps {
   onSelect?: () => void;
   onMakeSticker?: () => void;
   onReport?: () => void;
+  onTogglePin?: () => void;
+  pinned?: boolean;
   audioActions?: { onPlayNext: () => void; onAddToQueue: () => void; onAddToPlaylist: () => void };
   isClosing: boolean;
   onClose: () => void;
@@ -38,7 +40,7 @@ const REACTION_MENU_OFFSET = 48;
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({
     x, y, isMine, openLeft = false, onEdit, onDeleteForMe, onDeleteForEveryone, forBoth = false, onCopy, onReply, onForward, onSelect, onMakeSticker,
-    onReport, audioActions, isClosing, onClose,
+    onReport, onTogglePin, pinned = false, audioActions, isClosing, onClose,
   }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
@@ -150,6 +152,12 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
               <button type="button" className={itemClass} onClick={onForward}>
                 <Forward className="w-4 h-4 mr-2" />
                 <span className="truncate">{translations.forward || 'Forward'}</span>
+              </button>
+            )}
+            {onTogglePin && (
+              <button type="button" className={itemClass} onClick={onTogglePin}>
+                {pinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
+                <span className="truncate">{pinned ? translations.messagePins.unpin : translations.messagePins.pin}</span>
               </button>
             )}
             {audioActions && (

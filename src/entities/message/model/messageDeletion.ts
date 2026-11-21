@@ -29,6 +29,12 @@ export const notifyMessageDeletedLocally = (chatId: EntityId, messageId: EntityI
   window.dispatchEvent(new CustomEvent<LocalDeleteDetail>(LOCAL_DELETE_EVENT, { detail: { chatId, messageId } }));
 };
 
+export const onLocalMessageDeleted = (listener: (detail: LocalDeleteDetail) => void) => {
+  const handler = (event: Event) => listener((event as CustomEvent<LocalDeleteDetail>).detail);
+  window.addEventListener(LOCAL_DELETE_EVENT, handler);
+  return () => window.removeEventListener(LOCAL_DELETE_EVENT, handler);
+};
+
 export const useLocalMessageDeletion = (chatId: EntityId, setMessages: Dispatch<SetStateAction<Message[]>>) => {
   useEffect(() => {
     const handler = (event: Event) => {

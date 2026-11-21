@@ -94,7 +94,12 @@ export const messageModel = (message: Schema['Message']) => ({
   reactions: message.reactions.map(({ emoji, user_id }) => ({ reaction: emoji, user_id })),
 });
 
-export const directChatModel = (chat: Schema['Chat']) => ({
+export const pinnedMessageModel = (pin: Schema['PinnedMessage']) => ({
+  ...pin,
+  message: messageModel(pin.message),
+});
+
+export const directChatModel =(chat: Schema['Chat']) => ({
   ...chat,
   interlocutor_name: chat.peer?.username || '',
   interlocutor_display_name: chat.peer?.contact_name || chat.peer?.display_name || chat.name,
