@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.31](https://github.com/myronsi/messenger-front/compare/v0.6.30...v0.6.31) (2026-11-21)
+
+
+### Features
+
+* **chat:** one window for delete, clear, block and report, undo, and a group edit page ([#248](https://github.com/myronsi/messenger-front/issues/248)) ([d89b16c](https://github.com/myronsi/messenger-front/commit/d89b16ca7b47752018ae6d3d72369fd2013fbd2b))
+* **sharing:** profile and group links, public pages, invite links and mentions ([#246](https://github.com/myronsi/messenger-front/issues/246)) ([d3da81e](https://github.com/myronsi/messenger-front/commit/d3da81e5ab94fbd719702eca9681018bdd9d1e6d))
+
 ## [0.6.30](https://github.com/myronsi/messenger-front/compare/v0.6.29...v0.6.30) (2026-11-20)
 
 
