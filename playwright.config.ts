@@ -2,7 +2,7 @@ import process from 'node:process';
 import { API_VERSION } from '@myronsi/messenger-api';
 import { defineConfig } from '@playwright/test';
 
-const DEFAULT_API_URL = 'http://127.0.0.1:8000/api/v2';
+const DEFAULT_API_URL = 'http://localhost:8000/api/v2';
 process.env.GO_API_TESTS ??= '1';
 const APP_URL = 'http://localhost:5173';
 
