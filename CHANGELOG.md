@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.33](https://github.com/myronsi/messenger-front/compare/v0.6.32...v0.6.33) (2026-11-22)
+
+
+### Features
+
+* **auth:** device-bound sessions and in-memory access token ([#252](https://github.com/myronsi/messenger-front/issues/252)) ([8bd6d08](https://github.com/myronsi/messenger-front/commit/8bd6d085cc6a5611e2e0a8997755f95383e848fb))
+* chat UX overhaul, pinned redesign, forward screen and window rule ([#254](https://github.com/myronsi/messenger-front/issues/254)) ([7ab8033](https://github.com/myronsi/messenger-front/commit/7ab8033a272a86cf99271d7dac48bb7573c1e246))
+
 ## [0.6.32](https://github.com/myronsi/messenger-front/compare/v0.6.31...v0.6.32) (2026-11-21)
 
 
