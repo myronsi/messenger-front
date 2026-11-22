@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { allowGroupInvites, createEnglishContext, createSmokeUser, loginUser, openOwnProfile, registerUser } from './helpers';
+import { allowGroupInvites, createEnglishContext, createSmokeUser, loginUser, openOwnProfile, pageAccessToken, registerUser } from './helpers';
 
 test('Go profile, avatar, privacy, sessions, groups and blocking remain usable', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the isolated Go staging backend');
@@ -22,9 +22,10 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
     await (reuse ? loginUser : registerUser)(page, user);
     await (reuse ? loginUser : registerUser)(other, peer);
     await allowGroupInvites(other);
-    const result = await page.evaluate(async ({ peer, image, api }) => {
+    const token = await pageAccessToken(page);
+    const result = await page.evaluate(async ({ peer, image, api, token }) => {
       const base = api || `${location.origin}/api/v2`;
-      const headers = { Authorization: `Bearer ${localStorage.getItem('access_token')}` };
+      const headers = { Authorization: `Bearer ${token}` };
       const request = async (path: string, method = 'GET', body?: unknown) => {
         const response = await fetch(`${base}${path}`, { method, headers: { ...headers, ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}) }, body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined });
         const text = await response.text();
@@ -52,7 +53,7 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
       const blockedNames = blocked.users.map((item: {username: string}) => item.username);
       return { me, avatars, security, sessions, privacy, groupId: group.chat_id,
         memberCount: details.participants.length, blocked: blockedNames };
-    }, { peer: peer.username, image, api: process.env.E2E_API_URL });
+    }, { peer: peer.username, image, api: process.env.E2E_API_URL, token });
     expect(result.me.display_name).toBe('Updated smoke profile');
     expect(result.me.bio).toBe('Go migration test');
     expect(result.avatars.avatars.length).toBeGreaterThan(0);
@@ -70,12 +71,12 @@ test('Go profile, avatar, privacy, sessions, groups and blocking remain usable',
     await openOwnProfile(page);
     await expect(page.getByText('Updated smoke profile').first()).toBeVisible();
     await expect.poll(async () => page.locator('img').evaluateAll(images => images.some(image => image instanceof HTMLImageElement && image.src.startsWith('blob:') && image.complete && image.naturalWidth > 0))).toBe(true);
-    await page.evaluate(async ({ groupId, api }) => {
+    await page.evaluate(async ({ groupId, api, token }) => {
       const response = await fetch(`${api || `${location.origin}/api/v2`}/groups/delete/${groupId}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(`Test group cleanup failed: ${response.status}`);
-    }, { groupId: result.groupId, api: process.env.E2E_API_URL });
+    }, { groupId: result.groupId, api: process.env.E2E_API_URL, token: await pageAccessToken(page) });
   } finally {
     await Promise.all([context.close(), otherContext.close()]);
   }

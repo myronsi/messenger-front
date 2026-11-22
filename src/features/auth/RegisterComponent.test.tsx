@@ -214,7 +214,6 @@ describe('RegisterComponent', () => {
   });
 
   it('sets the display name on the profile step', async () => {
-    localStorage.setItem('access_token', 'token');
     const fetchMock = vi.fn((url: string) => (url.endsWith('/auth/register')
       ? reply(201, { access_token: 'token', recovery_key: 'AAAA-BBBB' })
       : reply(200, { id: 1, username: 'alex_m', display_name: 'Alex Miller' })));

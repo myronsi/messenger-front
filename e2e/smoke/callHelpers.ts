@@ -1,4 +1,5 @@
 import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { pageAccessToken, trackAccessTokens } from './helpers';
 
 export const report = (label: string, value: unknown) => {
   process.stdout.write(`[calls] ${label}: ${JSON.stringify(value)}\n`);
@@ -36,6 +37,7 @@ const apiUrl = () => process.env.E2E_API_URL!;
 
 export const callContext = async (browser: Browser, label: string): Promise<TrackedContext> => {
   const context = await browser.newContext({ permissions: ['microphone'] });
+  trackAccessTokens(context);
   await context.addInitScript(() => {
     window.localStorage.setItem('language', 'en');
     const probe = { pcs: [] as RTCPeerConnection[], tracks: [] as MediaStreamTrack[] };
@@ -95,16 +97,16 @@ export const callContext = async (browser: Browser, label: string): Promise<Trac
 };
 
 export const apiRequest = async <T>(page: Page, path: string, init: { method?: string; body?: unknown } = {}) => page.evaluate(
-  async ({ api, path: target, method, body }) => {
+  async ({ api, path: target, method, body, token }) => {
     const response = await fetch(`${api}${target}`, {
       method: method ?? 'GET',
-      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await response.text();
     return { status: response.status, body: text ? JSON.parse(text) : null };
   },
-  { api: apiUrl(), path, method: init.method, body: init.body },
+  { api: apiUrl(), path, method: init.method, body: init.body, token: await pageAccessToken(page) },
 ) as Promise<{ status: number; body: T }>;
 
 export const callsEnabled = async (page: Page) => {

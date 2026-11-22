@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import {
   confirmRecoveryReceipt, createEnglishContext, createSmokeUser, loginUser, logoutUser, openProfile, openSecuritySetting,
-  skipRegistrationExtras, waitForMessenger,
+  pageAccessToken, skipRegistrationExtras, waitForMessenger,
 } from './helpers';
 
 test('an existing Go user can enroll a recovery key after signing in', async ({ browser }) => {
@@ -63,7 +63,7 @@ test('Go recovery saves a single-use key, resets the password and shows its repl
     await skipRegistrationExtras(page);
     await waitForMessenger(page);
     await loginUser(otherPage, user);
-    const oldToken = await otherPage.evaluate(() => localStorage.getItem('access_token'));
+    const oldToken = await pageAccessToken(otherPage);
     await logoutUser(page);
     await page.goto('/recover-key');
     await page.getByLabel('Username', { exact: true }).fill(user.username);

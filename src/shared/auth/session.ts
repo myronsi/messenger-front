@@ -5,18 +5,23 @@ import { clearUnsentMessages } from '@/shared/lib/unsentMessages';
 import { forgetSignedInUser } from '@/shared/auth/signedInUser';
 import { getTokenExpiresAt, getTokenSession, getTokenSubject, hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { getUpdateStatus } from '@/shared/api/updateGate';
+import { isStaleDeviceProof } from '@/shared/api/deviceProofFetch';
+import { forgetCachedDeviceKey, forgetDeviceKey } from '@/shared/auth/deviceKey';
 
 const BASE_URL = getApiBaseUrl();
-const ACCESS_TOKEN_KEY = 'access_token';
+const LEGACY_ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const SESSION_MARKER_KEY = 'had_session';
 const SESSION_MARKER_CHECKED_KEY = 'had_session_checked';
 const DEVICE_PART_KEYS = ['device_part', 'device_parts'];
 const RECOVERY_SESSION_KEYS = ['recovery_username', 'recovery_cloud_part', 'recovery_device_part', 'recovery_token'];
+const AUTH_CHANNEL = 'auth';
 
 type TokenListener = (token: string | null) => void;
+type AuthMessage = { type: 'token'; token: string } | { type: 'logout' };
 
 const listeners = new Set<TokenListener>();
+let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
 
 const notifyTokenListeners = (token: string | null) => {
@@ -28,7 +33,7 @@ const isTokenExpired = (token: string, skewMs = 30_000) => {
   return expiresAt !== null && expiresAt <= Date.now() + skewMs;
 };
 
-export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
+export const getAccessToken = () => accessToken;
 
 const markSession = (active: boolean) => {
   try {
@@ -40,6 +45,14 @@ const markSession = (active: boolean) => {
   }
 };
 
+export const expectsRefreshSession = () => {
+  try {
+    return localStorage.getItem(SESSION_MARKER_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
 export const mayHaveRefreshSession = () => {
   try {
     return localStorage.getItem(SESSION_MARKER_KEY) === '1' || localStorage.getItem(SESSION_MARKER_CHECKED_KEY) !== '1';
@@ -48,14 +61,21 @@ export const mayHaveRefreshSession = () => {
   }
 };
 
-export const setAccessToken = (token: string | null) => {
-  if (token) {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  } else {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+const authChannel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(AUTH_CHANNEL);
+
+const broadcast = (message: AuthMessage) => {
+  try {
+    authChannel?.postMessage(message);
+  } catch {
+    return;
   }
+};
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
   markSession(Boolean(token));
   notifyTokenListeners(token);
+  broadcast(token ? { type: 'token', token } : { type: 'logout' });
 };
 
 export const clearAuthTokens = () => {
@@ -63,10 +83,12 @@ export const clearAuthTokens = () => {
   clearDrafts();
   clearUnsentMessages();
   forgetSignedInUser();
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  accessToken = null;
+  localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   markSession(false);
   notifyTokenListeners(null);
+  broadcast({ type: 'logout' });
 };
 
 // For failures that suggest the session is invalid (refresh or "who am I" failed). When the server answered
@@ -82,20 +104,41 @@ export const clearStoredRecoveryParts = () => {
   RECOVERY_SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
 };
 
-export const endSession = () => {
+export const endSession = ({ keepDeviceKey = false }: { keepDeviceKey?: boolean } = {}) => {
   clearStoredRecoveryParts();
   clearAuthTokens();
+  if (!keepDeviceKey) void forgetDeviceKey();
 };
 
-// Another tab logging out or in changes the token; follow it so this tab does not keep the old user's data.
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (event.key === ACCESS_TOKEN_KEY || event.key === null) {
-      if (!event.newValue) { clearDrafts(); clearUnsentMessages(); }
-      notifyTokenListeners(event.key === null ? null : event.newValue);
-    }
-  });
-}
+const followOtherTab = (message: AuthMessage) => {
+  if (message.type === 'token') {
+    if (message.token === accessToken) return;
+    accessToken = message.token;
+    notifyTokenListeners(message.token);
+    return;
+  }
+  if (message.type !== 'logout') return;
+  forgetCachedDeviceKey();
+  const hadToken = accessToken !== null;
+  accessToken = null;
+  clearDrafts();
+  clearUnsentMessages();
+  if (hadToken) notifyTokenListeners(null);
+};
+
+authChannel?.addEventListener('message', (event: MessageEvent<AuthMessage | null>) => {
+  if (event.data && typeof event.data === 'object') followOtherTab(event.data);
+});
+
+const forgetLegacyAccessToken = () => {
+  try {
+    localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+  } catch {
+    return;
+  }
+};
+
+forgetLegacyAccessToken();
 
 export const subscribeToAccessToken = (listener: TokenListener) => {
   listeners.add(listener);
@@ -132,6 +175,7 @@ const requestRefresh = async (startedWith: string | null) => {
     credentials: 'include',
   });
   if (sessionEnded()) return null;
+  if (await isStaleDeviceProof(response)) return null;
   if (response.status === 401 || response.status === 403) {
     const refreshedElsewhere = newerToken();
     if (refreshedElsewhere) return refreshedElsewhere;
@@ -222,17 +266,10 @@ export const useAccessToken = () => {
   const [token, setToken] = useState<string | null>(() => getAccessToken());
 
   useEffect(() => {
+    setToken(getAccessToken());
     const unsubscribe = subscribeToAccessToken(setToken);
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === ACCESS_TOKEN_KEY) {
-        setToken(event.newValue);
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
     return () => {
       unsubscribe();
-      window.removeEventListener('storage', handleStorage);
     };
   }, []);
 

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { currentUserApi, type CurrentUser } from '@/shared/api/currentUserApi';
 import { syncTimeZone } from '@/shared/api/syncTimeZone';
 import { readSignedInUser } from '@/shared/auth/signedInUser';
-import { getAccessToken, refreshAccessToken } from '@/shared/auth/session';
+import { expectsRefreshSession, getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -51,7 +51,7 @@ export function SessionEntry() {
   }, [dispatch, savedUser]);
 
   useEffect(() => {
-    if (getAccessToken()) void loadMessenger().catch(() => undefined);
+    if (getAccessToken() || expectsRefreshSession()) void loadMessenger().catch(() => undefined);
     const signedOut = () => {
       setUsername('');
       setChecking(false);
@@ -62,8 +62,16 @@ export function SessionEntry() {
     });
     stopWatching.current = watchCurrentUser({
       fetchMe: async () => {
-        // A refresh cookie can restore a session even if local storage has no access token.
-        if (!getAccessToken() && !await refreshAccessToken()) return {};
+        if (!getAccessToken()) {
+          const restored = await refreshAccessToken();
+          if (!restored) return {};
+          const remembered = readSignedInUser<CurrentUser>(restored);
+          if (remembered) {
+            dispatch(currentUserApi.util.upsertQueryEntries([{ endpointName: 'getCurrentUser', arg: undefined, value: remembered }]));
+            setUsername(remembered.username);
+            setChecking(false);
+          }
+        }
         const result = await dispatch(currentUserApi.endpoints.getCurrentUser.initiate(undefined, {
           subscribe: false,
           forceRefetch: true,
@@ -114,7 +122,7 @@ export function SessionEntry() {
   const inviteToken = inviteTokenFromPath(location.pathname);
   const publicTarget = publicName ? { kind: 'name' as const, name: publicName } : inviteToken ? { kind: 'invite' as const, token: inviteToken } : null;
   const publicEntry = location.pathname === '/' || pathOutsideAuth(location.pathname) !== null || !!publicTarget;
-  if (checking && (getAccessToken() || !publicEntry)) return <SessionLoading />;
+  if (checking && (getAccessToken() || expectsRefreshSession() || !publicEntry)) return <SessionLoading />;
 
   return (
     <ChunkErrorBoundary key={username ? 'messenger' : 'auth'} fallback={<SessionLoading failed />}>

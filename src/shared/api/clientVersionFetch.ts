@@ -4,6 +4,7 @@ import { reportClientOutdated } from './updateGate';
 import { withGoTransport } from './goTransport';
 import { setContractFetch } from './contractFetch';
 import { reportIfAccountRestricted } from './accountRestriction';
+import { withDeviceProof } from './deviceProofFetch';
 
 const BASE_URL = getApiBaseUrl();
 
@@ -65,7 +66,7 @@ export const withClientVersion = (fetchFn: typeof fetch): typeof fetch => async 
 export const installClientVersionFetch = () => {
   const current = window.fetch as typeof fetch & { clientVersionInstalled?: boolean };
   if (current.clientVersionInstalled) return;
-  const versioned = withClientVersion(current.bind(window));
+  const versioned = withClientVersion(withDeviceProof(current.bind(window)));
   setContractFetch(versioned);
   const wrapped = withGoTransport(versioned, BASE_URL || window.location.origin) as typeof fetch & { clientVersionInstalled?: boolean };
   wrapped.clientVersionInstalled = true;

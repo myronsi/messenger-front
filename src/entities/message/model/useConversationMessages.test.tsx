@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { setAccessToken } from '@/shared/auth/session';
 import { conversationApi } from '../api/conversationApi';
 import { useConversationMessages } from './useConversationMessages';
 import type { Message } from './types';
@@ -17,7 +18,7 @@ const setup = () => {
 };
 
 describe('one normalized conversation cache', () => {
-  beforeEach(() => { localStorage.clear(); localStorage.setItem('access_token', token('1')); });
+  beforeEach(() => { localStorage.clear(); setAccessToken(token('1')); });
 
   it('shares sorted history and live updates across views, including before the initial query settles', async () => {
     const { wrapper } = setup();
@@ -55,7 +56,7 @@ describe('one normalized conversation cache', () => {
     const hook = renderHook(() => useConversationMessages('42'), { wrapper });
     const staleSetter = hook.result.current.setMessages;
     act(() => hook.result.current.setMessages([message('8')]));
-    localStorage.setItem('access_token', token('2'));
+    act(() => setAccessToken(token('2')));
     hook.rerender();
     await waitFor(() => expect(hook.result.current.messages).toEqual([]));
     act(() => staleSetter([message('9')]));

@@ -40,7 +40,7 @@ export const RecoveryKeyComponent = ({ onLoginSuccess, onBackToLogin, onTryAnoth
         return result;
       });
       if (!data.access_token || !data.recovery_key) throw new Error(t.keyIncomplete);
-      endSession(); setToken(data.access_token); setReplacement(data.recovery_key);
+      endSession({ keepDeviceKey: true }); setToken(data.access_token); setReplacement(data.recovery_key);
       setForm(f => ({ ...f, recovery_key: '', new_password: '', confirm: '' }));
     } catch (e) { if (!isTwoFactorCancelled(e)) setError(e instanceof Error ? e.message : t.connectFailed); }
     finally { setBusy(false); }
