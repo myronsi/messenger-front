@@ -159,9 +159,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ file, imageUrl, isUpl
   return (
     <ModalSurface label={title ?? 'Crop profile photo'}
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget && !isBusy) onCancel();
-      }}
+      onDismiss={() => { if (!isBusy) onCancel(); }}
     >
       <div className="w-full max-w-md rounded-lg bg-background p-5 shadow-lg">
         <h3 className="mb-4 text-lg font-semibold text-foreground">

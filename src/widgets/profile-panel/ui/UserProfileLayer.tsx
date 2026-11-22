@@ -14,19 +14,18 @@ export const UserProfileLayer: React.FC<UserProfileLayerProps> = ({ isMobile, is
   const { translations } = useLanguage();
   if (isMobile) {
     return (
-      <ModalSurface label={translations.userProfile}
+      <ModalSurface label={translations.userProfile} onDismiss={onClose} back="route" ownExit dismissOnBackdrop={false}
         className={`fixed inset-0 z-[1000] bg-background ${windowSlide(!isClosing)}`}>
         {children}
       </ModalSurface>
     );
   }
   return (
-    <ModalSurface label={translations.userProfile}
+    <ModalSurface label={translations.userProfile} onDismiss={onClose} back="route" ownExit
       data-testid="user-profile-backdrop"
       className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-6 py-6 transition-opacity duration-200 ease-out ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}
-      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div
         className={`h-[min(780px,calc(100vh-3rem))] w-[420px] max-w-full overflow-hidden rounded-lg bg-background shadow-2xl transition-all duration-200 ease-out ${

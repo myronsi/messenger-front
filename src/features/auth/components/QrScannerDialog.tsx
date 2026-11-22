@@ -4,7 +4,6 @@ import { CameraOff } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { parseScannedQrCode, qrLoginPath } from '@/shared/lib/qrLoginPath';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
-import { BackToClose } from '@/shared/ui/BackToClose';
 import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog';
 import { cameraProblem, createQrDecoder, openRearCamera, qrCodeOrigins, stopCamera, type CameraProblem } from '../model/qrCamera';
@@ -89,7 +88,7 @@ const QrCameraView = ({ onClose }: { onClose: () => void }) => {
 
 export const QrScannerDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const t = useLanguage().translations.qrLogin;
-  return <>{open && <BackToClose flag="qrScanner" onClose={onClose} />}<Dialog open={open} onOpenChange={next => { if (!next) onClose(); }}>
+  return <><Dialog open={open} onOpenChange={next => { if (!next) onClose(); }}>
     <DialogContent hideClose overlayClassName="z-[1500]" className={'z-[1500] left-0 top-0 flex h-[100dvh] max-w-none translate-x-0 translate-y-0 flex-col gap-0 '
       + 'rounded-none border-0 bg-black p-0 text-white sm:rounded-none data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-top-0'}>
       <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 bg-gradient-to-b from-black/70 to-transparent p-4">

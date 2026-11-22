@@ -4,4 +4,4 @@ export { useChatActions } from './model/useChatActions';
 export type { ChatActionTarget } from './model/useChatActions';
 export { ChatCleanupDialog } from './ui/ChatCleanupDialog';
 export { BlockUserDialog } from './ui/BlockUserDialog';
-export { usePendingChatRemovals } from './model/pendingRemovals';
+export { usePendingChatRemovals, hideChatUntilUndo, showChatAgain } from './model/pendingRemovals';

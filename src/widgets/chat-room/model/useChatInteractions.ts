@@ -86,26 +86,21 @@ export const useChatInteractions = ({
     }, 200);
   };
 
+  const openOrSwitchMenus = (message: Message, point: { clientX: number; clientY: number }) => {
+    if (contextMenu || reactionMenu) closeThen();
+    else openMenusAt(message, point);
+  };
+
   const handleMessageClick = (event: React.MouseEvent, message: Message) => {
     if (window.innerWidth >= 768 && event.type !== 'contextmenu') return;
     event.preventDefault();
     event.stopPropagation();
     if (interlocutorDeleted) return;
-    const point = { clientX: event.clientX, clientY: event.clientY };
-    if (contextMenu || reactionMenu) {
-      closeThen();
-      return;
-    }
-    openMenusAt(message, point);
+    openOrSwitchMenus(message, { clientX: event.clientX, clientY: event.clientY });
   };
 
   const onOpenReactionMenu = (message: Message, event: React.MouseEvent) => {
-    const point = { clientX: event.clientX, clientY: event.clientY };
-    if (contextMenu || reactionMenu) {
-      closeThen();
-      return;
-    }
-    openMenusAt(message, point);
+    openOrSwitchMenus(message, { clientX: event.clientX, clientY: event.clientY });
   };
 
   const onOpenProfile = () => {

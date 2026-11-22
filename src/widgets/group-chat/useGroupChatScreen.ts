@@ -87,7 +87,7 @@ export const useGroupChatScreen = ({
   } = useGroupManagement({
     chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput,
     setParticipantInput, refreshGroupDetails, setGroupConfirm: profilePanel.setGroupConfirm, groupDetails,
-    onBack,
+    onBack, undoText: { undo: rawTranslations.chatCleanup.undo, countdown: rawTranslations.chatCleanup.undoCountdown },
   });
 
   const handleOpenUserProfile = (profileUsername: string) => {

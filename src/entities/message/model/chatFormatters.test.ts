@@ -1,11 +1,11 @@
 import { renderHook } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ChatLastMessage, FileMessageContent } from '@/entities/message';
-import { useChatFormatters } from './useChatFormatters';
+import { useChatFormatters } from './chatFormatters';
 
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: {
-  yesterday: 'Yesterday', edited: 'edited', photoMessage: 'Photo', fileMessagePreview: 'File', voiceMessagePreview: 'Voice message', noMessagesYet: 'No messages yet', sticker: 'Sticker',
-} }) }));
+const wrapper = ({ children }: { children: ReactNode }) => createElement(LanguageProvider, null, children);
 
 const file = (content: Partial<FileMessageContent>, extra: Partial<ChatLastMessage> = {}): ChatLastMessage => ({
   id: '1', sender_id: '2', sender_name: 'Anna', type: 'file', timestamp: new Date().toISOString(),
@@ -21,7 +21,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 it('shows the time today and the shared date labels before that', () => {
-  const { result } = renderHook(() => useChatFormatters('1'));
+  const { result } = renderHook(() => useChatFormatters('1'), { wrapper });
   const time = result.current.getLastMessageTime;
   expect(time(message(new Date(2026, 10, 5, 9, 30)))).toMatch(/09:30/);
   expect(time(message(new Date(2026, 10, 4, 9, 30)))).toBe('Yesterday');
@@ -32,12 +32,12 @@ it('shows the time today and the shared date labels before that', () => {
 });
 
 it('shows the text of edited messages without an edited prefix', () => {
-  const { result } = renderHook(() => useChatFormatters('1'));
+  const { result } = renderHook(() => useChatFormatters('1'), { wrapper });
   expect(result.current.getLastMessagePreview({ ...message(new Date()), content: 'fixed typo', edited_at: new Date().toISOString() })).toBe('fixed typo');
 });
 
 it('prefers the caption of media and files over the generic label', () => {
-  const { result } = renderHook(() => useChatFormatters('1'));
+  const { result } = renderHook(() => useChatFormatters('1'), { wrapper });
   const preview = result.current.getLastMessagePreview;
   expect(preview(file({ file_type: 'image', caption: '  Sunset at the lake ' }))).toBe('Sunset at the lake');
   expect(preview(file({ file_type: 'video', caption: 'Our trip' }))).toBe('Our trip');
@@ -48,13 +48,13 @@ it('prefers the caption of media and files over the generic label', () => {
 });
 
 it('previews a sticker as its emoji', () => {
-  const { result } = renderHook(() => useChatFormatters('1'));
+  const { result } = renderHook(() => useChatFormatters('1'), { wrapper });
   const last = { ...message(new Date(2026, 10, 5, 9, 30)), content: '🐱', sticker: { emoji: '🐱', image_url: '/s/1' } };
   expect(result.current.getLastMessagePreview(last)).toBe('🐱 Sticker');
 });
 
 it('treats a call as mine when I started it, whoever the system message is from', () => {
-  const { result } = renderHook(() => useChatFormatters('1'));
+  const { result } = renderHook(() => useChatFormatters('1'), { wrapper });
   const call = (actorId: string): ChatLastMessage => ({
     ...message(new Date(2026, 10, 5, 9, 30)), sender_id: '0', system_event: { kind: 'call', actor_id: actorId, actor_name: 'x' },
   });

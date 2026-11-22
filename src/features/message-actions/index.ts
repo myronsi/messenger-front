@@ -4,6 +4,7 @@ export { default as ForwardMessageDialog } from './ui/ForwardMessageDialog';
 export { default as Modal } from './ui/Modal';
 export { messageMenuPlacement } from './model/menuAnchor';
 export { default as SelectionBar } from './ui/SelectionBar';
+export { MessageDeleteHost } from './ui/MessageDeleteHost';
 export { useMessageSelection } from './model/useMessageSelection';
 export { useReplyAction } from './model/useReplyAction';
 export { ReactionPicker } from './ui/ReactionPicker';

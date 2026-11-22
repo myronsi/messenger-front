@@ -1,4 +1,4 @@
-import { dropInvalidSession, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
+import { dropInvalidSession, expectsRefreshSession, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 
 export const CURRENT_USER_RETRY_DELAYS_MS = [1000, 3000, 10000];
@@ -42,7 +42,7 @@ export const watchCurrentUser = <User,>({ fetchMe, onUser, onSignedOut }: WatchC
       return;
     }
     const rejected = response?.status === 401 || response?.status === 403;
-    if (!rejected && getAccessToken()) {
+    if (!rejected && (getAccessToken() || expectsRefreshSession())) {
       timer = window.setTimeout(() => void check(), CURRENT_USER_RETRY_DELAYS_MS[Math.min(attempt, CURRENT_USER_RETRY_DELAYS_MS.length - 1)]);
       attempt += 1;
       return;

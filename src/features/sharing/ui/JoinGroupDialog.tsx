@@ -42,8 +42,7 @@ export const JoinGroupDialog = ({ token, onClose }: { token: string; onClose: ()
   return createPortal(
     <ModalSurface label={label}
       className="fixed inset-0 z-[11002] flex animate-fade-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
-      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
-      onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose(); } }}>
+      onDismiss={onClose}>
       <div className="motion-panel-in relative w-full max-w-sm">
         <button type="button" onClick={onClose} aria-label={translations.close}
           className="motion-press absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white hover:bg-black/40">

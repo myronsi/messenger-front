@@ -109,11 +109,10 @@ const GroupProfileDialogShell: React.FC<Props> = ({
 
 
   return (
-    <ModalSurface label={translations.groupProfile || 'Group profile'}
+    <ModalSurface label={translations.groupProfile || 'Group profile'} onDismiss={requestClose} back="route" ownExit
       className={`fixed inset-0 z-[1000] flex items-center justify-center bg-transparent px-0 py-0 sm:bg-black/40 sm:px-6 sm:py-6 sm:transition-opacity sm:duration-200 sm:ease-out ${
         isClosing ? 'sm:opacity-0' : 'sm:opacity-100'
       }`}
-      onMouseDown={requestClose}
     >
       <div
         className={`relative h-full w-full max-w-full overflow-hidden bg-background shadow-2xl sm:h-[min(780px,calc(100vh-3rem))] sm:w-[420px] sm:rounded-lg sm:transition-all sm:duration-200 sm:ease-out ${

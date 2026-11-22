@@ -11,6 +11,7 @@ export const profileRework = {
     bio: "О себе",
     media: "Медиа",
     files: "Файлы",
+    pinned: "Закреплённые",
     links: "Ссылки",
     voice: "Голос",
     audio: "Аудио",

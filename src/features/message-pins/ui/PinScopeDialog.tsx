@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Pin } from 'lucide-react';
 import type { PinScope } from '@/entities/message';
+import { ActionDialog } from '@/shared/ui/ActionDialog';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { pinScopes, type PinChatContext } from '../model/pinRules';
-import { PinChoiceDialog } from './PinChoiceDialog';
 
 interface PinScopeDialogProps {
   context: PinChatContext;
@@ -13,12 +14,14 @@ interface PinScopeDialogProps {
 
 export const PinScopeDialog = ({ context, onPin, onCancel }: PinScopeDialogProps) => {
   const t = useLanguage().translations.messagePins;
-  const everyone = context.kind === 'direct' ? fillTemplate(t.pinForBoth, { name: context.peerName }) : t.pinForEveryone;
-  const choices = pinScopes(context).map((scope) => ({
-    key: scope,
-    label: scope === 'me' ? t.pinForMe : everyone,
-    strong: scope === 'everyone',
-    onSelect: () => onPin(scope),
-  }));
-  return <PinChoiceDialog icon={<Pin />} title={t.pinTitle} choices={choices} onCancel={onCancel} />;
+  const [forEveryone, setForEveryone] = useState(true);
+  const offersEveryone = pinScopes(context).includes('everyone');
+  const option = !offersEveryone ? undefined : context.kind === 'direct'
+    ? { label: fillTemplate(t.alsoPinFor, { name: context.peerName }), hint: t.pinForBothHint }
+    : { label: t.pinForEveryone, hint: t.pinForEveryoneHint };
+  return (
+    <ActionDialog tone="primary" icon={<Pin />} title={t.pinTitle} confirmText={t.pin}
+      option={option && { ...option, checked: forEveryone, onChange: setForEveryone }}
+      onCancel={onCancel} onConfirm={() => onPin(offersEveryone && forEveryone ? 'everyone' : 'me')} />
+  );
 };

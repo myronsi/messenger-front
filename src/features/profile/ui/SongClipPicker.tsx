@@ -151,7 +151,7 @@ export const SongClipPicker = ({ file, onCancel, onDone }: SongClipPickerProps) 
 
   return (
     <ModalSurface label={t.chooseClip} className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 sm:items-center sm:px-4"
-      onPointerDown={(event) => { if (event.target === event.currentTarget && !uploading) onCancel(); }}>
+      onDismiss={() => { if (!uploading) onCancel(); }}>
       <div className="w-full max-w-md rounded-t-2xl bg-background shadow-xl sm:rounded-2xl">
         <header className="flex h-14 items-center gap-2 border-b border-border px-3">
           <Button type="button" variant="ghost" onClick={onCancel} disabled={uploading}>{t.editCancel}</Button>

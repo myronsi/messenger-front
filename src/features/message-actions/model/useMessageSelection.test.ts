@@ -28,6 +28,26 @@ describe('useMessageSelection', () => {
     expect(result.current.selection.active).toBe(false);
   });
 
+  it('selects the range a finger drags over after a long press, and shrinks it when the finger goes back', () => {
+    const { result } = renderHook(() => useMessageSelection('5', chat));
+    act(() => result.current.selection.beginDrag?.(chat[1]));
+    expect(selected(result.current.selection.ids)).toEqual(['2']);
+    act(() => result.current.selection.dragTo?.(chat[4]));
+    expect(selected(result.current.selection.ids)).toEqual(['2', '3', '4', '5']);
+    act(() => result.current.selection.dragTo?.(chat[2]));
+    expect(selected(result.current.selection.ids)).toEqual(['2', '3']);
+    act(() => result.current.selection.dragTo?.(chat[0]));
+    expect(selected(result.current.selection.ids)).toEqual(['1', '2']);
+  });
+
+  it('keeps the earlier selection when a new drag starts while selecting', () => {
+    const { result } = renderHook(() => useMessageSelection('5', chat));
+    act(() => result.current.start(chat[0]));
+    act(() => result.current.selection.beginDrag?.(chat[3]));
+    act(() => result.current.selection.dragTo?.(chat[4]));
+    expect(selected(result.current.selection.ids)).toEqual(['1', '4', '5']);
+  });
+
   it('skips messages that are not sent yet or deleted', () => {
     const { result } = renderHook(() => useMessageSelection('5', chat));
     act(() => result.current.start(message('temp-1')));

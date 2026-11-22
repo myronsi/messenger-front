@@ -2,7 +2,7 @@ import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { MutableRefObject } from 'react';
 import { Message, type MessageSelection } from '@/entities/message';
-import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal, SelectionBar } from '@/features/message-actions';
+import { ContextMenu, ReactionMenu, ForwardMessageDialog, Modal, SelectionBar, MessageDeleteHost } from '@/features/message-actions';
 import { isGoApi } from '@/shared/api/goSocket';
 
 type ContextMenuState = NonNullable<React.ComponentProps<typeof ContextMenu>['contextMenu']>;
@@ -32,9 +32,10 @@ interface ChatOverlaysProps {
   onForward: (message: Message | null) => void;
   forwardMessage: Message | null;
   username: string;
+  peerName?: string;
+  savedChat?: boolean;
   modal: ModalState;
   selection?: MessageSelection;
-  onSelect?: (message: Message) => void;
   onClearSelection: () => void;
   onSelectAll?: () => void;
 }
@@ -46,7 +47,7 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   contextMenu, reactionMenu, contextMenuRef, reactionMenuRef, messageInputRef, messages,
   token, chatId, userId, isClosing, wsRef, setContextMenu, setReactionMenu,
   setEditingMessage, setMessageInput, setReplyTo, onReply, setModal, closeMenus, onForward,
-  forwardMessage, username, modal, selection, onSelect, onClearSelection, onSelectAll,
+  forwardMessage, username, peerName, savedChat = false, modal, selection, onClearSelection, onSelectAll,
 }) => (
   <>
     {contextMenu && userId !== null && (
@@ -71,7 +72,6 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
         setReactionMenu={setReactionMenu}
         messageInputRef={messageInputRef}
         onForward={onForward}
-        onSelect={onSelect}
         canDeleteMessage={mayDeleteForBoth(userId)}
         isDirect
       />
@@ -103,9 +103,12 @@ const ChatOverlays: React.FC<ChatOverlaysProps> = ({
       username={username}
       canDeleteForEveryone={mayDeleteForBoth(userId)}
       isDirect
+      peerName={peerName}
+      savedChat={savedChat}
       onClear={onClearSelection}
       onSelectAll={onSelectAll}
     />
+    <MessageDeleteHost chatId={chatId} peerName={peerName} savedChat={savedChat} />
     <Modal modal={modal} onClose={() => setModal(null)} />
   </>
 );

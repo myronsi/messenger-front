@@ -3,6 +3,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import React, { useCallback, useEffect } from 'react';
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { messengerApi } from '@/shared/api/baseApi';
+import { groupByIdKey, storeValue, useStoredValue } from '@/shared/api/offlineStore';
 import { useGetGroupDetailsQuery } from '@/entities/chat';
 import type { GroupDetails, GroupParticipant, GroupPendingInvite, GroupRole } from './GroupProfileTypes';
 import type { RawGroupDetails } from './groupChatTypes';
@@ -70,10 +71,12 @@ export const useGroupDetails = ({
 
     if (syncCache && isPersistedId(chatId)) {
       dispatch(Reflect.apply(messengerApi.util.upsertQueryData, messengerApi.util, ['getGroupDetails', chatId, rawDetails]));
+      void storeValue(groupByIdKey(String(chatId)), rawDetails);
     }
   }, [chatId, dispatch, groupName, normalizeGroupDetails, setGroupDetails, setGroupForm]);
 
   const skipGroupDetails = !token || !isPersistedId(chatId);
+  const storedGroupDetails = useStoredValue<RawGroupDetails>(isPersistedId(chatId) ? groupByIdKey(String(chatId)) : null);
   const {
     data: latestGroupDetails,
     error: groupDetailsError,
@@ -93,10 +96,9 @@ export const useGroupDetails = ({
   }, [refetchGroupDetails, skipGroupDetails]);
 
   useEffect(() => {
-    if (!latestGroupDetails) return;
-
-    applyGroupDetails(latestGroupDetails, false);
-  }, [applyGroupDetails, latestGroupDetails]);
+    if (latestGroupDetails) applyGroupDetails(latestGroupDetails, false);
+    else if (storedGroupDetails) applyGroupDetails(storedGroupDetails, false);
+  }, [applyGroupDetails, latestGroupDetails, storedGroupDetails]);
 
   useEffect(() => {
     if (!groupDetailsError) return;

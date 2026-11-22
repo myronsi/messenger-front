@@ -227,6 +227,7 @@ const asksForSecondFactor = async (response: Response) => {
 
 export const sessionFetch = async (fetcher: typeof fetch, input: RequestInfo | URL, init: RequestInit = {}) => {
   const token = await ensureAccessToken();
+  if (!token && expectsRefreshSession()) throw new Error('The session could not be refreshed right now');
   const headers = new Headers(input instanceof Request ? input.headers : undefined);
   new Headers(init.headers).forEach((value, name) => headers.set(name, value));
   const retryInput = input instanceof Request ? input.clone() : input;

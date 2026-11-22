@@ -9,6 +9,9 @@ import { authFetch } from '@/shared/auth/session';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { groupModel } from '@/shared/api/goModels';
 import { setGroupBackground, type SetBackgroundBody } from '@/features/profile';
+import { hideChatUntilUndo, showChatAgain } from '@/features/chat-cleanup';
+import { showUndoToast } from '@/shared/ui/undoToast';
+import { toast } from '@/shared/ui/sonner';
 
 const BASE_URL = getApiBaseUrl();
 interface Args {
@@ -19,10 +22,12 @@ interface Args {
   setParticipantInput: (value: string) => void; refreshGroupDetails: () => Promise<void>;
   setGroupConfirm: React.Dispatch<React.SetStateAction<GroupProfileConfirmState | null>>;
   groupDetails: GroupDetails | null; onBack: () => void;
+  undoText: { undo: string; countdown: string };
 }
+const RELIST_AFTER_MS = 3000;
 export const useGroupManagement = ({
   chatId, token, groupForm, setModal, translations, setIsSavingGroup, applyGroupDetails, participantInput,
-  setParticipantInput, refreshGroupDetails, setGroupConfirm, groupDetails, onBack,
+  setParticipantInput, refreshGroupDetails, setGroupConfirm, groupDetails, onBack, undoText,
 }: Args) => {
   const handleSaveGroup = async () => {
     if (!groupForm.name.trim()) {
@@ -247,19 +252,31 @@ export const useGroupManagement = ({
         confirmText: translations.deleteGroup || 'Delete group',
         isDestructive: true,
         kind: 'delete',
-        onConfirm: async () => {
+        onConfirm: () => {
           setGroupConfirm(null);
-          try {
-            const response = await authFetch(`${BASE_URL}/groups/delete/${chatId}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!response.ok) throw new Error(await response.text());
-            onBack();
-          } catch (error) {
-            console.error('Error deleting group:', error);
-            setModal({ type: 'error', message: translations.errorDeletingGroup || 'Failed to delete group' });
-          }
+          const removeGroup = async () => {
+            try {
+              const response = await authFetch(`${BASE_URL}/groups/delete/${chatId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (!response.ok) throw new Error(await response.text());
+              window.setTimeout(() => showChatAgain(chatId), RELIST_AFTER_MS);
+            } catch (error) {
+              console.error('Error deleting group:', error);
+              showChatAgain(chatId);
+              toast(translations.errorDeletingGroup || 'Failed to delete group');
+            }
+          };
+          hideChatUntilUndo(chatId);
+          onBack();
+          showUndoToast({
+            message: translations.groupDeleted || 'Group has been deleted.',
+            undoLabel: undoText.undo,
+            countdownLabel: undoText.countdown,
+            onUndo: () => showChatAgain(chatId),
+            onExpire: () => void removeGroup(),
+          });
         },
       });
     }, 0);

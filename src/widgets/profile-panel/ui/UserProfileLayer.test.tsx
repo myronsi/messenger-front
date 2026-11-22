@@ -8,9 +8,14 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ tran
 it('closes on a press on the backdrop and keeps presses inside the profile', () => {
   const onClose = vi.fn();
   render(<UserProfileLayer isMobile={false} isClosing={false} onClose={onClose}><button type="button">Profile action</button></UserProfileLayer>);
-  fireEvent.mouseDown(screen.getByText('Profile action'));
+  fireEvent.pointerDown(screen.getByText('Profile action'));
+  fireEvent.click(screen.getByText('Profile action'));
   expect(onClose).not.toHaveBeenCalled();
-  fireEvent.mouseDown(screen.getByTestId('user-profile-backdrop'));
+  fireEvent.pointerDown(screen.getByText('Profile action'));
+  fireEvent.click(screen.getByTestId('user-profile-backdrop'));
+  expect(onClose).not.toHaveBeenCalled();
+  fireEvent.pointerDown(screen.getByTestId('user-profile-backdrop'));
+  fireEvent.click(screen.getByTestId('user-profile-backdrop'));
   expect(onClose).toHaveBeenCalledOnce();
 });
 

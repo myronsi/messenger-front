@@ -43,7 +43,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const [password, setPassword] = React.useState('');
 
   return (
-    <ModalSurface label={title} returnFocusRef={returnFocusRef}
+    <ModalSurface label={title} returnFocusRef={returnFocusRef} onDismiss={onCancel}
       className={cn(`${contained ? 'absolute' : 'fixed'} inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in p-4`, overlayClassName)}
       onClick={event => event.stopPropagation()} onTouchStart={event => event.stopPropagation()}
       onTouchEnd={event => event.stopPropagation()} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}>

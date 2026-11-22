@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { LanguageProvider } from '@/shared/contexts/LanguageContext';
 import { rememberSignedInUser } from '@/shared/auth/signedInUser';
 import { SessionEntry } from './SessionEntry';
@@ -35,6 +35,8 @@ const setup = (path = '/') => render(<LanguageProvider><MemoryRouter initialEntr
 
 const tokenFor = (claims: Record<string, string>) => `h.${btoa(JSON.stringify(claims)).replace(/=+$/, '')}.s`;
 
+afterEach(() => localStorage.clear());
+
 beforeEach(() => {
   localStorage.clear();
   mocks.token = null;
@@ -55,22 +57,52 @@ it('shows sign-in while a fresh browser checks for a refresh cookie', async () =
   expect(mocks.dispatch).not.toHaveBeenCalled();
 });
 
-it('restores the session through the refresh cookie before it shows chats', async () => {
+const rememberAlex = () => {
   const restored = tokenFor({ sub: '1', sid: 's1' });
   rememberSignedInUser(restored, { id: '1', username: 'alex' });
   mocks.expectsSession = true;
+  return restored;
+};
+
+it('shows the chats of the remembered user at once while the refresh cookie is checked', async () => {
+  const restored = rememberAlex();
   let finish!: (token: string | null) => void;
   mocks.refresh.mockReturnValue(new Promise(resolve => { finish = resolve; }));
   mocks.dispatch.mockImplementation(action => action === 'verify' ? new Promise(() => undefined) : undefined);
   setup();
 
-  expect(screen.getByRole('status')).toBeVisible();
-  expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-  expect(mocks.refresh).toHaveBeenCalledTimes(1);
-  mocks.token = restored;
-  finish(restored);
   expect(await screen.findByText('Chats for alex')).toBeVisible();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(mocks.refresh).toHaveBeenCalledTimes(1);
   expect(mocks.dispatch).toHaveBeenCalledWith('seed');
+  mocks.token = restored;
+  await act(async () => { finish(restored); });
+  expect(screen.getByText('Chats for alex')).toBeVisible();
+});
+
+it('keeps the remembered chats when the refresh fails without ending the session', async () => {
+  rememberAlex();
+  mocks.refresh.mockResolvedValue(null);
+  setup();
+
+  expect(await screen.findByText('Chats for alex')).toBeVisible();
+  await act(async () => { await Promise.resolve(); });
+  expect(screen.getByText('Chats for alex')).toBeVisible();
+  expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+});
+
+it('switches the remembered user to sign-in when the server ends the session', async () => {
+  rememberAlex();
+  let finish!: (token: string | null) => void;
+  mocks.refresh.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  setup();
+
+  expect(await screen.findByText('Chats for alex')).toBeVisible();
+  await act(async () => {
+    mocks.expectsSession = false;
+    finish(null);
+  });
+  expect(await screen.findByLabelText('Password')).toBeVisible();
 });
 
 it('shows sign-in when the expected session cannot be restored', async () => {
@@ -79,22 +111,23 @@ it('shows sign-in when the expected session cannot be restored', async () => {
   mocks.refresh.mockReturnValue(new Promise(resolve => { finish = resolve; }));
   setup();
 
-  expect(screen.getByRole('status')).toBeVisible();
+  expect(await screen.findByLabelText('Password')).toBeVisible();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
   await act(async () => {
     mocks.expectsSession = false;
     finish(null);
   });
-  expect(await screen.findByLabelText('Password')).toBeVisible();
+  expect(screen.getByLabelText('Password')).toBeVisible();
 });
 
-it('keeps chats hidden until the server verifies the saved session', async () => {
+it('keeps chats hidden until the server verifies a session with no saved user', async () => {
   mocks.token = 'saved';
   let finish!: (result: unknown) => void;
   mocks.dispatch.mockImplementation(action => action === 'verify' ? new Promise(resolve => { finish = resolve; }) : undefined);
   setup();
 
   expect(screen.queryByText('Chats for alex')).not.toBeInTheDocument();
-  expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
   await act(async () => { finish({ isSuccess: true, data: { username: 'alex' } }); });
   expect(await screen.findByText('Chats for alex')).toBeVisible();
 });
@@ -126,14 +159,14 @@ it('switches to sign-in when the server rejects the saved session', async () => 
   expect(screen.queryByText('Chats for alex')).not.toBeInTheDocument();
 });
 
-it('waits for the server when the saved user belongs to another session', async () => {
+it('does not show chats of a saved user from another session', async () => {
   rememberSignedInUser(tokenFor({ sub: '1', sid: 'old' }), { id: '1', username: 'alex' });
   mocks.token = tokenFor({ sub: '1', sid: 's2' });
   mocks.dispatch.mockImplementation(action => action === 'verify' ? new Promise(() => undefined) : undefined);
   setup();
 
-  expect(screen.getByRole('status')).toBeVisible();
   expect(screen.queryByText('Chats for alex')).not.toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
 it.each([

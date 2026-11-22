@@ -28,6 +28,9 @@ const closed = (state: State): State => (state && !state.closing ? { ...state, c
 export const useMessageSelection = (chatId: EntityId, messages: Message[] = []) => {
   const [state, setState] = useState<State>(null);
   const anchor = useRef<EntityId | null>(null);
+  const dragBase = useRef<ReadonlySet<EntityId>>(EMPTY);
+  const current = useRef(state);
+  current.current = state;
   const loaded = useRef(messages);
   loaded.current = messages;
   const active = !!state && !state.closing;
@@ -77,6 +80,26 @@ export const useMessageSelection = (chatId: EntityId, messages: Message[] = []) 
     });
   }, []);
 
+  const beginDrag = useCallback((message: Message) => {
+    if (!isSelectableMessage(message)) return;
+    const base = current.current && !current.current.closing ? current.current.ids : EMPTY;
+    dragBase.current = base;
+    anchor.current = message.id;
+    const ids = new Set(base);
+    if (ids.size < MAX_SELECTED_MESSAGES) ids.add(message.id);
+    setState({ ids, closing: false });
+  }, []);
+
+  const dragTo = useCallback((message: Message) => {
+    const from = loaded.current.findIndex((item) => item.id === anchor.current);
+    const to = loaded.current.findIndex((item) => item.id === message.id);
+    if (from < 0 || to < 0) return;
+    const ids = new Set(dragBase.current);
+    loaded.current.slice(Math.min(from, to), Math.max(from, to) + 1).filter(isSelectableMessage)
+      .forEach((item) => { if (ids.size < MAX_SELECTED_MESSAGES) ids.add(item.id); });
+    setState((state) => (state && !state.closing ? { ids, closing: false } : state));
+  }, []);
+
   const selectAll = useCallback(() => {
     const ids = loaded.current.filter(isSelectableMessage).slice(-MAX_SELECTED_MESSAGES).map((message) => message.id);
     if (!ids.length) return;
@@ -104,8 +127,8 @@ export const useMessageSelection = (chatId: EntityId, messages: Message[] = []) 
   }, [active, start, toggle]);
 
   const selection = useMemo<MessageSelection>(
-    () => ({ ids: state?.ids ?? EMPTY, active, closing: !!state?.closing, toggle, start }),
-    [active, start, state, toggle],
+    () => ({ ids: state?.ids ?? EMPTY, active, closing: !!state?.closing, toggle, start, beginDrag, dragTo }),
+    [active, start, state, toggle, beginDrag, dragTo],
   );
 
   return { selection, start, clear, selectAll, intercept };

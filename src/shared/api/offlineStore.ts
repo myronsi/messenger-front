@@ -89,5 +89,6 @@ export function useStoredValue<T>(key: string | null) {
 
 export const userByIdKey = (id: string | number) => `user:id:${id}`;
 export const userByNameKey = (username: string) => `user:name:${username.toLowerCase()}`;
+export const groupByIdKey = (id: string | number) => `group:id:${id}`;
 export const stickerPacksKey = 'sticker-packs';
 export const recentStickersKey = 'sticker-recent';

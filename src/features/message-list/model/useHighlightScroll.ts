@@ -1,9 +1,8 @@
 import { compareIds, isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, RefObject, useLayoutEffect, useReducer, useRef } from 'react';
-import { MAX_LOADED_MESSAGES, MESSAGE_PAGE_SIZE, Message } from '@/entities/message';
+import type { Message } from '@/entities/message';
 import { clampScrollTop, type ScrollTarget } from './smoothScroll';
 
-const SEEK_PAGES = 3;
 const ARRIVAL_LEAD = 0.6;
 
 export type SeekStep = 'older' | 'newer' | 'around' | 'none';
@@ -28,7 +27,6 @@ interface SeekRequest {
   id: EntityId;
   done: boolean;
   busy: boolean;
-  pages: number;
   around: boolean;
   older: boolean;
 }
@@ -45,18 +43,13 @@ const isNewerThanLoaded = (targetId: EntityId, messages: Message[]) => {
 
 interface SeekState {
   newer: boolean;
-  pages: number;
-  loaded: number;
   hasMoreMessages: boolean;
   hasMoreNewerMessages: boolean;
   canLoadAround: boolean;
 }
 
-export const nextSeekStep = ({ newer, pages, loaded, hasMoreMessages, hasMoreNewerMessages, canLoadAround }: SeekState): SeekStep => {
-  const hasMore = newer ? hasMoreNewerMessages : hasMoreMessages;
-  if (!hasMore) return 'none';
-  const pageFits = newer || loaded + MESSAGE_PAGE_SIZE <= MAX_LOADED_MESSAGES;
-  if (pages < SEEK_PAGES && pageFits) return newer ? 'newer' : 'older';
+export const nextSeekStep = ({ newer, hasMoreMessages, hasMoreNewerMessages, canLoadAround }: SeekState): SeekStep => {
+  if (!(newer ? hasMoreNewerMessages : hasMoreMessages)) return 'none';
   if (canLoadAround) return 'around';
   return newer ? 'newer' : 'older';
 };
@@ -75,7 +68,7 @@ export const useHighlightScroll = ({
       return;
     }
     if (requestRef.current?.id !== targetId) {
-      requestRef.current = { id: targetId, done: false, busy: false, pages: 0, around: false, older: !isNewerThanLoaded(targetId, messages) };
+      requestRef.current = { id: targetId, done: false, busy: false, around: false, older: !isNewerThanLoaded(targetId, messages) };
     }
     const request = requestRef.current;
     if (request.done || messages.length === 0) return;
@@ -87,7 +80,7 @@ export const useHighlightScroll = ({
         element.scrollIntoView({ block: 'center' });
         return;
       }
-      if (replacedWindowRef.current === messages) {
+      if (request.around || replacedWindowRef.current === messages) {
         const lead = (request.older ? 1 : -1) * container.clientHeight * ARRIVAL_LEAD;
         container.scrollTop = clampScrollTop(container, centeredScrollTop(container, element) + lead);
       }
@@ -96,8 +89,7 @@ export const useHighlightScroll = ({
     }
     if (request.busy || isLoadingOlderMessages || isLoadingNewerMessages) return;
     const step = request.around ? 'none' : nextSeekStep({
-      newer: isNewerThanLoaded(targetId, messages), pages: request.pages, loaded: messages.length,
-      hasMoreMessages, hasMoreNewerMessages, canLoadAround: !!onLoadMessagesAround,
+      newer: isNewerThanLoaded(targetId, messages), hasMoreMessages, hasMoreNewerMessages, canLoadAround: !!onLoadMessagesAround,
     });
     const load = step === 'around' ? () => onLoadMessagesAround!(targetId)
       : step === 'older' ? onLoadOlderMessages : step === 'newer' ? onLoadNewerMessages : undefined;
@@ -107,7 +99,6 @@ export const useHighlightScroll = ({
     }
     request.busy = true;
     if (step === 'around') request.around = true;
-    else request.pages += 1;
     void load().finally(() => {
       request.busy = false;
       nextLoadRound();

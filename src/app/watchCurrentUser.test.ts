@@ -29,6 +29,26 @@ describe('watchCurrentUser', () => {
     expect(getAccessToken()).toBe('saved');
   });
 
+  it('keeps retrying an expected session that could not be refreshed yet', async () => {
+    vi.useFakeTimers();
+    setAccessToken(null);
+    localStorage.setItem('had_session', '1');
+    const fetchMe = vi.fn().mockResolvedValue({});
+    const onSignedOut = vi.fn();
+    watchCurrentUser({ fetchMe, onUser: vi.fn(), onSignedOut });
+    await flush();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(fetchMe.mock.calls.length).toBeGreaterThan(1);
+    expect(onSignedOut).not.toHaveBeenCalled();
+  });
+
+  it('signs out at once when no session is expected', async () => {
+    setAccessToken(null);
+    const onSignedOut = vi.fn();
+    watchCurrentUser({ fetchMe: vi.fn().mockResolvedValue({}), onUser: vi.fn(), onSignedOut });
+    await vi.waitFor(() => expect(onSignedOut).toHaveBeenCalledTimes(1));
+  });
+
   it('signs out when the server rejects the session', async () => {
     vi.useFakeTimers();
     setAccessToken('saved');

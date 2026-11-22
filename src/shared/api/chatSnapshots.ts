@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { indexedStore, keepNewest, scopedKey as storageKey, sessionScope } from './indexedStore';
+import { historyLimitForRank, isHistoryKey, mergeHistoryPages, trimHistory, type HistoryPageLike } from './historySnapshotRules';
 
 const STORE = 'snapshots';
-const MAX_ENTRIES = 32;
-const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const MAX_ENTRIES = 150;
+const MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const openDatabase = indexedStore('messenger-chat-snapshots', STORE);
 
 type Snapshot<T> = { value: T; savedAt: number };
@@ -21,16 +22,64 @@ async function readSnapshot<T>(scope: string, key: string): Promise<T | undefine
   });
 }
 
+const innerKey = (storedKey: IDBValidKey) => {
+  try {
+    return String((JSON.parse(String(storedKey)) as unknown[])[1]);
+  } catch {
+    return '';
+  }
+};
+
+const trimOlderHistories = (store: IDBObjectStore) => {
+  let rank = 0;
+  const cursor = store.index('savedAt').openCursor(null, 'prev');
+  cursor.onsuccess = () => {
+    const current = cursor.result;
+    if (!current) return;
+    if (isHistoryKey(innerKey(current.primaryKey))) {
+      const entry = current.value as Snapshot<HistoryPageLike>;
+      const trimmed = trimHistory(entry.value, historyLimitForRank(rank));
+      if (trimmed !== entry.value) current.update({ ...entry, value: trimmed });
+      rank += 1;
+    }
+    current.continue();
+  };
+};
+
+const writeSnapshot = async <T>(scope: string, key: string, data: T) => {
+  const db = await openDatabase();
+  if (!db || scope !== sessionScope()) return;
+  const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
+  const save = (value: unknown) => {
+    store.put({ value, savedAt: Date.now() }, storageKey(scope, key));
+    keepNewest(store, MAX_ENTRIES);
+    if (isHistoryKey(key)) trimOlderHistories(store);
+  };
+  if (!isHistoryKey(key)) return save(data);
+  const existing = store.get(storageKey(scope, key));
+  existing.onsuccess = () => {
+    const entry = existing.result as Snapshot<HistoryPageLike> | undefined;
+    const fresh = entry && Date.now() - entry.savedAt < MAX_AGE ? entry.value : undefined;
+    save(mergeHistoryPages(fresh, data as unknown as HistoryPageLike));
+  };
+};
+
+export async function saveChatSnapshot<T>(key: string, data: T) {
+  const scope = sessionScope();
+  if (!scope) return;
+  try {
+    await writeSnapshot(scope, key, data);
+  } catch {
+    return;
+  }
+}
+
 export async function rememberChatSnapshot<T>(key: string, result: Promise<{ data: T }>) {
   const scope = sessionScope();
   try {
     const { data } = await result;
     if (!scope) return;
-    const db = await openDatabase();
-    if (!db || scope !== sessionScope()) return;
-    const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
-    store.put({ value: data, savedAt: Date.now() }, storageKey(scope, key));
-    keepNewest(store, MAX_ENTRIES);
+    await writeSnapshot(scope, key, data);
   } catch (failure) {
     const error = (failure as { error?: { status?: number } })?.error;
     if (scope && (error?.status === 401 || error?.status === 403 || error?.status === 404)) {

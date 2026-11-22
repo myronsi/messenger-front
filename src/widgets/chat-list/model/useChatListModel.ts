@@ -2,7 +2,7 @@ import { isOffline } from '@/shared/lib/network';
 import { useEffect, useState } from 'react';
 import { clearAuthTokens, useAccessToken } from '@/shared/auth/session';
 import { useChatsData } from './useChatsData';
-import { useChatFormatters } from './useChatFormatters';
+import { useChatFormatters } from '@/entities/message';
 import { useChatSearchOverlay, useCloseSearchWhenHidden } from './useChatSearchOverlay';
 import { useChatListWebSocket } from './useChatListWebSocket';
 import { useChatListActions } from './useChatListActions';

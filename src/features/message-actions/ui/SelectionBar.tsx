@@ -3,11 +3,10 @@ import { CheckCheck, Copy, Forward, Trash2, X } from 'lucide-react';
 import type { EntityId } from '@/shared/api/entityId';
 import { useDeleteMessagesMutation, notifyMessageDeletedLocally, type Message, type MessageSelection } from '@/entities/message';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
-import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/ui/sonner';
 import { copyText } from '@/shared/lib/copyText';
 import ForwardMessageDialog from './ForwardMessageDialog';
+import { DeleteMessagesDialog } from './DeleteMessagesDialog';
 import { MAX_FORWARDED_MESSAGES, MAX_SELECTED_MESSAGES, isForwardableMessage, isSelectableMessage } from '../model/useMessageSelection';
 import { isEditableTarget, selectionCopyText } from '../model/selectionText';
 
@@ -18,11 +17,15 @@ interface SelectionBarProps {
   username: string;
   canDeleteForEveryone: (message: Message) => boolean;
   isDirect?: boolean;
+  peerName?: string;
+  savedChat?: boolean;
   onClear: () => void;
   onSelectAll?: () => void;
 }
 
-const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection, username, canDeleteForEveryone, isDirect = false, onClear, onSelectAll }) => {
+const SelectionBar: React.FC<SelectionBarProps> = ({
+  chatId, messages, selection, username, canDeleteForEveryone, isDirect = false, peerName, savedChat = false, onClear, onSelectAll,
+}) => {
   const { translations } = useLanguage();
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -75,7 +78,8 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
 
   if (!selection?.active && !selection?.closing) return null;
 
-  const remove = async (scope: 'me' | 'everyone') => {
+  const remove = async (everyone: boolean) => {
+    const scope = everyone ? 'everyone' : 'me';
     setDeleteFailed(false);
     try {
       await deleteMessages({ chatId, messageIds: ids, scope }).unwrap();
@@ -130,23 +134,11 @@ const SelectionBar: React.FC<SelectionBarProps> = ({ chatId, messages, selection
         username={username}
         onForwarded={onClear}
       />
-      <Dialog open={isDeleteOpen} onOpenChange={(open) => !isDeleting && setIsDeleteOpen(open)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{fill(translations.deleteMessagesConfirm, MAX_SELECTED_MESSAGES)}</DialogTitle>
-          </DialogHeader>
-          {deleteFailed && <p className="text-sm text-destructive">{translations.failedToDeleteMessages}</p>}
-          <div className="flex flex-col gap-2">
-            {forEveryone && (
-              <Button type="button" variant="destructive" disabled={isDeleting} onClick={() => void remove('everyone')}>
-                {isDirect ? translations.deleteForBoth : translations.deleteForEveryone}
-              </Button>
-            )}
-            <Button type="button" variant={forEveryone ? 'outline' : 'destructive'} disabled={isDeleting} onClick={() => void remove('me')}>{translations.deleteForMe}</Button>
-            <Button type="button" variant="ghost" disabled={isDeleting} onClick={() => setIsDeleteOpen(false)}>{translations.cancel}</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {isDeleteOpen && (
+        <DeleteMessagesDialog count={count} everyone={forEveryone && !savedChat ? { direct: isDirect, peerName } : null} busy={isDeleting}
+          error={deleteFailed ? translations.failedToDeleteMessages : null}
+          onCancel={() => !isDeleting && setIsDeleteOpen(false)} onConfirm={(everyone) => void remove(everyone || (savedChat && forEveryone))} />
+      )}
     </>
   );
 };

@@ -8,6 +8,7 @@ type EntryState = Record<string, unknown>;
 const stateOf = (state: unknown): EntryState => (state && typeof state === 'object' ? state as EntryState : {});
 
 let openings = 0;
+const liveArms = new Set<number>();
 let backPending = false;
 let backFrom: string | null = null;
 let backTimer = 0;
@@ -47,6 +48,7 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
   const token = useRef<string | null>(null);
   const ownedKey = useRef<string | null>(null);
   const staleKey = useRef<string | null>(null);
+  const armedAt = useRef(0);
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
@@ -58,10 +60,13 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
         return () => { waiting.delete(resume); };
       }
       openings += 1;
+      armedAt.current = openings;
+      liveArms.add(openings);
       token.current = `${flag}-${openings}`;
       const { pathname, search, hash } = current;
       navigate({ pathname, search, hash }, { state: { ...stateOf(current.state), [flag]: token.current } });
     } else if (!active && token.current) {
+      liveArms.delete(armedAt.current);
       const owned = ownedKey.current;
       token.current = null;
       ownedKey.current = null;
@@ -72,11 +77,13 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
   }, [active, flag, navigate, locationRef, retry]);
 
   useEffect(() => () => {
+    liveArms.delete(armedAt.current);
     if (!token.current || !ownedKey.current || locationRef.current.key !== ownedKey.current) return;
     const entry = browserEntryKey();
     if (entry !== undefined && entry !== ownedKey.current) return;
     token.current = null;
     ownedKey.current = null;
+    if ([...liveArms].some((id) => id > armedAt.current)) return;
     goBack(navigateRef.current, locationRef.current.key);
   }, [locationRef, navigateRef]);
 
@@ -94,6 +101,7 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
       return;
     }
     if (!mine) {
+      liveArms.delete(armedAt.current);
       token.current = null;
       ownedKey.current = null;
       closeRef.current();

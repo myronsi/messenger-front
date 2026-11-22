@@ -10,6 +10,22 @@ const PALETTE_SCALES = "gray|slate|zinc|neutral|stone|red|orange|amber|yellow|li
 const FIXED_PALETTE_CLASS = `(^|[\\s:'"\`])(${PALETTE_UTILITIES})-(${PALETTE_SCALES})-\\d`;
 const SOLID_WHITE_BACKGROUND = "(^|[\\s:])bg-white(?![\\w\\x2F-])";
 
+const WINDOW_RULE = "Build windows from src/shared/ui (Dialog, AlertDialog, Sheet, Drawer, ModalSurface, ActionDialog, ConfirmModal): they animate open and closed, close on a click outside and close with the phone back button. See docs/windows.md.";
+const PALETTE_SELECTORS = [["Literal", "value"], ["TemplateElement", "value.raw"]].flatMap(([node, field]) => [
+  {
+    selector: `${node}[${field}=/${FIXED_PALETTE_CLASS}/]`,
+    message: "Use theme tokens (bg-background, text-muted-foreground, bg-primary, text-destructive …) instead of fixed palette colours, so dark mode and accent colours work.",
+  },
+  {
+    selector: `${node}[${field}=/${SOLID_WHITE_BACKGROUND}/]`,
+    message: "Use bg-background or bg-card instead of bg-white, so dark mode works.",
+  },
+]);
+const WINDOW_SELECTORS = [
+  { selector: "JSXAttribute[name.name='role'][value.value=/^(alert)?dialog$/]", message: WINDOW_RULE },
+  { selector: "JSXAttribute[name.name='aria-modal']", message: WINDOW_RULE },
+];
+
 export default tseslint.config(
   { ignores: ["dist", "src/shared/api/generated", "playwright-report", "test-results"] },
   {
@@ -171,19 +187,18 @@ export default tseslint.config(
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["**/index.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": [
-        "error",
-        ...[["Literal", "value"], ["TemplateElement", "value.raw"]].flatMap(([node, field]) => [
-          {
-            selector: `${node}[${field}=/${FIXED_PALETTE_CLASS}/]`,
-            message: "Use theme tokens (bg-background, text-muted-foreground, bg-primary, text-destructive …) instead of fixed palette colours, so dark mode and accent colours work.",
-          },
-          {
-            selector: `${node}[${field}=/${SOLID_WHITE_BACKGROUND}/]`,
-            message: "Use bg-background or bg-card instead of bg-white, so dark mode works.",
-          },
-        ]),
-      ],
+      "no-restricted-syntax": ["error", ...PALETTE_SELECTORS, ...WINDOW_SELECTORS],
+      "no-restricted-imports": ["error", {
+        paths: ["@radix-ui/react-dialog", "@radix-ui/react-alert-dialog", "vaul"].map((name) => ({ name, message: WINDOW_RULE })),
+      }],
+    },
+  },
+  {
+    files: ["src/shared/ui/**/*.{ts,tsx}", "src/features/calls/ui/IncomingCallCard.tsx", "**/*.test.{ts,tsx}"],
+    ignores: ["**/index.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": ["error", ...PALETTE_SELECTORS],
+      "no-restricted-imports": "off",
     },
   },
   {

@@ -2,6 +2,8 @@ import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/shared/lib/utils"
+import { composeRefs, useExitGhost } from "@/shared/lib/useExitGhost"
+import { WindowBackClose } from "@/shared/ui/WindowBackClose"
 import { buttonVariants } from "@/shared/ui/button"
 
 const AlertDialog = AlertDialogPrimitive.Root
@@ -28,19 +30,28 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & { overlayClassName?: string }
->(({ className, overlayClassName, ...props }, ref) => (
+>(({ className, overlayClassName, children, ...props }, ref) => {
+  const overlayGhost = useExitGhost()
+  const contentGhost = useExitGhost()
+  const cancel = React.useRef<HTMLButtonElement>(null)
+  return (
   <AlertDialogPortal>
-    <AlertDialogOverlay className={overlayClassName} />
+    <AlertDialogOverlay ref={overlayGhost} className={overlayClassName} onClick={() => cancel.current?.click()} />
     <AlertDialogPrimitive.Content
-      ref={ref}
+      ref={composeRefs(ref, contentGhost)}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] dialog-motion gap-4 border bg-background p-6 shadow-lg sm:rounded-lg",
         className
       )}
       {...props}
-    />
+    >
+      {children}
+      <AlertDialogPrimitive.Cancel ref={cancel} className="sr-only" tabIndex={-1} aria-hidden />
+      <WindowBackClose Close={AlertDialogPrimitive.Cancel} flag="alert" />
+    </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
-))
+  )
+})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({

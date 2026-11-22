@@ -1,8 +1,8 @@
 import { isOffline } from '@/shared/lib/network';
 import { historySnapshot, useChatSnapshot } from '@/shared/api/chatSnapshots';
 import type { MessageHistoryResponse } from '@/entities/message';
-import { isPersistedId, compareIds } from '@/shared/api/entityId';
-import type { EntityId } from '@/shared/api/entityId';
+import { isPersistedId, compareIds, type EntityId } from '@/shared/api/entityId';
+import { mergeHistoryPages } from '@/shared/api/historySnapshotRules';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -14,6 +14,7 @@ import type { ShowError } from './types';
 import { fetchMissedMessages } from './fetchMissedMessages';
 import { useGetMessageHistoryQuery, useLazyGetMessageHistoryQuery } from '@/entities/message';
 import { useReadReceiptActions } from './useReadReceiptActions';
+import { useHistorySnapshotSync } from './useHistorySnapshotSync';
 
 export { MAX_LOADED_MESSAGES };
 
@@ -67,11 +68,15 @@ export const useMessageHistory = ({
   // A disk page is a preview. Keep it out of the live message store and out of pagination cursors.
   const historyStatus = asApiError(latestHistoryError).status;
   const hasLoadedMessages = messages.some(message => isPersistedId(message.id));
-  const canPreview = token && isPersistedId(chatId) && !hasLoadedMessages && !(latestHistory && latestHistory.history.length === 0) &&
+  const canPreview = isPersistedId(chatId) && !hasLoadedMessages && !(latestHistory && latestHistory.history.length === 0) &&
     historyStatus !== 401 && historyStatus !== 403 && historyStatus !== 404;
   const savedPage = useChatSnapshot<MessageHistoryResponse>(canPreview ? historySnapshot(chatId, firstUnreadMessageId) : null);
+  const savedPageRef = useRef<{ chatId: EntityId; page?: MessageHistoryResponse }>({ chatId });
+  if (savedPageRef.current.chatId !== chatId || savedPage) savedPageRef.current = { chatId, page: savedPage };
   const preview = useMemo(
-    () => canPreview && savedPage ? sortMessages([...normalizeHistoryMessages(savedPage.history), ...messages]) : undefined,
+    () => canPreview && savedPage
+      ? sortMessages([...normalizeHistoryMessages(savedPage.history).map((message) => ({ ...message, is_cached: true })), ...messages])
+      : undefined,
     [canPreview, savedPage, messages],
   );
 
@@ -119,13 +124,14 @@ export const useMessageHistory = ({
 
   useEffect(() => {
     if (!latestHistory) return;
-    const nextMessages = normalizeHistoryMessages(latestHistory.history);
-    const pageWindow = { hasMoreBefore: latestHistory.has_more_before ?? latestHistory.has_more, hasMoreAfter: !!latestHistory.has_more_after };
+    const page = mergeHistoryPages(savedPageRef.current.page, latestHistory, MAX_LOADED_MESSAGES);
+    const nextMessages = normalizeHistoryMessages(page.history);
+    const pageWindow = { hasMoreBefore: page.has_more_before ?? page.has_more, hasMoreAfter: !!page.has_more_after };
     setMessages((previous) => mergeFreshHistoryMessages(previous, nextMessages, pageWindow));
-    setOldestMessageId(latestHistory.next_before_id ?? nextMessages[0]?.id ?? null);
-    setNewestMessageId(latestHistory.next_after_id ?? nextMessages[nextMessages.length - 1]?.id ?? null);
-    setHasMoreMessages(latestHistory.has_more_before ?? latestHistory.has_more);
-    setHasMoreNewerMessages(!!latestHistory.has_more_after);
+    setOldestMessageId(page.next_before_id ?? nextMessages[0]?.id ?? null);
+    setNewestMessageId(page.next_after_id ?? nextMessages[nextMessages.length - 1]?.id ?? null);
+    setHasMoreMessages(page.has_more_before ?? page.has_more);
+    setHasMoreNewerMessages(!!page.has_more_after);
     setIsLoadingInitialMessages(false);
   }, [latestHistory, setMessages]);
 
@@ -270,9 +276,11 @@ export const useMessageHistory = ({
     }
   }, [fetchHistory, chatId, setMessages, token, loadLatestMessages]);
 
+  useHistorySnapshotSync({ chatId, messages, enabled: !preview && hasLoadedMessages && !hasMoreNewerMessages, hasMoreBefore: hasMoreMessages });
+  const awaitingFirstPage = isPersistedId(chatId) && !hasLoadedMessages && !latestHistory && !latestHistoryError;
   return {
     preview,
-    isLoadingInitialMessages: isLoadingInitialMessages && !preview,
+    isLoadingInitialMessages: (isLoadingInitialMessages || awaitingFirstPage) && !preview,
     isLoadingOlderMessages,
     isLoadingNewerMessages,
     hasMoreMessages,
