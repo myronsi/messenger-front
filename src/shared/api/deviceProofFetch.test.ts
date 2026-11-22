@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { adjustDeviceClock, createDeviceProof } from '@/shared/auth/deviceKey';
+import { getApiBaseUrl } from './config';
 import { withDeviceProof } from './deviceProofFetch';
 
 vi.mock('@/shared/auth/deviceKey', () => ({
@@ -8,7 +9,7 @@ vi.mock('@/shared/auth/deviceKey', () => ({
   adjustDeviceClock: vi.fn(),
 }));
 
-const api = (path: string) => new URL(`/api/v2${path}`, window.location.href).href;
+const api = (path: string) => new URL(`${getApiBaseUrl()}${path}`, window.location.href).href;
 
 const stale = (date: string | null) => new Response(JSON.stringify({ status: 401, code: 'device_proof_stale' }), {
   status: 401,
