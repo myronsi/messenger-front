@@ -4,7 +4,8 @@ import type { Message } from '@/entities/message';
 import { en } from '@/shared/lang/en';
 import ReplyEditBar from './ReplyEditBar';
 
-vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
+vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: ({ alt }: { alt?: string }) => <img alt={alt ?? ''} /> }));
+vi.mock('@/shared/api/useAuthenticatedMedia', () => ({ useAuthenticatedMedia: (source?: string) => source }));
 
 const message = (content: Message['content']): Message => ({
   id: '7', sender: 'Alice', sender_id: '1', content, timestamp: '2026-11-02T10:00:00Z', type: 'message', read_by: [],
@@ -37,8 +38,14 @@ describe('ReplyEditBar', () => {
 
   it('says who is being replied to and when a message is edited', () => {
     const { rerender } = render(<ReplyEditBar message={message('Hi')} mode="reply" translations={en} onCancel={vi.fn()} />);
-    expect(screen.getByText(`${en.replyTo} Alice`)).toBeInTheDocument();
+    expect(screen.getByTestId('reply-edit-bar')).toHaveTextContent(`${en.replyTo} Alice`);
     rerender(<ReplyEditBar message={message('Hi')} mode="edit" translations={en} onCancel={vi.fn()} />);
     expect(screen.getByText(en.editing)).toBeInTheDocument();
+  });
+
+  it('draws custom emoji in the name of the person being replied to', () => {
+    render(<ReplyEditBar message={{ ...message('Hi'), sender: 'Alice <:party_cat:42>' }} mode="reply" translations={en} onCancel={vi.fn()} />);
+    expect(screen.getByRole('img', { name: ':party_cat:' })).toBeInTheDocument();
+    expect(screen.queryByText(/<:party_cat:42>/)).not.toBeInTheDocument();
   });
 });

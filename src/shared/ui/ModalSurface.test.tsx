@@ -10,10 +10,10 @@ function Example() {
   return <>
     <button onClick={() => setOpen(true)}>Open profile</button>
     <button>Background action</button>
-    {open && <ModalSurface label="Profile">
+    {open && <ModalSurface label="Profile" onDismiss={() => setOpen(false)}>
       <button onClick={() => setNested(true)}>Open confirmation</button>
       <button onClick={() => setOpen(false)}>Close profile</button>
-      {nested && <ModalSurface label="Confirmation">
+      {nested && <ModalSurface label="Confirmation" onDismiss={() => setNested(false)}>
         <button onClick={() => setNested(false)}>Cancel</button>
         <button>Confirm</button>
       </ModalSurface>}

@@ -69,7 +69,6 @@ export const PackManager = () => {
 
   return (
     <>
-      {open && <BackToClose flag="packManager" onClose={close} />}
       {open && editing && <BackToClose key={`${tab}-${editing}`} flag="packEditor" onClose={backToList} />}
       <Dialog open={open} onOpenChange={(next) => { if (!next) close(); }}>
         <DialogContent className={cn(DIALOG, MOTION)} data-testid="pack-manager">

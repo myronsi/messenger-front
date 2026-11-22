@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Message } from '@/entities/message';
 import type { EntityId } from '@/shared/api/entityId';
@@ -19,8 +19,8 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     translations: {
       selectedMessages: '{count} selected', forward: 'Forward', deleteMessage: 'Delete', cancelSelection: 'Cancel selection',
-      deleteMessagesConfirm: 'Delete {count} messages?', deleteForMe: 'Delete for me',
-      deleteForEveryone: 'Delete for everyone', cancel: 'Cancel', failedToDeleteMessages: 'Failed',
+      deleteMessagesConfirm: 'Delete {count} messages?', deleteMessageConfirm: 'Delete message?',
+      deleteForEveryone: 'Delete for everyone', deleteMessageForEveryoneHint: 'Gone for all', cancel: 'Cancel', failedToDeleteMessages: 'Failed',
       copy: 'Copy', selectAll: 'Select all', messagesCopied: 'Copied', copyLinkFailed: 'Copy failed',
     },
   }),
@@ -29,6 +29,8 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({
 const message = (id: string, mine = true): Message => ({
   id, sender: mine ? 'me' : 'ann', is_own: mine, content: 'hi', timestamp: '2026-11-03T10:00:00Z', type: 'message', read_by: [],
 });
+
+const dialog = () => within(screen.getByTestId('action-dialog'));
 
 const renderBar = (ids: EntityId[], messages: Message[], onClear = vi.fn(), onSelectAll?: () => void) => {
   render(<SelectionBar chatId="5" messages={messages} selection={{ ids: new Set(ids), active: true, closing: false, toggle: vi.fn(), start: vi.fn() }} username="me"
@@ -63,19 +65,34 @@ describe('SelectionBar', () => {
   it('deletes for everyone only when every message may be deleted so', async () => {
     const onClear = renderBar(['1', '2'], [message('1'), message('2', false)]);
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    expect(screen.queryByRole('button', { name: 'Delete for everyone' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete for me' }));
+    expect(dialog().getByText('Delete 2 messages?')).toBeInTheDocument();
+    expect(dialog().queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.click(dialog().getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(onClear).toHaveBeenCalled());
     expect(api.deleteMessages).toHaveBeenCalledWith({ chatId: '5', messageIds: ['1', '2'], scope: 'me' });
     expect(api.notify).toHaveBeenCalledTimes(2);
+  });
+
+  it('deletes fully in Saved Messages without asking for whom', async () => {
+    const onClear = vi.fn();
+    render(<SelectionBar chatId="5" messages={[message('1'), message('2')]} username="me" savedChat
+      selection={{ ids: new Set<EntityId>(['1', '2']), active: true, closing: false, toggle: vi.fn(), start: vi.fn() }}
+      canDeleteForEveryone={(m) => !!m.is_own} onClear={onClear} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(dialog().queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.click(dialog().getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(onClear).toHaveBeenCalled());
+    expect(api.deleteMessages).toHaveBeenCalledWith({ chatId: '5', messageIds: ['1', '2'], scope: 'everyone' });
   });
 
   it('keeps the selection and says so when deleting fails', async () => {
     api.deleteMessages.mockReturnValue({ unwrap: () => Promise.reject(new Error('nope')) });
     const onClear = renderBar(['1'], [message('1')]);
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete for everyone' }));
+    fireEvent.click(dialog().getByRole('checkbox', { name: 'Delete for everyone' }));
+    fireEvent.click(dialog().getByRole('button', { name: 'Delete' }));
     expect(await screen.findByText('Failed')).toBeInTheDocument();
+    expect(api.deleteMessages).toHaveBeenCalledWith({ chatId: '5', messageIds: ['1'], scope: 'everyone' });
     expect(onClear).not.toHaveBeenCalled();
   });
 
@@ -105,10 +122,10 @@ describe('SelectionBar after the selection closes', () => {
     );
     const view = render(bar(true));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    expect(screen.getByText('Delete 1 messages?')).toBeInTheDocument();
+    expect(screen.getByTestId('action-dialog')).toHaveTextContent('Delete message?');
     view.rerender(bar(false));
     view.rerender(bar(true));
-    expect(screen.queryByText('Delete 1 messages?')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('action-dialog')).not.toBeInTheDocument();
   });
 });
 

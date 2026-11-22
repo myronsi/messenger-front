@@ -235,7 +235,7 @@ const ReactionList: React.FC<ReactionListProps> = ({
         createPortal(
           <div
             ref={popoverRef}
-            role="dialog"
+            role="group"
             aria-label="More reactions"
             data-testid="reaction-overflow-popover"
             className="fixed z-50 flex max-w-[14rem] flex-wrap gap-1 rounded-2xl border border-border bg-popover p-1 text-popover-foreground shadow-lg"

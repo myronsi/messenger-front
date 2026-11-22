@@ -6,7 +6,7 @@ import { ModalSurface } from '@/shared/ui/ModalSurface';
 export const QrApprovalRoute = ({ requestId, onClose }: { requestId: string; onClose: () => void }) => {
   const { data } = useGetSecuritySettingsQuery();
   const t = useLanguage().translations.qrLogin;
-  return <ModalSurface label={t.approveTitle} lockScroll
+  return <ModalSurface label={t.approveTitle} lockScroll onDismiss={onClose} back="route"
     className="fixed inset-0 z-[1100] flex items-center justify-center overflow-y-auto bg-gradient-to-br from-primary/10 to-background p-4">
     <QrApprovalPage requestId={requestId} twoFactorEnabled={data?.two_factor_enabled} onClose={onClose} />
   </ModalSurface>;

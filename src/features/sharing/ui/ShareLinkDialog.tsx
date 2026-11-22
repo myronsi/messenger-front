@@ -26,8 +26,7 @@ export const ShareLinkDialog = ({ title, hint, url, onClose }: ShareLinkDialogPr
   return createPortal(
     <ModalSurface label={title}
       className="fixed inset-0 z-[11002] flex animate-fade-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
-      onClick={(event) => { event.stopPropagation(); if (event.target === event.currentTarget) onClose(); }}
-      onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose(); } }}>
+      onClick={(event) => event.stopPropagation()} onDismiss={onClose}>
       <div className="motion-panel-in relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
         <button type="button" onClick={onClose} aria-label={translations.close}
           className="motion-press absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100">

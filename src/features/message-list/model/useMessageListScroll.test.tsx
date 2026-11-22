@@ -21,14 +21,14 @@ const flushFrames = (count = 5) => {
   }
 };
 
-const List = ({ messages, chat = 'chat', target = null, ownId, onScrollStart }: {
-  messages: Message[]; chat?: string; target?: string | null; ownId?: string; onScrollStart?: () => void;
+const List = ({ messages, chat = 'chat', target = null, ownId, onScrollStart, loading = false }: {
+  messages: Message[]; chat?: string; target?: string | null; ownId?: string; onScrollStart?: () => void; loading?: boolean;
 }) => {
   const messageRefs = useRef({});
   const { chatContainerRef, contentRef } = useMessageListScroll({
     messages, messageRefs, highlightedMessageId: target, tempHighlightedMessageId: null,
     getFormattedDateLabel: () => '', hasMoreMessages: false, hasMoreNewerMessages: false,
-    isLoadingInitialMessages: false, isLoadingOlderMessages: false, isLoadingNewerMessages: false,
+    isLoadingInitialMessages: loading, isLoadingOlderMessages: false, isLoadingNewerMessages: false,
     scrollToBottomKey: chat, isOwnMessage: (item) => item.id === ownId, onScrollStart,
   });
   return <div data-testid="container" ref={chatContainerRef}><div ref={contentRef} /></div>;
@@ -166,6 +166,44 @@ describe('useMessageListScroll', () => {
     act(() => resize());
 
     expect(container.scrollTop).toBe(530);
+  });
+
+  it('snaps to the bottom without the glide when live messages replace the cached ones', async () => {
+    const { view, container, grow } = setup([]);
+    const cached = [message('1'), message('2')].map((item) => ({ ...item, is_cached: true }));
+    view.rerender(<List messages={cached} />);
+    await act(async () => { flushFrames(); });
+    expect(container.scrollTop).toBe(500);
+
+    grow(1300);
+    view.rerender(<List messages={[message('1'), message('2'), message('3')]} />);
+
+    expect(container.scrollTop).toBe(800);
+  });
+
+  it('still glides down to a message that arrives while the live list is open', async () => {
+    const { view, container, grow } = setup([]);
+    view.rerender(<List messages={[message('1'), message('2')]} />);
+    await act(async () => { flushFrames(); });
+
+    grow(1300);
+    view.rerender(<List messages={[message('1'), message('2'), message('3')]} />);
+
+    expect(container.scrollTop).toBe(500);
+    await act(async () => { flushFrames(100); });
+    expect(container.scrollTop).toBe(800);
+  });
+
+  it('waits for the history before the first scroll when only unsent local messages are shown', async () => {
+    const { view, container, grow } = setup([]);
+    view.rerender(<List messages={[message('-5'), message('-4')]} loading />);
+    await act(async () => { flushFrames(); });
+    expect(container.scrollTop).toBe(0);
+
+    grow(1300);
+    view.rerender(<List messages={[message('1'), message('2'), message('-5'), message('-4')]} />);
+
+    expect(container.scrollTop).toBe(800);
   });
 
   it('lets the user scroll up and read history', async () => {

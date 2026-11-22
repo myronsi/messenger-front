@@ -23,13 +23,15 @@ interface UserProfilePanelViewProps {
   links?: ChatLinkItem[];
   isLoadingLinks?: boolean;
   voice?: ProfileAudioItem[];
+  pinned?: React.ReactNode;
 }
 
 const UserProfilePanelView: React.FC<UserProfilePanelViewProps> = ({
   view, canShowPhotos, canShowAudios, canShowFiles = false, files = [], isLoadingFiles = false, filesError = null,
   photos, audios, isLoadingPhotos, isLoadingAudios, photosError, audiosError, infoPanel, currentUsername, onJumpToMessage,
-  links = [], isLoadingLinks = false, voice = [],
+  links = [], isLoadingLinks = false, voice = [], pinned,
 }) => {
+  if (view === 'pinned' && pinned) return <>{pinned}</>;
   if (view === 'links') return <ProfileLinksPanel links={links} isLoading={isLoadingLinks} onJumpToMessage={onJumpToMessage} />;
   if (view === 'voice') return <ProfileAudiosPanel currentUsername={currentUsername} onJumpToMessage={onJumpToMessage} audios={voice} isLoading={isLoadingAudios} error={audiosError} />;
   if (view === 'photos' && canShowPhotos) return <ProfilePhotosPanel photos={photos} isLoading={isLoadingPhotos} error={photosError} currentUsername={currentUsername} onJumpToMessage={onJumpToMessage} />;

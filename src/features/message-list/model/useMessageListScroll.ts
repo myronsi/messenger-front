@@ -1,9 +1,8 @@
-import type { EntityId } from '@/shared/api/entityId';
+import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Message } from '@/entities/message';
+import { getAppendedMessages, type Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { useRowResizes } from './useRowResizes';
-import { getAppendedMessages } from '@/entities/message';
 import { useStickyDateBadge } from './useStickyDateBadge';
 import { useHighlightScroll } from './useHighlightScroll';
 import { useScrollToBottom } from './useScrollToBottom';
@@ -240,8 +239,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       lastMessageIdRef.current = lastMessageId;
       return;
     }
-    if (!hasScrolledInitialRef.current && visibleFirstUnreadId &&
-        !messageRefs.current[visibleFirstUnreadId] && hasMoreMessages) {
+    const onlyLocal = isLoadingInitialMessages && !messages.some((message) => isPersistedId(message.id));
+    if (!hasScrolledInitialRef.current && (onlyLocal || (visibleFirstUnreadId && !messageRefs.current[visibleFirstUnreadId] && hasMoreMessages))) {
       shouldStickToBottomRef.current = false;
       lastMessageIdRef.current = lastMessageId;
       return;
@@ -272,8 +271,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     }
     if (lastMessageIdRef.current !== lastMessageId) {
       const appended = getAppendedMessages(previousMessagesRef.current, messages);
-      const lastIsOwn = isOwnMessageRef.current(messages[messages.length - 1]);
-      if (appended.length > 0 && lastIsOwn) {
+      const leftCache = previousMessagesRef.current.some(m => m.is_cached) && !messages.some(m => m.is_cached) && shouldStickToBottomRef.current;
+      if ((appended.length > 0 && isOwnMessageRef.current(messages[messages.length - 1])) || leftCache) {
         stopAnimation();
         shouldStickToBottomRef.current = true;
         pendingBottomRef.current = false;
@@ -290,7 +289,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     previousMessagesRef.current = messages;
     lastMessageIdRef.current = lastMessageId;
   }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView, countIncoming, hasMoreMessages,
-    isOwnMessageRef, startAnimation, stopAnimation]);
+    isOwnMessageRef, startAnimation, stopAnimation, isLoadingInitialMessages]);
 
   return {
     currentDate, dateBadgeRef, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, contentRef, firstUnreadMarkerRef,

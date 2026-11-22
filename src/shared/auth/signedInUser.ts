@@ -32,6 +32,16 @@ export const readSignedInUser = <User extends { username: string }>(token: strin
   }
 };
 
+export const readRememberedSignIn = <User extends { username: string }>(): SavedUser<User> | null => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SIGNED_IN_USER_KEY) ?? 'null') as Partial<SavedUser<User>> | null;
+    if (!saved?.account || !saved.session || typeof saved.user?.username !== 'string' || !saved.user.username) return null;
+    return { account: saved.account, session: saved.session, user: saved.user };
+  } catch {
+    return null;
+  }
+};
+
 export const forgetSignedInUser = () => {
   try {
     localStorage.removeItem(SIGNED_IN_USER_KEY);

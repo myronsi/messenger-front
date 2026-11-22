@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Loader2, Plus, X } from 'lucide-react';
-import { BackToClose } from '@/shared/ui/BackToClose';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { cn } from '@/shared/lib/utils';
 import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '../model/groupLimits';
@@ -22,9 +21,8 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
   const canCreate = !!form.groupName.trim() && form.selectedUsers.length > 0 && !form.isCreating;
 
   return (
-    <ModalSurface label={text.title} data-testid="group-create" data-closing={closing || undefined}
+    <ModalSurface label={text.title} onDismiss={onClose} ownExit data-testid="group-create" data-closing={closing || undefined}
       className={cn('motion-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm sm:p-4', closing && 'is-closing pointer-events-none')}>
-      {!closing && <BackToClose flag="groupCreate" onClose={onClose} />}
       <div
         className={cn('motion-modal-panel relative flex h-dvh w-full flex-col overflow-hidden bg-card sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:border-border sm:shadow-lg',
           closing && 'is-closing')}>

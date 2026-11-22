@@ -17,73 +17,6 @@ const ChatListBodySkeleton = () => (
   </div>
 );
 
-const ChatListSkeleton = () => (
-  <div className="flex h-full flex-col bg-background">
-    <div className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4">
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-3 w-20" />
-      </div>
-      <Skeleton className="h-9 w-9 rounded-full" />
-    </div>
-    <ChatListBodySkeleton />
-  </div>
-);
-
-const ChatRoomSkeleton = () => (
-  <div className="flex h-full flex-col bg-background">
-    <div className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4">
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="h-3 w-24" />
-      </div>
-    </div>
-    <div className="flex-1 space-y-5 px-5 py-6 md:px-10">
-      <div className="flex justify-start">
-        <Skeleton className="h-14 w-2/5 rounded-2xl" />
-      </div>
-      <div className="flex justify-end">
-        <Skeleton className="h-16 w-1/2 rounded-2xl" />
-      </div>
-      <div className="flex justify-start">
-        <Skeleton className="h-10 w-1/3 rounded-2xl" />
-      </div>
-      <div className="flex justify-end">
-        <Skeleton className="h-20 w-2/5 rounded-2xl" />
-      </div>
-      <div className="flex justify-start">
-        <Skeleton className="h-12 w-1/2 rounded-2xl" />
-      </div>
-    </div>
-    <div className="shrink-0 border-t border-border p-4">
-      <Skeleton className="h-11 w-full rounded-full" />
-    </div>
-  </div>
-);
-
-const MessengerAppSkeleton = ({ isMobile = false }: { isMobile?: boolean }) => {
-  if (isMobile) {
-    return (
-      <div className="min-h-screen bg-background">
-        <ChatListSkeleton />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen max-h-screen min-w-full overflow-hidden bg-gradient-to-br from-primary/10 to-background">
-      <div className="w-1/4 overflow-hidden rounded-lg bg-background shadow-lg">
-        <ChatListSkeleton />
-      </div>
-      <div className="w-3/4 overflow-hidden rounded-lg bg-background shadow-lg">
-        <ChatRoomSkeleton />
-      </div>
-    </div>
-  );
-};
-
 const UserProfileSkeleton = () => (
   <div data-testid="user-profile-skeleton" className="flex min-h-full flex-col">
     <Skeleton className="h-32 w-full rounded-none" />
@@ -119,4 +52,4 @@ const UserProfileSkeleton = () => (
   </div>
 );
 
-export { ChatListBodySkeleton, ChatListSkeleton, ChatRoomSkeleton, MessengerAppSkeleton, UserProfileSkeleton };
+export { ChatListBodySkeleton, UserProfileSkeleton };

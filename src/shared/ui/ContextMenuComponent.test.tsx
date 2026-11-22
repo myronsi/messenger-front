@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ContextMenuComponent from './ContextMenuComponent';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { deleteMessage: 'Delete', deleteForMe: 'Delete for me', deleteForEveryone: 'Delete for everyone', deleteForMeShort: 'For me', deleteForEveryoneShort: 'For everyone', replyToMessage: 'Reply', copy: 'Copy', forward: 'Forward', selectMessage: 'Select', editMessage: 'Edit', makeSticker: 'Make sticker', moreMessageActions: 'More', moderation: { reportMessage: 'Report' } } }),
+  useLanguage: () => ({ translations: { deleteMessage: 'Delete', replyToMessage: 'Reply', copy: 'Copy', forward: 'Forward', selectMessage: 'Select', editMessage: 'Edit', makeSticker: 'Make sticker', moreMessageActions: 'More', moderation: { reportMessage: 'Report' } } }),
 }));
 
 describe('ContextMenuComponent report', () => {
@@ -23,20 +23,20 @@ describe('ContextMenuComponent report', () => {
   });
 });
 
-const renderMenu = (props: { onDeleteForMe?: () => void; onDeleteForEveryone?: () => void }) => render(
+const renderMenu = (props: { onDelete?: () => void }) => render(
   <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine onReply={vi.fn()} isClosing={false} onClose={vi.fn()} {...props} />,
 );
 
 describe('ContextMenuComponent more', () => {
-  it('moves select, make sticker and report to a More step and can go back', () => {
+  it('moves make sticker and report to a More step and can go back', () => {
     const onReport = vi.fn();
     render(
-      <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine={false} onReply={vi.fn()} onForward={vi.fn()} onSelect={vi.fn()}
-        onMakeSticker={vi.fn()} onReport={onReport} onDeleteForMe={vi.fn()} isClosing={false} onClose={vi.fn()} />,
+      <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine={false} onReply={vi.fn()} onForward={vi.fn()}
+        onMakeSticker={vi.fn()} onReport={onReport} onDelete={vi.fn()} isClosing={false} onClose={vi.fn()} />,
     );
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Forward', 'More', 'Delete for me']);
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Forward', 'More', 'Delete']);
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['More', 'Select', 'Make sticker', 'Report']);
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['More', 'Make sticker', 'Report']);
     fireEvent.click(screen.getByRole('button', { name: 'Report' }));
     expect(onReport).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
@@ -45,28 +45,12 @@ describe('ContextMenuComponent more', () => {
 });
 
 describe('ContextMenuComponent delete', () => {
-  it('opens the delete step inside the menu and can go back', () => {
-    const onDeleteForMe = vi.fn();
-    const onDeleteForEveryone = vi.fn();
-    renderMenu({ onDeleteForMe, onDeleteForEveryone });
-    expect(screen.getByTestId('delete-submenu-chevron')).toBeInTheDocument();
+  it('has one Delete item that hands over to the caller without a sub-menu', () => {
+    const onDelete = vi.fn();
+    renderMenu({ onDelete });
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    expect(onDeleteForMe).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Reply' })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Delete', 'For me', 'For everyone']);
-    fireEvent.click(screen.getByRole('button', { name: 'For everyone' }));
-    expect(onDeleteForEveryone).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Reply' })).toBeInTheDocument();
-  });
-
-  it('deletes for me right away when that is the only choice', () => {
-    const onDeleteForMe = vi.fn();
-    renderMenu({ onDeleteForMe });
-    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
-    expect(screen.queryByTestId('delete-submenu-chevron')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete for me' }));
-    expect(onDeleteForMe).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'For everyone' })).not.toBeInTheDocument();
   });
 });
@@ -75,9 +59,9 @@ describe('ContextMenuComponent order', () => {
   it('lists reply, copy, forward and edit, a single extra action in place of More, then delete last after a separator', () => {
     const { container } = render(
       <ContextMenuComponent ref={createRef<HTMLDivElement>()} x={10} y={10} isMine onReply={vi.fn()} onCopy={vi.fn()} onForward={vi.fn()}
-        onSelect={vi.fn()} onEdit={vi.fn()} onDeleteForMe={vi.fn()} onDeleteForEveryone={vi.fn()} isClosing={false} onClose={vi.fn()} />,
+        onReport={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} isClosing={false} onClose={vi.fn()} />,
     );
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Copy', 'Forward', 'Edit', 'Select', 'Delete']);
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Reply', 'Copy', 'Forward', 'Edit', 'Report', 'Delete']);
     expect(container.querySelector('.border-t')?.nextElementSibling).toHaveTextContent('Delete');
   });
 
@@ -105,17 +89,17 @@ describe('ContextMenuComponent placement', () => {
     expect(place(window.innerHeight - 50)).toBe(`${window.innerHeight - 50 - 200 - 48}px`);
   });
 
-  it('keeps the Delete sub-menu above the tap, against the same edge, when the menu opened above', () => {
+  it('keeps the More page above the tap, against the same edge, when the menu opened above', () => {
     const heights = { current: 200 };
     const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(() => heights.current);
     const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(150);
     const y = window.innerHeight - 150;
     render(<ContextMenuComponent ref={createRef<HTMLDivElement>()} x={100} y={y} isMine onReply={vi.fn()}
-      onDeleteForMe={vi.fn()} onDeleteForEveryone={vi.fn()} isClosing={false} onClose={vi.fn()} />);
+      onMakeSticker={vi.fn()} onReport={vi.fn()} isClosing={false} onClose={vi.fn()} />);
     expect(screen.getByRole('menu').style.top).toBe(`${y - 200 - 48}px`);
     heights.current = 110;
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    expect(screen.getByRole('button', { name: 'For everyone' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByRole('button', { name: 'Report' })).toBeInTheDocument();
     expect(screen.getByRole('menu').style.top).toBe(`${y - 110 - 48}px`);
     height.mockRestore();
     width.mockRestore();

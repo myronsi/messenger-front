@@ -116,6 +116,7 @@ export interface Message {
   id: EntityId;
   client_temp_id?: EntityId | null;
   server_kept?: boolean;
+  is_cached?: boolean;
   local_object_url?: string | null;
   upload_status?: 'uploading' | 'failed' | 'lost';
   upload_progress?: number;
@@ -152,6 +153,8 @@ export interface MessageSelection {
   closing: boolean;
   toggle: (message: Message, extend?: boolean) => void;
   start: (message: Message) => void;
+  beginDrag?: (message: Message) => void;
+  dragTo?: (message: Message) => void;
 }
 
 export interface ChatPhoto {

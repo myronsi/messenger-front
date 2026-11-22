@@ -59,7 +59,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
   };
   const avatar = <AuthenticatedImage src={props.avatarUrl} alt={props.displayName} className="h-full w-full object-cover" />;
   const tabLabels: Record<ProfilePanelView, string> = {
-    details: t.info, photos: t.media, audios: t.audio, files: t.files, links: t.links, voice: t.voice,
+    details: t.info, pinned: t.pinned, photos: t.media, audios: t.audio, files: t.files, links: t.links, voice: t.voice,
   };
 
   const tiles: ProfileTile[] = [

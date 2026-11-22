@@ -2,9 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
 import type { Message, PinnedMessage } from '@/entities/message';
-import { PinnedBar } from './PinnedBar';
+import { activeSegment, PinnedBar } from './PinnedBar';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: en, language: 'en' }) }));
+vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { src?: string; 'data-testid'?: string }) => <img alt="" src={props.src} data-testid={props['data-testid']} /> }));
 vi.mock('@/shared/ui/CustomEmoji', () => ({ EmojiText: ({ text }: { text: string }) => <>{text}</> }));
 
 const pin = (id: string, content: Message['content'], scope: PinnedMessage['scope'] = 'everyone'): PinnedMessage => ({
@@ -53,5 +54,22 @@ describe('PinnedBar', () => {
   it('shows a plus when more pins are not loaded yet', () => {
     render(<PinnedBar pins={pins} count={3} hasMore onJump={vi.fn()} onOpenList={vi.fn()} />);
     expect(screen.getByTestId('pinned-bar-position')).toHaveTextContent('1 of 3+');
+  });
+
+  it('shows one bar per pin and lights the one on screen, at most four bars', () => {
+    render(<PinnedBar pins={pins} count={3} hasMore={false} onJump={vi.fn()} onOpenList={vi.fn()} />);
+    expect(screen.getByTestId('pinned-bar-segments').children).toHaveLength(3);
+    expect(activeSegment(0, 3)).toBe(0);
+    expect(activeSegment(2, 3)).toBe(2);
+    expect(activeSegment(0, 10)).toBe(0);
+    expect(activeSegment(9, 10)).toBe(3);
+    expect(activeSegment(5, 10)).toBe(2);
+  });
+
+  it('shows a small picture for a pinned photo, and none for text', () => {
+    render(<PinnedBar pins={pins} count={3} hasMore={false} onJump={vi.fn()} onOpenList={vi.fn()} />);
+    expect(screen.queryByTestId('pinned-bar-thumbnail')).not.toBeInTheDocument();
+    bar();
+    expect(screen.getByTestId('pinned-bar-thumbnail')).toHaveAttribute('src', '/a.jpg');
   });
 });

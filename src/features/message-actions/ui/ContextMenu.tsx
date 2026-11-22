@@ -14,6 +14,7 @@ import { makeStickerFrom } from '@/entities/sticker';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { plainEmoji } from '@/shared/lib/customEmoji';
+import { requestMessageDelete } from '../model/deleteRequest';
 
 interface ContextMenuProps {
   contextMenu: ContextMenuState;
@@ -35,7 +36,6 @@ interface ContextMenuProps {
   canDeleteMessage?: (message: Message) => boolean;
   isDirect?: boolean;
   onForward?: (message: Message) => void;
-  onSelect?: (message: Message) => void;
   onReply: (message: Message) => void;
 }
 
@@ -58,7 +58,6 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     canDeleteMessage,
     isDirect = false,
     onForward,
-    onSelect,
     onReply,
   }, ref) => {
     const { translations } = useLanguage();
@@ -118,9 +117,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     };
     const showDeleteError = () => setModal({ type: 'error', message: translations.webSocketError });
 
+    const messageId = contextMenu.messageId;
     const handleDeleteForMe = async () => {
-      const messageId = contextMenu.messageId;
-      closeMenu();
       try {
         if (isPersistedId(messageId)) await deleteMessageForMe(messageId).unwrap();
         else if (message?.server_kept) await discardServerUnsent(chatId, message.client_temp_id ?? messageId);
@@ -133,17 +131,24 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
 
     const handleDeleteForEveryone = () => {
       const socket = wsRef.current;
-      closeMenu();
       if (!socket || socket.readyState !== WebSocket.OPEN) {
         showDeleteError();
         return;
       }
       try {
-        socket.send(JSON.stringify({ type: 'delete', message_id: contextMenu.messageId }));
+        socket.send(JSON.stringify({ type: 'delete', message_id: messageId }));
       } catch (error) {
         console.error('Failed to delete message for everyone:', error);
         showDeleteError();
       }
+    };
+    const handleDelete = () => {
+      closeMenu();
+      requestMessageDelete({
+        chatId, forEveryone: canDelete, direct: isDirect,
+        deleteForMe: () => void handleDeleteForMe(),
+        deleteForEveryone: handleDeleteForEveryone,
+      });
     };
     const handleCopy = async () => {
       if (message) {
@@ -177,13 +182,10 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         isMine={contextMenu.isMine}
         openLeft={contextMenu.openLeft}
         {...(canEdit && { onEdit: handleEdit })}
-        onDeleteForMe={() => void handleDeleteForMe()}
-        onDeleteForEveryone={canDelete ? handleDeleteForEveryone : undefined}
-        forBoth={isDirect}
+        onDelete={handleDelete}
         {...(!isFile && { onCopy: handleCopy })}
         onReply={handleReply}
         onForward={onForward && message ? handleForward : undefined}
-        onSelect={onSelect && message ? () => { onSelect(message); closeMenu(); } : undefined}
         onTogglePin={canPin && message ? () => { closeMenu(); requestPinChange({ chatId, message, pin }); } : undefined}
         pinned={!!pin}
         onReport={canReport && message ? () => {

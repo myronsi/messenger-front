@@ -9,7 +9,9 @@ export interface JumpRequest {
 
 export const useJumpRequest = (openChatId?: EntityId | null) => {
   const [request, setRequest] = useState<JumpRequest | null>(null);
-  useEffect(() => { setRequest(null); }, [openChatId]);
+  useEffect(() => {
+    setRequest((current) => (current && openChatId != null && String(current.chatId) === String(openChatId) ? current : null));
+  }, [openChatId]);
   const requestJump = useCallback((chatId: EntityId, messageId: EntityId) => setRequest({ chatId, messageId, key: Date.now() }), []);
   const requestFor = (chatId?: EntityId | null) => (request && chatId != null && String(request.chatId) === String(chatId) ? request : null);
   return { requestJump, requestFor };

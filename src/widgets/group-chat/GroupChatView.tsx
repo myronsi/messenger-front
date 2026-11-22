@@ -8,7 +8,7 @@ import { MessageList } from '@/features/message-list';
 import { ImageDrawingProvider } from '@/features/image-drawing';
 import { MessageComposer } from '@/features/message-composer';
 import { useStableCallback } from '@/shared/lib/useStableCallback';
-import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog, SelectionBar, useMessageSelection, useReplyAction } from '@/features/message-actions';
+import { ContextMenu, ReactionMenu, Modal, ForwardMessageDialog, SelectionBar, MessageDeleteHost, useMessageSelection, useReplyAction } from '@/features/message-actions';
 import { useBackToClose } from '@/shared/lib/useBackToClose';
 import GroupProfileDialog from './GroupProfileDialog';
 import GroupChatHeader from './GroupChatHeader';
@@ -45,7 +45,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
      handleRoleChange, handleTransferOwner, handleLeaveGroup, handleDeleteGroup, groupConfirm, setGroupConfirm,
      unreadParticipants, readStatusMessage, reactionDetails, modal, forwardMessage,
   } = model;
-  const { selection, start: startSelection, clear: clearSelection, selectAll, intercept } = useMessageSelection(chatId, messages);
+  const { selection, clear: clearSelection, selectAll, intercept } = useMessageSelection(chatId, messages);
   useBackToClose(selection.active, clearSelection, 'selection');
   useBackToClose(isSearchOpen, () => setIsSearchOpen(false), 'search');
   const startReply = useReplyAction({ editingMessage, setReplyTo, setEditingMessage, setMessageInput, messageInputRef });
@@ -161,7 +161,6 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
           messageInputRef={messageInputRef}
           canDeleteMessage={canDeleteMessage}
           onForward={setForwardMessage}
-          onSelect={startSelection}
         />
       )}
 
@@ -277,6 +276,7 @@ const GroupChatView: React.FC<{ model: GroupChatViewModel }> = ({ model }) => {
       </Dialog>
 
       <Modal modal={modal} onClose={() => setModal(null)} />
+      <MessageDeleteHost chatId={chatId} />
       <SelectionBar chatId={chatId} messages={messages} selection={selection} username={username} canDeleteForEveryone={canDeleteMessage}
         onClear={clearSelection} onSelectAll={selectAll} />
       <ForwardMessageDialog

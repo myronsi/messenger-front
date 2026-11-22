@@ -62,6 +62,18 @@ describe('useMessageTap', () => {
     expect(onMessageClick).toHaveBeenCalledTimes(1);
   });
 
+  it('hands a tap straight on, without the double-tap wait, while the open menu is already closing', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 });
+    const onMessageClick = vi.fn();
+    const wsRef = { current: { readyState: WebSocket.OPEN, send: vi.fn(), close: vi.fn() } };
+    const { result, rerender } = renderHook(({ menuOpen }) => useMessageTap({
+      onMessageClick, userId: '1', wsRef, lastScrollAtRef: { current: 0 }, canReact: true, menuOpen,
+    }), { initialProps: { menuOpen: true } });
+    rerender({ menuOpen: false });
+    result.current(tap(), message);
+    expect(onMessageClick).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the reaction chosen in Personalization, and opens the menu at once when it is off', () => {
     setDoubleTapReaction('1', '👍');
     const first = setup(375);

@@ -7,23 +7,16 @@ const message = (id: string): Message => ({ id, sender: 'a', content: 'x', times
 const loaded = ['100', '101'].map(message);
 
 describe('nextSeekStep', () => {
-  const base = { newer: false, pages: 0, loaded: 100, hasMoreMessages: true, hasMoreNewerMessages: true, canLoadAround: true };
+  const base = { newer: false, hasMoreMessages: true, hasMoreNewerMessages: true, canLoadAround: true };
 
-  it('pages towards a nearby message so the way there stays continuous', () => {
-    expect(nextSeekStep(base)).toBe('older');
-    expect(nextSeekStep({ ...base, newer: true })).toBe('newer');
+  it('loads the page around the message at once instead of paging towards it', () => {
+    expect(nextSeekStep(base)).toBe('around');
+    expect(nextSeekStep({ ...base, newer: true })).toBe('around');
   });
 
-  it('loads the page around the message after a few pages', () => {
-    expect(nextSeekStep({ ...base, pages: 3 })).toBe('around');
-  });
-
-  it('loads around the message instead of paging when paging would drop the visible messages', () => {
-    expect(nextSeekStep({ ...base, loaded: 480 })).toBe('around');
-  });
-
-  it('keeps paging when the around request is not available', () => {
-    expect(nextSeekStep({ ...base, pages: 5, canLoadAround: false })).toBe('older');
+  it('pages towards the message when the around request is not available', () => {
+    expect(nextSeekStep({ ...base, canLoadAround: false })).toBe('older');
+    expect(nextSeekStep({ ...base, newer: true, canLoadAround: false })).toBe('newer');
   });
 
   it('gives up when there is nothing more in that direction', () => {
@@ -40,12 +33,20 @@ describe('useHighlightScroll', () => {
     chatContainerRef: { current: null }, startAnimation: vi.fn(), replacedWindowRef: { current: null }, ...overrides,
   });
 
-  it('loads newer pages for a message newer than the loaded window, older pages otherwise', () => {
-    const newer = options({ targetId: '500' });
+  it('loads the messages around a pinned message that is not loaded with one request', () => {
+    const settings = options({ targetId: '50' });
+    renderHook(() => useHighlightScroll(settings));
+    expect(settings.onLoadMessagesAround).toHaveBeenCalledOnce();
+    expect(settings.onLoadMessagesAround).toHaveBeenCalledWith('50');
+    expect(settings.onLoadOlderMessages).not.toHaveBeenCalled();
+  });
+
+  it('loads newer pages for a message newer than the loaded window, older pages otherwise, when it cannot load around', () => {
+    const newer = options({ targetId: '500', onLoadMessagesAround: undefined });
     renderHook(() => useHighlightScroll(newer));
     expect(newer.onLoadNewerMessages).toHaveBeenCalledOnce();
     expect(newer.onLoadOlderMessages).not.toHaveBeenCalled();
-    const older = options({ targetId: '50' });
+    const older = options({ targetId: '50', onLoadMessagesAround: undefined });
     renderHook(() => useHighlightScroll(older));
     expect(older.onLoadOlderMessages).toHaveBeenCalledOnce();
   });
@@ -74,6 +75,24 @@ describe('useHighlightScroll', () => {
     const replaced = [target, ...loaded];
     hook.rerender({ ...settings, messages: replaced, messageRefs: { current: { 50: row } }, replacedWindowRef: { current: replaced } });
     expect(scrollTop).toBe(5000 - 450 + 600);
+    expect(settings.startAnimation).toHaveBeenCalledOnce();
+  });
+
+  it('places a message that arrived with the around request just above the center before gliding to it', async () => {
+    let scrollTop = 9000;
+    const container = document.createElement('div');
+    Object.defineProperty(container, 'clientHeight', { configurable: true, get: () => 1000 });
+    Object.defineProperty(container, 'scrollHeight', { configurable: true, get: () => 10000 });
+    Object.defineProperty(container, 'scrollTop', { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value; } });
+    container.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    const row = document.createElement('div');
+    row.getBoundingClientRect = () => ({ top: 3000 - scrollTop, height: 100 }) as DOMRect;
+    const settings = options({ targetId: '50', chatContainerRef: { current: container } });
+    const hook = renderHook((props) => useHighlightScroll(props), { initialProps: settings });
+    expect(settings.onLoadMessagesAround).toHaveBeenCalledWith('50');
+    await Promise.resolve();
+    hook.rerender({ ...settings, messages: [message('49'), message('50'), message('51')], messageRefs: { current: { 50: row } } });
+    expect(scrollTop).toBe(3000 - 450 + 600);
     expect(settings.startAnimation).toHaveBeenCalledOnce();
   });
 });

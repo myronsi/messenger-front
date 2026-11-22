@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
 import { requestPinChange, type Message, type PinnedMessage } from '@/entities/message';
@@ -34,13 +34,14 @@ describe('MessagePins requests', () => {
     render(<MessagePins chatId="5" context={{ kind: 'group', role: 'member' }} onJump={vi.fn()} />);
     ask({ chatId: '5', message, pin: null });
     expect(pin).toHaveBeenCalledWith('10', 'me');
-    expect(screen.queryByTestId('pin-choice-dialog')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('action-dialog')).not.toBeInTheDocument();
   });
 
   it('asks in a one-on-one chat and pins for both', () => {
     render(<MessagePins chatId="5" context={{ kind: 'direct', peerName: 'Anna', personalOnly: false }} onJump={vi.fn()} />);
     ask({ chatId: '5', message, pin: null });
-    fireEvent.click(screen.getByRole('button', { name: 'Pin for me and Anna' }));
+    expect(screen.getByRole('checkbox', { name: 'Also pin for Anna' })).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Pin' }));
     expect(pin).toHaveBeenCalledWith('10', 'everyone');
   });
 
@@ -57,7 +58,8 @@ describe('MessagePins requests', () => {
     unpin.mockClear();
     ask({ chatId: '5', message, pin: shared });
     expect(unpin).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Unpin for me' }));
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Unpin' }));
     expect(unpin).toHaveBeenCalledWith('10', 'me');
   });
 
@@ -69,7 +71,7 @@ describe('MessagePins requests', () => {
 });
 
 describe('MessagePins bar and panel', () => {
-  it('shows the bar only with pins and jumps from the panel', () => {
+  it('shows the bar only with pins and jumps from the panel', async () => {
     const onJump = vi.fn();
     const { rerender } = render(<MessagePins chatId="5" context={{ kind: 'group', role: 'member' }} onJump={onJump} />);
     expect(screen.queryByTestId('pinned-bar')).not.toBeInTheDocument();
@@ -80,7 +82,8 @@ describe('MessagePins bar and panel', () => {
     expect(screen.getAllByTestId('pinned-panel-item')).toHaveLength(1);
     fireEvent.click(screen.getAllByTitle('Go to message')[1]);
     expect(onJump).toHaveBeenCalledWith('10');
-    expect(screen.queryByTestId('pinned-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('pinned-dropdown')).toHaveClass('is-closing');
+    await waitFor(() => expect(screen.queryByTestId('pinned-panel')).not.toBeInTheDocument());
   });
 
   it('hides the bar while search is open', () => {

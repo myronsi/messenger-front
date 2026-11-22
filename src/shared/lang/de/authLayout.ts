@@ -1,7 +1,6 @@
 export const authLayout = {
   authLayout: {
     brand: "Messenger",
-    checkingSession: "Wir prüfen, ob du angemeldet bist…",
     tagline: "Chats, die so aussehen, wie du willst",
     taglineDescription: "Dunkelmodus, eigene Farben und Hintergründe, auf jedem Gerät.",
     previewIncoming: "Bereit für den Anruf?",

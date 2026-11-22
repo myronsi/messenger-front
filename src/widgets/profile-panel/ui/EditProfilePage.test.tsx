@@ -73,6 +73,7 @@ describe('EditProfilePage back button', () => {
     expect(await screen.findByText(en.leaveUnsavedText)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: en.stayOnPage }));
     await waitFor(() => expect(screen.queryByText(en.leaveUnsavedText)).not.toBeInTheDocument());
+    act(() => { window.dispatchEvent(new PopStateEvent('popstate')); });
     act(() => screen.getByText('system back').click());
     expect(await screen.findByText(en.leaveUnsavedText)).toBeInTheDocument();
     expect(onBack).not.toHaveBeenCalled();

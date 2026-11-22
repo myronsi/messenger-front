@@ -1,23 +1,29 @@
+import { useState } from 'react';
 import { PinOff } from 'lucide-react';
 import type { PinnedMessage, PinScope } from '@/entities/message';
+import { ActionDialog } from '@/shared/ui/ActionDialog';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { unpinScopes } from '../model/pinRules';
-import { PinChoiceDialog } from './PinChoiceDialog';
 
 interface UnpinDialogProps {
   pin: PinnedMessage;
-  direct: boolean;
+  peerName?: string;
   onUnpin: (scope: PinScope) => void;
   onCancel: () => void;
 }
 
-export const UnpinDialog = ({ pin, direct, onUnpin, onCancel }: UnpinDialogProps) => {
+export const UnpinDialog = ({ pin, peerName, onUnpin, onCancel }: UnpinDialogProps) => {
   const t = useLanguage().translations.messagePins;
-  const choices = unpinScopes(pin).map((scope) => ({
-    key: scope,
-    label: scope === 'me' ? t.unpinForMe : direct ? t.unpinForBoth : t.unpinForEveryone,
-    strong: scope === 'everyone',
-    onSelect: () => onUnpin(scope),
-  }));
-  return <PinChoiceDialog icon={<PinOff />} title={t.unpinTitle} choices={choices} onCancel={onCancel} />;
+  const [forEveryone, setForEveryone] = useState(true);
+  const offersEveryone = unpinScopes(pin).includes('everyone');
+  const option = !offersEveryone ? undefined : peerName !== undefined
+    ? { label: fillTemplate(t.alsoUnpinFor, { name: peerName }), hint: t.unpinForBothHint }
+    : { label: t.unpinForEveryone, hint: t.unpinForEveryoneHint };
+  return (
+    <ActionDialog tone="primary" icon={<PinOff />} title={t.unpinTitle} confirmText={t.unpin}
+      points={offersEveryone ? undefined : [t.unpinStaysForOthers]}
+      option={option && { ...option, checked: forEveryone, onChange: setForEveryone }}
+      onCancel={onCancel} onConfirm={() => onUnpin(offersEveryone && forEveryone ? 'everyone' : 'me')} />
+  );
 };

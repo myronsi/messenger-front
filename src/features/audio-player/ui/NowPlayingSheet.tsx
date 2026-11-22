@@ -9,7 +9,6 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import { BackToClose } from '@/shared/ui/BackToClose';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { findMiniCover, flyCover, prefersReducedMotion } from '../model/coverFlight';
 import { closeNowPlaying, useNowPlayingOpen } from '../model/nowPlaying';
@@ -115,11 +114,10 @@ const NowPlayingSheet = ({ closing }: { closing: boolean }) => {
   const trackId = String(track.id);
 
   return (
-    <ModalSurface label={t.nowPlayingTitle}
+    <ModalSurface label={t.nowPlayingTitle} onDismiss={closeNowPlaying} ownExit
       className={cn('now-playing-backdrop fixed inset-0 z-[80] flex items-stretch justify-center sm:items-center sm:p-6', closing && 'is-closing')}
       style={{ backgroundColor: `rgb(0 0 0 / ${0.5 * fade})` }}
-      onPointerDown={(event) => { if (event.target === event.currentTarget) closeNowPlaying(); }}
-      onKeyDown={(event) => { if (event.key === 'Escape') closeNowPlaying(); }}>
+      >
       <div ref={scroll.target} data-testid="now-playing" data-closing={closing || undefined} style={panelStyle}
         className={cn('now-playing-panel relative flex h-full w-full flex-col overflow-hidden bg-background sm:h-[min(860px,100%)] sm:max-w-md sm:rounded-2xl',
           'sm:border sm:border-border sm:shadow-2xl', fromCover && 'from-cover', closing && !drag.dismissed && 'is-closing')}>
@@ -216,7 +214,6 @@ export const NowPlayingHost = () => {
   useEffect(() => { if (!hasTrack) closeNowPlaying(); }, [hasTrack]);
   return (
     <>
-      {open && hasTrack && <BackToClose flag="nowPlaying" onClose={closeNowPlaying} />}
       {mounted && hasTrack && <NowPlayingSheet closing={closing} />}
     </>
   );

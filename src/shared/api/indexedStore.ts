@@ -1,11 +1,15 @@
-import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
+import { expectsRefreshSession, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
+import { readRememberedSignIn } from '@/shared/auth/signedInUser';
 import { getTokenSession, getTokenSubject } from '@/shared/auth/tokenClaims';
 import { getApiBaseUrl } from './config';
 
+const rememberedSession = () => (expectsRefreshSession() ? readRememberedSignIn() : null);
+
 export const sessionScope = () => {
   const token = getAccessToken();
-  const account = getTokenSubject(token);
-  const session = getTokenSession(token);
+  const remembered = token ? null : rememberedSession();
+  const account = token ? getTokenSubject(token) : remembered?.account;
+  const session = token ? getTokenSession(token) : remembered?.session;
   return account && session ? JSON.stringify([getApiBaseUrl(), account, session]) : null;
 };
 

@@ -34,27 +34,23 @@ export const useGroupMessageMenus = ({ isOwnMessage, messageJumpRequest }: UseGr
     setContextMenu({ ...placement.context, openLeft: placement.openLeft, messageId: message.id, isMine: isOwnMessage(message) });
   }, [isOwnMessage]);
 
+  const menuOpen = !!(contextMenu || reactionMenu);
   const openOrCloseMenus = useCallback((message: Message, event: { clientX: number; clientY: number }) => {
-    if (contextMenu || reactionMenu) {
-      setIsClosing(true);
-      setTimeout(closeMenus, 200);
+    if (!menuOpen) {
+      openMenus(message, event);
       return;
     }
-    openMenus(message, event);
-  }, [closeMenus, contextMenu, openMenus, reactionMenu]);
+    setIsClosing(true);
+    setTimeout(closeMenus, 200);
+  }, [closeMenus, openMenus, menuOpen]);
 
   const handleMessageClick = useCallback((event: React.MouseEvent, message: Message) => {
     if (window.innerWidth < 768 || event.type === 'contextmenu') {
       event.preventDefault();
       event.stopPropagation();
-      if (contextMenu || reactionMenu) {
-        setIsClosing(true);
-        setTimeout(closeMenus, 200);
-        return;
-      }
-      openMenus(message, event);
+      openOrCloseMenus(message, event);
     }
-  }, [closeMenus, contextMenu, openMenus, reactionMenu]);
+  }, [openOrCloseMenus]);
 
   const scrollToMessage = useCallback((messageId: EntityId) => {
     setHighlightedMessageId(messageId);

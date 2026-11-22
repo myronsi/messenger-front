@@ -5,11 +5,14 @@ import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { cn } from '@/shared/lib/utils';
 
+export type ActionDialogTone = 'destructive' | 'primary';
+
 export interface ActionDialogOption {
   label: string;
   hint?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  tone?: ActionDialogTone;
 }
 
 interface ActionDialogProps {
@@ -21,6 +24,7 @@ interface ActionDialogProps {
   cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  tone?: ActionDialogTone;
   busy?: boolean;
   confirmDisabled?: boolean;
   error?: string | null;
@@ -29,7 +33,7 @@ interface ActionDialogProps {
   overlayClassName?: string;
 }
 
-export const ActionOption = ({ label, hint, checked, onChange }: ActionDialogOption) => {
+export const ActionOption = ({ label, hint, checked, onChange, tone = 'destructive' }: ActionDialogOption) => {
   const id = useId();
   return (
     <label htmlFor={id} data-testid="action-dialog-option"
@@ -38,7 +42,8 @@ export const ActionOption = ({ label, hint, checked, onChange }: ActionDialogOpt
         aria-describedby={hint ? `${id}-hint` : undefined} onChange={(event) => onChange(event.target.checked)} />
       <span aria-hidden="true" className={cn(
         'mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] transition-colors',
-        checked ? 'border-destructive bg-destructive text-destructive-foreground' : 'border-muted-foreground/50',
+        !checked ? 'border-muted-foreground/50'
+          : tone === 'primary' ? 'border-primary bg-primary text-primary-foreground' : 'border-destructive bg-destructive text-destructive-foreground',
       )}>
         {checked && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
       </span>
@@ -51,19 +56,22 @@ export const ActionOption = ({ label, hint, checked, onChange }: ActionDialogOpt
 };
 
 export const ActionDialog = ({
-  icon, title, points, option, confirmText, cancelText, onConfirm, onCancel, busy = false, confirmDisabled = false,
+  icon, title, points, option, confirmText, cancelText, onConfirm, onCancel, tone = 'destructive', busy = false, confirmDisabled = false,
   error, children, contained = false, overlayClassName,
 }: ActionDialogProps) => {
   const { translations } = useLanguage();
+  const primary = tone === 'primary';
   const surface = (
-    <ModalSurface label={title}
+    <ModalSurface label={title} onDismiss={() => { if (!busy) onCancel(); }}
       className={cn(`${contained ? 'absolute' : 'fixed'} inset-0 z-[11002] flex animate-fade-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm`, overlayClassName)}
       onClick={(event) => event.stopPropagation()} onTouchStart={(event) => event.stopPropagation()}
-      onTouchEnd={(event) => event.stopPropagation()} onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
+      onTouchEnd={(event) => event.stopPropagation()}
+      onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
       <form data-testid="action-dialog"
         className="motion-panel-in max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-lg"
         onSubmit={(event) => { event.preventDefault(); if (!busy && !confirmDisabled) onConfirm(); }}>
-        <div aria-hidden="true" className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive [&>svg]:h-5 [&>svg]:w-5">
+        <div aria-hidden="true" className={cn('mb-3 flex h-10 w-10 items-center justify-center rounded-full [&>svg]:h-5 [&>svg]:w-5',
+          primary ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive')}>
           {icon}
         </div>
         <h3 className="mb-3 text-lg font-semibold leading-snug tracking-tight">{title}</h3>
@@ -78,7 +86,7 @@ export const ActionDialog = ({
           </ul>
         )}
         {children}
-        {option && <ActionOption {...option} />}
+        {option && <ActionOption tone={tone} {...option} />}
         {error && <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onCancel}
@@ -86,7 +94,8 @@ export const ActionDialog = ({
             {cancelText || translations.cancel}
           </button>
           <button type="submit" disabled={busy || confirmDisabled}
-            className="motion-press rounded-md bg-destructive px-4 py-2 font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50">
+            className={cn('motion-press rounded-md px-4 py-2 font-medium transition-colors disabled:opacity-50',
+              primary ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90')}>
             {confirmText}
           </button>
         </div>

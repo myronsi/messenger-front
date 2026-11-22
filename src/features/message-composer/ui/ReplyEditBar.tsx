@@ -62,7 +62,7 @@ const ReplyEditBar: React.FC<ReplyEditBarProps> = ({ message, mode, translations
       {isVoice && <Mic className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
       <div className="min-w-0 flex-1 border-l-2 border-primary pl-2">
         <div className="truncate text-xs font-medium text-primary">
-          {label}{author ? ` ${author}` : ''}
+          {label}{author && <> <EmojiText text={author} /></>}
         </div>
         <div className="truncate text-sm text-foreground" title={plainEmoji(text)}><EmojiText text={text} /></div>
       </div>

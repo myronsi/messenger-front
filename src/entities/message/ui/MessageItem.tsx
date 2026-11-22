@@ -4,7 +4,7 @@ import { isPersistedId } from '@/shared/api/entityId';
 import type { EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { MutableRefObject, memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLongPress } from '@/shared/lib/useLongPress';
+import { useLongPress, type PressInput } from '@/shared/lib/useLongPress';
 import { combineTouchHandlers, useSwipeAction } from '@/shared/lib/useSwipeAction';
 import SwipeReplyIcon from './SwipeReplyIcon';
 import SystemMessageLine from './SystemMessageLine';
@@ -74,7 +74,7 @@ interface MessageItemProps {
   onResendMessage?: (message: Message) => void;
   isSelected?: boolean;
   onToggleSelect?: (message: Message, extend?: boolean) => void;
-  onLongPress?: (message: Message) => void;
+  onLongPress?: (message: Message, input?: PressInput) => void;
   onSwipeReply?: (message: Message) => void;
 }
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -87,7 +87,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const messageId = message.id;
   const setRowRef = useCallback((element: HTMLDivElement | null) => { messageRefs.current[messageId] = element; }, [messageRefs, messageId]);
-  const longPress = useLongPress(onLongPress && !onToggleSelect ? () => onLongPress(message) : undefined);
+  const longPress = useLongPress(onLongPress ? (input) => onLongPress(message, input) : undefined, { mouse: true });
   const isMine = isOwnMessage(message);
   const mediaKey = message.sticker?.image_url ?? (typeof message.content === 'string' ? '' : message.content?.file_url ?? '');
   const [brokenMedia, setBrokenMedia] = useState<string | null>(null), mediaBroken = brokenMedia === mediaKey;
@@ -187,12 +187,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
         onMouseDown={(event) => { if (event.shiftKey || (event.detail === 2 && readDoubleTapReaction(userId))) event.preventDefault(); }}
         onDoubleClick={(event) => onClick(event, message)}
         {...combineTouchHandlers(longPress.handlers, swipe.handlers)}
+        {...longPress.mouseHandlers}
         onContextMenu={(event) => onMessageClick(event, message)}
       >
         {onToggleSelect && (
-          <button type="button" role="checkbox" aria-checked={isSelected} aria-label={translations.selectMessage}
+          <button type="button" role="checkbox" aria-checked={isSelected} aria-label={translations.selectMessage} data-selection-check
             className="absolute inset-0 z-10 flex items-center pl-1"
-            onClick={(event) => { event.stopPropagation(); onToggleSelect(message, event.shiftKey); }}
+            onClick={(event) => { event.stopPropagation(); if (!longPress.consumeClick()) onToggleSelect(message, event.shiftKey); }}
             onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}>
             <span className={`motion-selection-check flex h-5 w-5 items-center justify-center rounded-full border-2 ${isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/60 bg-background'}`}>
               {isSelected && <Check className="motion-selection-check h-3 w-3" />}

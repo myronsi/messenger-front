@@ -22,7 +22,7 @@ import { qrLoginRequestId } from '@/shared/lib/qrLoginPath';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CallProvider, CallStage } from '@/features/calls';
 import { Button } from '@/shared/ui/button';
-import { ChatRoomSkeleton } from '@/shared/ui/messenger-skeletons';
+import { DelayedSpinner } from '@/shared/ui/DelayedSpinner';
 import { ChunkErrorBoundary } from '@/shared/ui/ChunkErrorBoundary';
 import { MainNav, useMainTab } from '@/widgets/main-nav';
 import { MainTabPanes } from './ui/MainTabPanes';
@@ -119,13 +119,13 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     }, WINDOW_MOTION_MS);
   };
 
-  const jumpChatId = renderedUserProfileProps.directChatId;
   const userProfileProps = {
     ...renderedUserProfileProps,
-    onJumpToMessage: jumpChatId ? (messageId: EntityId) => {
+    onJumpToMessage: (messageId: EntityId, chatId: EntityId) => {
       requestCloseUserProfile();
-      requestJump(jumpChatId, messageId);
-    } : undefined,
+      requestJump(chatId, messageId);
+      if (String(currentChat?.id) !== String(chatId)) openChatFromList(chatId, renderedUserProfileProps.username, false, 'one-on-one');
+    },
     onClose: requestCloseUserProfile,
   };
 
@@ -174,7 +174,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
         <Button variant="outline" onClick={() => window.location.reload()}>{translations.securityPage.retry}</Button>
       </div>
     )}>
-      <Suspense fallback={<ChatRoomSkeleton />}>{chatPanel}</Suspense>
+      <Suspense fallback={<DelayedSpinner label={translations.loading} className="h-full bg-background" />}>{chatPanel}</Suspense>
     </ChunkErrorBoundary>
   );
 

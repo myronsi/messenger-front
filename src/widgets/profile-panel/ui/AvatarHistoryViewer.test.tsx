@@ -12,7 +12,7 @@ vi.mock('@/shared/ui/AuthenticatedImage', async () => {
 
 const current = 'http://localhost:3000/api/v2/users/7/avatar';
 const item = (version: string, isCurrent: boolean) => ({ id: version, avatar_url: `/api/v2/users/7/avatar?version=${version}`, created_at: '2026-11-02T10:00:00Z', is_current: isCurrent });
-const shownSrc = () => screen.getByRole('img', { name: 'Alice avatar' }).getAttribute('src');
+const shownSrc = () => screen.getByRole('img', { name: 'Alice avatar', hidden: true }).getAttribute('src');
 
 describe('AvatarHistoryViewer', () => {
   it('shows the current avatar at once while the history loads', () => {
@@ -48,8 +48,10 @@ describe('AvatarHistoryViewer', () => {
     const onDeleteAvatar = vi.fn(async () => undefined);
     render(<AvatarHistoryViewer username="alice" displayName="Alice" currentAvatarUrl={current} onClose={vi.fn()} onDeleteAvatar={onDeleteAvatar} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete photo' }));
-    fireEvent.click(screen.getByRole('alertdialog').previousElementSibling as HTMLElement);
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    const backdrop = screen.getByTestId('action-dialog').parentElement as HTMLElement;
+    fireEvent.pointerDown(backdrop);
+    fireEvent.click(backdrop);
+    expect(screen.queryByTestId('action-dialog')).not.toBeInTheDocument();
     expect(onDeleteAvatar).not.toHaveBeenCalled();
   });
 
@@ -80,7 +82,7 @@ describe('AvatarHistoryViewer delete confirmation keyboard', () => {
     expect(shownSrc()).toBe(current);
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('action-dialog')).not.toBeInTheDocument();
     expect(deleteButton).toHaveFocus();
   });
 });

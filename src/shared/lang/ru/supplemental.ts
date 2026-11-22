@@ -23,7 +23,6 @@ export const supplemental = {
   groupCreated: "Группа создана успешно!",
   errorWhileCreatingGroup: "Ошибка при создании группы",
   groupCreationFailed: "Не удалось создать группу. Пожалуйста, попробуйте снова.",
-  deleteForMe: "Удалить для меня",
   deleteForEveryone: "Удалить для всех",
   deleted: "Удалено",
   forYou: "для вас",

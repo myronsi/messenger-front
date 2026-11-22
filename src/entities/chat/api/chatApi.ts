@@ -1,5 +1,6 @@
 import { directChatsSnapshot, groupChatsSnapshot, rememberChatSnapshot } from '@/shared/api/chatSnapshots';
 import { apiClient } from '@/shared/api/client';
+import { groupByIdKey, withStoredFallback } from '@/shared/api/offlineStore';
 import { apiTask, collectPages, contractData } from '@/shared/api/tasks';
 import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
@@ -47,7 +48,9 @@ export const chatApi = messengerApi.injectEndpoints({
     }),
 
     getGroupDetails: builder.query<RawGroupDetails, EntityId>({
-      queryFn: (id, { signal }) => apiTask(async () => groupModel(contractData(await apiClient.GET('/groups/{chat_id}', { params: { path: { chat_id: String(id) } }, signal })))),
+      queryFn: (id, { signal }) => apiTask(() => withStoredFallback(groupByIdKey(String(id)), async () => (
+        groupModel(contractData(await apiClient.GET('/groups/{chat_id}', { params: { path: { chat_id: String(id) } }, signal })))
+      ))),
       keepUnusedDataFor: 300,
       providesTags: (result, error, chatId) => [{ type: 'Chat', id: `group-details-${chatId}` }],
     }),

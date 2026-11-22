@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 're
 import { useLocation, useNavigate } from 'react-router-dom';
 import { currentUserApi, type CurrentUser } from '@/shared/api/currentUserApi';
 import { syncTimeZone } from '@/shared/api/syncTimeZone';
-import { readSignedInUser } from '@/shared/auth/signedInUser';
+import { readRememberedSignIn, readSignedInUser } from '@/shared/auth/signedInUser';
 import { expectsRefreshSession, getAccessToken, refreshAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { useAppDispatch } from '@/shared/hooks/redux';
@@ -16,22 +16,18 @@ import { watchCurrentUser } from './watchCurrentUser';
 import { watchSessionChanges } from './watchSessionChanges';
 
 const loadMessenger = () => import('@/pages/messenger').then(({ MessengerApp }) => ({ default: MessengerApp }));
+const preloadChatScreens = () => Promise.all([import('@/widgets/chat-room'), import('@/widgets/group-chat')]);
 const MessengerApp = lazy(loadMessenger);
 const AuthFlowPage = lazy(() => import('@/pages/auth').then(module => ({ default: module.AuthFlowPage })));
 const PublicLinkPage = lazy(() => import('@/pages/auth').then(module => ({ default: module.PublicLinkPage })));
 const JoinGroupDialog = lazy(() => import('@/features/sharing').then(module => ({ default: module.JoinGroupDialog })));
 
-function SessionLoading({ failed = false }: { failed?: boolean }) {
+function SessionFailed() {
   const { translations } = useLanguage();
-  const [canRetry, setCanRetry] = useState(false);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setCanRetry(true), 5000);
-    return () => window.clearTimeout(timer);
-  }, []);
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-background p-4 text-center">
-      <p role="status" className="text-sm text-muted-foreground">{failed ? translations.errorLoading : translations.authLayout.checkingSession}</p>
-      {(failed || canRetry) && <Button variant="outline" onClick={() => window.location.reload()}>{translations.securityPage.retry}</Button>}
+      <p role="status" className="text-sm text-muted-foreground">{translations.errorLoading}</p>
+      <Button variant="outline" onClick={() => window.location.reload()}>{translations.securityPage.retry}</Button>
     </main>
   );
 }
@@ -40,9 +36,12 @@ export function SessionEntry() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const [savedUser] = useState(() => readSignedInUser<CurrentUser>(getAccessToken()));
+  const [savedUser] = useState(() => {
+    const token = getAccessToken();
+    if (token) return readSignedInUser<CurrentUser>(token);
+    return expectsRefreshSession() ? readRememberedSignIn<CurrentUser>()?.user ?? null : null;
+  });
   const [username, setUsername] = useState(savedUser?.username ?? '');
-  const [checking, setChecking] = useState(!savedUser);
   const stopWatching = useRef<() => void>(() => undefined);
 
   useLayoutEffect(() => {
@@ -51,10 +50,12 @@ export function SessionEntry() {
   }, [dispatch, savedUser]);
 
   useEffect(() => {
-    if (getAccessToken() || expectsRefreshSession()) void loadMessenger().catch(() => undefined);
+    if (getAccessToken() || expectsRefreshSession()) {
+      void loadMessenger().catch(() => undefined);
+      void preloadChatScreens().catch(() => undefined);
+    }
     const signedOut = () => {
       setUsername('');
-      setChecking(false);
     };
     const stopChanges = watchSessionChanges({
       onSignedOut: signedOut,
@@ -69,7 +70,6 @@ export function SessionEntry() {
           if (remembered) {
             dispatch(currentUserApi.util.upsertQueryEntries([{ endpointName: 'getCurrentUser', arg: undefined, value: remembered }]));
             setUsername(remembered.username);
-            setChecking(false);
           }
         }
         const result = await dispatch(currentUserApi.endpoints.getCurrentUser.initiate(undefined, {
@@ -81,7 +81,6 @@ export function SessionEntry() {
       },
       onUser: user => {
         setUsername(user.username);
-        setChecking(false);
         void syncTimeZone(user.time_zone);
       },
       onSignedOut: signedOut,
@@ -114,19 +113,16 @@ export function SessionEntry() {
   const handleLogin = (user: string) => {
     stopWatching.current();
     setUsername(user);
-    setChecking(false);
     navigate(returnPath(location.pathname, location.search, location.state));
   };
 
   const publicName = publicNameFromPath(location.pathname);
   const inviteToken = inviteTokenFromPath(location.pathname);
   const publicTarget = publicName ? { kind: 'name' as const, name: publicName } : inviteToken ? { kind: 'invite' as const, token: inviteToken } : null;
-  const publicEntry = location.pathname === '/' || pathOutsideAuth(location.pathname) !== null || !!publicTarget;
-  if (checking && (getAccessToken() || expectsRefreshSession() || !publicEntry)) return <SessionLoading />;
 
   return (
-    <ChunkErrorBoundary key={username ? 'messenger' : 'auth'} fallback={<SessionLoading failed />}>
-      <Suspense fallback={username ? <main className="min-h-[100dvh] bg-background" /> : <SessionLoading />}>
+    <ChunkErrorBoundary key={username ? 'messenger' : 'auth'} fallback={<SessionFailed />}>
+      <Suspense fallback={<main className="min-h-[100dvh] bg-background" />}>
         {username
           ? (
             <CurrentUsernameContext.Provider value={username}>

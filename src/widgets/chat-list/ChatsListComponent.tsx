@@ -1,3 +1,4 @@
+import { usePrefetchRecentChats } from './model/usePrefetchRecentChats';
 import React, { useState } from 'react';
 import { Ban, ChevronRight, Eraser, Flag, Inbox, Trash2 } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
@@ -29,6 +30,7 @@ const unreadForMenu = (chat?: Chat) => (chat?.is_request ? 0 : chat?.unread_coun
 const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const { onOpenRequests } = props;
   const model = useChatListModel(props);
+  usePrefetchRecentChats(model.chats);
   useAppWorkerRegistration(!model.isLoading);
   const { data: me } = useGetCurrentUserQuery();
   const [creatingGroup, setCreatingGroup] = useState(false);

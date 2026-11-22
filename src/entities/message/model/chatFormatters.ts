@@ -1,5 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { systemEventText, type ChatLastMessage } from '@/entities/message';
+import { systemEventText } from './systemEvents';
+import type { ChatLastMessage } from './types';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
 

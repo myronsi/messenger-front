@@ -57,4 +57,21 @@ describe('useMessageHistory saved page', () => {
     await waitFor(() => expect(hook.result.current.history.preview).toBeUndefined());
     expect(hook.result.current.messages).toHaveLength(0);
   });
+
+  it('reports the first page as loading from the very first render', () => {
+    mocks.saved = null;
+    mocks.latest = { currentData: undefined, isLoading: false, error: undefined };
+    const { hook } = render();
+    expect(hook.result.current.history.isLoadingInitialMessages).toBe(true);
+  });
+
+  it('keeps the saved older messages in front of a fresh page that connects to them', async () => {
+    mocks.saved = page([1, 2, 3, 4, 5, 6]);
+    mocks.latest = { currentData: undefined, isLoading: true, error: undefined };
+    const { hook } = render();
+    mocks.latest = { currentData: page([5, 6, 7, 8]), isLoading: false, error: undefined };
+    hook.rerender();
+    await waitFor(() => expect(hook.result.current.messages.map((item) => item.id)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8']));
+    expect(hook.result.current.history.hasMoreMessages).toBe(true);
+  });
 });

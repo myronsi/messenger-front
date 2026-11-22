@@ -71,7 +71,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
   const closeSafely = () => { if (!dismissBlockedRef.current) handleClose(); };
   const frame = (content: ReactNode) => (pane || embedded
     ? <div role="region" aria-label={t.settings} className="absolute inset-0 z-50 flex items-center justify-center bg-background p-4">{content}</div>
-    : <ModalSurface label="Profile" className="fixed inset-0 z-[1000] flex items-center justify-center bg-background p-4 sm:bg-background/80 sm:backdrop-blur-sm">{content}</ModalSurface>);
+    : <ModalSurface label="Profile" onDismiss={closeSafely} back="route" className="fixed inset-0 z-[1000] flex items-center justify-center bg-background p-4 sm:bg-background/80 sm:backdrop-blur-sm">{content}</ModalSurface>);
 
   if (isLoadingUser) return frame(<div className="flex items-center gap-2"><Loader2 className="h-6 w-6 animate-spin" /><span>{translations.loading}</span></div>);
   if (!userData) {
