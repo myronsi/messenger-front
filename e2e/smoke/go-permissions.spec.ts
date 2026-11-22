@@ -1,15 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
-import { allowGroupInvites, createEnglishContext, loginUser } from './helpers';
+import { allowGroupInvites, createEnglishContext, loginUser, pageAccessToken } from './helpers';
 
 const request = async <T>(page: Page, path: string, method = 'GET', body?: unknown, expected = 200): Promise<T> => {
-  const perform = () => page.evaluate(async ({ path, method, body, api }) => {
+  const token = await pageAccessToken(page);
+  const perform = () => page.evaluate(async ({ path, method, body, api, token }) => {
     const response = await fetch(`${api || `${location.origin}/api/v2`}${path}`, {
-      method, headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+      method, headers: { Authorization: `Bearer ${token}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     return { status: response.status, data: await response.json(), retryAfter: Number(response.headers.get('Retry-After') || 1) };
-  }, { path, method, body, api: process.env.E2E_API_URL });
+  }, { path, method, body, api: process.env.E2E_API_URL, token });
   let result = await perform();
   // Fixture generation observes the server's flood limit and preserves each
   // client_temp_id when retrying; it does not require weakened runtime limits.

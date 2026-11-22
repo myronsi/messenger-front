@@ -24,7 +24,7 @@ fi
 PRUNE_IMAGES=false bash "$dir/deploy.sh" "$dir" "ghcr.io/$repo:$image_tag"
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   {
-    printf 'E2E_API_URL=http://127.0.0.1:%s/api/v2\n' "$port"
+    printf 'E2E_API_URL=http://localhost:%s/api/v2\n' "$port"
     printf 'GO_API_TESTS=1\n'
     printf 'E2E_CLIENT_API_VERSION=%s\n' "$(cd "$root" && node --input-type=module -e "import { API_VERSION } from '@myronsi/messenger-api'; console.log(API_VERSION)")"
   } >> "$GITHUB_ENV"

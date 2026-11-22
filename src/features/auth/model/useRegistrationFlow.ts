@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from '@/shared/api/config';
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
-import { setAccessToken } from '@/shared/auth/session';
+import { getAccessToken, setAccessToken } from '@/shared/auth/session';
 import { TERMS_VERSION } from '@/shared/lib/helpSite';
 import type { components } from '@/shared/api/generated/schema';
 import {
@@ -155,7 +155,7 @@ export const useRegistrationFlow = ({ onLoginSuccess }: RegistrationFlowOptions)
   }, [profileAvatarPreview]);
 
   const handleSaveProfileSetup = useCallback(async () => {
-    const token = localStorage.getItem('access_token');
+    const token = getAccessToken();
     if (!token) {
       setMessage(translations.registerFailed || 'Registration failed');
       return;

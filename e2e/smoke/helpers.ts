@@ -28,8 +28,26 @@ export const createSmokeUser = (label: string): SmokeUser => {
   };
 };
 
+const accessTokens = new WeakMap<Page, string>();
+
+export const trackAccessTokens = (context: BrowserContext) => {
+  context.on('response', async (response) => {
+    if (response.request().method() !== 'POST' || !response.ok() || !new URL(response.url()).pathname.includes('/auth/')) return;
+    const body = await response.json().catch(() => null) as { access_token?: unknown } | null;
+    if (typeof body?.access_token !== 'string') return;
+    const page = (() => { try { return response.frame().page(); } catch { return null; } })();
+    if (page) accessTokens.set(page, body.access_token);
+  });
+};
+
+export const pageAccessToken = async (page: Page) => {
+  await expect.poll(() => accessTokens.get(page) ?? null, { message: 'access token from a sign-in or refresh response' }).not.toBeNull();
+  return accessTokens.get(page)!;
+};
+
 export const createEnglishContext = async (browser: Browser): Promise<BrowserContext> => {
   const context = await browser.newContext();
+  trackAccessTokens(context);
   await context.addInitScript(() => {
     window.localStorage.setItem('language', 'en');
   });
@@ -74,14 +92,15 @@ export const finishProfileStep = async (page: Page, user: SmokeUser) => {
 };
 
 export const allowGroupInvites = async (page: Page) => {
-  const status = await page.evaluate(async (api) => {
+  const token = await pageAccessToken(page);
+  const status = await page.evaluate(async ({ api, token }) => {
     const response = await fetch(`${api || `${location.origin}/api/v2`}/me/privacy`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ group_invites: 'everyone' }),
     });
     return response.status;
-  }, process.env.E2E_API_URL);
+  }, { api: process.env.E2E_API_URL, token });
   expect(status, 'allow group invites').toBe(200);
 };
 

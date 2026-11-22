@@ -1,5 +1,27 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { authFetch, endSession, getAccessToken, mayHaveRefreshSession, refreshAccessToken, setAccessToken } from './session';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { forgetCachedDeviceKey, forgetDeviceKey } from './deviceKey';
+import { authFetch, endSession, getAccessToken, mayHaveRefreshSession, refreshAccessToken, setAccessToken, subscribeToAccessToken } from './session';
+
+vi.mock('./deviceKey', async (importOriginal) => ({
+  ...await importOriginal<typeof import('./deviceKey')>(),
+  forgetDeviceKey: vi.fn(async () => undefined),
+  forgetCachedDeviceKey: vi.fn(),
+}));
+
+const otherTab = new BroadcastChannel('auth');
+afterAll(() => otherTab.close());
+
+const fromOtherTab = async (message: { type: 'token'; token: string } | { type: 'logout' }) => {
+  otherTab.postMessage(message);
+  await vi.waitFor(() => expect(getAccessToken()).toBe(message.type === 'token' ? message.token : null));
+};
+
+const received: unknown[] = [];
+otherTab.addEventListener('message', (event) => received.push(event.data));
+
+const problem = (status: number, code: string) => new Response(JSON.stringify({ status, code }), {
+  status, headers: { 'Content-Type': 'application/problem+json' },
+});
 
 const jwt = (expiresInSeconds: number) => {
   const payload = btoa(JSON.stringify({ sub: '1', exp: Math.floor(Date.now() / 1000) + expiresInSeconds }));
@@ -31,6 +53,22 @@ describe('refreshAccessToken', () => {
     expect(getAccessToken()).toBeNull();
   });
 
+  it('keeps the session when the device proof was rejected only because of the clock', async () => {
+    setAccessToken('old');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(problem(401, 'device_proof_stale')));
+    expect(await refreshAccessToken()).toBeNull();
+    expect(getAccessToken()).toBe('old');
+    expect(mayHaveRefreshSession()).toBe(true);
+  });
+
+  it('ends the session when the refresh session is bound to another device key', async () => {
+    setAccessToken('old');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(problem(401, 'invalid_token')));
+    expect(await refreshAccessToken()).toBeNull();
+    expect(getAccessToken()).toBeNull();
+    expect(mayHaveRefreshSession()).toBe(false);
+  });
+
   it('stores the new access token', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'new' }), { status: 200 })));
     expect(await refreshAccessToken()).toBe('new');
@@ -47,7 +85,7 @@ describe('refreshAccessToken', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const refreshing = refreshAccessToken();
-    localStorage.removeItem('access_token');
+    await fromOtherTab({ type: 'logout' });
     release();
     expect(await refreshing).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -60,7 +98,7 @@ describe('refreshAccessToken', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { respond = resolve; })));
     const refreshing = refreshAccessToken();
     await Promise.resolve();
-    localStorage.removeItem('access_token');
+    await fromOtherTab({ type: 'logout' });
     respond(new Response(JSON.stringify({ access_token: 'new' }), { status: 200 }));
     expect(await refreshing).toBeNull();
     expect(getAccessToken()).toBeNull();
@@ -74,7 +112,7 @@ describe('refreshAccessToken', () => {
     const refreshing = refreshAccessToken();
     await Promise.resolve();
     const other = asUser('2');
-    localStorage.setItem('access_token', other);
+    await fromOtherTab({ type: 'token', token: other });
     respond(new Response('{}', { status: 401 }));
     expect(await refreshing).toBeNull();
     expect(getAccessToken()).toBe(other);
@@ -91,7 +129,7 @@ describe('refreshAccessToken', () => {
     vi.stubGlobal('fetch', fetchMock);
     const refreshing = refreshAccessToken();
     const fresh = jwt(3600);
-    localStorage.setItem('access_token', fresh);
+    await fromOtherTab({ type: 'token', token: fresh });
     release();
     expect(await refreshing).toBe(fresh);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -101,7 +139,7 @@ describe('refreshAccessToken', () => {
     setAccessToken('old');
     const fresh = jwt(3600);
     vi.stubGlobal('fetch', vi.fn(async () => {
-      localStorage.setItem('access_token', fresh);
+      await fromOtherTab({ type: 'token', token: fresh });
       return new Response('{}', { status: 401 });
     }));
     expect(await refreshAccessToken()).toBe(fresh);
@@ -111,7 +149,8 @@ describe('refreshAccessToken', () => {
   it('still ends the session on a rejected refresh when the newer token is already expired', async () => {
     setAccessToken('old');
     vi.stubGlobal('fetch', vi.fn(async () => {
-      localStorage.setItem('access_token', jwt(-60));
+      const expired = jwt(-60);
+      await fromOtherTab({ type: 'token', token: expired });
       return new Response('{}', { status: 401 });
     }));
     expect(await refreshAccessToken()).toBeNull();
@@ -186,8 +225,65 @@ describe('refresh session marker', () => {
     expect(await refreshAccessToken()).toBeNull();
     expect(fetcher).not.toHaveBeenCalled();
     setAccessToken('signed-in');
-    localStorage.removeItem('access_token');
-    expect(await refreshAccessToken()).toBe('next');
+    vi.resetModules();
+    const reloaded = await import('./session');
+    expect(reloaded.getAccessToken()).toBeNull();
+    expect(await reloaded.refreshAccessToken()).toBe('next');
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('access token in memory', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.mocked(forgetDeviceKey).mockClear();
+    vi.mocked(forgetCachedDeviceKey).mockClear();
+    localStorage.clear();
+  });
+
+  it('never writes the access token to local storage', () => {
+    setAccessToken('in-memory');
+    expect(getAccessToken()).toBe('in-memory');
+    expect(Object.values({ ...localStorage })).not.toContain('in-memory');
+    endSession();
+    expect(getAccessToken()).toBeNull();
+  });
+
+  it('removes the access token an older version left in local storage', async () => {
+    localStorage.setItem('access_token', 'legacy');
+    vi.resetModules();
+    const reloaded = await import('./session');
+    expect(localStorage.getItem('access_token')).toBeNull();
+    expect(reloaded.getAccessToken()).toBeNull();
+  });
+
+  it('tells other tabs about a new token and about a sign-out', async () => {
+    setAccessToken('shared');
+    await vi.waitFor(() => expect(received[received.length - 1]).toEqual({ type: 'token', token: 'shared' }));
+    endSession();
+    await vi.waitFor(() => expect(received[received.length - 1]).toEqual({ type: 'logout' }));
+  });
+
+  it('follows a token and a sign-out from another tab', async () => {
+    const seen: (string | null)[] = [];
+    const unsubscribe = subscribeToAccessToken((token) => seen.push(token));
+    await fromOtherTab({ type: 'token', token: 'from-other-tab' });
+    await fromOtherTab({ type: 'logout' });
+    unsubscribe();
+    expect(seen).toEqual(['from-other-tab', null]);
+    expect(forgetCachedDeviceKey).toHaveBeenCalled();
+  });
+
+  it('forgets the device key when the session ends', () => {
+    setAccessToken('signed-in');
+    endSession();
+    expect(forgetDeviceKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the device key when a recovery replaced the session it was just bound to', () => {
+    setAccessToken('signed-in');
+    endSession({ keepDeviceKey: true });
+    expect(getAccessToken()).toBeNull();
+    expect(forgetDeviceKey).not.toHaveBeenCalled();
   });
 });

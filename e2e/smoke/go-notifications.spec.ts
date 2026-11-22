@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeProfile, createEnglishContext, createSmokeUser, logoutUser, openProfile, registerUser, waitForChatListItem } from './helpers';
+import { closeProfile, createEnglishContext, createSmokeUser, logoutUser, openProfile, pageAccessToken, registerUser, waitForChatListItem } from './helpers';
 
 test('notification preferences persist and conversations can be muted', async ({ browser }) => {
   test.skip(process.env.GO_API_TESTS !== '1', 'Requires the Go notification API');
@@ -10,14 +10,15 @@ test('notification preferences persist and conversations can be muted', async ({
   try {
     await registerUser(page, user);
     const base = process.env.E2E_API_URL!;
-    const chatId = await page.evaluate(async ({ api, name }) => {
+    const token = await pageAccessToken(page);
+    const chatId = await page.evaluate(async ({ api, name, token }) => {
       const response = await fetch(`${api}/groups`, {
-        method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, member_ids: [] }),
       });
       if (!response.ok) throw new Error(`Create group: ${response.status}`);
       return (await response.json()).id as string;
-    }, { api: base, name: chatName });
+    }, { api: base, name: chatName, token });
     await openProfile(page);
     await page.getByRole('button', { name: /Notifications/ }).click();
     const settings = page.getByRole('region', { name: 'Notifications', exact: true });

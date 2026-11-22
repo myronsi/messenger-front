@@ -7,12 +7,14 @@ import { SessionEntry } from './SessionEntry';
 
 const mocks = vi.hoisted(() => ({
   token: null as string | null,
+  expectsSession: false,
   dispatch: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock('@/shared/hooks/redux', () => ({ useAppDispatch: () => mocks.dispatch }));
 vi.mock('@/shared/auth/session', () => ({
   getAccessToken: () => mocks.token,
+  expectsRefreshSession: () => mocks.expectsSession,
   refreshAccessToken: mocks.refresh,
   subscribeToAccessToken: () => () => undefined,
   dropInvalidSession: vi.fn(),
@@ -36,6 +38,7 @@ const tokenFor = (claims: Record<string, string>) => `h.${btoa(JSON.stringify(cl
 beforeEach(() => {
   localStorage.clear();
   mocks.token = null;
+  mocks.expectsSession = false;
   mocks.dispatch.mockReset();
   mocks.refresh.mockReset();
 });
@@ -50,6 +53,38 @@ it('shows sign-in while a fresh browser checks for a refresh cookie', async () =
   expect(mocks.dispatch).not.toHaveBeenCalled();
   await act(async () => { finish(null); });
   expect(mocks.dispatch).not.toHaveBeenCalled();
+});
+
+it('restores the session through the refresh cookie before it shows chats', async () => {
+  const restored = tokenFor({ sub: '1', sid: 's1' });
+  rememberSignedInUser(restored, { id: '1', username: 'alex' });
+  mocks.expectsSession = true;
+  let finish!: (token: string | null) => void;
+  mocks.refresh.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  mocks.dispatch.mockImplementation(action => action === 'verify' ? new Promise(() => undefined) : undefined);
+  setup();
+
+  expect(screen.getByRole('status')).toBeVisible();
+  expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+  expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  mocks.token = restored;
+  finish(restored);
+  expect(await screen.findByText('Chats for alex')).toBeVisible();
+  expect(mocks.dispatch).toHaveBeenCalledWith('seed');
+});
+
+it('shows sign-in when the expected session cannot be restored', async () => {
+  mocks.expectsSession = true;
+  let finish!: (token: string | null) => void;
+  mocks.refresh.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  setup();
+
+  expect(screen.getByRole('status')).toBeVisible();
+  await act(async () => {
+    mocks.expectsSession = false;
+    finish(null);
+  });
+  expect(await screen.findByLabelText('Password')).toBeVisible();
 });
 
 it('keeps chats hidden until the server verifies the saved session', async () => {

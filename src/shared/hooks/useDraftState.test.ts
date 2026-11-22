@@ -1,11 +1,11 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportClientOutdated, resetUpdateStatusForTests } from '@/shared/api/updateGate';
-import { clearAuthTokens, dropInvalidSession } from '@/shared/auth/session';
+import { clearAuthTokens, dropInvalidSession, getAccessToken, setAccessToken } from '@/shared/auth/session';
 import { draftId, readDraft } from '@/shared/lib/drafts';
 import { DRAFT_WRITE_DELAY_MS, useDraftState } from './useDraftState';
 
-const signIn = (sub: string) => localStorage.setItem('access_token', `h.${btoa(JSON.stringify({ sub }))}.s`);
+const signIn = (sub: string) => setAccessToken(`h.${btoa(JSON.stringify({ sub }))}.s`);
 
 describe('useDraftState', () => {
   beforeEach(() => {
@@ -94,7 +94,7 @@ describe('useDraftState', () => {
     const { result } = renderHook(() => useDraftState('chat:5'));
     act(() => result.current[1]('private'));
 
-    act(() => { signIn('2'); window.dispatchEvent(new StorageEvent('storage', { key: 'access_token', newValue: localStorage.getItem('access_token') })); });
+    act(() => signIn('2'));
     expect(result.current[0]).toBe('');
     expect(readDraft(draftId('2', 'chat:5'))).toBe('');
   });
@@ -110,24 +110,27 @@ describe('useDraftState', () => {
     sessionStorage.setItem('draft:1:chat:5', 'unsent');
     reportClientOutdated();
     dropInvalidSession();
-    expect(localStorage.getItem('access_token')).not.toBeNull();
+    expect(getAccessToken()).not.toBeNull();
     expect(sessionStorage.getItem('draft:1:chat:5')).toBe('unsent');
 
     resetUpdateStatusForTests();
     dropInvalidSession();
-    expect(localStorage.getItem('access_token')).toBeNull();
+    expect(getAccessToken()).toBeNull();
     expect(sessionStorage.getItem('draft:1:chat:5')).toBeNull();
   });
 
-  it('is cleared when the tokens are cleared, in this tab or another one', () => {
+  it('is cleared when the tokens are cleared, in this tab or another one', async () => {
     sessionStorage.setItem('draft:1:chat:5', 'secret');
     sessionStorage.setItem('unrelated', 'keep');
     clearAuthTokens();
     expect(sessionStorage.getItem('draft:1:chat:5')).toBeNull();
     expect(sessionStorage.getItem('unrelated')).toBe('keep');
 
+    signIn('1');
     sessionStorage.setItem('draft:1:chat:5', 'secret');
-    window.dispatchEvent(new StorageEvent('storage', { key: 'access_token', newValue: null }));
-    expect(sessionStorage.getItem('draft:1:chat:5')).toBeNull();
+    const otherTab = new BroadcastChannel('auth');
+    otherTab.postMessage({ type: 'logout' });
+    otherTab.close();
+    await vi.waitFor(() => expect(sessionStorage.getItem('draft:1:chat:5')).toBeNull());
   });
 });
