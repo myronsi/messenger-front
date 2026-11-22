@@ -32,6 +32,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -54,6 +65,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -79,6 +101,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -101,6 +134,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -148,6 +192,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -3836,6 +3891,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path: {
                 /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
@@ -3947,6 +4013,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path: {
                 /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
@@ -4152,6 +4229,17 @@ export interface paths {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -4667,7 +4755,7 @@ export interface components {
          *     codes must be treated like `internal_error`.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "limit_reached" | "account_restricted" | "internal_error";
+        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "device_proof_stale" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "limit_reached" | "account_restricted" | "internal_error";
         /** @description RFC 9457 problem details. `426 Upgrade Required` (`client_outdated`) uses the same format. */
         Problem: {
             /**
@@ -6419,6 +6507,17 @@ export interface components {
         CallId: components["schemas"]["Id"];
         /** @description Version of the client app, for logs and the per-client metric. */
         ClientVersion: string;
+        /**
+         * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+         *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+         *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+         *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+         *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+         *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+         *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+         *     `Date` response header.
+         */
+        DeviceProof: string;
         /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
         ClientApiVersion: string;
     };
@@ -6462,6 +6561,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -6497,6 +6607,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -6531,6 +6652,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -6565,6 +6697,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -6622,6 +6765,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
@@ -12519,6 +12673,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path: {
                 /** @description Secret one-time recovery request capability. Never log or persist it in browser storage. */
@@ -12670,6 +12835,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path: {
                 /** @description ID of a QR sign-in request, from the QR code link `/qr/<request_id>`. */
@@ -13426,6 +13602,17 @@ export interface operations {
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];
                 /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
                 "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+                /**
+                 * @description Proof that the request comes from the device the session is bound to: a compact JWS (`typ` `dpop+jwt`,
+                 *     `alg` `ES256`, the public P-256 key as `jwk` in the protected header) over `htm` (HTTP method), `htu`
+                 *     (absolute request URL without query and fragment), `iat` (Unix seconds) and `jti` (unique per proof).
+                 *     A session created with a proof is bound to its key; an unbound session is bound at its first refresh
+                 *     with a proof. Refreshing a bound session without a proof of its key ends the session (`401`). Bad
+                 *     proofs are answered `400` (`invalid_request`), an `iat` more than 5 minutes off with `401`
+                 *     (`device_proof_stale`); the session survives, and the client may retry with its clock corrected by the
+                 *     `Date` response header.
+                 */
+                "Device-Proof"?: components["parameters"]["DeviceProof"];
             };
             path?: never;
             cookie?: never;
