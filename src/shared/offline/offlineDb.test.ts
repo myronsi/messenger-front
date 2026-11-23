@@ -53,6 +53,34 @@ describe('offline message database', () => {
     expect(stored?.tokens.join(' ')).not.toContain('meet');
   });
 
+  it('filters search hits with a predicate and lists the newest accepted messages across chats', async () => {
+    const { db } = await setup();
+    const file = (id: string, kind: string, caption = '') => ({ id, content: { kind, file_name: `${id}.bin`, caption }, sender: 'bob' });
+    await db.storeMessages('1', [message('1', 'plan for monday'), file('2', 'image', 'plan photo'), file('5', 'file')]);
+    await db.storeMessages('2', [file('3', 'image'), message('4', 'plan b'), file('6', 'video')]);
+    type Stored = { id: string; sender: string; content: unknown };
+    const visual = (m: Stored) => ['image', 'video'].includes((m.content as { kind?: string })?.kind ?? '');
+    const fromAlice = (m: Stored) => m.sender === 'alice';
+    expect((await db.search<Stored>('plan', null, 100, fromAlice)).map((hit) => hit.message.id)).toEqual(['4', '1']);
+    expect((await db.search<Stored>('plan', null, 100, visual)).map((hit) => [hit.chatId, hit.message.id])).toEqual([['1', '2']]);
+    expect((await db.latest<Stored>(visual)).map((hit) => [hit.chatId, hit.message.id])).toEqual([['2', '6'], ['2', '3'], ['1', '2']]);
+    expect((await db.latest<Stored>(visual, 2)).map((hit) => hit.message.id)).toEqual(['6', '3']);
+    expect((await db.latest<Stored>(visual, 10, '1')).map((hit) => hit.message.id)).toEqual(['2']);
+  });
+
+  it('keeps sealed values encrypted, apart from synced data', async () => {
+    const { db, backend } = await setup();
+    expect(await db.getSealed('recent')).toBeUndefined();
+    await db.setSealed('recent', ['secret words']);
+    await db.setSealed('other', { a: 1 });
+    expect(await db.getSealed<string[]>('recent')).toEqual(['secret words']);
+    expect(JSON.stringify(await backend.getMeta('sealed'))).not.toContain('secret');
+    await db.clearData();
+    expect(await db.getSealed<{ a: number }>('other')).toEqual({ a: 1 });
+    await db.clearSealed();
+    expect(await db.getSealed('recent')).toBeUndefined();
+  });
+
   it('keeps media encrypted and drops the least used media first, then the least recent chats', async () => {
     const { db, tick } = await setup();
     await db.storeMessages('old', [message('1', 'x'.repeat(2000))]);

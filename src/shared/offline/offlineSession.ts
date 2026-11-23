@@ -82,6 +82,7 @@ export const enforceStorageCapSoon = () => {
 export const clearOfflineData = async () => {
   const db = await getOfflineDb();
   await db?.clearData();
+  await db?.clearSealed();
   if (db && initCursor) await initCursor(db).catch(() => undefined);
 };
 

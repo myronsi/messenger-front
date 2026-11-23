@@ -25,6 +25,8 @@ Every message, photo, video and voice message the app loads stays on the device,
 ## Without a connection
 
 - When the server cannot be reached (network error, 502, 503 or 504), history pages and the in-chat search are answered from the database.
+- The search in the chat list (all chats, media, links, files) shows device results first and adds server results when they arrive. Without the server it shows only device results with an "On this device" note.
+- Recent searches are stored encrypted in the `meta` store (`sealed`); "Clear offline data" removes them too.
 - History pages load with a remembered session even before a new access token exists.
 
 ## Storage limit

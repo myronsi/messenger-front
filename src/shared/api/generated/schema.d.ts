@@ -2156,6 +2156,9 @@ export interface paths {
          *     hit is checked against the message store before it is returned (a deleted message never
          *     shows, even when the index lags behind). Edits and deletions reach the results within a
          *     few seconds.
+         *
+         *     With `kind`, only messages with that kind of attachment or with a web link are found, and `q` may be
+         *     left out to list them newest first. Without `kind`, `q` is required (`422` otherwise).
          */
         get: operations["searchAllMessages"];
         put?: never;
@@ -9934,8 +9937,11 @@ export interface operations {
     };
     searchAllMessages: {
         parameters: {
-            query: {
-                q: string;
+            query?: {
+                /** @description Words to find; optional with `kind` */
+                q?: string;
+                /** @description Only messages with this kind of attachment, or with a web link (`link`) */
+                kind?: components["schemas"]["MediaKind"];
                 /** @description Only this chat */
                 chat_id?: components["schemas"]["Id"];
                 /** @description Only messages of this user */

@@ -175,7 +175,7 @@ export const logoutUser = async (page: Page) => {
 
 export const openPreviewChat = async (page: Page, targetUsername: string) => {
   await page.getByRole('button', { name: 'Open search' }).click();
-  await page.getByPlaceholder('Search users...').fill(targetUsername);
+  await page.getByPlaceholder('Search messages, chats and people').fill(targetUsername);
   await expect(page.locator(searchResultSelector(targetUsername))).toBeVisible();
   await page.locator(searchResultSelector(targetUsername)).click();
   await expect(page.getByTestId('message-input-field')).toBeVisible();

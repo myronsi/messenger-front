@@ -8,6 +8,7 @@ import type { MessageHistoryResponse } from '../model/history';
 import { forgetHistory, isUnreachable, localHistoryPage, localSearch, storeHistory } from './offlineHistory';
 
 export { storeHistory, useLocalHistoryPage } from './offlineHistory';
+export * from './globalSearchApi';
 
 export const messageApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({

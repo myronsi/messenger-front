@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { padId, unpadId, type MessageRecord, type OfflineBackend } from './backend';
-import { openBytes, openJson, sealBytes, sealJson, searchToken, type OfflineKeys } from './cipher';
+import { openBytes, openJson, sealBytes, sealJson, searchToken, type OfflineKeys, type Sealed } from './cipher';
 import { indexWords, matchesQuery, queryWords } from './searchWords';
 
 export interface OfflineMessage {
@@ -11,8 +11,8 @@ export interface OfflineMessage {
 export const searchableText = (message: OfflineMessage) => {
   const { content } = message;
   if (typeof content === 'string') return content;
-  const caption = (content as { caption?: unknown } | null | undefined)?.caption;
-  return typeof caption === 'string' ? caption : '';
+  const { caption, file_name: fileName } = (content ?? {}) as { caption?: unknown; file_name?: unknown };
+  return [caption, fileName].filter((part) => typeof part === 'string').join(' ');
 };
 
 export interface OfflineSearchHit<T> {
@@ -21,6 +21,9 @@ export interface OfflineSearchHit<T> {
 }
 
 const CURSOR = 'sync-cursor';
+const SEALED = 'sealed';
+const SCAN_PAGE = 200;
+const SCAN_MAX = 2000;
 
 const recordSize = (record: MessageRecord) => record.sealed.data.byteLength + record.tokens.length * 24 + 64;
 
@@ -32,6 +35,21 @@ export const createOfflineDb = (backend: OfflineBackend, keys: OfflineKeys, now 
     return { ...record, size: recordSize(record) };
   };
   const open = <T>(records: MessageRecord[]) => Promise.all(records.map((record) => openJson<T>(keys, record.sealed)));
+  const scanChat = async <T>(chatId: string, accept: (message: T) => boolean, limit: number) => {
+    const found: { id: string; hit: OfflineSearchHit<T> }[] = [];
+    let before: string | null = null;
+    for (let scanned = 0; scanned < SCAN_MAX && found.length < limit; scanned += SCAN_PAGE) {
+      const records = await backend.readBefore(chatId, before, SCAN_PAGE);
+      for (const record of records) {
+        const message = await openJson<T>(keys, record.sealed);
+        if (found.length < limit && accept(message)) found.push({ id: record.id, hit: { chatId, message } });
+      }
+      if (records.length < SCAN_PAGE) break;
+      before = records[records.length - 1].id;
+    }
+    return found;
+  };
+  const sealedValues = async () => (await backend.getMeta<Record<string, Sealed>>(SEALED)) ?? {};
 
   return {
     async storeMessages(chatId: EntityId, messages: OfflineMessage[]) {
@@ -62,7 +80,9 @@ export const createOfflineDb = (backend: OfflineBackend, keys: OfflineKeys, now 
       const [newest] = await backend.readBefore(String(chatId), null, 1);
       return newest ? unpadId(newest.id) : null;
     },
-    async search<T extends OfflineMessage>(query: string, chatId?: EntityId | null, limit = 100): Promise<OfflineSearchHit<T>[]> {
+    async search<T extends OfflineMessage>(
+      query: string, chatId?: EntityId | null, limit = 100, accept: (message: T) => boolean = () => true,
+    ): Promise<OfflineSearchHit<T>[]> {
       const tokens = await Promise.all(queryWords(query).map((word) => searchToken(keys, word)));
       if (!tokens.length) return [];
       const lists = await Promise.all(tokens.map((token) => backend.byToken(token)));
@@ -77,9 +97,14 @@ export const createOfflineDb = (backend: OfflineBackend, keys: OfflineKeys, now 
         const record = await backend.getMessage(candidate.chatId, candidate.id);
         if (!record) continue;
         const message = await openJson<T>(keys, record.sealed);
-        if (matchesQuery(searchableText(message), query)) hits.push({ chatId: candidate.chatId, message });
+        if (matchesQuery(searchableText(message), query) && accept(message)) hits.push({ chatId: candidate.chatId, message });
       }
       return hits;
+    },
+    async latest<T extends OfflineMessage>(accept: (message: T) => boolean, limit = 100, chatId?: EntityId | null): Promise<OfflineSearchHit<T>[]> {
+      const chats = chatId == null ? (await backend.chats()).map((chat) => chat.chatId) : [String(chatId)];
+      const found = (await Promise.all(chats.map((id) => scanChat(id, accept, limit)))).flat();
+      return found.sort((a, b) => (a.id < b.id ? 1 : -1)).slice(0, limit).map(({ hit }) => hit);
     },
     async saveMedia(url: string, blob: Blob, lifetime = Infinity) {
       const sealed = await sealBytes(keys, await blob.arrayBuffer());
@@ -117,6 +142,15 @@ export const createOfflineDb = (backend: OfflineBackend, keys: OfflineKeys, now 
     },
     getCursor: () => backend.getMeta<string>(CURSOR),
     setCursor: (cursor: string) => backend.setMeta(CURSOR, cursor),
+    async getSealed<T>(name: string) {
+      const sealed = (await sealedValues())[name];
+      return sealed ? openJson<T>(keys, sealed) : undefined;
+    },
+    async setSealed(name: string, value: unknown) {
+      const sealed = await sealJson(keys, value);
+      await backend.setMeta(SEALED, { ...await sealedValues(), [name]: sealed });
+    },
+    clearSealed: () => backend.setMeta(SEALED, {}),
     clearData: () => backend.clearData(),
   };
 };
