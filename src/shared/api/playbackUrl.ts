@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { authFetch } from '@/shared/auth/session';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { apiUrl } from './config';
+import { keepOfflineCopy } from './mediaCache';
+import { isOffline } from '@/shared/lib/network';
 
 export type PlaybackVariant = 'source' | 'animation';
 
@@ -65,21 +67,25 @@ export const useWarmPlaybackUrl = (source: string | undefined, enabled: boolean)
   return setNode;
 };
 
-export const usePlaybackUrl = (source?: string, enabled = true, onError?: () => void) => {
+export const usePlaybackUrl = (source?: string, enabled = true) => {
   const id = attachmentIdOf(source);
   const variant = variantOf(source);
-  const [state, setState] = useState<{ key: string; url?: string; attempt: number }>({ key: '', attempt: 0 });
+  const [state, setState] = useState<{ key: string; url?: string; attempt: number; failed?: boolean }>({ key: '', attempt: 0 });
   const key = id ? keyOf(id, variant) : '';
   const attempt = state.key === key ? state.attempt : 0;
   useEffect(() => {
     if (!id || !enabled) return;
     let active = true;
     playbackUrl(id, variant).then(
-      url => { if (active) setState(current => ({ key, url, attempt: current.key === key ? current.attempt : 0 })); },
-      () => { if (active) onError?.(); },
+      url => {
+        if (!active) return;
+        setState(current => ({ key, url, attempt: current.key === key ? current.attempt : 0 }));
+        keepOfflineCopy(source);
+      },
+      () => { if (active) setState({ key, attempt, failed: true }); },
     );
     return () => { active = false; };
-  }, [id, variant, key, enabled, attempt, onError]);
+  }, [id, variant, key, enabled, attempt, source]);
   const refresh = useCallback(() => {
     if (!id) return false;
     if (attempt >= 2) return false;
@@ -87,6 +93,6 @@ export const usePlaybackUrl = (source?: string, enabled = true, onError?: () => 
     setState({ key, url: undefined, attempt: attempt + 1 });
     return true;
   }, [id, variant, key, attempt]);
-  if (!id) return { src: undefined, refresh, streaming: false };
+  if (!id || (state.key === key && state.failed) || isOffline()) return { src: undefined, refresh, streaming: false };
   return { src: state.key === key ? state.url : undefined, refresh, streaming: true };
 };

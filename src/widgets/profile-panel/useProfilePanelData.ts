@@ -1,5 +1,5 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import type { ApprovalRequest } from '@/entities/chat';
 import { DEFAULT_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
@@ -40,7 +40,7 @@ interface ProfilePanelDataOptions {
 export const useProfilePanelData = ({ setModal }: ProfilePanelDataOptions) => {
   const navigate = useNavigate();
   const { overlay, open: openOverlay, replace: replaceOverlay } = useUrlOverlay();
-  const settings: SettingsOverlay = overlay?.kind === 'settings' ? overlay : { kind: 'settings', page: 'profile' };
+  const settings = useMemo<SettingsOverlay>(() => (overlay?.kind === 'settings' ? overlay : { kind: 'settings', page: 'profile' }), [overlay]);
   const activeProfilePage: SettingsPage = settings.page;
   const goToSettings = useCallback((target: SettingsOverlay) => {
     const from = settingsDepth(settings);

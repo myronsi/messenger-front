@@ -24,12 +24,17 @@ const trimTrailing = (value: string) => {
   return value.slice(0, end);
 };
 
+const absolute = (found: string) => (/^https?:\/\//i.test(found) ? found : `https://${found}`);
+
+export const findLinks = (text: string) => [...text.matchAll(new RegExp(LINK.source, 'gi'))]
+  .map((found) => trimTrailing(found[0])).filter(Boolean).map(absolute);
+
 export const linkItem = (message: ApiMessage): ChatLinkItem | null => {
   const text = (message.content ?? '').trim();
   const match = text.match(LINK)?.[0];
   const found = match ? trimTrailing(match) : '';
   if (!found) return null;
-  const url = /^https?:\/\//i.test(found) ? found : `https://${found}`;
+  const url = absolute(found);
   return {
     id: message.id, url, text, timestamp: message.created_at,
     sender: message.sender?.display_name ?? '', senderUsername: message.sender?.username ?? null,

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import { ChatCleanupDialog } from './ChatCleanupDialog';
 import { offersEveryone, type CleanupRequest } from '../model/useChatCleanup';
 

@@ -119,18 +119,22 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         </button>
       )}
 
-      {/* Overlay search that covers the chat list area when active */}
       <ChatSearchOverlay
         visible={model.overlayVisible}
         showSearch={model.showSearch}
         circleStyle={model.circleStyle}
         circleActive={model.circleActive}
         translations={model.translations}
+        language={model.language}
         username={model.username}
+        currentUserId={me?.id}
+        chats={model.chats}
+        activeChatId={props.activeChatId}
         oneOnOneChats={model.oneOnOneChatsData?.chats || []}
         onChatOpen={model.onChatOpen}
+        onChatClick={model.handleChatClick}
+        onJumpToMessage={props.onJumpToMessage}
         onClose={model.handleCloseSearch}
-        onCreated={model.refetch}
       />
 
       {/* Chats list */}

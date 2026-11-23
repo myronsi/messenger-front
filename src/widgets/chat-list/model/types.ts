@@ -34,6 +34,7 @@ export interface ChatsListComponentProps {
   activeChatName?: string;
   onActiveChatUpdate?: (chat: Chat) => void;
   onChatDeleted?: (chatId: EntityId) => void;
+  onJumpToMessage?: (chatId: EntityId, messageId: EntityId) => void;
   hidden?: boolean;
 }
 

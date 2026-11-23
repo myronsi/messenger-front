@@ -110,6 +110,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
   return (
     <div
       ref={warmRef}
+      role="presentation"
       className="voice-message-player flex max-w-full min-w-0 items-center gap-2.5 py-0.5"
       style={{ width }}
       onClick={stopPropagation}

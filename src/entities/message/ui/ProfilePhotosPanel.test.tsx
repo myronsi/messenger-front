@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ProfilePhotosPanel, type ProfilePhotoItem } from './ProfileChatPanels';
+import { ProfilePhotosPanel } from './ProfileChatPanels';
+import type { ProfilePhotoItem } from '../model/profileMedia';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { playVideo: "Play video", close: "Close", seekVideo: "Seek through video", videoRewind: 'Back {count} seconds', videoForward: 'Forward {count} seconds', videoSeconds: '{count} s' }, language: 'en' }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', async () => {

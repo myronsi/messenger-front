@@ -2,7 +2,7 @@ import React from 'react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import AudioMessage from './AudioMessage';
-import type { ProfileAudioItem } from './ProfileChatPanels';
+import type { ProfileAudioItem } from '../model/profileMedia';
 import type { AudioTrack } from '../model/audioPlayer';
 import { TrackMenu } from './TrackMenu';
 

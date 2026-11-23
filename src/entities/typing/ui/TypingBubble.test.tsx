@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerEvent } from '@myronsi/messenger-api';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import { applyTypingFrame, clearTypingUsers } from '../model/typingStore';
 import { TypingBubble } from './TypingBubble';
 

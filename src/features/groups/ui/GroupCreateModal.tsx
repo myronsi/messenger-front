@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Loader2, Plus, X } from 'lucide-react';
 import { ModalSurface } from '@/shared/ui/ModalSurface';
 import { cn } from '@/shared/lib/utils';
+import { useFocusOnMount } from '@/shared/lib/useFocusOnMount';
 import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '../model/groupLimits';
 import { useGroupCreateForm, type GroupCreatePayload } from '../model/useGroupCreateForm';
 import GroupAvatarPicker from './GroupAvatarPicker';
@@ -18,6 +19,8 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
   const form = useGroupCreateForm({ currentUsername, onCreate });
   const text = form.translations.groupCreate;
   const [showDescription, setShowDescription] = useState(false);
+  const focusName = useFocusOnMount<HTMLInputElement>();
+  const focusDescription = useFocusOnMount<HTMLTextAreaElement>();
   const canCreate = !!form.groupName.trim() && form.selectedUsers.length > 0 && !form.isCreating;
 
   return (
@@ -51,7 +54,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                 onChange={(event) => form.setGroupName(event.target.value)}
                 placeholder={text.groupNamePlaceholder}
                 maxLength={GROUP_NAME_MAX_LENGTH}
-                autoFocus
+                ref={focusName}
                 className="w-full rounded-xl border border-input bg-background px-4 py-2.5 outline-none focus:ring-2 focus:ring-ring"
               />
             </label>
@@ -65,7 +68,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ currentUsername, on
                 onChange={(event) => form.setDescription(event.target.value)}
                 rows={3}
                 maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
-                autoFocus
+                ref={focusDescription}
                 className="w-full resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
             </label>

@@ -10,6 +10,7 @@ import {
 } from './messageUpdates';
 import { closeForGood } from '@/shared/api/reconnect';
 import { markServerKept } from './serverOutbox';
+import { mirrorEventOffline, useOfflineChanges } from './offlineMirror';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { ReadBatchEvent, ReadEvent, ServerEvent } from './socketEvents';
 import type { ChatTransport, SetMessages, ShowError } from './types';
@@ -43,9 +44,11 @@ export const useMessageEvents = ({
   markMessageFailed, markLatestPendingMessageFailed, chatDeletedKey, onExtraEvent,
 }: MessageEventsOptions) => {
   useLocalMessageDeletion(chatId, setMessages);
+  useOfflineChanges(chatId, setMessages);
   const { pendingMessageIdsRef } = transport;
 
   return useCallback((event: ServerEvent, socket: SocketSender) => {
+    mirrorEventOffline(chatId, event);
     switch (event.type) {
       case 'ack':
         pendingMessageIdsRef.current = pendingMessageIdsRef.current.filter(id => String(id) !== String(event.client_temp_id));

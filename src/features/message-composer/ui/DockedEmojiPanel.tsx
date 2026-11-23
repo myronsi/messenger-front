@@ -3,17 +3,9 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { SheetGrip } from '@/shared/ui/SheetGrip';
 import { keyboardInset } from '@/shared/lib/composerFocus';
 import { DOCK_GAP } from '../model/dockLayout';
+import { expandedPanelHeight, settlePanelHeight } from '../model/dockedPanelHeight';
 
-const CLOSE_PULL = 80;
 const TAP_SLOP = 4;
-const EXPANDED_RATIO = 0.75;
-
-export const expandedPanelHeight = (baseHeight: number) => Math.max(baseHeight, Math.round(window.innerHeight * EXPANDED_RATIO));
-
-export const settlePanelHeight = (height: number, baseHeight: number, expandedHeight: number) => {
-  if (height < baseHeight - CLOSE_PULL) return null;
-  return height > (baseHeight + expandedHeight) / 2 ? expandedHeight : baseHeight;
-};
 
 interface DockedEmojiPanelProps {
   baseHeight: number;

@@ -38,7 +38,7 @@ export function ViewerVideo({
   const singleTapRef = useRef(onSingleTap);
   singleTapRef.current = onSingleTap;
   const { translations: t } = useLanguage();
-  const stream = usePlaybackUrl(url, true, onError);
+  const stream = usePlaybackUrl(url, true);
   const blobSrc = useAuthenticatedMedia(stream.streaming ? undefined : url, undefined, true, onError);
   const src = stream.streaming ? stream.src : blobSrc;
   const posterSrc = useAuthenticatedMedia(poster);

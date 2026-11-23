@@ -1,3 +1,5 @@
+import { trimEndChars } from '@/shared/lib/trimChars';
+
 const DB_NAME = 'messenger-device';
 const STORE = 'keys';
 const KEY_ID = 'device';
@@ -24,7 +26,7 @@ const encoder = new TextEncoder();
 const base64Url = (bytes: Uint8Array) => {
   let binary = '';
   bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return trimEndChars(btoa(binary).replace(/\+/g, '-').replace(/\//g, '_'), '=');
 };
 
 const base64UrlJson = (value: unknown) => base64Url(encoder.encode(JSON.stringify(value)));

@@ -3,7 +3,8 @@ import { X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { formatFileSize } from '@/shared/lib/formatFileSize';
-import { DownloadButton, fillPercent } from './DownloadButton';
+import { DownloadButton } from './DownloadButton';
+import { fillPercent } from '../model/fillPercent';
 import { ProgressCircle } from './UploadProgress';
 
 interface FileMessageProps {

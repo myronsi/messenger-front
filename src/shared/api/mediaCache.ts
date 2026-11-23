@@ -2,10 +2,9 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import { authFetch, getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { getTokenSubject } from '@/shared/auth/tokenClaims';
 import { isOffline } from '@/shared/lib/network';
+import { enforceStorageCapSoon, getOfflineDb } from '@/shared/offline';
 
-const STORE_PREFIX = 'media-v1';
-const EXPIRES_HEADER = 'X-Media-Expires';
-const MAX_STORED = 500;
+const LEGACY_STORE_PREFIX = 'media-v1';
 const MAX_IDLE_ENTRIES = 300;
 const MAX_IDLE_BYTES = 64 * 1024 * 1024;
 const ATTACHMENT_CONTENT = /\/api\/v2\/attachments\/[^/]+\/content$/;
@@ -101,18 +100,10 @@ const isStorable = (url: string) => {
   }
 };
 
-const storeName = () => (subject ? `${STORE_PREFIX}:${subject}` : null);
-
-const openStore = () => {
-  const name = storeName();
-  if (!name || typeof caches === 'undefined') return null;
-  return caches.open(name).catch(() => null);
-};
-
-const dropStores = (keep: string | null) => {
+const dropLegacyStores = () => {
   if (typeof caches === 'undefined') return;
   void caches.keys()
-    .then(names => Promise.all(names.filter(name => name.startsWith(STORE_PREFIX) && name !== keep).map(name => caches.delete(name))))
+    .then(names => Promise.all(names.filter(name => name.startsWith(LEGACY_STORE_PREFIX)).map(name => caches.delete(name))))
     .catch(() => undefined);
 };
 
@@ -124,24 +115,14 @@ export const storageLifetime = (cacheControl: string | null) => {
   return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
 };
 
-const readStored = async (url: string) => {
-  const store = await openStore();
-  const hit = await store?.match(url).catch(() => undefined);
-  if (!hit) return null;
-  return { blob: await hit.blob(), fresh: Number(hit.headers.get(EXPIRES_HEADER)) > Date.now() };
-};
-
-const trimStore = async (store: Cache) => {
-  const keys = await store.keys();
-  await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_STORED)).map(key => store.delete(key)));
-};
+const readStored = async (url: string) => (await getOfflineDb())?.loadMedia(url) ?? null;
 
 const writeStored = async (url: string, blob: Blob, lifetime: number) => {
   const startedIn = generation;
-  const store = await openStore();
-  if (!store || startedIn !== generation) return;
-  await store.put(url, new Response(blob, { headers: { 'Content-Type': blob.type, [EXPIRES_HEADER]: String(Date.now() + lifetime) } }));
-  await trimStore(store);
+  const db = await getOfflineDb();
+  if (!db || startedIn !== generation) return;
+  await db.saveMedia(url, blob, lifetime);
+  enforceStorageCapSoon();
 };
 
 const download = async (url: string, entry: Entry) => {
@@ -251,6 +232,20 @@ export const acquireMedia = (url: string) => {
   return { promise: entry.promise, release };
 };
 
+const copying = new Set<string>();
+
+export const keepOfflineCopy = (url?: string | null) => {
+  if (!url || !isStorable(url) || copying.has(url)) return;
+  copying.add(url);
+  void (async () => {
+    if ((await readStored(url).catch(() => null))?.fresh) return;
+    const response = await authFetch(url, { priority: 'low' });
+    if (!response.ok) return;
+    const lifetime = storageLifetime(response.headers.get('Cache-Control'));
+    if (lifetime > 0) await writeStored(url, await response.blob(), lifetime);
+  })().catch(() => undefined).finally(() => copying.delete(url));
+};
+
 export const preloadMedia = (url?: string | null) => {
   if (!url || !isProtectedMedia(url)) return () => undefined;
   const entry = load(url, 'low');
@@ -267,7 +262,7 @@ const forgetAll = () => {
 
 export const clearMediaCache = () => {
   forgetAll();
-  dropStores(null);
+  dropLegacyStores();
 };
 
 subscribeToAccessToken(token => {
@@ -275,7 +270,6 @@ subscribeToAccessToken(token => {
   if (token && next !== null && next === subject) return;
   subject = token ? next : null;
   forgetAll();
-  dropStores(storeName());
 });
 
-dropStores(storeName());
+dropLegacyStores();

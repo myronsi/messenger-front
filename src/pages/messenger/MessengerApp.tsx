@@ -11,6 +11,8 @@ import { NowPlayingHost } from '@/features/audio-player';
 import { useMessengerController } from './model/useMessengerController';
 import { chatPanelKey } from './model/messengerRoutes';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
+import { useKeyboardOpen } from '@/shared/lib/useKeyboardOpen';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { DesktopChatLayout } from './ui/DesktopChatLayout';
 import { useJumpRequest } from './model/useJumpRequest';
@@ -62,27 +64,26 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     mobilePanelChat,
   } = useMessengerController(username);
 
+  const profileHandlers = useLatestRef({ closeUserProfile, openDirectChatFromProfile, openGroupFromProfile, handleCurrentChatDeleted });
   const currentUserProfileProps = useMemo(() => ({
     username: profileUsername || currentChat?.name || '',
     directChatId: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? currentChat.id
       : undefined,
-    onClose: closeUserProfile,
-    onMessage: openDirectChatFromProfile,
-    onOpenGroup: openGroupFromProfile,
+    onClose: () => profileHandlers.current.closeUserProfile(),
+    onMessage: (...args: Parameters<typeof openDirectChatFromProfile>) => profileHandlers.current.openDirectChatFromProfile(...args),
+    onOpenGroup: (...args: Parameters<typeof openGroupFromProfile>) => profileHandlers.current.openGroupFromProfile(...args),
     hideMessageAction: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
     onChatDeleted: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
-      ? handleCurrentChatDeleted
+      ? () => profileHandlers.current.handleCurrentChatDeleted()
       : undefined,
-  }), [
-    profileUsername,
-    currentChat,
-  ]);
+  }), [profileUsername, currentChat, profileHandlers]);
   const [renderUserProfile, setRenderUserProfile] = useState(isUserProfileOpen);
   const [isUserProfileClosing, setIsUserProfileClosing] = useState(false);
   const { requestJump, requestFor } = useJumpRequest(currentChat?.id);
   const [renderedUserProfileProps, setRenderedUserProfileProps] = useState(currentUserProfileProps);
   useVisualViewport(isMobile);
+  const keyboardOpen = useKeyboardOpen(isMobile);
   const [settingsNavTarget, setSettingsNavTarget] = useState<HTMLDivElement | null>(null);
   useEffect(() => startAudioSession(), []);
   const mainTab = useMainTab({ routeTab: isProfileOpen ? 'settings' : isMeOpen ? 'profile' : null, showRouteTab });
@@ -127,6 +128,12 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
       if (String(currentChat?.id) !== String(chatId)) openChatFromList(chatId, renderedUserProfileProps.username, false, 'one-on-one');
     },
     onClose: requestCloseUserProfile,
+  };
+
+  const chatListProps = {
+    username, onChatOpen: openChatFromList, setIsProfileOpen, onOpenRequests: openMessageRequests, activeChatId: currentChat?.id,
+    activeChatName: currentChat?.name, onActiveChatUpdate: updateActiveChatFromList, onChatDeleted: handleChatDeleted,
+    hidden: mainTab.active !== 'chats', onJumpToMessage: requestJump,
   };
 
   const chatPanel = mobilePanelChat
@@ -216,22 +223,14 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
 
         <div className="mx-0 min-h-screen min-w-screen px-0">
           {isMobile ? (
-            <div className="fixed inset-x-0 overflow-hidden" style={visualViewportStyle}>
-              <div className="absolute inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] overflow-hidden bg-background">
-                <ChatsListComponentRTK
-                  username={username}
-                  onChatOpen={openChatFromList}
-                  setIsProfileOpen={setIsProfileOpen}
-                  onOpenRequests={openMessageRequests}
-                  activeChatId={currentChat?.id}
-                  activeChatName={currentChat?.name}
-                  onActiveChatUpdate={updateActiveChatFromList}
-                  onChatDeleted={handleChatDeleted} hidden={mainTab.active !== 'chats'}
-                />
+            <div className="fixed inset-x-0 overflow-clip" style={visualViewportStyle}>
+              <div className={`absolute inset-x-0 top-0 overflow-hidden bg-background ${
+                keyboardOpen ? 'bottom-0' : 'bottom-[calc(3.5rem+env(safe-area-inset-bottom))]'}`}>
+                <ChatsListComponentRTK {...chatListProps} />
                 {tabPanes}
                 {isProfileOpen && renderOwnProfile('sheet', true)}
               </div>
-              <MainNav variant="bar" active={mainTab.active} onSelect={mainTab.select} className="absolute inset-x-0 bottom-0" />
+              {!keyboardOpen && <MainNav variant="bar" active={mainTab.active} onSelect={mainTab.select} className="absolute inset-x-0 bottom-0" />}
 
               <div
                 className={`absolute inset-0 z-50 overflow-hidden bg-background motion-window-slide ${mobileChatPanelClass}`}
@@ -255,16 +254,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
               <MainNav variant="rail" active={mainTab.active} onSelect={mainTab.select} />
               <div className="relative h-full min-w-0 flex-1">
                 <DesktopChatLayout resizeLabel={translations.resizeChatList} chatList={<div className="relative h-full">
-                  <ChatsListComponentRTK
-                    username={username}
-                    onChatOpen={openChatFromList}
-                    setIsProfileOpen={setIsProfileOpen}
-                    onOpenRequests={openMessageRequests}
-                    activeChatId={currentChat?.id}
-                    activeChatName={currentChat?.name}
-                    onActiveChatUpdate={updateActiveChatFromList}
-                    onChatDeleted={handleChatDeleted} hidden={mainTab.active !== 'chats'}
-                  />
+                  <ChatsListComponentRTK {...chatListProps} />
                   <div ref={setSettingsNavTarget} className="absolute inset-0 z-30 flex rounded-lg bg-background empty:hidden" />
                 </div>}>
                   <div className="relative h-full">

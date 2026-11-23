@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
-import { AppearanceProvider } from '@/shared/contexts/AppearanceContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
+import { AppearanceProvider } from '@/shared/contexts/AppearanceProvider';
 import { APPEARANCE_STORAGE_KEY, THEME_STORAGE_KEY } from '@/shared/lib/appearance/settings';
 import AppearanceSettingsPage from './AppearanceSettingsPage';
 

@@ -30,7 +30,7 @@ export const useProfileConnections = ({ username, blockUserConsequences, setModa
   const [pendingBlockUsername, setPendingBlockUsername] = useState('');
   const [isBlockDmContactsCollapsed, setIsBlockDmContactsCollapsed] = useState(true);
 
-  const blockedUsers = blockedUsersData?.users || [];
+  const blockedUsers = useMemo(() => blockedUsersData?.users ?? [], [blockedUsersData]);
   const blockedUsernameSet = useMemo(
     () => new Set(blockedUsers.map((blockedUser) => blockedUser.username.toLowerCase())),
     [blockedUsers],

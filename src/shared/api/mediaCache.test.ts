@@ -5,24 +5,35 @@ const session = vi.hoisted(() => ({
   listeners: [] as Array<(token: string | null) => void>,
 }));
 
+const offline = vi.hoisted(() => {
+  const media = new Map<string, { blob: Blob; expiresAt: number }>();
+  const db = {
+    loadMedia: vi.fn(async (url: string) => {
+      const record = media.get(url);
+      return record ? { blob: record.blob, fresh: record.expiresAt > Date.now() } : undefined;
+    }),
+    saveMedia: vi.fn(async (url: string, blob: Blob, lifetime: number) => { media.set(url, { blob, expiresAt: Date.now() + lifetime }); }),
+  };
+  return { media, db, enforceStorageCapSoon: vi.fn() };
+});
+
 vi.mock('@/shared/auth/session', () => ({
   authFetch: session.authFetch,
   getAccessToken: () => null,
   subscribeToAccessToken: (listener: (token: string | null) => void) => { session.listeners.push(listener); return () => undefined; },
 }));
 
+vi.mock('@/shared/offline', () => ({
+  getOfflineDb: async () => offline.db,
+  enforceStorageCapSoon: offline.enforceStorageCapSoon,
+}));
+
 import { acquireMedia, clearMediaCache, dropMedia, peekMedia, preloadMedia, storageLifetime } from './mediaCache';
 
 const attachment = (id: string) => `${window.location.origin}/api/v2/attachments/${id}/content?variant=thumbnail`;
 const avatar = `${window.location.origin}/api/v2/users/7/avatar`;
-const stored = new Map<string, Response>();
-const store = {
-  match: vi.fn(async (url: string) => stored.get(url)?.clone()),
-  put: vi.fn(async (url: string, response: Response) => { stored.set(url, response); }),
-  keys: vi.fn(async () => [...stored.keys()].map(url => new Request(url))),
-  delete: vi.fn(async (request: Request | string) => stored.delete(typeof request === 'string' ? request : request.url)),
-};
-const cacheStorage = { open: vi.fn(async () => store), keys: vi.fn(async () => ['media-v1:1']), delete: vi.fn(async () => { stored.clear(); return true; }) };
+const cacheStorage = { keys: vi.fn(async () => ['media-v1:1', 'media-v1', 'drafts']), delete: vi.fn(async () => true) };
+const storeCopy = (url: string, expiresAt: number) => offline.media.set(url, { blob: new Blob(['old'], { type: 'image/jpeg' }), expiresAt });
 const jwt = (sub: string) => `x.${btoa(JSON.stringify({ sub }))}.y`;
 const signIn = (sub: string) => session.listeners.forEach(listener => listener(jwt(sub)));
 let objectUrls = 0;
@@ -40,7 +51,7 @@ beforeEach(() => {
 
 afterEach(() => {
   clearMediaCache();
-  stored.clear();
+  offline.media.clear();
   vi.clearAllMocks();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -83,17 +94,17 @@ describe('mediaCache', () => {
     expect(session.authFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('stores attachments in Cache Storage and reads them back without the network', async () => {
+  it('stores attachments in the offline database and reads them back without the network', async () => {
     await acquireMedia(attachment('a1')).promise;
     await flush();
-    expect(stored.has(attachment('a1'))).toBe(true);
+    expect(offline.db.saveMedia).toHaveBeenCalledWith(attachment('a1'), expect.objectContaining({ size: 5, type: 'image/jpeg' }), 3_600_000);
+    expect(offline.enforceStorageCapSoon).toHaveBeenCalled();
 
     clearMediaCache();
-    await flush();
-    stored.set(attachment('a1'), new Response('image', { headers: { 'X-Media-Expires': String(Date.now() + 60_000) } }));
     session.authFetch.mockClear();
 
     await acquireMedia(attachment('a1')).promise;
+    expect(offline.db.loadMedia).toHaveBeenLastCalledWith(attachment('a1'));
     expect(session.authFetch).not.toHaveBeenCalled();
   });
 
@@ -101,14 +112,15 @@ describe('mediaCache', () => {
     await acquireMedia(avatar).promise;
     await flush();
 
-    expect(store.put).not.toHaveBeenCalled();
+    expect(offline.db.loadMedia).not.toHaveBeenCalled();
+    expect(offline.db.saveMedia).not.toHaveBeenCalled();
   });
 
   it('stores avatars whose address names their revision', async () => {
     await acquireMedia(`${avatar}?rev=a1`).promise;
     await flush();
 
-    expect(stored.has(`${avatar}?rev=a1`)).toBe(true);
+    expect(offline.media.has(`${avatar}?rev=a1`)).toBe(true);
   });
 
   it('cancels a request nobody waits for any more, but not a preload', async () => {
@@ -193,39 +205,37 @@ describe('mediaCache', () => {
 
     expect(peekMedia(attachment('a3'))).toBeUndefined();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(url);
-    await flush();
-    expect(cacheStorage.delete).toHaveBeenCalledWith('media-v1:1');
   });
 
-  it('keeps each account in its own store and forgets everything on a direct account switch', async () => {
-    const url = await acquireMedia(attachment('a4')).promise;
-    await flush();
-    expect(cacheStorage.open).toHaveBeenCalledWith('media-v1:1');
+  it('forgets every image on a direct account switch and deletes the old Cache Storage stores', async () => {
+    const url = await acquireMedia(avatar).promise;
 
     signIn('1');
-    expect(peekMedia(attachment('a4'))).toBe(url);
+    expect(peekMedia(avatar)).toBe(url);
 
     signIn('2');
-    await flush();
-    expect(peekMedia(attachment('a4'))).toBeUndefined();
+    expect(peekMedia(avatar)).toBeUndefined();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(url);
-    expect(cacheStorage.delete).toHaveBeenCalledWith('media-v1:1');
 
-    cacheStorage.open.mockClear();
     session.authFetch.mockClear();
-    await acquireMedia(attachment('a4')).promise;
-    expect(cacheStorage.open).toHaveBeenCalledWith('media-v1:2');
+    await acquireMedia(avatar).promise;
     expect(session.authFetch).toHaveBeenCalledTimes(1);
+
+    clearMediaCache();
+    await flush();
+    expect(cacheStorage.delete).toHaveBeenCalledWith('media-v1:1');
+    expect(cacheStorage.delete).toHaveBeenCalledWith('media-v1');
+    expect(cacheStorage.delete).not.toHaveBeenCalledWith('drafts');
   });
 
-  it('drops a cancelled preload while it is still looking in Cache Storage', async () => {
-    let finishLookup: (response: Response | undefined) => void = () => undefined;
-    store.match.mockImplementationOnce(() => new Promise(resolve => { finishLookup = resolve; }));
+  it('drops a cancelled preload while it is still looking in the offline database', async () => {
+    let finishLookup = () => undefined as void;
+    offline.db.loadMedia.mockImplementationOnce(() => new Promise(resolve => { finishLookup = () => resolve(undefined); }));
 
     const cancel = preloadMedia(attachment('a5'));
     await flush();
     cancel();
-    finishLookup(undefined);
+    finishLookup();
     await flush();
 
     expect(session.authFetch).not.toHaveBeenCalled();
@@ -245,11 +255,11 @@ describe('mediaCache', () => {
     await acquireMedia(`${avatar}?rev=a9`).promise;
     await flush();
 
-    expect(store.put).not.toHaveBeenCalled();
+    expect(offline.db.saveMedia).not.toHaveBeenCalled();
   });
 
   it('downloads again once a stored copy has expired', async () => {
-    stored.set(attachment('a6'), new Response('old', { headers: { 'X-Media-Expires': String(Date.now() - 1) } }));
+    storeCopy(attachment('a6'), Date.now() - 1);
 
     await acquireMedia(attachment('a6')).promise;
 
@@ -257,7 +267,7 @@ describe('mediaCache', () => {
   });
 
   it('shows an expired stored copy when the download fails', async () => {
-    stored.set(attachment('a7'), new Response('old', { headers: { 'X-Media-Expires': String(Date.now() - 1) } }));
+    storeCopy(attachment('a7'), Date.now() - 1);
     session.authFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
     await expect(acquireMedia(attachment('a7')).promise).resolves.toMatch(/^blob:/);
@@ -265,7 +275,7 @@ describe('mediaCache', () => {
   });
 
   it('uses an expired stored copy without the network while offline', async () => {
-    stored.set(attachment('a8'), new Response('old', { headers: { 'X-Media-Expires': String(Date.now() - 1) } }));
+    storeCopy(attachment('a8'), Date.now() - 1);
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
 
     await expect(acquireMedia(attachment('a8')).promise).resolves.toMatch(/^blob:/);

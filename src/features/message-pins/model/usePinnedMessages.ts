@@ -4,6 +4,7 @@ import { realtime } from '@/shared/api/realtime';
 import { isGoApi } from '@/shared/api/goSocket';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { useAppDispatch } from '@/shared/hooks/redux';
+import { onOfflineChanges } from '@/shared/offline';
 import {
   findPin, onLocalMessageDeleted, pinApi, removePin, useGetPinnedMessagesQuery, useLoadMorePinnedMessagesMutation, type PinnedMessages,
 } from '@/entities/message';
@@ -39,7 +40,10 @@ export const usePinnedMessages = (chatId: EntityId) => {
       if (String(deletedIn) !== String(chatId)) return;
       dispatch(pinApi.util.updateQueryData('getPinnedMessages', chatId, (draft) => removePin(current(draft), messageId)));
     });
-    return () => { stopRealtime(); stopLocal(); };
+    const stopOffline = onOfflineChanges((changes) => {
+      if (changes.some((change) => change.type !== 'reset' && change.chatId === String(chatId) && (change.type === 'pins' || change.type === 'cleared'))) reload();
+    });
+    return () => { stopRealtime(); stopLocal(); stopOffline(); };
   }, [chatId, dispatch, skip]);
 
   const loadMore = useCallback(() => {

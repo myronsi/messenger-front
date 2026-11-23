@@ -16,12 +16,9 @@ vi.mock('@/entities/message', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/entities/message')>()),
   useGetMessageHistoryQuery: () => mocks.latest,
   useLazyGetMessageHistoryQuery: () => [vi.fn()],
+  useLocalHistoryPage: (args: unknown) => (args ? mocks.saved : undefined),
 }));
 vi.mock('@/entities/chat', () => ({ useMarkChatReadMutation: () => [vi.fn()] }));
-vi.mock('@/shared/api/chatSnapshots', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/shared/api/chatSnapshots')>()),
-  useChatSnapshot: (key: string | null) => (key ? mocks.saved : undefined),
-}));
 
 const render = () => {
   const shown: number[] = [];

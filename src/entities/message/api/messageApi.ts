@@ -1,4 +1,3 @@
-import { historySnapshot, rememberChatSnapshot } from '@/shared/api/chatSnapshots';
 import { apiClient } from '@/shared/api/client';
 import { contractQuery } from '@/shared/api/queryResult';
 import { messageModel } from '@/shared/api/goModels';
@@ -6,6 +5,10 @@ import type { EntityId } from '@/shared/api/entityId';
 import { messengerApi } from '@/shared/api/baseApi';
 import type { ChatAudiosResponse, ChatFilesResponse, ChatPhotosResponse, ChatSearchResponse, ForwardMessagesResponse, Message } from '../model/types';
 import type { MessageHistoryResponse } from '../model/history';
+import { forgetHistory, isUnreachable, localHistoryPage, localSearch, storeHistory } from './offlineHistory';
+
+export { storeHistory, useLocalHistoryPage } from './offlineHistory';
+export * from './globalSearchApi';
 
 export const messageApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -60,24 +63,31 @@ export const messageApi = messengerApi.injectEndpoints({
       chatId: EntityId; limit?: number; beforeId?: EntityId | null; afterId?: EntityId | null;
       aroundId?: EntityId | null;
     }>({
-      queryFn: ({ chatId, limit = 50, beforeId, afterId, aroundId }, { signal }) => contractQuery(async () => {
-        const result = await apiClient.GET('/chats/{chat_id}/messages', {
-          params: { path: { chat_id: String(chatId) }, query: {
-            limit, ...(beforeId ? { before: String(beforeId) } : {}),
-            ...(afterId ? { after: String(afterId) } : {}), ...(aroundId ? { around: String(aroundId) } : {}),
-          } }, signal,
+      queryFn: async (args, { signal }) => {
+        const { chatId, limit = 50, beforeId, afterId, aroundId } = args;
+        const result = await contractQuery(async () => {
+          const response = await apiClient.GET('/chats/{chat_id}/messages', {
+            params: { path: { chat_id: String(chatId) }, query: {
+              limit, ...(beforeId ? { before: String(beforeId) } : {}),
+              ...(afterId ? { after: String(afterId) } : {}), ...(aroundId ? { around: String(aroundId) } : {}),
+            } }, signal,
+          });
+          const data = response.data;
+          return { ...response, data: data ? {
+            history: data.items.map(messageModel), has_more: Boolean(data.next_cursor),
+            has_more_before: Boolean(afterId ? data.prev_cursor : data.next_cursor),
+            has_more_after: Boolean(afterId ? data.next_cursor : data.prev_cursor),
+            next_before_id: (afterId ? data.prev_cursor : data.next_cursor) ?? null,
+            next_after_id: (afterId ? data.next_cursor : data.prev_cursor) ?? null,
+          } : undefined };
         });
-        const page = result.data;
-        return { ...result, data: page ? {
-          history: page.items.map(messageModel), has_more: Boolean(page.next_cursor),
-          has_more_before: Boolean(afterId ? page.prev_cursor : page.next_cursor),
-          has_more_after: Boolean(afterId ? page.next_cursor : page.prev_cursor),
-          next_before_id: (afterId ? page.prev_cursor : page.next_cursor) ?? null,
-          next_after_id: (afterId ? page.next_cursor : page.prev_cursor) ?? null,
-        } : undefined };
-      }),
-      onQueryStarted: ({ chatId, limit = 50, beforeId, afterId, aroundId }, { queryFulfilled }) => {
-        if (limit === 50 && !beforeId && !afterId) return rememberChatSnapshot(historySnapshot(chatId, aroundId), queryFulfilled);
+        if (result.data) storeHistory(chatId, result.data.history);
+        else if (result.error?.status === 403 || result.error?.status === 404) forgetHistory(chatId);
+        else if (isUnreachable(result.error)) {
+          const local = await localHistoryPage(args).catch(() => null);
+          if (local) return { data: local };
+        }
+        return result;
       },
       keepUnusedDataFor: 300,
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: chatId }],
@@ -102,7 +112,14 @@ export const messageApi = messengerApi.injectEndpoints({
     }),
 
     searchChatMessages: builder.query<ChatSearchResponse, { chatId: EntityId; query: string }>({
-      query: ({ chatId, query }) => `/messages/search/${chatId}?q=${encodeURIComponent(query)}`,
+      queryFn: async ({ chatId, query }, _api, _extra, baseQuery) => {
+        const result = await baseQuery(`/messages/search/${chatId}?q=${encodeURIComponent(query)}`);
+        if (isUnreachable(result.error)) {
+          const local = await localSearch(chatId, query).catch(() => null);
+          if (local) return { data: local };
+        }
+        return result.error ? { error: result.error } : { data: result.data as ChatSearchResponse };
+      },
       keepUnusedDataFor: 60,
       providesTags: (result, error, { chatId }) => [{ type: 'Message', id: `${chatId}-search` }],
     }),

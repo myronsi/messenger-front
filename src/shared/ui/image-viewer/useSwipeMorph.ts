@@ -7,7 +7,7 @@ export function thumbnailShape(target: HTMLImageElement) {
   const frame = parent && getComputedStyle(parent).overflow === 'hidden' ? parent : target;
   const rect = frame.getBoundingClientRect();
   const value = getComputedStyle(frame).borderTopLeftRadius || getComputedStyle(frame).borderRadius || '0';
-  const radius = value.includes('%') ? parseFloat(value) / 100 * Math.min(rect.width, rect.height) : parseFloat(value) || 0;
+  const radius = value.includes('%') ? Number.parseFloat(value) / 100 * Math.min(rect.width, rect.height) : Number.parseFloat(value) || 0;
   return { rect, radius: Math.min(radius, rect.width / 2, rect.height / 2) };
 }
 
@@ -30,9 +30,10 @@ export function useSwipeMorph(stage: RefObject<HTMLDivElement | null>, displacem
   useLayoutEffect(() => {
     const images = stage.current?.querySelectorAll<HTMLImageElement>('[data-active-slide]');
     if (!images) return;
-    const target = displacement > 0 ? thumbnailTarget(sources, opener.current) : null;
+    const distance = Math.abs(displacement);
+    const target = distance > 0 ? thumbnailTarget(sources, opener.current) : null;
     const shape = target ? thumbnailShape(target) : null;
-    const progress = Math.min(1, displacement / (window.innerHeight * 0.4));
+    const progress = Math.min(1, distance / (window.innerHeight * 0.4));
     images.forEach(image => {
       if (!shape || !image.naturalWidth || !image.offsetWidth || !shape.rect.height) {
         image.style.clipPath = '';

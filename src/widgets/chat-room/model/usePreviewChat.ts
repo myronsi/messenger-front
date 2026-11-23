@@ -70,16 +70,6 @@ export const usePreviewChat = ({
     return queueRef.current;
   };
 
-  useEffect(() => {
-    if (isPersistedId(chatId)) return;
-    setHasPendingApprovalRequest(initialPendingApprovalRequest);
-    setPreviewFailedMessages(
-      initialPendingApprovalRequest && initialPendingApprovalMessage
-        ? [createPendingApprovalPreviewMessage(initialPendingApprovalMessage)]
-        : []
-    );
-  }, [chatId, chatName, initialPendingApprovalRequest, initialPendingApprovalMessage]);
-
   const getDeliveryBlockedMessage = () => (
     directDraftReason === 'blocked'
       ? translations.messageNotDeliveredBlocked || "This message could not be delivered due to the recipient's privacy settings."
@@ -115,6 +105,17 @@ export const usePreviewChat = ({
     delivery_error: translations.waitingForApproval || 'Waiting for user approval',
     read_by: [],
   });
+  const pendingPreviewMessage = useLatestRef(createPendingApprovalPreviewMessage);
+
+  useEffect(() => {
+    if (isPersistedId(chatId)) return;
+    setHasPendingApprovalRequest(initialPendingApprovalRequest);
+    setPreviewFailedMessages(
+      initialPendingApprovalRequest && initialPendingApprovalMessage
+        ? [pendingPreviewMessage.current(initialPendingApprovalMessage)]
+        : []
+    );
+  }, [chatId, chatName, initialPendingApprovalRequest, initialPendingApprovalMessage, pendingPreviewMessage]);
 
   const clearPreviewMessages = useCallback(() => {
     setPreviewFailedMessages((current) => (current.length ? [] : current));

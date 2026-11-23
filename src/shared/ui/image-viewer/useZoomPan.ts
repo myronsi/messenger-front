@@ -181,7 +181,7 @@ export const useZoomPan = (
           else if (Math.abs(y) > Math.abs(x) * 1.2) swipeAxis.current = 'vertical';
         }
         setSwipeX(onSwipe && swipeAxis.current === 'horizontal' ? x : 0);
-        setSwipeY(onDismiss && swipeAxis.current === 'vertical' ? Math.max(0, y) : 0);
+        setSwipeY(onDismiss && swipeAxis.current === 'vertical' ? y : 0);
       }
     }
   };
@@ -203,7 +203,7 @@ export const useZoomPan = (
       lastTapRef.current = null;
       return;
     }
-    const dismiss = event.type !== 'pointercancel' && onDismiss && viewRef.current.scale === 1 && swipeAxis.current === 'vertical' && swipe.y > 100;
+    const dismiss = event.type !== 'pointercancel' && onDismiss && viewRef.current.scale === 1 && swipeAxis.current === 'vertical' && Math.abs(swipe.y) > 100;
     if (dismiss) {
       onDismiss(swipe.y);
       return;

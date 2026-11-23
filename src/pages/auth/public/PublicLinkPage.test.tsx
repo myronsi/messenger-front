@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppearanceProvider } from '@/shared/contexts/AppearanceContext';
+import { AppearanceProvider } from '@/shared/contexts/AppearanceProvider';
 import { PublicLinkPage } from './PublicLinkPage';
 import { loadPublicInvite, loadPublicName } from './publicLinkApi';
 

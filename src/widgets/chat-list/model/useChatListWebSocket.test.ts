@@ -12,6 +12,7 @@ vi.mock('@/shared/api/realtime', () => ({
   realtime: { subscribe: (listener: RealtimeListener) => { mocks.listeners.push(listener); return () => undefined; } },
 }));
 vi.mock('@/shared/auth/session', () => ({ endSession: vi.fn() }));
+vi.mock('@/shared/offline', () => ({ scheduleOfflineSync: vi.fn(), syncOfflineChanges: vi.fn(), withOfflineDb: vi.fn() }));
 vi.mock('@/shared/lib/notifications/runtime', () => ({ startNotifications: vi.fn(), setNotificationLive: vi.fn() }));
 vi.mock('@/shared/lib/notifications/frames', () => ({ notifyMessageFrame: vi.fn() }));
 vi.mock('@/entities/typing', () => ({ applyTypingFrame: vi.fn(), clearTypingUsers: vi.fn() }));

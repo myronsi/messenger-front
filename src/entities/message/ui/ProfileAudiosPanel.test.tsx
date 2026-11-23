@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import { ProfileAudiosPanel, type ProfileAudioItem } from './ProfileChatPanels';
+import { ProfileAudiosPanel } from './ProfileChatPanels';
+import type { ProfileAudioItem } from '../model/profileMedia';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: { replyFromYou: 'You', showInChat: 'Show in chat' } }) }));
 interface PlayerProps { messageId: string; isMine: boolean; variant: string; onPlay: () => void }

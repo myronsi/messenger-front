@@ -3,11 +3,9 @@ import { X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { downloadFile } from '@/shared/lib/downloadFile';
 import { ProgressCircle } from './UploadProgress';
+import { fillPercent } from '../model/fillPercent';
 
 type Download = { progress: number | null; controller: AbortController };
-
-export const fillPercent = (template: string | undefined, progress: number) =>
-  (template || '{percent}%').replace('{percent}', String(Math.round(progress)));
 
 interface DownloadButtonProps {
   fileUrl: string;

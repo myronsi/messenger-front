@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { indexedStore, keepNewest, scopedKey as storageKey, sessionScope } from './indexedStore';
-import { historyLimitForRank, isHistoryKey, mergeHistoryPages, trimHistory, type HistoryPageLike } from './historySnapshotRules';
+import { isHistoryKey } from './historySnapshotRules';
 
 const STORE = 'snapshots';
 const MAX_ENTRIES = 150;
@@ -30,38 +30,20 @@ const innerKey = (storedKey: IDBValidKey) => {
   }
 };
 
-const trimOlderHistories = (store: IDBObjectStore) => {
-  let rank = 0;
-  const cursor = store.index('savedAt').openCursor(null, 'prev');
-  cursor.onsuccess = () => {
-    const current = cursor.result;
-    if (!current) return;
-    if (isHistoryKey(innerKey(current.primaryKey))) {
-      const entry = current.value as Snapshot<HistoryPageLike>;
-      const trimmed = trimHistory(entry.value, historyLimitForRank(rank));
-      if (trimmed !== entry.value) current.update({ ...entry, value: trimmed });
-      rank += 1;
-    }
-    current.continue();
-  };
-};
-
 const writeSnapshot = async <T>(scope: string, key: string, data: T) => {
   const db = await openDatabase();
   if (!db || scope !== sessionScope()) return;
   const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
-  const save = (value: unknown) => {
-    store.put({ value, savedAt: Date.now() }, storageKey(scope, key));
-    keepNewest(store, MAX_ENTRIES);
-    if (isHistoryKey(key)) trimOlderHistories(store);
-  };
-  if (!isHistoryKey(key)) return save(data);
-  const existing = store.get(storageKey(scope, key));
-  existing.onsuccess = () => {
-    const entry = existing.result as Snapshot<HistoryPageLike> | undefined;
-    const fresh = entry && Date.now() - entry.savedAt < MAX_AGE ? entry.value : undefined;
-    save(mergeHistoryPages(fresh, data as unknown as HistoryPageLike));
-  };
+  store.put({ value: data, savedAt: Date.now() }, storageKey(scope, key));
+  keepNewest(store, MAX_ENTRIES);
+};
+
+export const dropHistorySnapshots = async () => {
+  const db = await openDatabase();
+  if (!db) return;
+  const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
+  const keys = store.getAllKeys();
+  keys.onsuccess = () => keys.result.filter((key) => isHistoryKey(innerKey(key))).forEach((key) => store.delete(key));
 };
 
 export async function saveChatSnapshot<T>(key: string, data: T) {
@@ -109,5 +91,5 @@ export function useChatSnapshot<T>(key: string | null) {
 
 export const directChatsSnapshot = 'direct-chats';
 export const groupChatsSnapshot = 'group-chats';
-export const historySnapshot = (chatId: string | number, aroundId?: string | number | null) =>
-  JSON.stringify(['history', String(chatId), aroundId ? String(aroundId) : null]);
+
+void dropHistorySnapshots().catch(() => undefined);

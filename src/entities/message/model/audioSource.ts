@@ -1,3 +1,4 @@
+import { keepOfflineCopy } from '@/shared/api/mediaCache';
 import { attachmentIdOf, forgetPlaybackUrl, playbackUrl } from '@/shared/api/playbackUrl';
 import type { AudioTrack } from './audioTypes';
 
@@ -10,7 +11,9 @@ export const streamingSource = async (track: AudioTrack): Promise<string | null>
   const id = streamable(track);
   if (!id) return null;
   try {
-    return await playbackUrl(id);
+    const url = await playbackUrl(id);
+    keepOfflineCopy(track.src);
+    return url;
   } catch {
     return null;
   }

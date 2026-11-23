@@ -467,6 +467,33 @@ export interface paths {
         patch: operations["updateSecuritySettings"];
         trace?: never;
     };
+    "/me/storage-key": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The key this device encrypts its offline data with
+         * @description Returns the key of the current session, creating it on the first call; later calls return the same
+         *     key. It is deleted with the session, so data a device stored can no longer be read once it signs out
+         *     or is signed out from another device.
+         */
+        post: operations["getStorageKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/sessions": {
         parameters: {
             query?: never;
@@ -2129,8 +2156,44 @@ export interface paths {
          *     hit is checked against the message store before it is returned (a deleted message never
          *     shows, even when the index lags behind). Edits and deletions reach the results within a
          *     few seconds.
+         *
+         *     With `kind`, only messages with that kind of attachment or with a web link are found, and `q` may be
+         *     left out to list them newest first. Without `kind`, `q` is required (`422` otherwise).
          */
         get: operations["searchAllMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sync/changes": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What changed in my chats since a cursor
+         * @description For clients that keep messages offline. Returns edits, reaction changes, deletions (for everyone or
+         *     only for the caller), pin changes, cleared histories and chats the caller deleted for themselves,
+         *     oldest first. New messages are not listed: load them with `after` from each chat's last stored message.
+         *     Chats the caller left, was removed from or that were deleted are not listed either; they are missing
+         *     from `GET /chats`.
+         *
+         *     Call without `cursor` once to get the current position, then keep `next_cursor`. Several changes of one
+         *     message come as one entry with its current state. Entries are kept for 30 days; an older cursor answers
+         *     `reset_required: true` with a fresh `next_cursor`, and the client drops what it stored and loads again.
+         */
+        get: operations["listSyncChanges"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5637,6 +5700,37 @@ export interface components {
             /** @description `true` when moderation removed the answered message. Absent otherwise. */
             removed_by_moderation?: boolean;
         };
+        SyncChangesPage: {
+            changes: components["schemas"]["SyncChange"][];
+            /** @description Send as `cursor` next time */
+            next_cursor: string;
+            /** @description More changes are waiting; ask again at once */
+            has_more: boolean;
+            /** @description The cursor is too old; drop the stored messages and load them again */
+            reset_required: boolean;
+        };
+        /**
+         * @description `message_updated` carries the message as the caller sees it now (`message`). `message_deleted` names the
+         *     message and its `scope`. `pins_changed`: load the pins of the chat again. `history_cleared`: drop the
+         *     messages up to and including `before_message_id` (`scope` says for whom). `chat_hidden`: the caller
+         *     deleted the chat for themselves up to `before_message_id`.
+         */
+        SyncChange: {
+            /** @enum {string} */
+            type: "message_updated" | "message_deleted" | "pins_changed" | "history_cleared" | "chat_hidden";
+            chat_id: components["schemas"]["Id"];
+            message_id?: components["schemas"]["Id"];
+            /** @enum {string} */
+            scope?: "me" | "everyone";
+            before_message_id?: components["schemas"]["Id"];
+            message?: components["schemas"]["Message"];
+        };
+        StorageKey: {
+            /** @description 32 random bytes, base64url without padding */
+            key: string;
+            /** @enum {string} */
+            algorithm: "A256GCM";
+        };
         Message: {
             id: components["schemas"]["Id"];
             chat_id: components["schemas"]["Id"];
@@ -7313,6 +7407,34 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getStorageKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Key of this session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageKey"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -9815,8 +9937,11 @@ export interface operations {
     };
     searchAllMessages: {
         parameters: {
-            query: {
-                q: string;
+            query?: {
+                /** @description Words to find; optional with `kind` */
+                q?: string;
+                /** @description Only messages with this kind of attachment, or with a web link (`link`) */
+                kind?: components["schemas"]["MediaKind"];
                 /** @description Only this chat */
                 chat_id?: components["schemas"]["Id"];
                 /** @description Only messages of this user */
@@ -9857,6 +9982,40 @@ export interface operations {
             422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listSyncChanges: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous answer */
+                cursor?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Changes after the cursor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncChangesPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
         };
     };
     listApprovalRequests: {

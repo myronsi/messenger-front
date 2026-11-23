@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageProvider, useLanguage } from './LanguageContext';
+import { useLanguage } from './LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 
 const Probe = () => {
   const { language, setLanguage } = useLanguage();

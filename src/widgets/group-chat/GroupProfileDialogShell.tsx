@@ -118,6 +118,7 @@ const GroupProfileDialogShell: React.FC<Props> = ({
         className={`relative h-full w-full max-w-full overflow-hidden bg-background shadow-2xl sm:h-[min(780px,calc(100vh-3rem))] sm:w-[420px] sm:rounded-lg sm:transition-all sm:duration-200 sm:ease-out ${
           mobileWindowSlide(!isClosing)} ${isClosing ? 'sm:translate-y-3 sm:scale-95 sm:opacity-0' : 'sm:translate-y-0 sm:scale-100 sm:opacity-100'
         }`}
+        role="presentation"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div data-profile-swipe className="relative isolate flex h-full min-h-0 w-full flex-col bg-background text-foreground" inert={!!subPage}>

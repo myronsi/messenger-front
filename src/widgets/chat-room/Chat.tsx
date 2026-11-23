@@ -1,6 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { isPersistedId } from '@/shared/api/entityId';
 import React, { useRef, useState, useEffect } from 'react';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { ChatHeaderSearch, Message } from '@/entities/message';
 import ChatHeader from './ui/ChatHeader';
 import { MessageList } from '@/features/message-list';
@@ -98,6 +99,7 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
   const [composerRef, composerHeight, composerNode] = useElementHeight<HTMLDivElement>();
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const lastSearchRequestKeyRef = useRef(searchRequestKey);
+  const latestSearchRequestKey = useLatestRef(searchRequestKey);
   const [isClosing, setIsClosing] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -113,13 +115,9 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
 
   useEffect(() => {
     setIsSearchOpen(false);
-    lastSearchRequestKeyRef.current = searchRequestKey;
-  }, [chatId, chatName]);
+    lastSearchRequestKeyRef.current = latestSearchRequestKey.current;
+  }, [chatId, chatName, latestSearchRequestKey]);
 
-  useEffect(() => {
-    if (!messageJumpRequest || isPreview) return;
-    jumpToSearchResult(messageJumpRequest.messageId);
-  }, [isPreview, messageJumpRequest?.key]);
 
   useEffect(() => {
     setPresence({
@@ -147,6 +145,13 @@ const Chat: React.FC<ChatProps> = ({ chatId, chatName, chatDisplayName, interloc
     closeMenus, messageRefs, onOpenUserProfile, setIsUserProfileOpen, scrollToMessage,
     setTempHighlightedMessageId,
   });
+  const latestJump = useLatestRef({ request: messageJumpRequest, jump: jumpToSearchResult });
+  const jumpKey = messageJumpRequest?.key;
+  useEffect(() => {
+    const { request, jump } = latestJump.current;
+    if (!request || isPreview) return;
+    jump(request.messageId);
+  }, [isPreview, jumpKey, latestJump]);
 
   usePreviewHandoff({
     isPreview, isLoadingHistory: isLoadingInitialMessages, messageCount: messages.length,

@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ChatLastMessage, FileMessageContent } from '@/entities/message';
 import { useChatFormatters } from './chatFormatters';

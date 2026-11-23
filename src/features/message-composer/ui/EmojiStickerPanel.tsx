@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { openStickerPacks, type Sticker } from '@/entities/sticker';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useFocusOnMount } from '@/shared/lib/useFocusOnMount';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { EMOJI_SETS } from '@/shared/lib/emojiSets';
 import { emojiMatches, normalizeSearch, searchEmoji } from '../model/emojiSearch';
@@ -30,6 +31,7 @@ const EmojiGrid = ({ emoji, onEmoji }: { emoji: string[]; onEmoji: (emoji: strin
 );
 
 export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone, onStickersVisible }: EmojiStickerPanelProps) => {
+  const focusSearch = useFocusOnMount<HTMLInputElement>();
   const { translations } = useLanguage();
   const [tab, setTab] = useState(onSticker ? 'stickers' : 'emoji');
   const showsStickers = tab === 'stickers' && !!onSticker;
@@ -59,7 +61,7 @@ export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone, onStickersVisibl
       {searchOpen && (
         <div className="mx-2 mt-2 flex shrink-0 items-center gap-2 rounded-full bg-muted pl-3 pr-1">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <input type="search" autoFocus value={query} onChange={(event) => setQuery(event.target.value)} aria-label={translations.searchEmojiAndStickers}
+          <input type="search" ref={focusSearch} value={query} onChange={(event) => setQuery(event.target.value)} aria-label={translations.searchEmojiAndStickers}
             placeholder={translations.search} className="h-9 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none" />
           <button type="button" onClick={closeSearch} aria-label={translations.closeSearch}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">

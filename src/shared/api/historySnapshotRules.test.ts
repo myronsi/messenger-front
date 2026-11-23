@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { historySnapshot } from './chatSnapshots';
-import { DEEP_HISTORY_CHATS, historyLimitForRank, isHistoryKey, mergeHistoryPages, trimHistory } from './historySnapshotRules';
+import { isHistoryKey, mergeHistoryPages, trimHistory } from './historySnapshotRules';
 
 const page = (ids: number[], hasMore = true) => ({
   history: ids.map((id) => ({ id: String(id) })), has_more: hasMore, has_more_before: hasMore, next_before_id: ids.length ? String(ids[0]) : null,
@@ -9,14 +8,8 @@ const ids = (value: { history: { id: string | number }[] }) => value.history.map
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, index) => from + index);
 
 describe('history snapshot rules', () => {
-  it('keeps 200 messages for the 20 most recent chats and 50 for the rest', () => {
-    expect(historyLimitForRank(0)).toBe(200);
-    expect(historyLimitForRank(DEEP_HISTORY_CHATS - 1)).toBe(200);
-    expect(historyLimitForRank(DEEP_HISTORY_CHATS)).toBe(50);
-  });
-
   it('tells history entries from chat list entries', () => {
-    expect(isHistoryKey(historySnapshot('4'))).toBe(true);
+    expect(isHistoryKey(JSON.stringify(['history', '4', null]))).toBe(true);
     expect(isHistoryKey('direct-chats')).toBe(false);
   });
 

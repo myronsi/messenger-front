@@ -34,7 +34,6 @@ export function ContactNameHeading(props: Props) {
             <span aria-hidden="true" className="invisible col-start-1 row-start-1 overflow-hidden whitespace-pre">{props.customNameInput || props.accountDisplayName || ' '}</span>
             <input
               ref={input}
-              autoFocus
               value={props.customNameInput}
               placeholder={props.accountDisplayName}
               aria-label={translations.customName || 'Custom name'}

@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci --legacy-peer-deps --ignore-scripts
       - name: Pin is exact and matches the lockfile
         run: npm run check:contract
       - name: main only uses a stable contract

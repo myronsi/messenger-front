@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { DockedEmojiPanel, expandedPanelHeight, settlePanelHeight } from './DockedEmojiPanel';
+import { DockedEmojiPanel } from './DockedEmojiPanel';
+import { expandedPanelHeight, settlePanelHeight } from '../model/dockedPanelHeight';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
   useLanguage: () => ({ translations: { expandEmojiPanel: 'Expand panel', collapseEmojiPanel: 'Collapse panel' }, language: 'en' }),

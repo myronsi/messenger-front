@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const authFetch = vi.fn();
 vi.mock('@/shared/auth/session', () => ({ authFetch: (...args: unknown[]) => authFetch(...args) }));
+const keepOfflineCopy = vi.fn();
+vi.mock('./mediaCache', () => ({ keepOfflineCopy: (...args: unknown[]) => keepOfflineCopy(...args) }));
 
 const ID = '5f0c8a64-2f2b-4c7e-9d0e-6b1f3a2c4d5e';
 
@@ -91,5 +93,35 @@ describe('warming playback URLs', () => {
     act(() => result.current(document.createElement('div')));
     expect(observers).toHaveLength(0);
     expect(authFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('streaming from a playback URL', () => {
+  const source = `/api/v2/attachments/${ID}/content`;
+
+  afterEach(() => {
+    authFetch.mockReset();
+    keepOfflineCopy.mockReset();
+    vi.resetModules();
+  });
+
+  it('streams the playback URL and keeps an offline copy of the source', async () => {
+    const { renderHook, waitFor } = await import('@testing-library/react');
+    const { usePlaybackUrl } = await import('./playbackUrl');
+    authFetch.mockImplementation(async () => new Response(JSON.stringify({ url: `/api/v2/attachments/${ID}/content?pt=play`, expires_at: new Date(Date.now() + 5 * 60_000).toISOString() })));
+    const { result } = renderHook(() => usePlaybackUrl(source));
+    await waitFor(() => expect(result.current.src).toContain('pt=play'));
+    expect(result.current.streaming).toBe(true);
+    expect(keepOfflineCopy).toHaveBeenCalledWith(source);
+  });
+
+  it('falls back to the normal download when the server refuses the playback URL', async () => {
+    const { renderHook, waitFor } = await import('@testing-library/react');
+    const { usePlaybackUrl } = await import('./playbackUrl');
+    authFetch.mockImplementation(async () => new Response('{}', { status: 403 }));
+    const { result } = renderHook(() => usePlaybackUrl(source));
+    await waitFor(() => expect(result.current.streaming).toBe(false));
+    expect(result.current.src).toBeUndefined();
+    expect(keepOfflineCopy).not.toHaveBeenCalled();
   });
 });

@@ -167,6 +167,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       )}
       {dateSeparator}
       <div
+        role="presentation"
         data-image-message={isImage || undefined}
         data-message-id={String(message.id)}
         ref={setRowRef}

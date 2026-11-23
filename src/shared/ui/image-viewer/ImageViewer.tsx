@@ -7,7 +7,9 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useZoomPan } from './useZoomPan';
 import { downloadImage } from './downloadImage';
 import { useFullResolution } from './useFullResolution';
-import { isOnPicture, type ViewerMedia } from './pictureRect';
+import { isOnPicture, naturalAspect, type ViewerMedia } from './pictureRect';
+import { whenDecoded } from './mediaReady';
+import { useOpenFlight } from './useOpenFlight';
 import { ViewerVideo, type VideoTap } from './ViewerVideo';
 import { handleVideoKey } from './videoPlayback';
 import { ViewerToolbar } from './ViewerToolbar';
@@ -34,9 +36,6 @@ interface ImageViewerProps {
   onClose: () => void;
 }
 const stopPropagation = (event: React.SyntheticEvent) => event.stopPropagation();
-const naturalAspect = (media: ViewerMedia | null) => (
-  media instanceof HTMLImageElement && media.naturalHeight ? media.naturalWidth / media.naturalHeight : undefined
-);
 const preloadSource = (item?: ViewerImage) => (item?.isVideo ? item.previewUrl : item?.url);
 const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onClose }) => {
   const { translations } = useLanguage();
@@ -69,6 +68,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     stageRef, imageRef, isStageMounted, { onSwipe: isGallery ? onSwipe : undefined, onDismiss, tapZoom: !image?.isVideo },
   );
   useSwipeMorph(stageRef, swipeY, [image?.thumbnailSource, image?.url, image?.previewUrl]);
+  useOpenFlight(stageRef, isStageMounted, [image?.thumbnailSource, image?.url, image?.previewUrl], !image?.isVideo);
   useEffect(() => { reset(); }, [index, reset]);
   const markLoaded = useCallback((url: string) => {
     setLoadedUrls((loaded) => (loaded[url] ? loaded : { ...loaded, [url]: true }));
@@ -173,8 +173,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
   const markCurrentLoaded = () => markLoaded(image.url);
   const markCurrentBroken = () => setBrokenUrls((current) => ({ ...current, [image.url]: true }));
   const mediaStyle: React.CSSProperties = {
-    transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y + swipeY}px) scale(${view.scale * Math.max(0.65, 1 - swipeY / window.innerHeight * 0.5)})`,
-    transition: isGesturing ? 'opacity 0.15s' : 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s',
+    transform: `translate(${view.x + swipeX * edgeResistance}px, ${view.y + swipeY}px) scale(${view.scale * Math.max(0.65, 1 - Math.abs(swipeY) / window.innerHeight * 0.5)})`,
+    transition: [isGesturing ? '' : 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)', previewUrl && !isVideo ? '' : 'opacity 0.15s'].filter(Boolean).join(', ') || 'none',
     userSelect: 'none',
     WebkitUserSelect: 'none',
     backfaceVisibility: 'hidden', willChange: isGesturing ? 'transform' : undefined,
@@ -197,10 +197,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
           onEscapeKeyDown={(event) => event.preventDefault()}
         >
           <div
-            ref={rootRef}
+            ref={rootRef} role="dialog" aria-modal="true"
             aria-label={image.name}
             className="motion-image-viewer-backdrop fixed inset-0 z-[9999] bg-black flex flex-col outline-none [-webkit-tap-highlight-color:transparent]"
-            style={{ isolation: 'isolate', backgroundColor: `rgba(0, 0, 0, ${Math.max(0, 1 - swipeY / Math.max(1, window.innerHeight * 0.65))})`, transition: isGesturing ? 'none' : 'background-color 240ms ease-out' }}
+            style={{ isolation: 'isolate', backgroundColor: `rgba(0, 0, 0, ${Math.max(0, 1 - Math.abs(swipeY) / Math.max(1, window.innerHeight * 0.65))})`, transition: isGesturing ? 'none' : 'background-color 240ms ease-out' }}
             onClick={stopPropagation}
             onDoubleClick={stopPropagation}
             onMouseDown={stopPropagation}
@@ -230,7 +230,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             {isGallery && <GalleryArrows canGoBack={canGoBack} canGoForward={canGoForward} onGo={(direction) => onSwipe(direction, 0)} />}
             </div>
             <div
-              ref={setStage}
+              ref={setStage} role="presentation"
               data-testid="image-viewer-stage"
               className={`relative flex-1 flex items-center justify-center overflow-hidden select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
               style={{ touchAction: 'none' }}
@@ -263,7 +263,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                       key={previewUrl} ref={previewRef} src={previewUrl} alt="" aria-hidden="true"
                       data-testid="image-viewer-preview" data-active-slide
                       className={`pointer-events-none ${FULL_SCREEN_MEDIA}`}
-                      style={{ transform: `translate(${swipeX * edgeResistance}px, ${swipeY}px) scale(${Math.max(0.65, 1 - swipeY / window.innerHeight * 0.5)})` }}
+                      style={{ transform: `translate(${swipeX * edgeResistance}px, ${swipeY}px) scale(${Math.max(0.65, 1 - Math.abs(swipeY) / window.innerHeight * 0.5)})` }}
                       draggable={false}
                     />
                   ) : isVideo ? null : (
@@ -282,10 +282,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
                     <AuthenticatedImage
                       key={image.url} ref={setImage} src={shownUrl ?? image.url} alt={image.name} data-active-slide
                       className={mainClass} style={mediaStyle} draggable={false}
-                      onLoad={markCurrentLoaded} onError={markCurrentBroken}
+                      onLoad={(event) => whenDecoded(event.currentTarget, markCurrentLoaded)} onError={markCurrentBroken}
                     />
                   )}
-                  {isLoaded && !isVideo && <DrawingOverlay drawing={image.drawing} aspect={image.aspect ?? naturalAspect(imageRef.current)} fit="contain"
+                  {!isVideo && (isLoaded || !!previewUrl) && <DrawingOverlay drawing={image.drawing} aspect={image.aspect ?? naturalAspect(imageRef.current ?? previewRef.current)} fit="contain"
                     className="pointer-events-none absolute inset-0 h-full w-full" style={mediaStyle} />}
                 </>
               )}

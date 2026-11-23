@@ -25,7 +25,7 @@ const COLLAPSE_MS = 220;
 
 const BUTTON_CLASS = 'motion-press flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50';
 
-export const dockedPanelHeight = () => (lastKeyboardHeight() ?? Math.round(Math.min(360, Math.max(240, window.innerHeight * 0.4)))) - DOCK_GAP;
+const dockedPanelHeight = () => (lastKeyboardHeight() ?? Math.round(Math.min(360, Math.max(240, window.innerHeight * 0.4)))) - DOCK_GAP;
 
 const EmojiStickerButton = ({ inputRef, value, onChange, onSticker, disabled = false, dock, onStickersVisible }: EmojiStickerButtonProps) => {
   const { translations } = useLanguage();

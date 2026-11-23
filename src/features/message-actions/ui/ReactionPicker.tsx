@@ -43,7 +43,7 @@ export const ReactionPicker = ({ onPick, embedded = false }: { onPick: (reaction
   const found = search ? packs.flatMap((pack) => pack.emoji).filter((emoji) => emoji.shortcode.includes(search)) : [];
 
   return (
-    <div data-testid="reaction-picker" onClick={(event) => event.nativeEvent.stopPropagation()}
+    <div data-testid="reaction-picker" role="presentation" onClick={(event) => event.nativeEvent.stopPropagation()}
       className={embedded ? 'px-2 pb-2' : 'w-72 rounded-2xl border border-border bg-popover p-2 shadow-lg'}>
       <label className="mb-1 flex items-center gap-2 rounded-full bg-muted px-3">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
