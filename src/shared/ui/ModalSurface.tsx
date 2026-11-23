@@ -37,7 +37,7 @@ export function ModalSurface({
           if (target?.isConnected) target.focus({ preventScroll: true });
         }}
       >
-        <div ref={composeRefs(ghost, surfaceRef)} data-modal-surface="" data-own-motion={ownExit ? '' : undefined} {...props}
+        <div ref={composeRefs(ghost, surfaceRef)} role="dialog" data-modal-surface="" data-own-motion={ownExit ? '' : undefined} {...props}
           onPointerDown={(event) => {
             onPointerDown?.(event);
             pressedBackdrop.current = dismissOnBackdrop && event.target === event.currentTarget;

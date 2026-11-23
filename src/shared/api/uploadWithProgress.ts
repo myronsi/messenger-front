@@ -16,6 +16,12 @@ interface UploadWithProgressOptions {
 
 const cancelled = () => new Error('Upload cancelled');
 
+export class UploadError extends Error {
+  constructor(readonly status: number, readonly body: unknown) {
+    super(`Upload failed with status ${status}`);
+  }
+}
+
 const sendUploadRequest = async <T>({ url, formData, onProgress, signal }: UploadWithProgressOptions, token: string | null): Promise<T> => (
   new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -55,7 +61,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress, signal }: Uploa
       }
 
       if (!reportIfClientOutdated(xhr.status, parsedBody)) reportIfAccountRestricted(xhr.status, parsedBody);
-      reject({ status: xhr.status, body: parsedBody });
+      reject(new UploadError(xhr.status, parsedBody));
     };
 
     xhr.onerror = () => reject(new Error('Upload failed'));

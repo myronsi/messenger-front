@@ -75,7 +75,7 @@ const probeLayout = (element: HTMLDivElement, font: CSSStyleDeclaration, availab
   try {
     const natural = probe.getBoundingClientRect();
     const max = Math.min(available, natural.width);
-    const metadataWidth = probeSpacer.offsetWidth + parseFloat(getComputedStyle(probeSpacer).marginLeft);
+    const metadataWidth = probeSpacer.offsetWidth + Number.parseFloat(getComputedStyle(probeSpacer).marginLeft);
     const walker = document.createTreeWalker(probe, NodeFilter.SHOW_TEXT);
     const ranges: Range[] = [];
     let node: Node | null;
@@ -129,8 +129,8 @@ const measure = (row: Row) => {
   if (!element.isConnected || !column.clientWidth) return null;
   const font = getComputedStyle(element);
   const shell = getComputedStyle(bubble);
-  const available = column.clientWidth - parseFloat(shell.paddingLeft) - parseFloat(shell.paddingRight)
-    - parseFloat(shell.borderLeftWidth) - parseFloat(shell.borderRightWidth);
+  const available = column.clientWidth - Number.parseFloat(shell.paddingLeft) - Number.parseFloat(shell.paddingRight)
+    - Number.parseFloat(shell.borderLeftWidth) - Number.parseFloat(shell.borderRightWidth);
   if (available <= 0) return null;
   const signature = JSON.stringify([text, available, font.font, font.letterSpacing, font.wordSpacing, row.spacerHtml]);
   if (signature === signatures.get(element)) return null;

@@ -12,6 +12,7 @@ import { useMessengerController } from './model/useMessengerController';
 import { chatPanelKey } from './model/messengerRoutes';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
 import { useKeyboardOpen } from '@/shared/lib/useKeyboardOpen';
+import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { WINDOW_MOTION_MS } from '@/shared/ui/windowMotion';
 import { DesktopChatLayout } from './ui/DesktopChatLayout';
 import { useJumpRequest } from './model/useJumpRequest';
@@ -63,22 +64,20 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     mobilePanelChat,
   } = useMessengerController(username);
 
+  const profileHandlers = useLatestRef({ closeUserProfile, openDirectChatFromProfile, openGroupFromProfile, handleCurrentChatDeleted });
   const currentUserProfileProps = useMemo(() => ({
     username: profileUsername || currentChat?.name || '',
     directChatId: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
       ? currentChat.id
       : undefined,
-    onClose: closeUserProfile,
-    onMessage: openDirectChatFromProfile,
-    onOpenGroup: openGroupFromProfile,
+    onClose: () => profileHandlers.current.closeUserProfile(),
+    onMessage: (...args: Parameters<typeof openDirectChatFromProfile>) => profileHandlers.current.openDirectChatFromProfile(...args),
+    onOpenGroup: (...args: Parameters<typeof openGroupFromProfile>) => profileHandlers.current.openGroupFromProfile(...args),
     hideMessageAction: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name,
     onChatDeleted: currentChat?.type === 'one-on-one' && isPersistedId(currentChat.id) && (profileUsername || currentChat.name) === currentChat.name
-      ? handleCurrentChatDeleted
+      ? () => profileHandlers.current.handleCurrentChatDeleted()
       : undefined,
-  }), [
-    profileUsername,
-    currentChat,
-  ]);
+  }), [profileUsername, currentChat, profileHandlers]);
   const [renderUserProfile, setRenderUserProfile] = useState(isUserProfileOpen);
   const [isUserProfileClosing, setIsUserProfileClosing] = useState(false);
   const { requestJump, requestFor } = useJumpRequest(currentChat?.id);

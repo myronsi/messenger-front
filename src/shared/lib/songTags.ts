@@ -1,3 +1,5 @@
+import { trimEndChars } from './trimChars';
+
 export interface SongTags {
   title?: string;
   artist?: string;
@@ -6,7 +8,7 @@ export interface SongTags {
 
 const HEAD_BYTES = 2 * 1024 * 1024;
 
-const clean = (value: string) => value.replace(/\0+$/g, '').replace(/\0/g, ' / ').trim() || undefined;
+const clean = (value: string) => trimEndChars(value, '\0').replace(/\0/g, ' / ').trim() || undefined;
 
 const decodeText = (bytes: Uint8Array, encoding: number) => {
   if (encoding === 1 || encoding === 2) {

@@ -1,3 +1,5 @@
+import { trimEndChars } from './trimChars';
+
 export type MessageTextPart = { text: string; href?: string };
 
 export function messageLinks(text: string): MessageTextPart[] {
@@ -5,7 +7,7 @@ export function messageLinks(text: string): MessageTextPart[] {
   let cursor = 0;
   for (const match of text.matchAll(/https?:\/\/[^\s<>"]+/gi)) {
     const start = match.index;
-    let url = match[0].replace(/[.,!?;:'\u2019\u201d]+$/, '');
+    let url = trimEndChars(match[0], '.,!?;:\'\u2019\u201d');
     for (const [open, close] of [['(', ')'], ['[', ']'], ['{', '}']]) {
       while (url.endsWith(close) && url.split(close).length > url.split(open).length) url = url.slice(0, -1);
     }

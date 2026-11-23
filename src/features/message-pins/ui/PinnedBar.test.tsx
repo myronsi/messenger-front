@@ -2,7 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
 import type { Message, PinnedMessage } from '@/entities/message';
-import { activeSegment, PinnedBar } from './PinnedBar';
+import { PinnedBar } from './PinnedBar';
+import { activeSegment } from '../model/pinSegments';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: en, language: 'en' }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { src?: string; 'data-testid'?: string }) => <img alt="" src={props.src} data-testid={props['data-testid']} /> }));

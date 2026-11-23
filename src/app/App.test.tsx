@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import { en } from '@/shared/lang/en';
 import { AppRoutes } from './App';
 

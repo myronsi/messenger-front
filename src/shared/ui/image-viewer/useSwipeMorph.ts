@@ -7,7 +7,7 @@ export function thumbnailShape(target: HTMLImageElement) {
   const frame = parent && getComputedStyle(parent).overflow === 'hidden' ? parent : target;
   const rect = frame.getBoundingClientRect();
   const value = getComputedStyle(frame).borderTopLeftRadius || getComputedStyle(frame).borderRadius || '0';
-  const radius = value.includes('%') ? parseFloat(value) / 100 * Math.min(rect.width, rect.height) : parseFloat(value) || 0;
+  const radius = value.includes('%') ? Number.parseFloat(value) / 100 * Math.min(rect.width, rect.height) : Number.parseFloat(value) || 0;
   return { rect, radius: Math.min(radius, rect.width / 2, rect.height / 2) };
 }
 

@@ -9,7 +9,7 @@ const sameBox = (a: DOMRect, b: DOMRect) => (
 const isSquare = (radius: string) => !radius || /^0(px|%)?( 0(px|%)?)*$/.test(radius.trim());
 
 const asCircle = (radius: string, box: DOMRect) => {
-  const pixels = parseFloat(radius);
+  const pixels = Number.parseFloat(radius);
   return radius.endsWith('px') && pixels >= Math.min(box.width, box.height) / 2 ? '50%' : radius;
 };
 
@@ -31,7 +31,7 @@ export function returnToThumbnail(image: HTMLImageElement, target: HTMLImageElem
   if (clip && image.offsetWidth) {
     const box = image.getBoundingClientRect();
     const scale = box.width / image.offsetWidth;
-    const values = clip[1].split(/\s+/).map(parseFloat);
+    const values = clip[1].split(/\s+/).map(Number.parseFloat);
     const [top, right = top, bottom = top, left = right] = values;
     from.left = box.left + left * scale;
     from.top = box.top + top * scale;

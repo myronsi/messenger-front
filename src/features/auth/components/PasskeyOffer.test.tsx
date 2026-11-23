@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import { registerPasskey } from '@/shared/api/passkeys';
 import { ApiProblem } from '@/shared/api/problem';
 import { PasskeyOffer } from './PasskeyOffer';

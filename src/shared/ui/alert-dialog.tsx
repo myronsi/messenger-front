@@ -4,7 +4,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 import { cn } from "@/shared/lib/utils"
 import { composeRefs, useExitGhost } from "@/shared/lib/useExitGhost"
 import { WindowBackClose } from "@/shared/ui/WindowBackClose"
-import { buttonVariants } from "@/shared/ui/button"
+import { buttonVariants } from "@/shared/ui/button-variants"
 
 const AlertDialog = AlertDialogPrimitive.Root
 

@@ -11,7 +11,7 @@ export * from './api/unsentApi';
 export * from './model/messageRemoval';
 export * from './model/messageListScrollUtils';
 export { default as MessageItem } from './ui/MessageItem';
-export * from './ui/ProfileChatPanels';
+export * from './ui/profilePanels';
 export { ProfileFilesPanel } from './ui/ProfileFilesPanel';
 export { ProfileLinksPanel } from './ui/ProfileLinksPanel';
 export { useGetChatLinksQuery, linkItem, type ChatLinkItem } from './api/chatLinksApi';

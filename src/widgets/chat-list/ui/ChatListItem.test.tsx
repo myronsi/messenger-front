@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ServerEvent } from '@myronsi/messenger-api';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import { applyTypingFrame, clearTypingUsers } from '@/entities/typing';
 import { en } from '@/shared/lang/en';
 import type { Chat } from '@/entities/message';

@@ -9,6 +9,7 @@ import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
 import { nextPinIndex } from '../model/pinRules';
 import { pinSnippet, pinThumbnail } from '../model/pinSnippet';
+import { MAX_PIN_SEGMENTS, activeSegment } from '../model/pinSegments';
 
 interface PinnedBarProps {
   pins: PinnedMessage[];
@@ -18,13 +19,6 @@ interface PinnedBarProps {
   onOpenList: () => void;
 }
 
-export const MAX_PIN_SEGMENTS = 4;
-
-export const activeSegment = (index: number, total: number) => {
-  const segments = Math.min(total, MAX_PIN_SEGMENTS);
-  if (total <= MAX_PIN_SEGMENTS) return index;
-  return Math.round((index * (segments - 1)) / (total - 1));
-};
 
 const PinSegments = ({ index, total }: { index: number; total: number }) => {
   const segments = Math.max(1, Math.min(total, MAX_PIN_SEGMENTS));

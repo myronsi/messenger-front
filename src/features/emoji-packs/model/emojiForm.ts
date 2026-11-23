@@ -1,9 +1,11 @@
+import { trimChars } from '@/shared/lib/trimChars';
+
 const SHORTCODE = /^[a-z0-9_]{2,32}$/;
 
 export const isShortcode = (value: string) => SHORTCODE.test(value);
 
 export const shortcodeFromFile = (name: string) => {
-  const base = name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32);
+  const base = trimChars(name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9_]+/g, '_'), '_').slice(0, 32);
   return base.length >= 2 ? base : '';
 };
 

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import AuthFlowPage from './AuthFlowPage';
-import { AppearanceProvider } from '@/shared/contexts/AppearanceContext';
+import { AppearanceProvider } from '@/shared/contexts/AppearanceProvider';
 
 vi.mock('@/shared/contexts/LanguageContext', async () => {
   const { en: translations } = await import('@/shared/lang/en');

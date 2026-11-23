@@ -86,6 +86,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({ menu, unreadCount, tr
     <div
       ref={menuRef}
       role="menu"
+      tabIndex={-1}
       className="fixed z-50 w-max max-w-[min(16rem,calc(100vw-1rem))] overflow-hidden rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-lg"
       style={{
         left,

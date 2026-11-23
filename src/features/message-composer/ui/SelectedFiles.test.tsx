@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import SelectedFiles from './SelectedFiles';
 
 vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: vi.fn() }));

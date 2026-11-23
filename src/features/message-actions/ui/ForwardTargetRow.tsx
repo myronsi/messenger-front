@@ -27,7 +27,7 @@ export const ForwardTargetRow = ({
 }: ForwardTargetRowProps) => {
   const longPress = useLongPress(disabled ? undefined : () => onToggle(target), { mouse: true });
   return (
-    <div role="option" aria-selected={selected} aria-disabled={disabled || undefined} data-testid="forward-target"
+    <div role="option" tabIndex={-1} aria-selected={selected} aria-disabled={disabled || undefined} data-testid="forward-target"
       onClick={(event) => { if (!longPress.consumeClick() && !disabled) onActivate(target, event); }}
       {...longPress.handlers}
       {...longPress.mouseHandlers}

@@ -18,7 +18,7 @@ const MediaFill = ({ attachment, className }: { attachment: Attachment; classNam
   if (video && !still && clip) {
     return (
       <video data-testid="profile-background-video" className={cn('object-cover', className)} src={clip} poster={image}
-        autoPlay muted loop playsInline aria-hidden="true" />
+        autoPlay muted loop playsInline aria-hidden="true" tabIndex={-1} />
     );
   }
   if (!image) return <div className={cn('bg-muted', className)} />;

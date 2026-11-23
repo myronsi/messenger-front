@@ -197,7 +197,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
           onEscapeKeyDown={(event) => event.preventDefault()}
         >
           <div
-            ref={rootRef}
+            ref={rootRef} role="dialog" aria-modal="true"
             aria-label={image.name}
             className="motion-image-viewer-backdrop fixed inset-0 z-[9999] bg-black flex flex-col outline-none [-webkit-tap-highlight-color:transparent]"
             style={{ isolation: 'isolate', backgroundColor: `rgba(0, 0, 0, ${Math.max(0, 1 - swipeY / Math.max(1, window.innerHeight * 0.65))})`, transition: isGesturing ? 'none' : 'background-color 240ms ease-out' }}
@@ -230,7 +230,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             {isGallery && <GalleryArrows canGoBack={canGoBack} canGoForward={canGoForward} onGo={(direction) => onSwipe(direction, 0)} />}
             </div>
             <div
-              ref={setStage}
+              ref={setStage} role="presentation"
               data-testid="image-viewer-stage"
               className={`relative flex-1 flex items-center justify-center overflow-hidden select-none ${view.scale > 1 ? (isGesturing ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
               style={{ touchAction: 'none' }}

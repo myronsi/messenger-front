@@ -3,10 +3,10 @@ import { ConnectionIndicator } from '@/shared/ui/ConnectionIndicator';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { SessionEntry } from './SessionEntry';
 import { HelpSiteRedirect } from './HelpSiteRedirect';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
-import { AppearanceProvider } from '@/shared/contexts/AppearanceContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
+import { AppearanceProvider } from '@/shared/contexts/AppearanceProvider';
 import UpdateGate from '@/app/UpdateGate';
-import { Toaster as NotificationToaster } from '@/shared/ui/sonner';
+import { Toaster as NotificationToaster } from '@/shared/ui/sonner-toaster';
 import { ChunkErrorBoundary } from '@/shared/ui/ChunkErrorBoundary';
 
 const RecoveryEmailLinkPage = lazy(() => import('@/pages/auth').then(module => ({ default: module.RecoveryEmailLinkPage })));

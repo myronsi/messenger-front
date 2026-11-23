@@ -1,21 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ThemeProvider, useTheme } from 'next-themes';
 import {
   APPEARANCE_STORAGE_KEY, DEFAULT_APPEARANCE, THEME_CHOICES, THEME_STORAGE_KEY, applyAppearance, loadAppearance, parseAppearance, saveAppearance,
   type AppearanceSettings, type ThemeChoice,
 } from '@/shared/lib/appearance/settings';
 import type { ThemeTone } from '@/shared/lib/appearance/palette';
-
-interface AppearanceContextValue {
-  settings: AppearanceSettings;
-  theme: ThemeChoice;
-  tone: ThemeTone;
-  setTheme: (theme: ThemeChoice) => void;
-  update: (patch: Partial<AppearanceSettings>) => void;
-  reset: () => void;
-}
-
-const AppearanceContext = createContext<AppearanceContextValue | undefined>(undefined);
+import { AppearanceContext, type AppearanceContextValue } from './AppearanceContext';
 
 const AppearanceState: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -64,9 +54,3 @@ export const AppearanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     <AppearanceState>{children}</AppearanceState>
   </ThemeProvider>
 );
-
-export const useAppearance = () => {
-  const context = useContext(AppearanceContext);
-  if (!context) throw new Error('useAppearance must be used within an AppearanceProvider');
-  return context;
-};

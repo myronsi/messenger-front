@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageProvider } from '@/shared/contexts/LanguageContext';
+import { LanguageProvider } from '@/shared/contexts/LanguageProvider';
 import { ProfileFilesPanel } from './ProfileFilesPanel';
 
 vi.mock('@/shared/lib/downloadFile', () => ({ downloadFile: vi.fn() }));

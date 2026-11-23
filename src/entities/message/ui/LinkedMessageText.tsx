@@ -1,4 +1,5 @@
 import { messageLinks } from '@/shared/lib/messageLinks';
+import { trimLineEnds } from '@/shared/lib/trimChars';
 import { splitByQuery, useSearchHighlight } from '@/shared/lib/searchHighlight';
 import { isMentionOf, MENTION_ALL, splitMentions } from '@/shared/lib/mentions';
 import { useCurrentUsername } from '@/shared/contexts/CurrentUsernameContext';
@@ -32,7 +33,7 @@ const WithMentions = ({ text, query, large, mentionsAll }: { text: string; query
 
 export function LinkedMessageText({ text, large, mentionsAll }: { text: string; large?: boolean; mentionsAll?: boolean }) {
   const query = useSearchHighlight();
-  const displayText = text.replace(/[ \t]+(?=\r?$)/gm, '');
+  const displayText = trimLineEnds(text);
   return <>{messageLinks(displayText).map((part, index) => part.href
     ? <MessageLink key={index} href={part.href}><Highlighted text={part.text} query={query} /></MessageLink>
     : <WithMentions key={index} text={part.text} query={query} large={large} mentionsAll={mentionsAll} />)}</>;

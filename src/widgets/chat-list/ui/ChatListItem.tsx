@@ -117,7 +117,14 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       data-entered={entered || undefined}
       style={entered ? { animation: 'none' } : undefined}
       onAnimationEnd={(event) => { if (event.target === event.currentTarget) setEntered(true); }}
+      role="button"
+      tabIndex={0}
       onClick={() => onClick(chat)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        onClick(chat);
+      }}
       {...preloadHandlers}
       {...swipe.handlers}
       onContextMenu={(event) => {
@@ -127,7 +134,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         }
         onContextMenu(event, chat);
       }}
-      className={`motion-list-item motion-press relative flex min-h-0 items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer touch-pan-y select-none ${swiping ? 'bg-background' : ''} ${
+      className={`motion-list-item motion-press relative flex min-h-0 items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer touch-pan-y select-none outline-none focus-visible:ring-2 focus-visible:ring-ring ${swiping ? 'bg-background' : ''} ${
         isActive ? `md:bg-primary md:text-primary-foreground ${isContextSelected ? 'max-md:bg-accent max-md:text-accent-foreground' : ''}`
           : isContextSelected ? 'bg-accent text-accent-foreground'
             : '[@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground'
