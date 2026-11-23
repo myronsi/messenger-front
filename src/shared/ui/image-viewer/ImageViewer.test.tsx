@@ -84,21 +84,28 @@ describe('ImageViewer', () => {
     expect(alpha()).toBe(1);
   });
 
+  const dragBy = (stage: HTMLElement, image: HTMLElement, dy: number, cancel = false) => {
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 200, clientY: 300, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 200, clientY: 300 + dy, pointerType: 'touch' });
+    expect(image.style.transform).toContain(`, ${dy}px)`);
+    const finish = cancel ? fireEvent.pointerCancel : fireEvent.pointerUp;
+    finish(stage, { pointerId: 1, clientX: 200, clientY: 300 + dy, pointerType: 'touch' });
+  };
+
   it('follows a downward drag and closes a single photo only after a deliberate swipe', () => {
     const { stage, image, onClose } = renderViewer();
-    const drag = (dy: number, cancel = false) => {
-      fireEvent.pointerDown(stage, { pointerId: 1, clientX: 200, clientY: 100, pointerType: 'touch' });
-      fireEvent.pointerMove(stage, { pointerId: 1, clientX: 200, clientY: 100 + dy, pointerType: 'touch' });
-      if (dy > 0) expect(image.style.transform).toContain(`, ${dy}px)`);
-      const finish = cancel ? fireEvent.pointerCancel : fireEvent.pointerUp;
-      finish(stage, { pointerId: 1, clientX: 200, clientY: 100 + dy, pointerType: 'touch' });
-    };
-    drag(40);
-    drag(-150);
-    drag(150, true);
+    dragBy(stage, image, 40);
+    dragBy(stage, image, -40);
+    dragBy(stage, image, 150, true);
     expect(onClose).not.toHaveBeenCalled();
     expect(image.style.transform).toContain(', 0px)');
-    drag(150);
+    dragBy(stage, image, 150);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes a single photo when it is pulled up as well', () => {
+    const { stage, image, onClose } = renderViewer();
+    dragBy(stage, image, -150);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

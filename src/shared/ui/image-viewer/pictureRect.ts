@@ -20,3 +20,7 @@ export const isOnPicture = (media: (ViewerMedia | null)[], x: number, y: number)
   const rect = pictureRect(item);
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 });
+
+export const naturalAspect = (media: ViewerMedia | null) => (
+  media instanceof HTMLImageElement && media.naturalHeight ? media.naturalWidth / media.naturalHeight : undefined
+);

@@ -100,3 +100,38 @@ it('finds the matching visible thumbnail rather than another image or the viewer
   thumb.getBoundingClientRect = () => rect(10, -100, 50, 50);
   expect(thumbnailTarget(['/photo'], null)).toBeNull();
 });
+
+it('carries the strokes of a drawing into the thumbnail and gives them back afterwards', () => {
+  const stage = document.createElement('div');
+  const image = document.createElement('img');
+  image.src = 'blob:drawn-photo';
+  Object.defineProperty(image, 'naturalWidth', { value: 800 });
+  Object.defineProperty(image, 'naturalHeight', { value: 400 });
+  image.getBoundingClientRect = () => rect(0, 0, 800, 400);
+  const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  overlay.setAttribute('data-testid', 'drawing-overlay');
+  overlay.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  overlay.setAttribute('class', 'absolute inset-0');
+  overlay.style.transform = 'scale(2)';
+  overlay.append(document.createElementNS('http://www.w3.org/2000/svg', 'path'));
+  stage.append(image, overlay);
+  const target = document.createElement('img');
+  target.getBoundingClientRect = () => rect(10, 10, 80, 80);
+  document.body.append(stage, target);
+  const original = Element.prototype.animate;
+  Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation);
+  try {
+    const result = returnToThumbnail(image, target, { duration: 320 });
+    const strokes = document.body.querySelector<SVGSVGElement>('div[aria-hidden="true"] svg');
+    expect(strokes?.getAttribute('preserveAspectRatio')).toBe('xMidYMid slice');
+    expect(strokes?.querySelector('path')).not.toBeNull();
+    expect(strokes?.style.transform).toBe('none');
+    expect(strokes?.style.width).toBe('100%');
+    expect(overlay.style.visibility).toBe('hidden');
+    result?.cleanup();
+    expect(overlay.style.visibility).toBe('');
+    expect(document.body.querySelector('div[aria-hidden="true"]')).toBeNull();
+  } finally {
+    Element.prototype.animate = original;
+  }
+});

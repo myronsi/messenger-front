@@ -1,5 +1,5 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
@@ -50,6 +50,13 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const previewUrl = thumbnailUrl && !thumbnailFailed ? thumbnailUrl : fileUrl;
+  const [shownAtOnce, setShownAtOnce] = useState(false);
+  const [fadedIn, setFadedIn] = useState(false);
+  useLayoutEffect(() => {
+    if (isLoaded || isVideo || !imageRef.current?.naturalWidth) return;
+    setShownAtOnce(true);
+    setIsLoaded(true);
+  }, [isLoaded, isVideo, previewUrl]);
   const preloadHandlers = useMediaPreload(isVideo ? undefined : displayUrl ?? fileUrl);
 
   const closeViewer = useCallback(() => setIsExpanded(false), []);
@@ -62,8 +69,8 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   const shape = knownSize ?? dimensions;
   const box = shape ?? (isVideo ? VIDEO_PLACEHOLDER : PLACEHOLDER);
   const aspect = shape ? shape.width / shape.height : undefined;
-  const visualClass = `block h-full w-full select-none rounded-2xl object-cover transition-opacity duration-150 ${isLoaded ? 'opacity-100' : 'opacity-0'}`;
-  const blur = isLoaded ? undefined : placeholderDataURL(placeholder);
+  const visualClass = `block h-full w-full select-none rounded-2xl object-cover ${shownAtOnce ? '' : 'transition-opacity duration-150'} ${isLoaded ? 'opacity-100' : 'opacity-0'}`;
+  const blur = isLoaded && (shownAtOnce || fadedIn) ? undefined : placeholderDataURL(placeholder);
   const optimizing = isVideo && (processing === 'queued' || processing === 'running');
 
   return (
@@ -94,6 +101,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
             decoding="async"
             width={box.width}
             height={box.height}
+            onTransitionEnd={(event) => { if (event.propertyName === 'opacity') setFadedIn(true); }}
             onLoad={(e) => {
               setIsLoaded(true);
               const { naturalWidth, naturalHeight } = e.currentTarget;

@@ -24,13 +24,15 @@ export function useSwipeDismiss(stage: RefObject<HTMLDivElement | null>, onClose
     }
     const options: KeyframeAnimationOptions = { duration: 320, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' };
     const target = thumbnailTarget(sourceRef.current, opener.current);
-    const active = [...element.querySelectorAll<HTMLImageElement>('[data-active-slide]')];
-    const shown = active.find(image => getComputedStyle(image).opacity !== '0' && image.naturalWidth > 0);
+    const active = [...element.querySelectorAll<HTMLElement | SVGSVGElement>('[data-active-slide], [data-testid="drawing-overlay"]')];
+    const shown = active.find((image): image is HTMLImageElement => (
+      image instanceof HTMLImageElement && getComputedStyle(image).opacity !== '0' && image.naturalWidth > 0
+    ));
     const returning = target && shown ? returnToThumbnail(shown, target, options) : null;
     cleanup.current = returning?.cleanup;
     const animations = returning ? [returning.animation] : active.map(image => image.animate([
       { transform: getComputedStyle(image).transform === 'none' ? `translateY(${displacement}px)` : getComputedStyle(image).transform },
-      { transform: `translateY(${window.innerHeight}px) scale(0.6)` },
+      { transform: `translateY(${displacement < 0 ? -window.innerHeight : window.innerHeight}px) scale(0.6)` },
     ], options));
     const backdrop = element.closest('[role="dialog"]');
     if (backdrop) animations.push(backdrop.animate([{ opacity: 1 }, { opacity: 0 }], options));

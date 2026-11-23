@@ -30,9 +30,10 @@ export function useSwipeMorph(stage: RefObject<HTMLDivElement | null>, displacem
   useLayoutEffect(() => {
     const images = stage.current?.querySelectorAll<HTMLImageElement>('[data-active-slide]');
     if (!images) return;
-    const target = displacement > 0 ? thumbnailTarget(sources, opener.current) : null;
+    const distance = Math.abs(displacement);
+    const target = distance > 0 ? thumbnailTarget(sources, opener.current) : null;
     const shape = target ? thumbnailShape(target) : null;
-    const progress = Math.min(1, displacement / (window.innerHeight * 0.4));
+    const progress = Math.min(1, distance / (window.innerHeight * 0.4));
     images.forEach(image => {
       if (!shape || !image.naturalWidth || !image.offsetWidth || !shape.rect.height) {
         image.style.clipPath = '';

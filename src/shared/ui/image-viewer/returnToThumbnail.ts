@@ -55,13 +55,30 @@ export function returnToThumbnail(image: HTMLImageElement, target: HTMLImageElem
   clone.src = image.currentSrc || image.src;
   Object.assign(clone.style, { width: '100%', height: '100%', objectFit: 'cover', objectPosition: getComputedStyle(target).objectPosition });
   shell.append(clone);
+  const overlay = image.parentElement?.querySelector<SVGSVGElement>(':scope > [data-testid="drawing-overlay"]') ?? null;
+  if (overlay) {
+    const strokes = overlay.cloneNode(true) as SVGSVGElement;
+    strokes.removeAttribute('class');
+    strokes.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    Object.assign(strokes.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', transform: 'none', transition: 'none' });
+    shell.append(strokes);
+  }
   document.body.append(shell);
   const previousVisibility = image.style.visibility;
+  const previousOverlayVisibility = overlay?.style.visibility ?? '';
   image.style.visibility = 'hidden';
+  if (overlay) overlay.style.visibility = 'hidden';
   const radius = thumbnailShape(clipped, to);
   const animation = shell.animate([
     { left: `${from.left}px`, top: `${from.top}px`, width: `${width}px`, height: `${height}px`, borderRadius: startRadius },
     { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: radius },
   ], options);
-  return { animation, cleanup: () => { shell.remove(); image.style.visibility = previousVisibility; } };
+  return {
+    animation,
+    cleanup: () => {
+      shell.remove();
+      image.style.visibility = previousVisibility;
+      if (overlay) overlay.style.visibility = previousOverlayVisibility;
+    },
+  };
 }
