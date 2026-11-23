@@ -7,12 +7,12 @@ const STORES = ['messages', 'chats', 'media'];
 
 const done = <T>(request: IDBRequest<T>) => new Promise<T>((resolve, reject) => {
   request.onsuccess = () => resolve(request.result);
-  request.onerror = () => reject(request.error);
+  request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed'));
 });
 
 const committed = (tx: IDBTransaction) => new Promise<void>((resolve, reject) => {
   tx.oncomplete = () => resolve();
-  tx.onerror = tx.onabort = () => reject(tx.error);
+  tx.onerror = tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
 });
 
 const upgrade = (db: IDBDatabase) => {
@@ -34,7 +34,7 @@ const readCursor = <T>(source: IDBObjectStore | IDBIndex, range: IDBKeyRange | n
   new Promise<T[]>((resolve, reject) => {
     const out: T[] = [];
     const request = source.openCursor(range, direction);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB cursor failed'));
     request.onsuccess = () => {
       const cursor = request.result;
       if (!cursor || out.length >= limit) return resolve(out);
