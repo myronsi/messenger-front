@@ -1,8 +1,6 @@
 import { compareIds, type EntityId } from './entityId';
 
-export const DEEP_HISTORY_CHATS = 20;
 export const DEEP_HISTORY_MESSAGES = 200;
-export const SHALLOW_HISTORY_MESSAGES = 50;
 
 export interface HistoryPageLike {
   history: { id: EntityId }[];
@@ -18,8 +16,6 @@ export const isHistoryKey = (key: string) => {
     return false;
   }
 };
-
-export const historyLimitForRank = (rank: number) => (rank < DEEP_HISTORY_CHATS ? DEEP_HISTORY_MESSAGES : SHALLOW_HISTORY_MESSAGES);
 
 export const trimHistory = <T extends HistoryPageLike>(page: T, limit: number): T => {
   if (page.history.length <= limit) return page;

@@ -10,12 +10,13 @@ import ConnectionsSettingsPage from './ui/ConnectionsSettingsPage';
 import SecuritySettingsPanel from './ui/SecuritySettingsDialog';
 import ApprovalRequestsPage from './ui/ApprovalRequestsPage';
 import LanguageSettingsPage from './ui/LanguageSettingsPage';
+import StorageSettingsPage from './ui/StorageSettingsPage';
 import AppearanceSettingsPage from './ui/AppearanceSettingsPage';
 import PersonalizationSettingsPage from './ui/PersonalizationSettingsPage';
 import AboutPage from './ui/AboutPage';
 import { SettingsSectionNav, type SettingsSection } from './ui/SettingsSectionNav';
 import { LANGUAGE_NAMES } from './languageNames';
-import { ArrowLeft, Bell, Globe, Inbox, Info, Link2, Loader2, Palette, Shield, ShieldAlert, Smartphone, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Bell, Globe, HardDrive, Inbox, Info, Link2, Loader2, Palette, Shield, ShieldAlert, Smartphone, Sparkles, X } from 'lucide-react';
 import { AccountStatusPage } from '@/features/moderation';
 import { useDoubleTapReaction } from '@/entities/message';
 import { customReactionId } from '@/shared/lib/customEmoji';
@@ -95,6 +96,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     { page: 'appearance', label: translations.appearance.title, icon: Palette, hint: translations.appearance.themes[theme] },
     { page: 'personalization', label: translations.personalization.title, icon: Sparkles,
       hint: doubleTap ? (customReactionId(doubleTap) ? translations.personalization.custom : doubleTap) : translations.personalization.off },
+    { page: 'storage', label: translations.offlineStorage.title, icon: HardDrive },
     { page: 'language', label: translations.language || 'Language', icon: Globe, hint: LANGUAGE_NAMES[language] },
     { page: 'about', label: t.aboutHelp, icon: Info },
   ];
@@ -102,7 +104,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
     label: section.label, description: section.hint ?? '', icon: section.icon, indicatorCount: section.badge, onClick: () => setActiveProfilePage(section.page),
   });
   const pick = (...pages: SettingsPage[]) => sections.filter((section) => pages.includes(section.page)).map(toRow);
-  const homeSections = [pick('requests'), pick('privacy', 'security', 'account-status', 'notifications', 'connections', 'appearance', 'personalization', 'language'), pick('about')]
+  const homeSections = [pick('requests'), pick('privacy', 'security', 'account-status', 'notifications', 'connections', 'appearance', 'personalization', 'storage', 'language'), pick('about')]
     .filter((rows) => rows.length > 0);
   const requested: SettingsPage = activeProfilePage === 'personal' ? 'profile' : activeProfilePage;
   const current: SettingsPage = pane && requested === 'profile' ? 'requests' : requested;
@@ -130,6 +132,7 @@ const ProfileComponentRTK = forwardRef<HTMLDivElement, ProfileComponentRTKProps>
       onOpenDetail={(detail) => { if (!dismissBlockedRef.current) panelData.openSecurityDetail(detail); }}
       onBack={() => { if (!dismissBlockedRef.current) back(); }} onLoggedOut={onLogout} onDismissSafetyChange={onDismissSafetyChange}
       onDeleteAccount={handleDeleteAccount} isDeletingAccount={isDeletingAccount} />),
+    slot('storage', <StorageSettingsPage isActive={current === 'storage'} onBack={back} />),
     slot('about', <AboutPage onBack={back} />),
     slot('account-status', <AccountStatusPage onBack={back} hideBack={pane} isActive={current === 'account-status'} />),
   ];

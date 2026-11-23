@@ -13,6 +13,9 @@ import { chatApi } from '@/entities/chat';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 import { createRequestChatTracker } from './requestChats';
+import { scheduleOfflineSync, syncOfflineChanges, withOfflineDb } from '@/shared/offline';
+
+const OFFLINE_SYNC_EVENTS = new Set(['edit', 'delete', 'reaction_add', 'reaction_remove', 'pin_update', 'history_cleared']);
 
 const CHAT_LIST_REFETCH_DELAY_MS = 750;
 const GO_CHAT_LIST_EVENTS = ['message', 'read', 'edit', 'delete', 'chat_list_update', 'chat_created', 'chat_deleted', 'group_created', 'group_updated', 'presence', 'history_cleared', 'user_updated'];
@@ -72,6 +75,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
     const release = realtime.subscribe({
       onOpen: ({ reconnected }) => {
         setNotificationLive(true);
+        void syncOfflineChanges();
         const inFlight = reconnected ? { list: false, requests: false } : pending();
         if (!inFlight.list) refetchRef.current();
         if (!inFlight.requests) refetchRequestInboxRef.current();
@@ -88,7 +92,12 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
         if (GO_CHAT_LIST_EVENTS.includes(frame.type)) listRefetch.schedule();
         if (frame.type === 'approval_request_created') refetchRequestInboxRef.current();
         if (frame.type === 'user_updated') dispatch(chatApi.util.invalidateTags(['User', 'Avatar']));
-        if (frame.type === 'chat_deleted' && frame.chat_id) onChatDeletedRef.current?.(frame.chat_id);
+        if (OFFLINE_SYNC_EVENTS.has(frame.type)) scheduleOfflineSync();
+        if (frame.type === 'chat_deleted' && frame.chat_id) {
+          const deleted = frame.chat_id;
+          withOfflineDb((db) => db.dropChat(deleted));
+          onChatDeletedRef.current?.(deleted);
+        }
       },
     });
     return () => { release(); listRefetch.cancel(); setNotificationLive(false); clearTypingUsers(); };

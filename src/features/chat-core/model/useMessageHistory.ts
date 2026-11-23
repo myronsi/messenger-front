@@ -1,8 +1,8 @@
 import { isOffline } from '@/shared/lib/network';
-import { historySnapshot, useChatSnapshot } from '@/shared/api/chatSnapshots';
 import type { MessageHistoryResponse } from '@/entities/message';
 import { isPersistedId, compareIds, type EntityId } from '@/shared/api/entityId';
 import { mergeHistoryPages } from '@/shared/api/historySnapshotRules';
+import { sessionScope } from '@/shared/api/indexedStore';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -12,7 +12,7 @@ import {
 import { asApiError } from '@/shared/lib/apiError';
 import type { ShowError } from './types';
 import { fetchMissedMessages } from './fetchMissedMessages';
-import { useGetMessageHistoryQuery, useLazyGetMessageHistoryQuery } from '@/entities/message';
+import { useGetMessageHistoryQuery, useLazyGetMessageHistoryQuery, useLocalHistoryPage } from '@/entities/message';
 import { useReadReceiptActions } from './useReadReceiptActions';
 import { useHistorySnapshotSync } from './useHistorySnapshotSync';
 
@@ -55,6 +55,7 @@ export const useMessageHistory = ({
   const trimmedNewestIdRef = useRef<EntityId | null>(null);
   const { applyReadReceiptBatch, markMessagesRead } = useReadReceiptActions({ chatId, username, setMessages, currentUserIdRef });
   const [fetchHistory] = useLazyGetMessageHistoryQuery();
+  const canLoad = token || (sessionScope() ? 'remembered' : '');
   const {
     currentData: latestHistory,
     isLoading: isLoadingLatestHistory,
@@ -62,7 +63,7 @@ export const useMessageHistory = ({
     error: latestHistoryError,
   } = useGetMessageHistoryQuery(
     { chatId, limit: MESSAGE_PAGE_SIZE, aroundId: firstUnreadMessageId || undefined },
-    { skip: !token || !isPersistedId(chatId), refetchOnMountOrArgChange: MESSAGE_HISTORY_FRESH_SECONDS, refetchOnFocus: true, refetchOnReconnect: true }
+    { skip: !canLoad || !isPersistedId(chatId), refetchOnMountOrArgChange: MESSAGE_HISTORY_FRESH_SECONDS, refetchOnFocus: true, refetchOnReconnect: true }
   );
 
   // A disk page is a preview. Keep it out of the live message store and out of pagination cursors.
@@ -70,7 +71,7 @@ export const useMessageHistory = ({
   const hasLoadedMessages = messages.some(message => isPersistedId(message.id));
   const canPreview = isPersistedId(chatId) && !hasLoadedMessages && !(latestHistory && latestHistory.history.length === 0) &&
     historyStatus !== 401 && historyStatus !== 403 && historyStatus !== 404;
-  const savedPage = useChatSnapshot<MessageHistoryResponse>(canPreview ? historySnapshot(chatId, firstUnreadMessageId) : null);
+  const savedPage = useLocalHistoryPage(canPreview ? { chatId, limit: MESSAGE_PAGE_SIZE, aroundId: firstUnreadMessageId || undefined } : null);
   const savedPageRef = useRef<{ chatId: EntityId; page?: MessageHistoryResponse }>({ chatId });
   if (savedPageRef.current.chatId !== chatId || savedPage) savedPageRef.current = { chatId, page: savedPage };
   const preview = useMemo(
@@ -144,7 +145,7 @@ export const useMessageHistory = ({
   }, [latestHistoryError, handleHistoryError, historyStatus, preview, hasLoadedMessages]);
 
   const loadOlderMessages = useCallback(async () => {
-    if (!token || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;
+    if (!canLoad || !oldestMessageId || !hasMoreMessages || isLoadingOlderMessagesRef.current) return;
     isLoadingOlderMessagesRef.current = true;
     setIsLoadingOlderMessages(true);
     try {
@@ -165,10 +166,10 @@ export const useMessageHistory = ({
       isLoadingOlderMessagesRef.current = false;
       setIsLoadingOlderMessages(false);
     }
-  }, [fetchHistory, chatId, handleHistoryError, hasMoreMessages, oldestMessageId, setMessages, token, applyTrimmedWindow]);
+  }, [fetchHistory, chatId, handleHistoryError, hasMoreMessages, oldestMessageId, setMessages, canLoad, applyTrimmedWindow]);
 
   const loadNewerMessages = useCallback(async () => {
-    if (!token || !newestMessageId || !hasMoreNewerMessages || isLoadingNewerMessagesRef.current) return;
+    if (!canLoad || !newestMessageId || !hasMoreNewerMessages || isLoadingNewerMessagesRef.current) return;
     isLoadingNewerMessagesRef.current = true;
     setIsLoadingNewerMessages(true);
     try {
@@ -185,11 +186,11 @@ export const useMessageHistory = ({
       isLoadingNewerMessagesRef.current = false;
       setIsLoadingNewerMessages(false);
     }
-  }, [fetchHistory, chatId, handleHistoryError, hasMoreNewerMessages, newestMessageId, setMessages, token]);
+  }, [fetchHistory, chatId, handleHistoryError, hasMoreNewerMessages, newestMessageId, setMessages, canLoad]);
 
   // Merge the newest page without discarding confirmed messages already in the shared cache.
   const loadLatestMessages = useCallback(async () => {
-    if (!token || !isPersistedId(chatId) || isLoadingNewerMessagesRef.current) return;
+    if (!canLoad || !isPersistedId(chatId) || isLoadingNewerMessagesRef.current) return;
     isLoadingNewerMessagesRef.current = true;
     setIsLoadingNewerMessages(true);
     try {
@@ -207,7 +208,7 @@ export const useMessageHistory = ({
       isLoadingNewerMessagesRef.current = false;
       setIsLoadingNewerMessages(false);
     }
-  }, [fetchHistory, chatId, handleHistoryError, setMessages, token]);
+  }, [fetchHistory, chatId, handleHistoryError, setMessages, canLoad]);
 
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -220,7 +221,7 @@ export const useMessageHistory = ({
   isFetchingLatestHistoryRef.current = isFetchingLatestHistory;
 
   const loadMessagesAround = useCallback(async (messageId: EntityId) => {
-    if (!token || !isPersistedId(chatId) || !isPersistedId(messageId)) return;
+    if (!canLoad || !isPersistedId(chatId) || !isPersistedId(messageId)) return;
     if (isLoadingOlderMessagesRef.current || isLoadingNewerMessagesRef.current) return;
     isLoadingOlderMessagesRef.current = true;
     isLoadingNewerMessagesRef.current = true;
@@ -247,13 +248,13 @@ export const useMessageHistory = ({
       isLoadingOlderMessagesRef.current = false;
       isLoadingNewerMessagesRef.current = false;
     }
-  }, [fetchHistory, chatId, handleHistoryError, setMessages, token]);
+  }, [fetchHistory, chatId, handleHistoryError, setMessages, canLoad]);
 
   // Loads messages sent while the socket was down. If the user is reading older history the newer pages
   // load on scroll anyway; otherwise fetch everything after the newest loaded message. If that keeps
   // failing, the missed messages are left to the normal load-newer-on-scroll path.
   const catchUpAfterReconnect = useCallback(async (firstOpen = false) => {
-    if (!token || !isPersistedId(chatId) || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
+    if (!canLoad || !isPersistedId(chatId) || hasMoreNewerMessagesRef.current || isLoadingNewerMessagesRef.current) return;
     if (firstOpen && isFetchingLatestHistoryRef.current) return;
     const newestLoadedId = messagesRef.current.reduce<EntityId>((newest, message) => compareIds(newest, message.id) > 0 ? newest : message.id, 0);
     if (!isPersistedId(newestLoadedId)) { if (!firstOpen) await loadLatestMessages(); return; }
@@ -274,7 +275,7 @@ export const useMessageHistory = ({
     } finally {
       isLoadingNewerMessagesRef.current = false;
     }
-  }, [fetchHistory, chatId, setMessages, token, loadLatestMessages]);
+  }, [fetchHistory, chatId, setMessages, canLoad, loadLatestMessages]);
 
   useHistorySnapshotSync({ chatId, messages, enabled: !preview && hasLoadedMessages && !hasMoreNewerMessages, hasMoreBefore: hasMoreMessages });
   const awaitingFirstPage = isPersistedId(chatId) && !hasLoadedMessages && !latestHistory && !latestHistoryError;

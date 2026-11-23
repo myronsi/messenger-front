@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
-import { historySnapshot, saveChatSnapshot } from '@/shared/api/chatSnapshots';
-import type { Message, MessageHistoryResponse } from '@/entities/message';
+import { storeHistory, type Message, type MessageHistoryResponse } from '@/entities/message';
 
 export const SNAPSHOT_SYNC_DELAY_MS = 1000;
 
@@ -30,17 +29,17 @@ export const snapshotPage = (messages: Message[], hasMoreBefore: boolean): Messa
 };
 
 export const useHistorySnapshotSync = ({ chatId, messages, enabled, hasMoreBefore }: HistorySnapshotSyncOptions) => {
-  const pending = useRef<{ key: string; page: MessageHistoryResponse } | null>(null);
+  const pending = useRef<{ chatId: EntityId; page: MessageHistoryResponse } | null>(null);
 
   useEffect(() => {
     if (!enabled || !isPersistedId(chatId)) return undefined;
     const page = snapshotPage(messages, hasMoreBefore);
     if (!page) return undefined;
-    pending.current = { key: historySnapshot(chatId), page };
+    pending.current = { chatId, page };
     const timer = window.setTimeout(() => {
       const next = pending.current;
       pending.current = null;
-      if (next) void saveChatSnapshot(next.key, next.page);
+      if (next) storeHistory(next.chatId, next.page.history);
     }, SNAPSHOT_SYNC_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [chatId, messages, enabled, hasMoreBefore]);
@@ -48,6 +47,6 @@ export const useHistorySnapshotSync = ({ chatId, messages, enabled, hasMoreBefor
   useEffect(() => () => {
     const next = pending.current;
     pending.current = null;
-    if (next) void saveChatSnapshot(next.key, next.page);
+    if (next) storeHistory(next.chatId, next.page.history);
   }, [chatId]);
 };

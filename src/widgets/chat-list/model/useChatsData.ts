@@ -11,6 +11,7 @@ import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 
 import type { ChatOverrideMap, PresenceMap } from './types';
+import { usePruneOfflineChats } from './usePruneOfflineChats';
 
 // Coordinates RTK Query data sources (one-on-one chats, group chats, request
 // inbox, current user) and merges them with live presence/override state
@@ -38,6 +39,7 @@ export function useChatsData(username: string) {
   const cachedGroups = useChatSnapshot<typeof liveGroupChats>(liveGroupChats ? null : groupChatsSnapshot);
   const denied = [oneOnOneError, groupError].some(error =>
     error && 'status' in error && (error.status === 401 || error.status === 403));
+  usePruneOfflineChats(liveDirectChats?.chats, liveGroupChats?.groups);
   const oneOnOneChatsData = liveDirectChats ?? (denied ? undefined : cachedDirect);
   const groupChatsData = liveGroupChats ?? (denied ? undefined : cachedGroups);
 

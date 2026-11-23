@@ -4,10 +4,7 @@ import type { Message } from '@/entities/message';
 import { snapshotPage, SNAPSHOT_SYNC_DELAY_MS, useHistorySnapshotSync } from './useHistorySnapshotSync';
 
 const save = vi.hoisted(() => vi.fn());
-vi.mock('@/shared/api/chatSnapshots', () => ({
-  historySnapshot: (chatId: string) => `history:${chatId}`,
-  saveChatSnapshot: save,
-}));
+vi.mock('@/entities/message', async (original) => ({ ...await original<typeof import('@/entities/message')>(), storeHistory: save }));
 
 const message = (id: string, extra: Partial<Message> = {}): Message => ({
   id, sender: 'a', content: id, timestamp: '', type: 'message', read_by: [], ...extra,
@@ -37,8 +34,8 @@ describe('useHistorySnapshotSync', () => {
     expect(save).not.toHaveBeenCalled();
     vi.advanceTimersByTime(SNAPSHOT_SYNC_DELAY_MS);
     expect(save).toHaveBeenCalledOnce();
-    expect(save.mock.calls[0][0]).toBe('history:4');
-    expect(save.mock.calls[0][1].history.map((item: Message) => item.id)).toEqual(['10', '11']);
+    expect(save.mock.calls[0][0]).toBe('4');
+    expect(save.mock.calls[0][1].map((item: Message) => item.id)).toEqual(['10', '11']);
   });
 
   it('saves the pending change at once when the chat is left', () => {
@@ -46,7 +43,7 @@ describe('useHistorySnapshotSync', () => {
       initialProps: { chatId: '4', messages: [message('10')], enabled: true, hasMoreBefore: false },
     });
     rerender({ chatId: '5', messages: [], enabled: false, hasMoreBefore: false });
-    expect(save).toHaveBeenCalledWith('history:4', expect.objectContaining({ next_before_id: '10' }));
+    expect(save).toHaveBeenCalledWith('4', [expect.objectContaining({ id: '10' })]);
   });
 
   it('does not save a window that is not the newest part of the chat', () => {
