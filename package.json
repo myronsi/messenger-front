@@ -10,7 +10,7 @@
     "check:contract": "node scripts/check-contract-pin.mjs",
     "backend:up": "bash scripts/backend-up.sh",
     "test:smoke": "playwright test",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-precompressed.mjs",
     "build:dev": "vite build --mode development",
     "build:mobile": "vite build --mode mobile",
     "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
