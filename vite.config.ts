@@ -3,7 +3,7 @@ import { loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:zlib";
 
@@ -31,25 +31,25 @@ export const buildInfoPlugin = (): Plugin => ({
 const COMPRESSIBLE = /\.(js|mjs|css|html|json|svg|webmanifest|txt)$/;
 const MIN_COMPRESS_BYTES = 1024;
 
+export const precompressFiles = (dir: string, fileNames: readonly string[]) => {
+  for (const fileName of fileNames) {
+    if (!COMPRESSIBLE.test(fileName)) continue;
+    const file = path.join(dir, fileName);
+    const data = readFileSync(file);
+    if (data.length < MIN_COMPRESS_BYTES) continue;
+    writeFileSync(`${file}.br`, brotliCompressSync(data, {
+      params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11, [zlibConstants.BROTLI_PARAM_SIZE_HINT]: data.length },
+    }));
+    writeFileSync(`${file}.gz`, gzipSync(data, { level: 9 }));
+  }
+};
+
 export const precompressPlugin = (): Plugin => ({
   name: "precompress",
   apply: "build",
   enforce: "post",
-  generateBundle(_options, bundle) {
-    for (const output of Object.values(bundle)) {
-      if (!COMPRESSIBLE.test(output.fileName)) continue;
-      const source = output.type === "chunk" ? output.code : output.source;
-      const data = Buffer.from(typeof source === "string" ? new TextEncoder().encode(source) : source);
-      if (data.length < MIN_COMPRESS_BYTES) continue;
-      this.emitFile({
-        type: "asset",
-        fileName: `${output.fileName}.br`,
-        source: brotliCompressSync(data, {
-          params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11, [zlibConstants.BROTLI_PARAM_SIZE_HINT]: data.length },
-        }),
-      });
-      this.emitFile({ type: "asset", fileName: `${output.fileName}.gz`, source: gzipSync(data, { level: 9 }) });
-    }
+  writeBundle(options, bundle) {
+    if (options.dir) precompressFiles(options.dir, Object.keys(bundle));
   },
 });
 
@@ -101,6 +101,12 @@ export default defineConfig(({ command, mode }) => {
     build: {
       // Preserve Vite 7's browser targets instead of raising them implicitly with Vite 8.
       target: ["chrome107", "edge107", "firefox104", "safari16"],
+      rolldownOptions: {
+        output: {
+          entryFileNames: "assets/[name]-[hash:10].js",
+          chunkFileNames: "assets/[name]-[hash:10].js",
+        },
+      },
     },
     server: {
       host: "::",
