@@ -1,12 +1,8 @@
 import { createContext, useContext } from 'react';
-import { en } from '@/shared/lang/en';
-import { ru } from '@/shared/lang/ru';
-import { es } from '@/shared/lang/es';
-import { de } from '@/shared/lang/de';
 import type { AppLanguage } from '@/shared/lang/languages';
+import type { Translations } from '@/shared/lang/translations';
 
-export type Translations = typeof en;
-export const BUNDLES: Record<AppLanguage, Translations> = { en, ru, es, de };
+export type { Translations };
 
 export interface LanguageContextType {
   language: AppLanguage;

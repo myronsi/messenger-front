@@ -3,7 +3,7 @@ import { useAuthenticatedMedia } from '@/shared/api/useAuthenticatedMedia';
 import { isDefaultAvatar, letterAvatar } from '@/shared/lib/letterAvatar';
 import { sizedAvatarUrl } from '@/shared/lib/avatarSize';
 
-interface Props extends ImgHTMLAttributes<HTMLImageElement> { fallbackSrc?: string; initialsFrom?: string; }
+interface Props extends ImgHTMLAttributes<HTMLImageElement> { fallbackSrc?: string; initialsFrom?: string; attachmentAvatar?: boolean; }
 
 const scrollParent = (node: HTMLElement) => {
   for (let parent = node.parentElement; parent; parent = parent.parentElement) {
@@ -12,7 +12,7 @@ const scrollParent = (node: HTMLElement) => {
   return null;
 };
 
-export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fallbackSrc, initialsFrom, onError, ...props }, ref) => {
+export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fallbackSrc, initialsFrom, attachmentAvatar, onError, ...props }, ref) => {
   const [brokenSource, setBrokenSource] = useState<string>();
   const [reloaded, setReloaded] = useState<string>();
   const shownRef = useRef<string | undefined>(undefined);
@@ -35,7 +35,7 @@ export const AuthenticatedImage = forwardRef<HTMLImageElement, Props>(({ src, fa
     if (fallbackSrc && brokenSource !== src) setBrokenSource(src);
     if (imageRef.current) onError?.({ currentTarget: imageRef.current, target: imageRef.current } as unknown as React.SyntheticEvent<HTMLImageElement, Event>);
   }, [brokenSource, fallbackSrc, onError, reloaded, src]);
-  const mediaSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : sizedAvatarUrl(src, box ?? 0), fallbackSrc,
+  const mediaSource = useAuthenticatedMedia(brokenSource === src && fallbackSrc ? fallbackSrc : sizedAvatarUrl(src, box ?? 0, attachmentAvatar), fallbackSrc,
     box !== undefined && (visible || props.loading === 'eager'), handleFailure, reloaded === src ? 1 : 0);
   const name = initialsFrom ?? props.alt;
   const showsFallback = !src || (brokenSource === src && !!fallbackSrc);

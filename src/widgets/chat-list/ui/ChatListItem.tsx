@@ -143,6 +143,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
       <div className="relative shrink-0">
         <AuthenticatedImage
           src={chat.avatar_url}
+          attachmentAvatar={chat.type === 'group'}
           fallbackSrc={chat.type === 'group' ? DEFAULT_GROUP_AVATAR : DEFAULT_AVATAR}
           alt={chat.display_name || chat.name}
           className={`motion-avatar h-12 w-12 rounded-full object-cover ${chat.interlocutor_deleted ? 'opacity-50' : ''}`}

@@ -5,6 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:zlib";
 
 const { version: packageVersion } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8")) as { version: string };
 
@@ -24,6 +25,31 @@ export const buildInfoPlugin = (): Plugin => ({
   },
   generateBundle() {
     this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify(buildInfo) });
+  },
+});
+
+const COMPRESSIBLE = /\.(js|mjs|css|html|json|svg|webmanifest|txt)$/;
+const MIN_COMPRESS_BYTES = 1024;
+
+export const precompressPlugin = (): Plugin => ({
+  name: "precompress",
+  apply: "build",
+  enforce: "post",
+  generateBundle(_options, bundle) {
+    for (const output of Object.values(bundle)) {
+      if (!COMPRESSIBLE.test(output.fileName)) continue;
+      const source = output.type === "chunk" ? output.code : output.source;
+      const data = Buffer.from(typeof source === "string" ? source : source);
+      if (data.length < MIN_COMPRESS_BYTES) continue;
+      this.emitFile({
+        type: "asset",
+        fileName: `${output.fileName}.br`,
+        source: brotliCompressSync(data, {
+          params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11, [zlibConstants.BROTLI_PARAM_SIZE_HINT]: data.length },
+        }),
+      });
+      this.emitFile({ type: "asset", fileName: `${output.fileName}.gz`, source: gzipSync(data, { level: 9 }) });
+    }
   },
 });
 
@@ -90,6 +116,7 @@ export default defineConfig(({ command, mode }) => {
       react(),
       buildInfoPlugin(),
       ...(useMockApi ? [mockApiPlugin()] : []),
+      ...(isMobile ? [] : [precompressPlugin()]),
       VitePWA({
         // The native shell already bundles the assets, a service worker would only serve stale builds there.
         disable: isMobile || Boolean(process.env.VITEST),

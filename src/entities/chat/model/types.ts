@@ -41,6 +41,7 @@ export interface ApiMessage {
 export interface OneOnOneChatResponse {
   chats: Array<{
     id: EntityId;
+    interlocutor_id?: EntityId;
     interlocutor_name: string;
     interlocutor_display_name?: string;
     interlocutor_is_online?: boolean;

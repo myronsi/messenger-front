@@ -13,6 +13,7 @@ import { chatApi } from '@/entities/chat';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import type { ChatOverrideMap, ChatListModal, ChatsListComponentProps, PresenceMap } from './types';
 import { createRequestChatTracker } from './requestChats';
+import { applyChatListEvent } from './chatListEvents';
 import { scheduleOfflineSync, syncOfflineChanges, withOfflineDb } from '@/shared/offline';
 
 const OFFLINE_SYNC_EVENTS = new Set(['edit', 'delete', 'reaction_add', 'reaction_remove', 'pin_update', 'history_cleared']);
@@ -40,10 +41,13 @@ interface UseChatListWebSocketParams {
 // teardown on unmount) and forwards parsed messages to the pure message-handling function.
 // The socket authenticates with a one-time ticket, so a token refresh does not need a new connection.
 export function useChatListWebSocket(params: UseChatListWebSocketParams) {
-  const { token, username, activeChatId, onChatDeleted, currentUserId, refetch, refetchRequestInbox, chatsByIdRef } = params;
+  const {
+    token, username, activeChatId, onChatDeleted, currentUserId, refetch, refetchRequestInbox, chatsByIdRef, setChatOverrides, setPresenceByUsername,
+  } = params;
   const dispatch = useAppDispatch();
   const usernameRef = useRef(username);
   const activeChatIdRef = useRef(activeChatId);
+  const currentUserIdRef = useRef(currentUserId);
   const onChatDeletedRef = useRef(onChatDeleted);
   const refetchRef = useRef(refetch);
   const refetchRequestInboxRef = useRef(refetchRequestInbox);
@@ -55,6 +59,7 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
   const chatCovered = useChatCovered();
   useEffect(() => { activeChatIdRef.current = chatCovered ? undefined : activeChatId; }, [activeChatId, chatCovered]);
   useEffect(() => { usernameRef.current = username; }, [username]);
+  useEffect(() => { currentUserIdRef.current = currentUserId; }, [currentUserId]);
   useEffect(() => { onChatDeletedRef.current = onChatDeleted; }, [onChatDeleted]);
   useEffect(() => { refetchRef.current = refetch; }, [refetch]);
   useEffect(() => { refetchRequestInboxRef.current = refetchRequestInbox; }, [refetchRequestInbox]);
@@ -89,7 +94,13 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
         applyTypingFrame(frame);
         requestChats.observe(frame);
         if (!requestChats.isRequest(frame, chatsByIdRef.current)) notifyMessageFrame(frame, activeChatIdRef.current);
-        if (GO_CHAT_LIST_EVENTS.includes(frame.type)) listRefetch.schedule();
+        if (GO_CHAT_LIST_EVENTS.includes(frame.type) && !applyChatListEvent(frame, {
+          chats: chatsByIdRef.current,
+          currentUserId: currentUserIdRef.current,
+          activeChatId: activeChatIdRef.current,
+          setChatOverrides,
+          setPresenceByUsername,
+        })) listRefetch.schedule();
         if (frame.type === 'approval_request_created') refetchRequestInboxRef.current();
         if (frame.type === 'user_updated') dispatch(chatApi.util.invalidateTags(['User', 'Avatar']));
         if (OFFLINE_SYNC_EVENTS.has(frame.type)) scheduleOfflineSync();
@@ -101,5 +112,5 @@ export function useChatListWebSocket(params: UseChatListWebSocketParams) {
       },
     });
     return () => { release(); listRefetch.cancel(); setNotificationLive(false); clearTypingUsers(); };
-  }, [chatsByIdRef, dispatch, isSignedIn]);
+  }, [chatsByIdRef, dispatch, isSignedIn, setChatOverrides, setPresenceByUsername]);
 }

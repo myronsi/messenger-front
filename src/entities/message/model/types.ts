@@ -237,6 +237,7 @@ export interface ChatSearchResponse {
 
 export interface Chat {
   id: EntityId;
+  interlocutor_id?: EntityId;
   name: string;
   interlocutor_name: string;
   display_name?: string;

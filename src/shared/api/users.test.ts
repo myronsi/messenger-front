@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const get = vi.fn();
 vi.mock('./client', () => ({ apiClient: { GET: (...args: unknown[]) => get(...args) } }));
 
-const { listChats } = await import('./users');
+const { listChats, rememberChatList, userProfileByUsername } = await import('./users');
 
 type Query = { folder: string; after?: string };
 const page = (items: { id: string; is_request?: boolean }[], next: string | null = null) =>
@@ -20,5 +20,18 @@ describe('listChats', () => {
     expect(chats.find((chat) => chat.id === '9')?.is_request).toBe(true);
     expect(get).toHaveBeenCalledTimes(2);
     expect(get.mock.calls.every(([path, options]) => path === '/chats' && (options as { params: { query: Query } }).params.query.folder === 'all')).toBe(true);
+  });
+});
+
+describe('userProfileByUsername', () => {
+  it('reuses a chat list the app loaded a moment ago instead of loading it again', async () => {
+    const user = { id: '7', username: 'bob', display_name: 'Bob' };
+    get.mockImplementation((path: string) => (path === '/usernames/{username}'
+      ? { data: user, response: { ok: true, status: 200 } }
+      : page([])));
+    rememberChatList(Promise.resolve([{ id: '42', peer: { id: '7' } }] as unknown as Awaited<ReturnType<typeof listChats>>));
+    const profile = await userProfileByUsername('bob');
+    expect(profile.direct_chat_id).toBe('42');
+    expect(get.mock.calls.map(([path]) => path)).toEqual(['/usernames/{username}']);
   });
 });
