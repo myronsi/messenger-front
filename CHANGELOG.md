@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.35](https://github.com/myronsi/messenger-front/compare/v0.6.34...v0.6.35) (2026-11-24)
+
+
+### Bug Fixes
+
+* precompress assets after they are written and rename the chunks once ([#259](https://github.com/myronsi/messenger-front/issues/259)) ([43da218](https://github.com/myronsi/messenger-front/commit/43da218b039c63e7b24210b6f7a93a1d67b8b0ea))
+
 ## [0.6.34](https://github.com/myronsi/messenger-front/compare/v0.6.33...v0.6.34) (2026-11-24)
 
 
