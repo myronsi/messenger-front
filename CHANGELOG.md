@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.34](https://github.com/myronsi/messenger-front/compare/v0.6.33...v0.6.34) (2026-11-24)
+
+
+### Features
+
+* encrypted offline database and global search ([#256](https://github.com/myronsi/messenger-front/issues/256)) ([7b243f9](https://github.com/myronsi/messenger-front/commit/7b243f9de58d328b55ddc358f07e9de3eb75ba66))
+
+
+### Performance Improvements
+
+* update the chat list from events, load one language, precompress assets ([#258](https://github.com/myronsi/messenger-front/issues/258)) ([4872509](https://github.com/myronsi/messenger-front/commit/487250966230a77e751467e6af09d9be3c9c0c27))
+
 ## [0.6.33](https://github.com/myronsi/messenger-front/compare/v0.6.32...v0.6.33) (2026-11-22)
 
 
