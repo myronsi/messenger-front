@@ -39,7 +39,7 @@ export const precompressPlugin = (): Plugin => ({
     for (const output of Object.values(bundle)) {
       if (!COMPRESSIBLE.test(output.fileName)) continue;
       const source = output.type === "chunk" ? output.code : output.source;
-      const data = Buffer.from(typeof source === "string" ? source : source);
+      const data = Buffer.from(typeof source === "string" ? new TextEncoder().encode(source) : source);
       if (data.length < MIN_COMPRESS_BYTES) continue;
       this.emitFile({
         type: "asset",

@@ -94,12 +94,11 @@ const onRead = (frame: Frame<'read'>, ctx: ChatListEventContext) => {
 
 const onPresence = (frame: Frame<'presence'>, ctx: ChatListEventContext) => {
   const chat = Object.values(ctx.chats).find((item) => item.type === 'one-on-one' && same(item.interlocutor_id, frame.data.user_id));
-  if (!chat) return true;
+  if (!chat) return;
   ctx.setPresenceByUsername((prev) => ({
     ...prev,
     [chat.interlocutor_name]: { is_online: frame.data.is_online, last_seen: frame.data.last_seen },
   }));
-  return true;
 };
 
 export function applyChatListEvent(frame: ServerEvent, ctx: ChatListEventContext): boolean {
@@ -108,7 +107,9 @@ export function applyChatListEvent(frame: ServerEvent, ctx: ChatListEventContext
     case 'edit': return onEdit(frame, ctx);
     case 'delete': return onDelete(frame, ctx);
     case 'read': return onRead(frame, ctx);
-    case 'presence': return onPresence(frame, ctx);
+    case 'presence':
+      onPresence(frame, ctx);
+      return true;
     default: return false;
   }
 }
