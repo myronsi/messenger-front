@@ -12,13 +12,15 @@ export const listChats = (signal?: AbortSignal) => collectPages(async after => c
 
 const RECENT_CHATS_MS = 30_000;
 let recentChats: { at: number; promise: ReturnType<typeof listChats> } | undefined;
+export const rememberChatList = (promise: ReturnType<typeof listChats>) => {
+  recentChats = { at: Date.now(), promise };
+  promise.catch(() => { if (recentChats?.promise === promise) recentChats = undefined; });
+};
 const chatsForProfile = () => {
-  if (!recentChats || Date.now() - recentChats.at > RECENT_CHATS_MS) {
-    const promise = listChats();
-    recentChats = { at: Date.now(), promise };
-    promise.catch(() => { if (recentChats?.promise === promise) recentChats = undefined; });
-  }
-  return recentChats.promise;
+  if (recentChats && Date.now() - recentChats.at <= RECENT_CHATS_MS) return recentChats.promise;
+  const promise = listChats();
+  rememberChatList(promise);
+  return promise;
 };
 
 export const userProfileByUsername = async (username: string, signal?: AbortSignal) => {

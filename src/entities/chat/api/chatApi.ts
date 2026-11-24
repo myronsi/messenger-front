@@ -4,7 +4,7 @@ import { groupByIdKey, withStoredFallback } from '@/shared/api/offlineStore';
 import { apiTask, collectPages, contractData } from '@/shared/api/tasks';
 import { getAccessToken, subscribeToAccessToken } from '@/shared/auth/session';
 import { hasSessionChanged } from '@/shared/auth/tokenClaims';
-import { listChats, resolveUsername } from '@/shared/api/users';
+import { listChats, rememberChatList, resolveUsername } from '@/shared/api/users';
 import { directChatModel, groupChatModel, groupModel, userModel } from '@/shared/api/goModels';
 import type { components } from '@/shared/api/generated/schema';
 
@@ -30,6 +30,7 @@ function loadChatList() {
     if (inFlight?.promise === promise) inFlight = undefined;
   });
   inFlight = { token, promise };
+  rememberChatList(promise);
   return promise;
 }
 
@@ -162,7 +163,28 @@ export const chatApi = messengerApi.injectEndpoints({
         }
         return { chat_id: chatId, read_message_ids: ids, unread_count: unread, first_unread_message_id: null, read_at: new Date().toISOString() };
       }),
-      invalidatesTags: ['Chat'],
+      onQueryStarted: async ({ chatId }, { dispatch, getState, queryFulfilled }) => {
+        const result = await queryFulfilled.catch(() => undefined);
+        if (!result) return;
+        if (result.data.unread_count > 0) {
+          dispatch(chatApi.util.invalidateTags([{ type: 'Chat', id: 'LIST' }]));
+          return;
+        }
+        const id = String(chatId);
+        const state = getState() as Parameters<typeof chatApi.util.selectCachedArgsForQuery>[0];
+        for (const arg of chatApi.util.selectCachedArgsForQuery(state, 'getOneOnOneChats')) {
+          dispatch(chatApi.util.updateQueryData('getOneOnOneChats', arg, (draft) => {
+            const chat = draft.chats.find((item) => String(item.id) === id);
+            if (chat) Object.assign(chat, { unread_count: 0, first_unread_message_id: null });
+          }));
+        }
+        for (const arg of chatApi.util.selectCachedArgsForQuery(state, 'getGroupChats')) {
+          dispatch(chatApi.util.updateQueryData('getGroupChats', arg, (draft) => {
+            const group = draft.groups.find((item) => String(item.chat_id) === id);
+            if (group) Object.assign(group, { unread_count: 0, unread_mentions_count: 0, first_unread_message_id: null });
+          }));
+        }
+      },
     }),
   }),
 });

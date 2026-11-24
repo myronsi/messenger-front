@@ -113,6 +113,7 @@ export function useChatsData(username: string) {
     const oneOnOneChats: Chat[] = (oneOnOneChatsData?.chats || []).map((chat) => withOverrides({
       ...(presenceByUsername[chat.interlocutor_name] || {}),
       id: chat.id,
+      interlocutor_id: chat.interlocutor_id,
       name: chat.interlocutor_name,
       interlocutor_name: chat.interlocutor_name,
       display_name: chat.interlocutor_display_name || chat.interlocutor_name,

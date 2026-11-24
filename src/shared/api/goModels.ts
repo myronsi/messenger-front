@@ -99,8 +99,15 @@ export const pinnedMessageModel = (pin: Schema['PinnedMessage']) => ({
   message: messageModel(pin.message),
 });
 
+export const lastMessageModel = (message: Schema['Message']) => ({
+  ...messageModel(message),
+  sender_id: message.sender?.id || '0',
+  sender_name: message.sender?.display_name || 'System',
+});
+
 export const directChatModel =(chat: Schema['Chat']) => ({
   ...chat,
+  interlocutor_id: chat.peer?.id,
   interlocutor_name: chat.peer?.username || '',
   interlocutor_display_name: chat.peer?.contact_name || chat.peer?.display_name || chat.name,
   interlocutor_is_online: chat.peer?.is_online,
@@ -110,11 +117,7 @@ export const directChatModel =(chat: Schema['Chat']) => ({
   avatar_url: chat.avatar_url || undefined,
   first_unread_message_id: chat.first_unread_message_id ?? null,
   last_read_message_id: chat.last_read_message_id ?? null,
-  last_message: chat.last_message ? {
-    ...messageModel(chat.last_message),
-    sender_id: chat.last_message.sender?.id || '0',
-    sender_name: chat.last_message.sender?.display_name || 'System',
-  } : null,
+  last_message: chat.last_message ? lastMessageModel(chat.last_message) : null,
 });
 
 export const groupChatModel = (chat: Schema['Chat']) => ({

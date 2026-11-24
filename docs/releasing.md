@@ -69,6 +69,11 @@ One-time setup:
    archive and switch the `current` symlink; they never copy `deploy/nginx/*` or reload nginx. The snippet also sends
    `Permissions-Policy: microphone=(self), camera=(self), geolocation=()`; the camera stays allowed for the QR sign-in
    scanner.
+   The build writes a `.gz` (gzip level 9) and a `.br` (brotli quality 11) copy next to every text file over 1 KiB.
+   `cache-headers.conf` turns on `gzip_static`, so nginx sends the prepared `.gz` instead of compressing on every
+   request. For brotli, install the module once (Ubuntu: `apt install libnginx-mod-http-brotli-static`), include
+   `deploy/nginx/brotli-static.conf` in the app's `server` block next to `cache-headers.conf`, and run
+   `nginx -t && systemctl reload nginx`; without the module `nginx -t` rejects `brotli_static`, so never include it first.
 2. GitHub: create the environment `production` and add the secrets `SSH_HOST`, `SSH_USER`, `SSH_KEY` and `SSH_KNOWN_HOSTS` (output of `ssh-keyscan <host>`), as in the backend repository.
 3. GitHub repository variables (they are baked into the build): `VITE_BASE_URL` (for example `https://chat.example.com/api`) and `VITE_WS_URL` (for example `wss://chat.example.com/api`), optionally `VITE_WEB_ORIGIN` (for example `https://chat.example.com`): the origin used in every link the app copies or shares (`/@name`, `/join/<token>`, sticker and emoji packs) and also recognised as an own link in messages. Without it the app uses the origin it runs on. Set it in builds that do not run on the public web origin, such as the mobile apps.
 4. Repository settings → Actions → General: allow workflows to create pull requests (needed by release-please).
