@@ -27,10 +27,26 @@ const PaperclipButton = forwardRef<HTMLButtonElement, ComponentPropsWithoutRef<'
 ));
 PaperclipButton.displayName = 'PaperclipButton';
 
-export const AttachMenu = ({ chatId, disabled, title, onPickFile, onSendRich }: AttachMenuProps) => {
+const AttachItems = ({ chatId, onPickFile, onSendRich }: Pick<AttachMenuProps, 'chatId' | 'onPickFile'> & { onSendRich: (send: RichSend) => void }) => {
   const { translations } = useLanguage();
   const t = translations.attachMenu;
-  const label = translations.attachFile || t.open;
+  return (
+    <>
+      <DropdownMenuItem onSelect={onPickFile}>
+        <FileImage className="mr-2 h-4 w-4" aria-hidden="true" />{t.file}
+      </DropdownMenuItem>
+      {ITEMS.map(({ kind, icon: Icon }) => (
+        <DropdownMenuItem key={kind} onSelect={() => requestAttach({ kind, chatId, onSend: onSendRich })}>
+          <Icon className="mr-2 h-4 w-4" aria-hidden="true" />{t[kind]}
+        </DropdownMenuItem>
+      ))}
+    </>
+  );
+};
+
+export const AttachMenu = ({ chatId, disabled, title, onPickFile, onSendRich }: AttachMenuProps) => {
+  const { translations } = useLanguage();
+  const label = translations.attachFile || 'Attach file';
   if (!onSendRich) return <PaperclipButton aria-label={label} title={title} disabled={disabled} onClick={onPickFile} />;
   return (
     <DropdownMenu modal={false}>
@@ -38,14 +54,7 @@ export const AttachMenu = ({ chatId, disabled, title, onPickFile, onSendRich }: 
         <PaperclipButton aria-label={label} title={title} disabled={disabled} data-testid="attach-menu-button" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="min-w-[12rem]">
-        <DropdownMenuItem onSelect={onPickFile}>
-          <FileImage className="mr-2 h-4 w-4" aria-hidden="true" />{t.file}
-        </DropdownMenuItem>
-        {ITEMS.map(({ kind, icon: Icon }) => (
-          <DropdownMenuItem key={kind} onSelect={() => requestAttach({ kind, chatId, onSend: onSendRich })}>
-            <Icon className="mr-2 h-4 w-4" aria-hidden="true" />{t[kind]}
-          </DropdownMenuItem>
-        ))}
+        <AttachItems chatId={chatId} onPickFile={onPickFile} onSendRich={onSendRich} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
