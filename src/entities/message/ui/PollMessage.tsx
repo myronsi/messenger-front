@@ -92,7 +92,7 @@ export const PollMessage = ({ message, poll, isMine }: PollMessageProps) => {
   const voted = poll.my_votes.length > 0;
   const live = isPersistedId(message.id) && chatId !== undefined;
   const canVote = live && !closed && !voted;
-  const showBars = results && (voted || closed || !canVote || picked.length === 0);
+  const showBars = results && (!canVote || picked.length === 0);
   const count = (words: Plural, value: number) => {
     const category = new Intl.PluralRules(localeOf(language)).select(value);
     return fillTemplate(category in words ? words[category as keyof Plural] : words.other, { count: String(value) });
@@ -115,7 +115,7 @@ export const PollMessage = ({ message, poll, isMine }: PollMessageProps) => {
   const total = poll.total_voters === null ? null : poll.total_voters === 0 ? t.noVotes : count(t.votes, poll.total_voters);
 
   return (
-    <div data-testid="poll-message" className="w-64 max-w-full py-1" onClick={(event) => event.stopPropagation()}>
+    <div data-testid="poll-message" className="w-64 max-w-full py-1">
       <p className="whitespace-pre-wrap text-[15px] font-semibold leading-snug">{poll.question}</p>
       <p className={cn('mb-1.5 text-xs', isMine ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
         {pollKind(poll, t)}{canVote && poll.multiple_answers ? ` · ${t.chooseSeveral}` : ''}

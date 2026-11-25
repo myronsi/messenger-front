@@ -243,7 +243,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
         <div className="flex items-end gap-2">
           <div className="relative flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 backdrop-blur-2xl">
             {!isRecording && !voicePreview && (
-              <AttachMenu chatId={chatId} onPickFile={() => fileInputRef.current?.click()} onSendRich={onSendRich}
+              <AttachMenu chatId={chatId} onPickFile={() => fileInputRef.current?.click()} onSendRich={isGoApi() ? onSendRich : undefined}
                 title={isEditing ? translations.attachDisabledWhileEditing : voiceVideoBlocked ? translations.voiceVideoBlocked : undefined}
                 disabled={isDisabled || isRecording || isStarting || isEditing} />
             )}

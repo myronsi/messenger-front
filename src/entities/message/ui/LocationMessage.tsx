@@ -25,7 +25,7 @@ export const LocationMessage = ({ location, isMine }: LocationMessageProps) => {
   const coordinates = fillTemplate(t.coordinates, { lat: location.latitude.toFixed(5), lon: location.longitude.toFixed(5) });
   const muted = isMine ? 'text-primary-foreground/75' : 'text-muted-foreground';
   return (
-    <div data-testid="location-message" className="w-64 max-w-full py-1" onClick={(event) => event.stopPropagation()}>
+    <div data-testid="location-message" className="w-64 max-w-full py-1">
       <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
         <button type="button" aria-label={`${t.openIn}: ${location.title || coordinates}`} onClick={() => setOpen(true)}
           className="relative block aspect-[2/1] w-full overflow-hidden rounded-lg bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -56,7 +56,7 @@ export const LocationMessage = ({ location, isMine }: LocationMessageProps) => {
             </button>
           </DropdownMenuTrigger>
         </div>
-        <DropdownMenuContent align="end" className="min-w-[12rem]">
+        <DropdownMenuContent align="end" className="min-w-[12rem]" onClick={(event) => event.stopPropagation()}>
           <DropdownMenuLabel>{t.openIn}</DropdownMenuLabel>
           {LINKS.map((key) => (
             <DropdownMenuItem key={key} asChild>
