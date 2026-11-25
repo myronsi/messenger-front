@@ -1,3 +1,4 @@
+import { onAccountCleared } from '@/shared/auth/accountStorage';
 import { useMemo, useSyncExternalStore } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 
@@ -102,3 +103,8 @@ export const resetDoubleTapReaction = () => doubleTapCache.clear();
 export const useDoubleTapReaction = (userId?: EntityId | null) => useSyncExternalStore(
   subscribe, () => readDoubleTapReaction(userId), () => readDoubleTapReaction(userId),
 );
+
+onAccountCleared(() => {
+  resetReactionUsage();
+  resetDoubleTapReaction();
+});
