@@ -1,23 +1,16 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
 
-// Find the smallest width that retains the height available at full width.
-// The browser measurement includes both text wrapping and timestamp placement.
-export function compactMessageWidth(max: number, min: number, heightAt: (width: number) => number) {
-  const height = heightAt(max);
-  let low = Math.min(min, max);
-  let high = max;
-  for (let step = 0; step < 12 && high - low > 0.25; step++) {
-    const mid = (low + high) / 2;
-    if (heightAt(mid) <= height + 0.1) high = mid;
-    else low = mid;
-  }
-  return Math.min(max, Math.ceil(high));
-}
-
-const FRAME_BUDGET_MS = 8;
-const MAX_SEARCHED_LINES = 6;
+export interface Box { left: number; right: number; top: number; bottom: number; height: number }
 
 interface TimeLayout { width: number; below: boolean; metadataHeight: number }
+
+export function timeLayoutFromLines(left: number, lines: Box[], metadata: Box, metadataWidth: number, available: number): TimeLayout {
+  const textBottom = lines.reduce((bottom, line) => Math.max(bottom, line.bottom), -Infinity);
+  const textRight = lines.reduce((right, line) => Math.max(right, line.right), left);
+  const below = Number.isFinite(textBottom) && metadata.top >= textBottom - 1;
+  const content = below ? Math.max(textRight - left, metadataWidth) : Math.max(textRight, metadata.right) - left;
+  return { width: Math.min(available, Math.ceil(content)), below, metadataHeight: Math.ceil(metadata.height) };
+}
 
 interface Row {
   element: HTMLDivElement;
@@ -29,6 +22,8 @@ interface Row {
   visible: boolean | null;
 }
 
+interface Work { row: Row; signature: string; available: number; layout?: TimeLayout }
+
 const MARGIN = 300;
 const CACHE_LIMIT = 2000;
 const layoutCache = new Map<string, TimeLayout>();
@@ -38,7 +33,6 @@ const pending = new Set<Row>();
 let frame = 0;
 let visibilityObserver: IntersectionObserver | null = null;
 let resizeObserver: ResizeObserver | null = null;
-let probeHost: HTMLDivElement | null = null;
 let listensForFonts = false;
 
 const rememberTimeLayout = (signature: string, layout: TimeLayout) => {
@@ -47,84 +41,7 @@ const rememberTimeLayout = (signature: string, layout: TimeLayout) => {
   if (layoutCache.size > CACHE_LIMIT) layoutCache.delete(layoutCache.keys().next().value as string);
 };
 
-const getProbeHost = () => {
-  if (probeHost?.isConnected) return probeHost;
-  probeHost = document.createElement('div');
-  probeHost.setAttribute('aria-hidden', 'true');
-  Object.assign(probeHost.style, {
-    position: 'fixed', left: '-10000px', top: '0', width: '0', height: '0', overflow: 'hidden',
-    visibility: 'hidden', pointerEvents: 'none', contain: 'strict',
-  });
-  document.body.append(probeHost);
-  return probeHost;
-};
-
-const probeLayout = (element: HTMLDivElement, font: CSSStyleDeclaration, available: number): TimeLayout => {
-  const probe = element.cloneNode(true) as HTMLDivElement;
-  probe.removeAttribute('data-message-text-body');
-  Object.assign(probe.style, {
-    position: 'absolute', left: '0', top: '0', visibility: 'hidden', pointerEvents: 'none',
-    display: 'block', width: 'max-content', maxWidth: 'none', minWidth: '0', height: 'auto', padding: '0',
-    font: font.font, letterSpacing: font.letterSpacing, wordSpacing: font.wordSpacing,
-    fontFeatureSettings: font.fontFeatureSettings, fontVariationSettings: font.fontVariationSettings, tabSize: font.tabSize,
-    whiteSpace: font.whiteSpace, overflowWrap: font.overflowWrap, contain: 'layout style paint',
-  });
-  const probeSpacer = probe.querySelector<HTMLElement>('[data-message-time-spacer]')!;
-  probeSpacer.style.display = 'inline-block';
-  getProbeHost().append(probe);
-  try {
-    const natural = probe.getBoundingClientRect();
-    const max = Math.min(available, natural.width);
-    const metadataWidth = probeSpacer.offsetWidth + Number.parseFloat(getComputedStyle(probeSpacer).marginLeft);
-    const walker = document.createTreeWalker(probe, NodeFilter.SHOW_TEXT);
-    const ranges: Range[] = [];
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      if (node.parentElement?.closest('[data-message-time-spacer]') || !node.textContent?.trim()) continue;
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      ranges.push(range);
-    }
-    const layouts = new Map<number, { height: number; below: boolean; metadataHeight: number }>();
-    const layoutAt = (width: number) => {
-      const cached = layouts.get(width);
-      if (cached) return cached;
-      probe.style.width = `${width}px`;
-      let height = probe.getBoundingClientRect().height;
-      let lastTextBottom = -Infinity;
-      for (const range of ranges) {
-        for (const rect of range.getClientRects()) if (rect.width > 0.5) lastTextBottom = Math.max(lastTextBottom, rect.bottom);
-      }
-      const metadata = probeSpacer.getBoundingClientRect();
-      const below = Number.isFinite(lastTextBottom) && metadata.top >= lastTextBottom - 1;
-      const metadataHeight = Math.ceil(metadata.height);
-      if (below) {
-        probeSpacer.style.display = 'none';
-        probe.style.paddingBottom = `${metadataHeight}px`;
-        height = probe.getBoundingClientRect().height;
-        probeSpacer.style.display = 'inline-block';
-        probe.style.paddingBottom = '0';
-      }
-      const layout = { height, below, metadataHeight };
-      layouts.set(width, layout);
-      return layout;
-    };
-    if (natural.width <= available) {
-      const { below, metadataHeight } = layoutAt(max);
-      return { width: max, below, metadataHeight };
-    }
-    const lines = Math.max(1, Math.round(layoutAt(max).height / Math.max(1, natural.height)));
-    if (lines > MAX_SEARCHED_LINES) {
-      const { below, metadataHeight } = layoutAt(max);
-      return { width: max, below, metadataHeight };
-    }
-    const width = compactMessageWidth(max, metadataWidth, (candidate) => layoutAt(candidate).height);
-    const { below, metadataHeight } = layoutAt(width);
-    return { width, below, metadataHeight };
-  } finally { probe.remove(); }
-};
-
-const measure = (row: Row) => {
+const describeRow = (row: Row) => {
   const { element, column, bubble, text } = row;
   if (!element.isConnected || !column.clientWidth) return null;
   const font = getComputedStyle(element);
@@ -133,11 +50,36 @@ const measure = (row: Row) => {
     - Number.parseFloat(shell.borderLeftWidth) - Number.parseFloat(shell.borderRightWidth);
   if (available <= 0) return null;
   const signature = JSON.stringify([text, available, font.font, font.letterSpacing, font.wordSpacing, row.spacerHtml]);
-  if (signature === signatures.get(element)) return null;
-  const known = layoutCache.get(signature);
-  const layout = known ?? probeLayout(element, font, available);
-  if (!known) rememberTimeLayout(signature, layout);
-  return { signature, layout };
+  return signature === signatures.get(element) ? null : { row, signature, available };
+};
+
+const release = ({ element, spacer }: Row) => {
+  element.style.width = '';
+  element.style.paddingBottom = '';
+  spacer.style.display = '';
+};
+
+const measureLines = ({ element, spacer }: Row, available: number) => {
+  const frame = element.getBoundingClientRect();
+  const layoutWidth = Number.parseFloat(getComputedStyle(element).width);
+  const scale = layoutWidth > 0 && frame.width > 0 ? frame.width / layoutWidth : 1;
+  const local = (rect: DOMRect): Box => ({
+    left: (rect.left - frame.left) / scale, right: (rect.right - frame.left) / scale,
+    top: (rect.top - frame.top) / scale, bottom: (rect.bottom - frame.top) / scale, height: rect.height / scale,
+  });
+  const lines: Box[] = [];
+  const range = document.createRange();
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (spacer.contains(node)) continue;
+    if (node instanceof HTMLImageElement) lines.push(local(node.getBoundingClientRect()));
+    if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) continue;
+    range.selectNodeContents(node);
+    for (const rect of range.getClientRects()) if (rect.width > 0.5) lines.push(local(rect));
+  }
+  const metadata = local(spacer.getBoundingClientRect());
+  const metadataWidth = metadata.right - metadata.left + Number.parseFloat(getComputedStyle(spacer).marginLeft);
+  return timeLayoutFromLines(0, lines, metadata, metadataWidth, available);
 };
 
 const apply = (row: Row, signature: string, { width, below, metadataHeight }: TimeLayout) => {
@@ -150,26 +92,26 @@ const apply = (row: Row, signature: string, { width, below, metadataHeight }: Ti
 
 const flush = () => {
   frame = 0;
-  const started = performance.now();
-  const batch = [...pending].filter((row) => rows.get(row.element) === row);
+  const batch = [...pending].filter((row) => rows.get(row.element) === row && row.visible !== false);
   pending.clear();
   const bottom = window.innerHeight + MARGIN;
-  const middle = window.innerHeight / 2;
-  const distance = new Map<Row, number>();
+  const work: Work[] = [];
   for (const row of batch) {
-    if (row.visible === false) continue;
-    const rect = row.element.getBoundingClientRect();
-    if (row.visible === null) row.visible = rect.bottom > -MARGIN && rect.top < bottom;
-    if (row.visible) distance.set(row, Math.abs(rect.top + rect.height / 2 - middle));
+    if (row.visible === null) {
+      const rect = row.element.getBoundingClientRect();
+      row.visible = rect.bottom > -MARGIN && rect.top < bottom;
+      if (!row.visible) continue;
+    }
+    const item = describeRow(row);
+    if (item) work.push({ ...item, layout: layoutCache.get(item.signature) });
   }
-  const queue = [...distance.keys()].sort((a, b) => distance.get(a)! - distance.get(b)!);
-  const results: (readonly [Row, ReturnType<typeof measure>])[] = [];
-  for (const row of queue) {
-    if (results.length > 0 && performance.now() - started > FRAME_BUDGET_MS) pending.add(row);
-    else results.push([row, measure(row)] as const);
-  }
-  for (const [row, result] of results) if (result) apply(row, result.signature, result.layout);
-  if (pending.size && !frame) frame = requestAnimationFrame(flush);
+  const misses = work.filter((item) => !item.layout);
+  misses.forEach((item) => release(item.row));
+  misses.forEach((item) => {
+    item.layout = measureLines(item.row, item.available);
+    rememberTimeLayout(item.signature, item.layout);
+  });
+  for (const item of work) apply(item.row, item.signature, item.layout!);
 };
 
 const schedule = (row: Row) => {
