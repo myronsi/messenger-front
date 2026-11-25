@@ -2,7 +2,7 @@ import { GripVertical, X } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
 import { clearUpcoming, moveAudioTrack, playAudioAt, removeFromQueue, trackSubtitle, useAudioPlayer } from '@/entities/message';
-import { useQueueDrag } from '../model/useQueueDrag';
+import { useRowDrag } from '@/shared/lib/useRowDrag';
 import { TrackCover } from './TrackCover';
 
 const ROW_HEIGHT = 56;
@@ -13,7 +13,7 @@ export const QueueList = () => {
   const list = useAudioPlayer((player) => player.list);
   const index = useAudioPlayer((player) => player.index);
   const upcoming = list.slice(index + 1);
-  const drag = useQueueDrag(upcoming.length, ROW_HEIGHT, (from, to) => moveAudioTrack(index + 1 + from, index + 1 + to));
+  const drag = useRowDrag(upcoming.length, ROW_HEIGHT, (from, to) => moveAudioTrack(index + 1 + from, index + 1 + to));
 
   if (upcoming.length === 0) return <p className="px-5 py-6 text-center text-sm text-muted-foreground">{t.emptyQueue}</p>;
   return (
