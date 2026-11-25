@@ -12,6 +12,7 @@ import { stickerErrorText } from '../model/stickerErrors';
 import { StickerCropper } from './StickerCropper';
 import { StickerEmojiPicker } from './StickerEmojiPicker';
 import { VideoStickerEditor } from './VideoStickerEditor';
+import { ClipPreview } from './ClipPreview';
 import { CLIP_MAX_BYTES, isClipType, type StickerClip } from '../model/clip';
 
 interface StickerMakerProps {
@@ -142,9 +143,7 @@ export const StickerMaker = ({ sourceUrl, sourceType, packId, onClose, onSaved }
         ) : (
           <div className="flex flex-col gap-4">
             <div className="relative mx-auto aspect-square w-48 rounded-3xl bg-muted/30 p-3 sm:w-52">
-              {clip && source.url && (source.type === 'image/gif'
-                ? <img src={source.url} alt={emoji ?? ''} className="h-full w-full object-contain" />
-                : <video src={source.url} className="h-full w-full object-contain" muted autoPlay loop playsInline aria-label={emoji ?? ''} />)}
+              {clip && source.url && <ClipPreview src={source.url} type={source.type} clip={clip} label={emoji ?? ''} />}
               {!clip && preview && <img src={preview} alt={emoji ?? ''} className="h-full w-full object-contain" />}
               <div className="absolute bottom-2 right-2 flex gap-1.5">
                 <button type="button" className={overlayButton} disabled={saving} onClick={() => { setImage(null); setClip(null); }}

@@ -73,3 +73,9 @@ export const gifDurationMs = (buffer: ArrayBuffer): number | null => {
   }
   return frames > 0 ? total : null;
 };
+
+export const cropStyle = (size: ImageSize, crop: NonNullable<StickerClip['crop']>) => {
+  const side = crop.size * Math.min(size.width, size.height);
+  const percent = (value: number) => `${(value / side) * 100}%`;
+  return { width: percent(size.width), height: percent(size.height), left: percent(-crop.x * size.width), top: percent(-crop.y * size.height) };
+};

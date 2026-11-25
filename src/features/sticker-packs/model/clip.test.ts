@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adjustTrim, clipKind, cropFractions, gifDurationMs, initialTrim, isClipType } from './clip';
+import { adjustTrim, clipKind, cropFractions, cropStyle, gifDurationMs, initialTrim, isClipType } from './clip';
 import { coverZoom } from './crop';
 
 const gif = (delays: number[]) => {
@@ -40,6 +40,11 @@ describe('video sticker clips', () => {
     expect(zoomed.size).toBeCloseTo(0.5, 6);
     expect(zoomed.y).toBeCloseTo(0.25, 6);
     expect(cropFractions(wide, { zoom: coverZoom(wide), x: 5, y: 0 }).x).toBe(0);
+  });
+
+  it('places the frame so the cropped square fills the preview', () => {
+    expect(cropStyle({ width: 1920, height: 1080 }, { x: 0.25, y: 0, size: 1 })).toEqual({ width: '177.77777777777777%', height: '100%', left: '-44.44444444444444%', top: '0%' });
+    expect(cropStyle({ width: 1000, height: 1000 }, { x: 0.25, y: 0.25, size: 0.5 })).toEqual({ width: '200%', height: '200%', left: '-50%', top: '-50%' });
   });
 
   it('reads the length of a GIF from its frame delays', () => {
