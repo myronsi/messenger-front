@@ -1,9 +1,10 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
-import { errorStatus } from '../api/importFetch';
 import { ImportParseError, MAX_IMPORT_FILES, MAX_IMPORT_MESSAGES, MAX_IMPORT_SENDERS, type ParsedChat } from './types';
 
 type Texts = Translations['chatImport'];
+
+export const errorStatus = (error: unknown) => (error as { status?: unknown } | null)?.status;
 
 export const parseErrorText = (error: unknown, t: Texts) => (error instanceof ImportParseError ? t.errors[error.code] : t.errors.brokenFile);
 

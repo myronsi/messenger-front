@@ -1,7 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { importCalls } from '../api/importApi';
-import { errorStatus } from '../api/importFetch';
 import type { ChatImport } from '../api/importTypes';
+import { errorStatus } from './importErrors';
 import { importedMessage, type SkipReason } from './importRequest';
 import { precheck, uploadImportFile } from './uploadImportFile';
 import { IMPORT_BATCH_SIZE, type ParsedAttachment, type ParsedChat, type ParsedNotice } from './types';

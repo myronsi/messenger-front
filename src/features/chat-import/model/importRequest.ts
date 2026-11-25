@@ -16,7 +16,7 @@ export interface BuildContext {
 
 const assignment = (assign: SenderAssignment | undefined) => {
   if (assign === 'me') return { me: true };
-  return assign === null || assign === undefined ? {} : { user_id: assign };
+  return assign === null || assign === undefined ? {} : { user_id: String(assign) };
 };
 
 export const startRequest = (chat: ParsedChat, assignments: Record<string, SenderAssignment>): StartImportRequest => ({
@@ -43,7 +43,7 @@ const body = (message: ParsedMessage, context: BuildContext): Pick<ImportedMessa
     const code = context.skipped.get(attachment.path) ?? 'fileMissing';
     return { type: 'note', content: withCaption(context.noticeText({ code, detail: attachment.name }), message.text) };
   }
-  return { type: attachment.kind === 'voice' ? 'voice' : 'file', content: message.text ? clip(message.text) : null, attachment_ids: [id] };
+  return { type: attachment.kind === 'voice' ? 'voice' : 'file', content: message.text ? clip(message.text) : null, attachment_ids: [String(id)] };
 };
 
 export const importedMessage = (message: ParsedMessage, context: BuildContext): ImportedMessage => {

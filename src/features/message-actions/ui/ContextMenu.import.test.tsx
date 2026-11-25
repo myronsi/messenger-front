@@ -19,7 +19,7 @@ vi.mock('@/entities/message', async (importOriginal) => ({
 
 const own: Message = { id: '10', sender: 'Me', sender_id: '1', content: 'Hi', timestamp: '2019-03-12T14:05:00Z', type: 'message', read_by: [] };
 const withImport = (state: NonNullable<Message['import']>['sender_state']): Message => ({
-  ...own, import: { import_id: '9', source: 'telegram', sender_name: 'Me old', sender_state: state },
+  ...own, import: { import_id: '9', source: 'telegram', original_at: '2019-03-12T14:05:00Z', sender_name: 'Me old', sender_state: state },
 });
 
 const renderMenu = (message: Message, isMine = true) => render(

@@ -1,21 +1,11 @@
-import type { EntityId } from '@/shared/api/entityId';
+import type { components } from '@/shared/api/generated/schema';
 
-export type ImportSourceName = 'telegram' | 'whatsapp';
+type Schema = components['schemas'];
 
-export type ImportSenderState = 'me' | 'unassigned' | 'pending' | 'confirmed' | 'declined';
+export type ImportSourceName = Schema['ImportSource'];
 
-export interface MessageImportInfo {
-  import_id: EntityId;
-  source: ImportSourceName;
-  original_at?: string;
-  sender_name?: string;
-  sender_state?: 'me' | 'confirmed' | 'unconfirmed';
-}
+export type ImportSenderState = Schema['ImportSenderState'];
 
-export interface ImportSummaryInfo {
-  import_id: EntityId;
-  source: ImportSourceName;
-  message_count: number;
-  first_at: string;
-  last_at: string;
-}
+export type MessageImportInfo = Schema['MessageImport'];
+
+export type ImportSummaryInfo = Schema['ImportSummary'];

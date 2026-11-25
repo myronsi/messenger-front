@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
 import { importCalls } from '../api/importApi';
-import { errorStatus } from '../api/importFetch';
+import { errorStatus } from './importErrors';
 import type { ChatImport } from '../api/importTypes';
 import { clearResume, loadResume, saveResume, type ResumeRecord } from './resumeStore';
 
