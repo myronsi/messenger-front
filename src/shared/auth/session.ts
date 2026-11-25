@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { clearDrafts } from '@/shared/lib/drafts';
 import { clearUnsentMessages } from '@/shared/lib/unsentMessages';
 import { forgetSignedInUser } from '@/shared/auth/signedInUser';
+import { clearAccountStorage } from '@/shared/auth/accountStorage';
 import { getTokenExpiresAt, getTokenSession, getTokenSubject, hasSessionChanged } from '@/shared/auth/tokenClaims';
 import { getUpdateStatus } from '@/shared/api/updateGate';
 import { isStaleDeviceProof } from '@/shared/api/deviceProofFetch';
@@ -89,6 +90,7 @@ export const clearAuthTokens = () => {
   markSession(false);
   notifyTokenListeners(null);
   broadcast({ type: 'logout' });
+  clearAccountStorage();
 };
 
 // For failures that suggest the session is invalid (refresh or "who am I" failed). When the server answered
@@ -124,6 +126,7 @@ const followOtherTab = (message: AuthMessage) => {
   clearDrafts();
   clearUnsentMessages();
   if (hadToken) notifyTokenListeners(null);
+  clearAccountStorage();
 };
 
 authChannel?.addEventListener('message', (event: MessageEvent<AuthMessage | null>) => {

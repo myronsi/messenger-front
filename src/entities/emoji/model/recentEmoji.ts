@@ -1,3 +1,4 @@
+import { onAccountCleared } from '@/shared/auth/accountStorage';
 import { useSyncExternalStore } from 'react';
 import { parseEmojiTokens } from '@/shared/lib/customEmoji';
 
@@ -52,3 +53,8 @@ const subscribe = (listener: () => void) => {
 };
 
 export const useStoredRecentEmoji = () => useSyncExternalStore(subscribe, read, read);
+
+onAccountCleared(() => {
+  cache = null;
+  listeners.forEach((listener) => listener());
+});

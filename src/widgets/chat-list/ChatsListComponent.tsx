@@ -8,7 +8,7 @@ import { GroupCreateModal, useCreateGroup } from '@/features/groups';
 import { QrScannerDialog } from '@/features/auth';
 import { useAppWorkerRegistration } from '@/shared/lib/useAppWorkerRegistration';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
-import { ChatListBodySkeleton } from '@/shared/ui/messenger-skeletons';
+import { DelayedSpinner } from '@/shared/ui/DelayedSpinner';
 import ChatsListHeader from './ChatsListHeader';
 import ChatListBody from './ui/ChatListBody';
 import ChatSearchOverlay from './ui/ChatSearchOverlay';
@@ -105,7 +105,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
     return (
       <div ref={model.containerRef} className="h-full bg-background text-foreground flex flex-col relative">
         {header}
-        <ChatListBodySkeleton />
+        <DelayedSpinner label={model.translations.loading} className="flex-1" />
       </div>
     );
   }

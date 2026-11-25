@@ -183,6 +183,29 @@
     animation: messageIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  img[data-reveal="blur"] {
+    animation: avatarSharpen 300ms ease-out;
+  }
+
+  img[data-reveal="empty"] {
+    animation: avatarFadeIn 220ms ease-out;
+  }
+
+  @keyframes avatarSharpen {
+    from { filter: blur(6px); }
+    to { filter: blur(0); }
+  }
+
+  @keyframes avatarFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  [data-quiet].motion-message:not(.highlight),
+  [data-quiet].motion-message-send:not(.highlight) {
+    animation: none;
+  }
+
   .motion-message-send {
     animation: messageSendIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
     will-change: transform;

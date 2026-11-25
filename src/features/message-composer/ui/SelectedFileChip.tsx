@@ -22,7 +22,7 @@ const SelectedFileChip: React.FC<SelectedFileChipProps> = ({ file, removeLabel, 
 
   return (
     <div className="motion-reply-in flex max-w-full shrink-0 justify-start">
-      <div className="flex max-w-64 items-center gap-2 rounded-2xl border border-border/60 bg-background/55 px-2 py-2 backdrop-blur-2xl">
+      <div className="flex max-w-64 items-center gap-2 rounded-2xl border border-border/60 bg-background/95 px-2 py-2 md:bg-background/70 md:backdrop-blur-md">
         {previewUrl ? (
           <AuthenticatedImage src={previewUrl} alt={file.name} className="h-11 w-11 rounded-xl object-cover" />
         ) : (

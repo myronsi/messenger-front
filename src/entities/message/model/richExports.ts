@@ -7,3 +7,4 @@ export * from './messageChat';
 export * from './pollTime';
 export * from './pollActions';
 export { PollCloseHost } from '../ui/PollCloseHost';
+export { PollMessage } from '../ui/PollMessage';

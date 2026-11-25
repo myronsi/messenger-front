@@ -1,3 +1,4 @@
+import { onAccountCleared } from '@/shared/auth/accountStorage';
 const STORAGE_KEY = 'image_dimensions';
 const MAX_ENTRIES = 500;
 
@@ -53,3 +54,7 @@ export const clearImageDimensions = () => {
     // ignore
   }
 };
+
+onAccountCleared(() => {
+  cache = null;
+});

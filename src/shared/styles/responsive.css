@@ -44,6 +44,22 @@
   --row-highlight: hsl(var(--primary) / 0.18);
 }
 
+[data-message-id].highlight {
+  animation: rowHighlight 2.4s ease-in-out;
+}
+
+@keyframes rowHighlight {
+  0% { --row-highlight: transparent; }
+  15%, 75% { --row-highlight: hsl(var(--primary) / 0.18); }
+  100% { --row-highlight: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-message-id].highlight {
+    --row-highlight: hsl(var(--primary) / 0.18);
+  }
+}
+
 @media (hover: hover) {
   .selectable-row:not(.context-menu-highlight):hover {
     --row-highlight: hsl(var(--accent) / 0.4);

@@ -4,13 +4,14 @@ import { getAppendedMessages, type Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { useRowResizes } from './useRowResizes';
 import { useStickyDateBadge } from './useStickyDateBadge';
-import { useHighlightScroll } from './useHighlightScroll';
+import { centeredScrollTop, useHighlightScroll } from './useHighlightScroll';
 import { useScrollToBottom } from './useScrollToBottom';
 import { listenForScrollIntent } from './scrollIntent';
 import { EMPTY_LAYOUT, keepRowsInPlace, measureRowLayout, type RowLayout } from './scrollAnchor';
 import { maxScrollTop, useScrollAnimation } from './smoothScroll';
 import { prefetchPages } from './prefetchPages';
 import { useBottomInset } from './useBottomInset';
+import { useMessageWindow } from './useMessageWindow';
 
 interface MessageListScrollOptions {
   messages: Message[];
@@ -68,6 +69,10 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const latest = useLatestRef(options);
   const isOwnMessageRef = useLatestRef(isOwnMessage);
   const messagesRef = useLatestRef(messages);
+  const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
+  const { messageWindow, sync: syncWindow } = useMessageWindow({ messages, messageRefs, containerRef: chatContainerRef,
+    chatKey: scrollToBottomKey, focusIds: [jumpTargetId, isPositioned ? null : visibleFirstUnreadId] });
+  const { renderKey, firstRendered } = messageWindow;
 
   const keepVisibleRows = useCallback(() => {
     const container = chatContainerRef.current;
@@ -75,9 +80,10 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     const result = isAnchoringRef.current() ? keepRowsInPlace(container, rowLayoutRef.current) : null;
     const rows = messagesRef.current.map((message) => messageRefs.current[message.id]).filter((row): row is HTMLDivElement => !!row);
     rowLayoutRef.current = measureRowLayout(container, rows);
+    syncWindow();
     return result;
-  }, [messageRefs, messagesRef]);
-  useRowResizes({ chatContainerRef, messageRefs, messages, onResize: keepVisibleRows });
+  }, [messageRefs, messagesRef, syncWindow]);
+  useRowResizes({ chatContainerRef, messageRefs, messages, onResize: keepVisibleRows, renderKey });
   const { startAnimation, stopAnimation, isAnimatingRef } = useScrollAnimation(chatContainerRef, keepVisibleRows);
 
   const glideToBottom = useCallback(() => {
@@ -90,10 +96,11 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
 
   const { unseenCount, showScrollToBottom, scrollToBottom, countIncoming, clearUnseen, updateDistance } = useScrollToBottom({
     chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
-    scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, pendingBottomRef, glideToBottom,
+    scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, pendingBottomRef, glideToBottom, renderKey,
   });
   useBottomInset(contentRef, options.bottomInsetSource);
-  const { label: currentDate, badgeRef: dateBadgeRef } = useStickyDateBadge({ chatContainerRef, active: isScrolling, contentKey: messages });
+  const { label: currentDate, badgeRef: dateBadgeRef } = useStickyDateBadge({ chatContainerRef, active: isScrolling, contentKey: messages,
+    fallbackLabel: firstRendered ? options.getFormattedDateLabel(firstRendered.timestamp) : null });
 
   useLayoutEffect(() => {
     const container = chatContainerRef.current;
@@ -105,7 +112,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     pendingBottomRef.current = false;
     if (replaced) container.scrollTop = maxScrollTop(container) - container.clientHeight * ARRIVAL_LEAD;
     glideToBottom();
-  }, [messages, isLoadingOlderMessages, isLoadingNewerMessages, isLoadingInitialMessages, keepVisibleRows, glideToBottom]);
+  }, [messages, isLoadingOlderMessages, isLoadingNewerMessages, isLoadingInitialMessages, keepVisibleRows, glideToBottom, renderKey]);
 
   useHighlightScroll({
     targetId: tempHighlightedMessageId ?? highlightedMessageId, messages, messageRefs, hasMoreMessages,
@@ -114,7 +121,6 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     onLoadMessagesAround: options.onLoadMessagesAround,
   });
 
-  const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
   useLayoutEffect(() => {
     if (jumpTargetId == null) return;
     shouldStickToBottomRef.current = false;
@@ -153,14 +159,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     const targetElement = firstUnreadMarkerRef.current || (visibleFirstUnreadId ? messageRefs.current[visibleFirstUnreadId] : null);
     if (!targetElement) return false;
     const container = chatContainerRef.current;
-    if (container) {
-      const containerRect = container.getBoundingClientRect();
-      const targetRect = targetElement.getBoundingClientRect();
-      const desiredTop = (container.clientHeight - targetRect.height) / 2;
-      container.scrollTop += targetRect.top - containerRect.top - desiredTop;
-    } else {
-      targetElement.scrollIntoView({ block: 'center' });
-    }
+    if (container) container.scrollTop = centeredScrollTop(container, targetElement);
+    else targetElement.scrollIntoView({ block: 'center' });
     shouldStickToBottomRef.current = false;
     hasScrolledInitialRef.current = true;
     hasScrolledToFirstUnreadRef.current = true;
@@ -190,6 +190,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       const movedByUser = Date.now() - lastUserInputAtRef.current < USER_SCROLL_WINDOW_MS;
       if (movedByUser) current.onScrollStart?.();
       updateDistance();
+      syncWindow();
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       const jumping = (current.tempHighlightedMessageId ?? current.highlightedMessageId) != null;
       if (distanceFromBottom <= BOTTOM_TOLERANCE && !pendingBottomRef.current && (movedByUser || !jumping)) {
@@ -212,7 +213,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       cancelAnimationFrame(frame);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
-  }, [latest, updateDistance, clearUnseen, isAnimatingRef]);
+  }, [latest, updateDistance, clearUnseen, isAnimatingRef, syncWindow]);
 
   useEffect(() => {
     const container = chatContainerRef.current;
@@ -293,6 +294,6 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
 
   return {
     currentDate, dateBadgeRef, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, contentRef, firstUnreadMarkerRef,
-    isPositioned, unseenCount, showScrollToBottom, scrollToBottom,
+    isPositioned, unseenCount, showScrollToBottom, scrollToBottom, messageWindow,
   };
 };

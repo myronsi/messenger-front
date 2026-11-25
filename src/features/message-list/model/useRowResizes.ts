@@ -9,9 +9,10 @@ interface RowObserverOptions {
   messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   messages: Message[];
   onResize: () => void;
+  renderKey?: string;
 }
 
-export const useRowResizes = ({ chatContainerRef, messageRefs, messages, onResize }: RowObserverOptions) => {
+export const useRowResizes = ({ chatContainerRef, messageRefs, messages, onResize, renderKey }: RowObserverOptions) => {
   const resizeRef = useRef<ResizeObserver | null>(null);
   const nearRef = useRef<IntersectionObserver | null>(null);
   const rowsRef = useRef(new Map<Element, string>());
@@ -41,5 +42,5 @@ export const useRowResizes = ({ chatContainerRef, messageRefs, messages, onResiz
       resizeRef.current?.unobserve(element);
       nearRef.current?.unobserve(element);
     });
-  }, [messages, messageRefs, onResize]);
+  }, [messages, messageRefs, onResize, renderKey]);
 };

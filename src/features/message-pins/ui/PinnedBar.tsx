@@ -52,7 +52,7 @@ export const PinnedBar = ({ pins, count, hasMore, onJump, onOpenList }: PinnedBa
   return (
     <div className="pointer-events-none relative z-30 h-0">
       <div data-testid="pinned-bar"
-        className="motion-panel-in pointer-events-auto absolute left-2 right-2 top-2 flex h-12 items-center gap-2.5 rounded-[28px] border border-border/60 bg-background/55 py-1 pl-3.5 pr-1.5 shadow-sm backdrop-blur-2xl md:left-[16.67%] md:right-[16.67%]">
+        className="motion-panel-in pointer-events-auto absolute left-2 right-2 top-2 flex h-12 items-center gap-2.5 rounded-[28px] border border-border/60 bg-background/95 py-1 pl-3.5 pr-1.5 shadow-sm md:bg-background/70 md:backdrop-blur-md md:left-[16.67%] md:right-[16.67%]">
         <PinSegments index={shown} total={total} />
         {thumbnail && (
           <AuthenticatedImage key={`thumb-${pin.message.id}`} src={thumbnail} alt="" data-testid="pinned-bar-thumbnail"

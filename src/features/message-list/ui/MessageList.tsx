@@ -8,9 +8,11 @@ import { useMessageListScroll } from '../model/useMessageListScroll';
 import { bottomInsetPadding } from '../model/useBottomInset';
 import { useMessageReadReceipts } from '../model/useMessageReadReceipts';
 import { useMessageTap } from '../model/useMessageTap';
+import { useQuietRemounts } from '../model/useQuietRemounts';
 import { audioQueueFor } from '../model/audioQueue';
 import { TypingBubble } from '@/entities/typing';
 import ScrollToBottomButton from './ScrollToBottomButton';
+import { LoadingPill } from './LoadingPill';
 import { isVisualMediaMessage, Message, MessageChatContext, MessageItem, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -136,6 +138,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     unseenCount,
     showScrollToBottom,
     scrollToBottom,
+    messageWindow,
   } = useMessageListScroll({
     messages, messageRefs, firstUnreadMessageId: visibleUnreadBoundaryId, highlightedMessageId, tempHighlightedMessageId,
     getFormattedDateLabel, hasMoreMessages, hasMoreNewerMessages, isLoadingInitialMessages,
@@ -149,9 +152,10 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     else if (ref) ref.current = node;
   }, [ref, contentRef]);
 
+  useQuietRemounts(messages, messageRefs, messageWindow.renderKey, scrollToBottomKey);
   useMessageReadReceipts({
     messages, userId, messageRefs, chatContainerRef, isOwnMessage,
-    onMarkMessagesRead, enabled: !useChatCovered() && isPositioned,
+    onMarkMessagesRead, enabled: !useChatCovered() && isPositioned, renderKey: messageWindow.renderKey,
   });
 
   const onPlayAudio = useStableCallback((id: EntityId, startAt?: number) => {
@@ -202,7 +206,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     <MessageChatContext.Provider value={props.chatId}><div className="chat-surface relative min-h-0 flex-1">
     <div className="absolute inset-0 overflow-x-hidden overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
-        <div data-testid="sticky-date" className="sticky top-[var(--pinned-inset,0px)] z-50 flex h-0 justify-center overflow-visible pointer-events-none md:w-2/3 md:mx-auto md:px-0">
+        <div data-testid="sticky-date" className="sticky top-[var(--pinned-inset,0px)] z-20 flex h-0 justify-center overflow-visible pointer-events-none md:w-2/3 md:mx-auto md:px-0">
           <div ref={dateBadgeRef} aria-hidden="true"
             className={`mt-0.5 h-fit px-3 py-1 bg-accent rounded-full text-sm text-accent-foreground transition-opacity duration-300 will-change-transform ${
               isScrolling ? 'opacity-100' : 'opacity-0'
@@ -213,17 +217,13 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
         </div>
       )}
       <div ref={setContentRef} className={`px-[10px] pt-[calc(1.5rem+var(--pinned-inset,0px))] md:w-2/3 md:mx-auto md:px-0 space-y-[var(--chat-gap)] ${bottomSpaceClass}`} style={bottomSpaceStyle}>
-        {isLoadingOlderMessages && (
-          <div className="flex justify-center">
-            <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
-              {translations.loading}
-            </div>
-          </div>
-        )}
+        {isLoadingOlderMessages && <LoadingPill label={translations.loading} />}
         {messages.length === 0 && (isLoadingInitialMessages ? <DelayedSpinner label={translations.loading} className="h-[55vh]" /> : (
           <div className="flex h-[55vh] items-center justify-center text-sm text-muted-foreground">{translations.noMessagesYet || 'No messages yet'}</div>
         ))}
-        {messages.map((message, index) => {
+        {messageWindow.topSpace > 0 && <div aria-hidden="true" data-message-spacer="top" style={{ height: messageWindow.topSpace }} />}
+        {messages.slice(messageWindow.start, messageWindow.end).map((message, offset) => {
+          const index = messageWindow.start + offset;
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
           const fileConfig = message.type === 'file' && typeof message.content !== 'string'
@@ -270,14 +270,9 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
             />
           );
         })}
+        {messageWindow.bottomSpace > 0 && <div aria-hidden="true" data-message-spacer="bottom" style={{ height: messageWindow.bottomSpace }} />}
         {props.chatId !== undefined && !hasMoreNewerMessages && <TypingBubble chatId={props.chatId} isGroup={isGroup} />}
-        {isLoadingNewerMessages && (
-          <div className="flex justify-center">
-            <div className="rounded-full bg-accent px-3 py-1 text-sm text-accent-foreground">
-              {translations.loading}
-            </div>
-          </div>
-        )}
+        {isLoadingNewerMessages && <LoadingPill label={translations.loading} />}
       </div>
     </div>
     <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-40 ${bottomSpaceClass}`} style={bottomSpaceStyle}>

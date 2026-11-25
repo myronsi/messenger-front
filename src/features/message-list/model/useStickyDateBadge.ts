@@ -4,6 +4,14 @@ const STICKY_TOP = 2;
 const PUSH_GAP = 8;
 const FADE_MS = 300;
 
+export const topInset = (container: HTMLElement) => {
+  const value = getComputedStyle(container).getPropertyValue('--pinned-inset').trim();
+  const amount = Number.parseFloat(value);
+  if (!Number.isFinite(amount)) return 0;
+  if (value.endsWith('rem')) return amount * (Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
+  return value.endsWith('px') ? amount : 0;
+};
+
 interface PendingPlacement {
   push: number;
   covered: HTMLElement | null;
@@ -19,13 +27,16 @@ interface StickyDateBadgeOptions {
   chatContainerRef: RefObject<HTMLDivElement | null>;
   active: boolean;
   contentKey: unknown;
+  fallbackLabel?: string | null;
 }
 
-export const useStickyDateBadge = ({ chatContainerRef, active, contentKey }: StickyDateBadgeOptions) => {
+export const useStickyDateBadge = ({ chatContainerRef, active, contentKey, fallbackLabel = null }: StickyDateBadgeOptions) => {
   const [label, setLabel] = useState<string | null>(null);
   const badgeRef = useRef<HTMLDivElement | null>(null);
   const shownLabel = useRef<string | null>(null);
   const pending = useRef<PendingPlacement>({ push: 0, covered: null, separators: [] });
+  const fallbackRef = useRef(fallbackLabel);
+  fallbackRef.current = fallbackLabel;
 
   useLayoutEffect(() => place(badgeRef.current, pending.current), [label]);
 
@@ -37,7 +48,7 @@ export const useStickyDateBadge = ({ chatContainerRef, active, contentKey }: Sti
     const separators = () => [...container.querySelectorAll<HTMLElement>('.date-separator')];
     const update = () => {
       frame = 0;
-      const top = container.getBoundingClientRect().top + STICKY_TOP;
+      const top = container.getBoundingClientRect().top + topInset(container) + STICKY_TOP;
       const height = badgeRef.current?.offsetHeight || 28;
       const all = separators();
       let current: HTMLElement | null = null;
@@ -48,7 +59,7 @@ export const useStickyDateBadge = ({ chatContainerRef, active, contentKey }: Sti
       }
       const push = next ? Math.min(0, next.getBoundingClientRect().top - (top + height + PUSH_GAP)) : 0;
       pending.current = { push, covered: active ? current : null, separators: all };
-      const nextLabel = current?.dataset.date ?? null;
+      const nextLabel = current?.dataset.date ?? fallbackRef.current;
       if (nextLabel === shownLabel.current) {
         place(badgeRef.current, pending.current);
         return;

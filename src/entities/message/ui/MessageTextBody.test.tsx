@@ -28,25 +28,25 @@ describe('MessageTextBody width fitting', () => {
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   it('measures in the next frame, once per text and timestamp, and reuses the result for an equal row', () => {
-    const clone = vi.spyOn(Node.prototype, 'cloneNode');
+    const measure = vi.spyOn(document, 'createRange');
     const view = render(<Bubble text="hello there" time="10:00" />);
-    expect(clone).not.toHaveBeenCalled();
+    expect(measure).not.toHaveBeenCalled();
 
     flushFrames();
-    expect(clone).toHaveBeenCalledTimes(1);
+    expect(measure).toHaveBeenCalledTimes(1);
     expect(view.container.querySelector<HTMLElement>('[data-message-text-body]')?.dataset.timeLayout).toBe('inline');
 
     view.rerender(<Bubble text="hello there" time="10:00" />);
     flushFrames();
-    expect(clone).toHaveBeenCalledTimes(1);
+    expect(measure).toHaveBeenCalledTimes(1);
 
     view.rerender(<Bubble text="hello there" time="10:01" />);
     flushFrames();
-    expect(clone).toHaveBeenCalledTimes(2);
+    expect(measure).toHaveBeenCalledTimes(2);
 
     const twin = render(<Bubble text="hello there" time="10:01" />);
     flushFrames();
-    expect(clone).toHaveBeenCalledTimes(2);
+    expect(measure).toHaveBeenCalledTimes(2);
     expect(twin.container.querySelector<HTMLElement>('[data-message-text-body]')?.style.width).toBe('0px');
   });
 });

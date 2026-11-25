@@ -14,6 +14,7 @@ interface MessageReadReceiptOptions {
   isOwnMessage: (message: Message) => boolean;
   onMarkMessagesRead?: (messageIds: EntityId[]) => Promise<void>;
   enabled?: boolean;
+  renderKey?: string;
 }
 
 export const useMessageReadReceipts = ({
@@ -24,6 +25,7 @@ export const useMessageReadReceipts = ({
   isOwnMessage,
   onMarkMessagesRead,
   enabled = true,
+  renderKey,
 }: MessageReadReceiptOptions) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const rowsRef = useRef(new Map<Element, string>());
@@ -95,7 +97,7 @@ export const useMessageReadReceipts = ({
       visible.delete(element);
     });
     queueVisible(visible);
-  }, [messagesById, messageRefs, enabled, userId, onMarkMessagesRead, queueVisible]);
+  }, [messagesById, messageRefs, enabled, userId, onMarkMessagesRead, queueVisible, renderKey]);
 
   useEffect(() => () => {
     if (readFlushTimeoutRef.current) clearTimeout(readFlushTimeoutRef.current);

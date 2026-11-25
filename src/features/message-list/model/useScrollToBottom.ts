@@ -15,6 +15,7 @@ interface ScrollToBottomOptions {
   shouldStickToBottomRef: MutableRefObject<boolean>;
   pendingBottomRef: MutableRefObject<boolean>;
   glideToBottom: () => void;
+  renderKey?: string;
 }
 
 const distanceFromBottom = (container: HTMLElement) => (
@@ -24,7 +25,7 @@ const distanceFromBottom = (container: HTMLElement) => (
 // State of the "scroll to bottom" button: whether it is shown, the unseen live-message badge, and where it scrolls to.
 export const useScrollToBottom = ({
   chatContainerRef, messageRefs, messages, isPositioned, hasMoreNewerMessages, onLoadLatestMessages,
-  scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, pendingBottomRef, glideToBottom,
+  scrollToBottomKey, isOwnMessage, shouldStickToBottomRef, pendingBottomRef, glideToBottom, renderKey,
 }: ScrollToBottomOptions) => {
   const [unseenIds, setUnseenIds] = useState<EntityId[]>([]);
   const [isFarFromBottom, setIsFarFromBottom] = useState(false);
@@ -78,7 +79,7 @@ export const useScrollToBottom = ({
       observer.observe(element);
     });
     return () => observer.disconnect();
-  }, [unseenIds, messageRefs, chatContainerRef]);
+  }, [unseenIds, messageRefs, chatContainerRef, renderKey]);
 
   const scrollToBottom = useCallback(async () => {
     if (!chatContainerRef.current) return;

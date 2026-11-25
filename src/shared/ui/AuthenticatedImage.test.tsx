@@ -11,6 +11,7 @@ vi.mock('@/shared/auth/session', () => ({
 }));
 
 import { clearMediaCache } from '@/shared/api/mediaCache';
+import { EMPTY_IMAGE, rememberAvatarBlur } from '@/shared/lib/avatarBlur';
 import { AuthenticatedImage } from './AuthenticatedImage';
 
 const avatar = `${window.location.origin}/api/v2/users/7/avatar?rev=a1`;
@@ -34,14 +35,15 @@ afterEach(() => {
 });
 
 describe('AuthenticatedImage', () => {
-  it('shows no name or broken-image icon while the avatar loads', async () => {
+  it('shows a neutral placeholder instead of a name or broken-image icon while the avatar loads', async () => {
     let finish: (response: Response) => void = () => undefined;
     session.authFetch.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
 
     render(<AuthenticatedImage src={avatar} alt="Mai" className="rounded-full" />);
     const image = screen.getByRole('presentation');
     expect(image.getAttribute('alt')).toBe('');
-    expect(image.hasAttribute('src')).toBe(false);
+    expect(image.getAttribute('src')).toBe(EMPTY_IMAGE);
+    expect(image.dataset.placeholder).toBe('empty');
 
     await waitFor(() => expect(session.authFetch).toHaveBeenCalled());
     finish(new Response('png', { status: 200 }));
@@ -79,5 +81,29 @@ describe('AuthenticatedImage', () => {
     expect(onError).not.toHaveBeenCalled();
     fireEvent.error(screen.getByAltText('👍'));
     expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the remembered blurred copy while an avatar it has seen before loads again', async () => {
+    const blurred = 'data:image/jpeg;base64,blurred';
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(blurred);
+    const seen = `${window.location.origin}/api/v2/users/8/avatar?rev=b2`;
+    const loaded = document.createElement('img');
+    Object.defineProperty(loaded, 'naturalWidth', { value: 64 });
+    Object.defineProperty(loaded, 'naturalHeight', { value: 64 });
+    rememberAvatarBlur(seen, loaded);
+    session.authFetch.mockImplementation(() => new Promise(() => undefined));
+
+    render(<AuthenticatedImage src={seen} alt="Ira" />);
+
+    const image = screen.getByRole('presentation');
+    expect(image.getAttribute('src')).toBe(blurred);
+    expect(image.dataset.placeholder).toBe('blur');
+  });
+
+  it('keeps message images without an avatar placeholder', () => {
+    session.authFetch.mockImplementation(() => new Promise(() => undefined));
+    render(<AuthenticatedImage src={`${window.location.origin}/api/v2/attachments/p1/content`} alt="photo" />);
+    expect(screen.getByRole('presentation').hasAttribute('src')).toBe(false);
   });
 });

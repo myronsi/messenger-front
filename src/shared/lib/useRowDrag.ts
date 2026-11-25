@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent } from 'react';
 
-interface QueueDrag {
+interface RowDrag {
   from: number;
   to: number;
   dy: number;
@@ -10,8 +10,8 @@ export const dropIndex = (from: number, dy: number, rowHeight: number, count: nu
   Math.min(count - 1, Math.max(0, from + Math.round(dy / rowHeight)))
 );
 
-export const useQueueDrag = (count: number, rowHeight: number, onMove: (from: number, to: number) => void) => {
-  const [drag, setDrag] = useState<QueueDrag | null>(null);
+export const useRowDrag = (count: number, rowHeight: number, onMove: (from: number, to: number) => void) => {
+  const [drag, setDrag] = useState<RowDrag | null>(null);
   const start = useRef<{ from: number; y: number } | null>(null);
 
   const handle = (index: number) => ({

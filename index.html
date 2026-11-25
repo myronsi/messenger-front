@@ -18,21 +18,14 @@
 
     <script src="/boot.js"></script>
     <style>
-      html { background: #ffffff; --boot-line: #f1f5f9; }
-      html.dark { background: #11141d; --boot-line: #242c38; }
+      html { background: #ffffff; --boot-spinner: #94a3b8; }
+      html.dark { background: #11141d; --boot-spinner: #64748b; }
       body { margin: 0; }
       .boot-shell { display: none; }
-      html[data-boot="app"] .boot-shell { display: flex; height: 100dvh; overflow: hidden; }
-      .boot-rail { width: 64px; flex: none; border-right: 1px solid var(--boot-line); }
-      .boot-list { width: clamp(280px, 25%, 420px); flex: none; padding: 64px 12px 0; border-right: 1px solid var(--boot-line); box-sizing: border-box; }
-      .boot-row { display: flex; align-items: center; gap: 12px; height: 56px; }
-      .boot-row i { width: 40px; height: 40px; border-radius: 50%; background: var(--boot-line); flex: none; }
-      .boot-row b { height: 12px; flex: 1; border-radius: 6px; background: var(--boot-line); max-width: 70%; }
-      .boot-chat { flex: 1; }
-      @media (max-width: 767px) {
-        .boot-rail, .boot-chat { display: none; }
-        .boot-list { width: 100%; border-right: 0; }
-      }
+      html[data-boot="app"] .boot-shell { display: flex; height: 100dvh; align-items: center; justify-content: center; }
+      .boot-spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--boot-spinner); border-top-color: transparent; opacity: 0; animation: boot-show 0s linear 300ms forwards, boot-spin 0.8s linear infinite; }
+      @keyframes boot-show { to { opacity: 1; } }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
     </style>
 
     <meta property="og:title" content="Messenger" />
@@ -46,7 +39,7 @@
   </head>
 
   <body>
-    <div id="root"><div class="boot-shell" aria-hidden="true"><div class="boot-rail"></div><div class="boot-list"><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div><div class="boot-row"><i></i><b></b></div></div><div class="boot-chat"></div></div></div>
+    <div id="root"><div class="boot-shell" aria-hidden="true"><div class="boot-spinner"></div></div></div>
     <script type="module" src="/src/app/main.tsx"></script>
   </body>
 </html>

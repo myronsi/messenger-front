@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropIndex } from './useQueueDrag';
+import { dropIndex } from './useRowDrag';
 
 describe('dropIndex', () => {
   it('moves by whole rows and stays inside the list', () => {
