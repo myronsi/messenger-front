@@ -1,5 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Drawing } from '@/shared/ui/drawing';
+import type { ImportSummaryInfo, MessageImportInfo } from './importTypes';
 
 export interface AudioMetadata {
   duration?: number;
@@ -56,7 +57,7 @@ export interface ForwardedFrom {
 }
 
 export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call'
-  | 'message_pinned' | 'message_unpinned';
+  | 'message_pinned' | 'message_unpinned' | 'history_imported' | 'history_import_ended' | 'imported_note';
 
 export interface CallSummaryInfo {
   call_id: EntityId;
@@ -75,6 +76,8 @@ export interface SystemEventInfo {
   message_id?: EntityId;
   snippet?: string;
   message_type?: 'text' | 'file' | 'voice' | 'system' | 'sticker';
+  import?: ImportSummaryInfo;
+  text?: string;
 }
 
 export interface ChatLastMessage {
@@ -145,6 +148,7 @@ export interface Message {
   read_by: ReadReceiptInfo[];
   mentions?: EntityId[];
   mentions_all?: boolean;
+  import?: MessageImportInfo | null;
 }
 
 export interface MessageSelection {

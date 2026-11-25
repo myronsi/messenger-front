@@ -12,6 +12,7 @@ export type OfflineChange =
   | { type: 'deleted'; chatId: string; messageId: string }
   | { type: 'cleared'; chatId: string; beforeId: string }
   | { type: 'pins'; chatId: string }
+  | { type: 'imported'; chatId: string }
   | { type: 'reset' };
 
 const SETTLE_MS = 2500;
@@ -27,8 +28,11 @@ const headCursor = async (db: OfflineDb) => {
 
 setOfflineCursorInit(headCursor);
 
+const IMPORT_KINDS: ReadonlySet<string> = new Set(['history_imported']);
+
 const toChange = (change: SyncChange): OfflineChange | null => {
   const chatId = change.chat_id;
+  if (IMPORT_KINDS.has(change.type)) return { type: 'imported', chatId };
   switch (change.type) {
     case 'message_updated':
       return change.message ? { type: 'updated', chatId, message: messageModel(change.message) } : null;

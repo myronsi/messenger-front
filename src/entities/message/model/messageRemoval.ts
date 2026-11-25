@@ -4,3 +4,6 @@ export * from './contentReportRequest';
 export * from './pinnedMessages';
 export * from './pinRequests';
 export * from '../api/pinApi';
+export * from './importedMessages';
+export * from './importSourceName';
+export * from './importTypes';

@@ -8,6 +8,7 @@ import { useGetCurrentUserQuery } from '@/features/profile';
 import { useAppDispatch } from '@/shared/hooks/redux';
 import type { ComposerDraftHandle } from '@/features/message-composer';
 import { useChatTransport, useLatest, useMessageHistory, useMessageSender, useServerOutbox, useUnsentMessageStorage } from '@/features/chat-core';
+import { useImportedHistorySync } from '@/features/chat-import';
 import type { GroupDetails } from './GroupProfileTypes';
 import { useGroupChatSocket } from './useGroupChatSocket';
 import { useGroupManagement } from './useGroupManagement';
@@ -58,6 +59,7 @@ export const useGroupChatScreen = ({
   const history = useMessageHistory({
     chatId, token, username, firstUnreadMessageId, messages, setMessages, currentUserIdRef, onBackRef, translationsRef, setModal,
   });
+  useImportedHistorySync(chatId, history.loadLatestMessages);
 
   const { getAvatarSrc, currentGroupName, currentGroupAvatar, applyGroupDetails, refreshGroupDetails } = useGroupDetails({
     chatId, username, groupName, token, dispatch, groupDetails, groupForm, setGroupDetails, setGroupForm,

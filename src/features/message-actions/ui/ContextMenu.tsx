@@ -8,6 +8,7 @@ import { useDeleteMessageForMeMutation } from '@/entities/message';
 import { discardServerUnsent, notifyMessageDeletedLocally } from '@/entities/message';
 import { messageAudioTrack, queueLast, queueNext, requestAddToPlaylist, requestContentReport } from '@/entities/message';
 import { findPin, isPinnableMessage, requestPinChange, useGetPinnedMessagesQuery } from '@/entities/message';
+import { isConfirmedImport, requestImportAction } from '@/entities/message';
 import { isPersistedId } from '@/shared/api/entityId';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { makeStickerFrom } from '@/entities/sticker';
@@ -86,7 +87,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const message = messages.find((m) => m.id === contextMenu.messageId);
     const isFile = message?.type === 'file';
     const fileContent = message && typeof message.content !== 'string' ? message.content : null;
-    const canEdit = !!message && !message.forwarded_from && !message.sticker && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
+    const canEdit = !!message && !message.import && !message.forwarded_from && !message.sticker && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
     const stickerSource = fileContent && fileContent.file_type.startsWith('image/') && !fileContent.album?.length ? fileContent.file_url : null;
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
     const song = message ? messageAudioTrack(message, translations.voiceMessage) : null;
@@ -188,6 +189,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         onForward={onForward && message ? handleForward : undefined}
         onTogglePin={canPin && message ? () => { closeMenu(); requestPinChange({ chatId, message, pin }); } : undefined}
         pinned={!!pin}
+        onNotMine={message && contextMenu.isMine && isConfirmedImport(message) ? () => { closeMenu(); requestImportAction({ kind: 'notMine', chatId, message }); } : undefined}
         onReport={canReport && message ? () => {
           closeMenu();
           requestContentReport({ kind: 'message', chatId, messageId: message.id, name: message.sender });

@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { Message, ModalState } from '@/entities/message';
 import { formatDateLabel, formatTime } from '@/shared/utils/dateFormatters';
 import { useChat } from './useChat';
+import { useImportedHistorySync } from '@/features/chat-import';
 
 interface ChatRoomStateOptions {
   isPreview: boolean;
@@ -32,6 +33,7 @@ export const useChatRoomState = ({
 }: ChatRoomStateOptions) => {
   const chatState = useChat(chatId, username, token, onBack, userId, firstUnreadMessageId, onPresenceUpdate);
   const previewWebSocketRef = useRef<SocketSender | null>(null);
+  useImportedHistorySync(isPreview ? null : chatId, chatState.loadLatestMessages);
   if (!isPreview) return chatState;
 
   return {
