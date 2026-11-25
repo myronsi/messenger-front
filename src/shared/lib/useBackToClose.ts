@@ -49,6 +49,7 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
   const ownedKey = useRef<string | null>(null);
   const staleKey = useRef<string | null>(null);
   const armedAt = useRef(0);
+  const stateKey = useRef(flag);
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
@@ -63,8 +64,10 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
       armedAt.current = openings;
       liveArms.add(openings);
       token.current = `${flag}-${openings}`;
+      const state = stateOf(current.state);
+      stateKey.current = flag in state ? token.current : flag;
       const { pathname, search, hash } = current;
-      navigate({ pathname, search, hash }, { state: { ...stateOf(current.state), [flag]: token.current } });
+      navigate({ pathname, search, hash }, { state: { ...state, [stateKey.current]: token.current } });
     } else if (!active && token.current) {
       liveArms.delete(armedAt.current);
       const owned = ownedKey.current;
@@ -95,7 +98,7 @@ export const useBackToClose = (active: boolean, close: () => void, flag: string)
       return;
     }
     if (!token.current) return;
-    const mine = stateOf(location.state)[flag] === token.current;
+    const mine = stateOf(location.state)[stateKey.current] === token.current;
     if (!ownedKey.current) {
       if (mine) ownedKey.current = location.key;
       return;
