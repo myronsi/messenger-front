@@ -15,7 +15,7 @@ export interface ResumeRecord {
 
 export const fileKeyOf = (files: readonly File[]) => files
   .map((file) => `${(file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name}:${file.size}`)
-  .sort()
+  .sort((a, b) => a.localeCompare(b))
   .join('|');
 
 const isRecord = (value: unknown): value is ResumeRecord => {
