@@ -1,7 +1,7 @@
 import type { SocketSender } from '@/shared/api/realtime';
 import type { EntityId } from '@/shared/api/entityId';
 import type * as React from 'react';
-import type { Message, ModalState, ReactionInfo } from '@/entities/message';
+import type { Message, ModalState, ReactionInfo, RichSend } from '@/entities/message';
 import type { GroupRole } from '@/entities/chat';
 import type { ComposerDraftHandle } from '@/features/message-composer';
 import type { Sticker } from '@/entities/sticker';
@@ -79,6 +79,7 @@ export interface GroupChatViewModel {
   editingMessage: Message | null;
   handleSendMessage: () => void;
   handleSendSticker: (sticker: Sticker) => void;
+  handleSendRich: (send: RichSend) => void;
   handleFileUpload: (file: File | File[], caption?: string) => Promise<void>;
   handleResendMessage: (message: Message) => void;
   setReplyTo: Setter<Message | null>;

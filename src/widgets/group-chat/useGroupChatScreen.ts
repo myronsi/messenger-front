@@ -129,6 +129,7 @@ export const useGroupChatScreen = ({
     messageInputRef, composerDraftRef, setMessageInput, replyTo, setReplyTo, editingMessage, setEditingMessage,
     handleSendMessage: sender.handleSendMessage,
     handleSendSticker: sender.handleSendSticker,
+    handleSendRich: sender.handleSendRich,
     handleResendMessage: sender.handleResendMessage,
     handleFileUpload: (file: File | File[], caption?: string) => sender.handleFileUpload(file, encodeEmoji(caption ?? '')),
     createOptimisticUploadMessage: sender.createOptimisticUploadMessage,

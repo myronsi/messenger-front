@@ -1,5 +1,7 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Drawing } from '@/shared/ui/drawing';
+import type { RichFields } from './richTypes';
+export type * from './richTypes';
 
 export interface AudioMetadata {
   duration?: number;
@@ -56,7 +58,7 @@ export interface ForwardedFrom {
 }
 
 export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call'
-  | 'message_pinned' | 'message_unpinned';
+  | 'message_pinned' | 'message_unpinned' | 'group_renamed' | 'group_avatar_changed' | 'owner_transferred';
 
 export interface CallSummaryInfo {
   call_id: EntityId;
@@ -74,10 +76,13 @@ export interface SystemEventInfo {
   call?: CallSummaryInfo;
   message_id?: EntityId;
   snippet?: string;
-  message_type?: 'text' | 'file' | 'voice' | 'system' | 'sticker';
+  message_type?: 'text' | 'file' | 'voice' | 'system' | 'sticker' | 'poll' | 'contact' | 'location';
+  old_name?: string;
+  new_name?: string;
+  avatar_removed?: boolean;
 }
 
-export interface ChatLastMessage {
+export interface ChatLastMessage extends RichFields {
   id: EntityId;
   sender_id: EntityId;
   sender_name: string;
@@ -112,7 +117,7 @@ export interface ModerationRemovalReason {
   text: string;
 }
 
-export interface Message {
+export interface Message extends RichFields {
   id: EntityId;
   client_temp_id?: EntityId | null;
   server_kept?: boolean;

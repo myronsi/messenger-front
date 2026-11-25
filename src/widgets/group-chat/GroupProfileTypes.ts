@@ -66,7 +66,7 @@ export type GroupProfileConfirmState = {
 
 export interface GroupEdits {
   info?: { name: string; description: string };
-  avatar?: File;
+  avatar?: File | null;
   background?: SetBackgroundBody | null;
 }
 

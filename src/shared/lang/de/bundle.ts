@@ -39,11 +39,12 @@ import { moderation } from './moderation';
 import { messagePins } from './messagePins';
 import { offlineStorage } from './offlineStorage';
 import { globalSearch } from './globalSearch';
+import { messageTypes } from './messageTypes';
 
 export const de = {
   ...auth, ...profile, ...chat, ...group, ...messages,
   ...timeDate, ...confirmations, ...errors, ...fileTypes, ...supplemental, ...update, ...legal, ...recoveryUi, ...securityUi, ...qrLogin, ...calls, ...appShell,
   ...appearance, ...authLayout, ...notificationSettings, ...connections, ...presence, ...drawing, ...typingStatus, ...appLinks, ...stickers, ...stickerPacks,
   ...chatOrganizer, ...chatCleanup, ...profileRework, ...profileExtras, ...customEmoji, ...audioPlayer, ...groupCreate, ...mainNav, ...personalization,
-  ...moderation, ...sharing, ...messagePins, ...offlineStorage, ...globalSearch,
+  ...moderation, ...sharing, ...messagePins, ...offlineStorage, ...globalSearch, ...messageTypes,
 };

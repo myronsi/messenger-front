@@ -14,6 +14,7 @@ const tempKey = (message: Message) => String(message.client_temp_id ?? message.i
 export const isKeptUnsent = (message: Message) => (
   !isPersistedId(message.id) && Boolean(message.is_own) && !message.is_deleting && !message.is_deleted
   && message.type === 'message' && typeof message.content === 'string'
+  && (!!message.outgoing || !(message.poll || message.contact || message.location))
 );
 
 export const restoreUnsentMessages = (current: Message[], saved: Message[], now: number, notConfirmed: string) => {

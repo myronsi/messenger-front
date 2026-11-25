@@ -2078,6 +2078,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chats/{chat_id}/messages/{message_id}/poll/votes": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Vote in a poll, change the vote or take it back
+         * @description Replaces the caller's vote with `options` (indexes into `Poll.options`). An empty list takes the vote back.
+         *     More than one option needs `multiple_answers` (`422`). A quiz takes one option, and its first answer is
+         *     final (`409` `quiz_answered`). A closed poll answers `409` `poll_closed`. Members only; in a direct chat
+         *     with a block `403`. Every change sends `poll_updated` to the members of the chat.
+         */
+        put: operations["votePoll"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/messages/{message_id}/poll/close": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a poll
+         * @description The creator may close the poll; in a group also the owner and admins (`Poll.can_close`, `403` otherwise).
+         *     Closing a closed poll changes nothing. A closed poll shows its results and the quiz answer to everyone and
+         *     takes no more votes. Sends `poll_updated`; no system message and no push.
+         */
+        post: operations["closePoll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/messages/{message_id}/poll/voters": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Who voted for an option of a public poll
+         * @description Only for polls with `anonymous: false`, and only when the caller sees the results (`PollOption.voter_count` is
+         *     not `null`); `403` otherwise. Newest vote first. Users appear as the caller may see them.
+         */
+        get: operations["listPollVoters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chats/{chat_id}/messages/forward": {
         parameters: {
             query?: never;
@@ -2321,7 +2411,10 @@ export interface paths {
         delete: operations["deleteGroup"];
         options?: never;
         head?: never;
-        /** Change name or description */
+        /**
+         * Change name or description
+         * @description A new name posts a `group_renamed` system message; the same name posts nothing.
+         */
         patch: operations["updateGroup"];
         trace?: never;
     };
@@ -2342,11 +2435,17 @@ export interface paths {
         get?: never;
         /**
          * Set the group avatar from an uploaded attachment
-         * @description The attachment must be an image the caller uploaded with purpose `avatar` (`422` otherwise).
+         * @description The attachment must be an image the caller uploaded with purpose `avatar` (`422` otherwise). Posts a
+         *     `group_avatar_changed` system message.
          */
         put: operations["setGroupAvatar"];
         post?: never;
-        delete?: never;
+        /**
+         * Remove the group avatar
+         * @description Same permission as setting it. Posts a `group_avatar_changed` system message with `avatar_removed: true`;
+         *     removing an avatar the group does not have changes nothing.
+         */
+        delete: operations["deleteGroupAvatar"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2460,7 +2559,8 @@ export interface paths {
         put?: never;
         /**
          * Make another member the owner
-         * @description The previous owner becomes an admin. Transferring to yourself is `422`.
+         * @description The previous owner becomes an admin. Transferring to yourself is `422`. Posts an `owner_transferred` system
+         *     message.
          */
         post: operations["transferGroupOwnership"];
         delete?: never;
@@ -3661,6 +3761,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/maps/tiles/{z}/{x}/{y}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                z: number;
+                /** @description Tile column, `0` to `2^z - 1` */
+                x: number;
+                /** @description Tile row, `0` to `2^z - 1` */
+                y: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * A 256 px map tile, through the server
+         * @description For the map a client shows while picking a place. The server fetches OpenStreetMap tiles and caches them, so
+         *     the viewer never contacts the tile provider. Clients must show "© OpenStreetMap contributors" on the map,
+         *     request only the tiles of the visible area and never download tiles ahead (no offline maps). At most 600
+         *     tiles per minute per user (`429`). `503` when the provider cannot be reached and no copy is cached.
+         */
+        get: operations["getMapTile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/maps/static": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The map image of a location message
+         * @description Use `MessageLocation.map.url` as it is; `sig` proves the server made it. A 640 x 320 JPEG at zoom 16 with a
+         *     pin in the middle, made from OpenStreetMap tiles. Clients show "© OpenStreetMap contributors" on it. `503`
+         *     when the image is not made yet and the tile provider cannot be reached.
+         */
+        get: operations["getStaticMap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/notifications": {
         parameters: {
             query?: never;
@@ -4818,7 +4979,7 @@ export interface components {
          *     codes must be treated like `internal_error`.
          * @enum {string}
          */
-        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "device_proof_stale" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "limit_reached" | "account_restricted" | "internal_error";
+        ErrorCode: "invalid_request" | "validation_failed" | "unauthenticated" | "invalid_credentials" | "two_factor_required" | "invalid_two_factor_code" | "token_expired" | "forbidden" | "not_found" | "conflict" | "already_exists" | "payload_too_large" | "unsupported_media_type" | "rate_limited" | "client_outdated" | "device_proof_stale" | "invalid_client_version" | "blocked_by_user" | "approval_required" | "user_verification_required" | "session_too_new" | "calls_unavailable" | "calls_not_allowed" | "call_identity_required" | "call_full" | "call_ended" | "already_in_call" | "stale_epoch" | "limit_reached" | "account_restricted" | "poll_closed" | "quiz_answered" | "internal_error";
         /** @description RFC 9457 problem details. `426 Upgrade Required` (`client_outdated`) uses the same format. */
         Problem: {
             /**
@@ -5396,6 +5557,12 @@ export interface components {
          *     border and stores a WebP (`413` when that is still over 512 KB). Only its uploader can load it until it is
          *     added to a pack.
          *
+         *     A sticker can also be made from a video (`kind: video`: MP4, WebM or MOV) or an animated GIF of at most 15 MB.
+         *     The server keeps at most 3 s of it (from `start_ms` to `end_ms`, or the first 3 s), crops it to the square
+         *     `crop_x`, `crop_y`, `crop_size` when given (otherwise it fits the clip into the square with a transparent
+         *     border), drops the sound and stores a looping animated WebP of at most 512 x 512 px (`413` when it is still
+         *     over 1 MB at the lowest quality). The sticker then has `is_animated: true`.
+         *
          *     `profile_music`: an audio file of at most 20 MB. The server keeps at most 30 s of it (from `start_ms` to
          *     `end_ms`, or the first 30 s), stored as AAC, reads the title and artist into `tags` and the embedded cover
          *     into `thumbnail_url`. Use it with `PUT /me/music`.
@@ -5418,10 +5585,22 @@ export interface components {
             duration_ms?: number;
             /** @description Amplitude samples (0-255) of a voice message */
             waveform?: number[];
-            /** @description `profile_music` only: where the kept part starts. */
+            /** @description `profile_music`, and `sticker` from a video or GIF: where the kept part starts. */
             start_ms?: number;
-            /** @description `profile_music` only: where the kept part ends, at most 30 s after `start_ms`. */
+            /**
+             * @description `profile_music`: where the kept part ends, at most 30 s after `start_ms`. `sticker` from a video or GIF: at
+             *     most 3 s after `start_ms`.
+             */
             end_ms?: number;
+            /** @description `sticker` from a video or GIF: left edge of the square crop, as a fraction of the width. */
+            crop_x?: number;
+            /** @description `sticker` from a video or GIF: top edge of the square crop, as a fraction of the height. */
+            crop_y?: number;
+            /**
+             * @description `sticker` from a video or GIF: side of the square crop, as a fraction of the shorter side. Send all three
+             *     crop fields or none; the square must lie inside the frame.
+             */
+            crop_size?: number;
         };
         Attachment: {
             id: components["schemas"]["AttachmentRef"];
@@ -5555,11 +5734,17 @@ export interface components {
          * @enum {string}
          */
         MediaKind: "image" | "audio" | "visual" | "file" | "voice" | "link";
-        /** @enum {string} */
-        MessageType: "text" | "file" | "voice" | "system" | "sticker";
+        /**
+         * @description `poll`, `contact` and `location` carry their data in `Message.poll`, `Message.contact` and
+         *     `Message.location`. For older clients their `content` holds a short plain-text summary: `📊 <question>`,
+         *     `👤 @<username>`, or `📍 <place name> <OpenStreetMap link>`.
+         * @enum {string}
+         */
+        MessageType: "text" | "file" | "voice" | "system" | "sticker" | "poll" | "contact" | "location";
         /**
          * @description One sticker of a pack. `image` is a WebP or PNG of at most 512 x 512 px with transparency, animated when
-         *     `is_animated` is true; any signed-in user can load it. Clients show it without a bubble.
+         *     `is_animated` is true (also stickers made from a video or GIF); any signed-in user can load it. The `panel`
+         *     variant of an animated sticker is a still first frame. Clients show it without a bubble.
          */
         Sticker: {
             id: components["schemas"]["Id"];
@@ -5737,7 +5922,10 @@ export interface components {
             type: components["schemas"]["MessageType"];
             /** @description `null` for system messages. */
             sender: components["schemas"]["User"] | null;
-            /** @description Text, the caption of a file, or the emoji of a sticker; `null` when deleted. */
+            /**
+             * @description Text, the caption of a file, the emoji of a sticker, or the plain-text summary of a poll, contact or
+             *     location (see `MessageType`); `null` when deleted.
+             */
             content: string | null;
             attachment: components["schemas"]["Attachment"] | null;
             reply_to: components["schemas"]["Id"] | null;
@@ -5772,6 +5960,103 @@ export interface components {
             mentions?: components["schemas"]["Id"][];
             /** @description `true` when an owner or admin wrote `@all`; it mentions every member. Absent otherwise. */
             mentions_all?: boolean;
+            /** @description The poll of a `poll` message as the requesting user sees it; absent for other types and when deleted. */
+            poll?: components["schemas"]["Poll"];
+            /** @description The shared user of a `contact` message; absent for other types and when deleted. */
+            contact?: components["schemas"]["ContactCard"];
+            /** @description The place of a `location` message; absent for other types and when deleted. */
+            location?: components["schemas"]["MessageLocation"];
+        };
+        /**
+         * @description A new poll. Option texts are trimmed and must differ (ignoring case). `quiz` makes it a quiz: one correct
+         *     option, one answer per voter that cannot be changed; it cannot be combined with `multiple_answers`.
+         *     `close_at` closes the poll automatically, 5 minutes to 30 days from now.
+         */
+        PollCreate: {
+            question: string;
+            options: string[];
+            /** @default false */
+            multiple_answers: boolean;
+            /**
+             * @description `false` lets everyone who sees the results list who voted for what. Anonymous votes are still stored
+             *     with the voter, so each member votes once and can change the vote, but no one else sees them.
+             * @default true
+             */
+            anonymous: boolean;
+            quiz?: components["schemas"]["PollQuizCreate"];
+            close_at?: components["schemas"]["Timestamp"];
+        };
+        PollQuizCreate: {
+            /** @description Index into `options` */
+            correct_option: number;
+            explanation?: string;
+        };
+        /**
+         * @description A poll as the requesting user sees it. Results (`voter_count`, `total_voters`, `is_correct`, `explanation`)
+         *     are `null` or absent until that user voted, unless they created the poll or it is closed. A poll is closed
+         *     when `closed_at` is set; clients also treat it as closed once `close_at` has passed.
+         */
+        Poll: {
+            question: string;
+            options: components["schemas"]["PollOption"][];
+            multiple_answers: boolean;
+            anonymous: boolean;
+            quiz: boolean;
+            /** @description The explanation of a quiz once the user sees the results. */
+            explanation: string | null;
+            close_at: components["schemas"]["Timestamp"] | null;
+            closed_at: components["schemas"]["Timestamp"] | null;
+            /** @description People who voted, each counted once even with several answers. */
+            total_voters: number | null;
+            /** @description Indexes of the options the user voted for; empty when they have not voted. */
+            my_votes: number[];
+            /** @description The user may close the poll now. */
+            can_close: boolean;
+            /** @description Grows with every vote and when the poll closes; keep the poll with the highest version. */
+            version: number;
+        };
+        PollOption: {
+            text: string;
+            voter_count: number | null;
+            /** @description Set on every option of a quiz once the user sees the results; absent otherwise. */
+            is_correct?: boolean;
+        };
+        PollVoteRequest: {
+            options: number[];
+        };
+        ContactCreate: {
+            /** @description A user whose profile the sender may open (`403` otherwise), the sender included; not a deleted account. */
+            user_id: components["schemas"]["Id"];
+        };
+        ContactCard: {
+            user_id: components["schemas"]["Id"];
+            /**
+             * @description The shared user as the requesting user may see them now, not as they were when the card was sent; `null`
+             *     when the account is gone.
+             */
+            user: components["schemas"]["User"] | null;
+        };
+        LocationCreate: {
+            latitude: number;
+            longitude: number;
+            /** @description Accuracy of a measured position in metres; omit for a point picked on the map. */
+            accuracy_m?: number;
+            /** @description A name for the place, typed by the sender. */
+            title?: string;
+        };
+        /** @description Coordinates are rounded to 6 decimals (about 10 cm). */
+        MessageLocation: {
+            latitude: number;
+            longitude: number;
+            accuracy_m: number | null;
+            title: string | null;
+            map: components["schemas"]["MapImage"];
+        };
+        MapImage: {
+            /** @description `GET /maps/static` with the signed point; load it like other API images */
+            url: string;
+            width: number;
+            height: number;
         };
         LinkPreview: {
             /** @description The page after redirects */
@@ -5788,12 +6073,14 @@ export interface components {
             height: number | null;
         };
         /** @enum {string} */
-        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call" | "message_pinned" | "message_unpinned";
+        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call" | "message_pinned" | "message_unpinned" | "group_renamed" | "group_avatar_changed" | "owner_transferred";
         /**
          * @description What a `system` message records; set on system messages only, whose `content` is then `null`. The names
-         *     are the display names at the time of the event. `target` fields are set for `member_added` and
-         *     `member_removed`. `call` is set for `call` messages: one per call, posted when the call ends, `actor` is the
-         *     initiator. `message_id` and `snippet` are set for `message_pinned` and `message_unpinned`.
+         *     are the display names at the time of the event. `target` fields are set for `member_added`,
+         *     `member_removed` and `owner_transferred` (the new owner; `actor` is the previous one). `call` is set for
+         *     `call` messages: one per call, posted when the call ends, `actor` is the initiator. `message_id` and
+         *     `snippet` are set for `message_pinned` and `message_unpinned`. `old_name` and `new_name` are set for
+         *     `group_renamed`, `avatar_removed` for `group_avatar_changed`.
          */
         SystemEvent: {
             kind: components["schemas"]["SystemEventKind"];
@@ -5805,11 +6092,16 @@ export interface components {
             /** @description The pinned or unpinned message. */
             message_id?: components["schemas"]["Id"];
             /**
-             * @description Start of the pinned message's text at the time of the event (at most 60 characters plus `…`); empty for a
-             *     message without text, which clients name by its `message_type`.
+             * @description Start of the pinned message's text at the time of the event (at most 60 characters plus `…`): the question
+             *     of a poll, the place name of a location. Empty for a message without text and for a contact, which clients
+             *     name by its `message_type`.
              */
             snippet?: string;
             message_type?: components["schemas"]["MessageType"];
+            old_name?: string;
+            new_name?: string;
+            /** @description `true` when the group photo was removed, `false` when a new one was set. */
+            avatar_removed?: boolean;
         };
         MessagePage: {
             /** @description Oldest to newest */
@@ -5837,12 +6129,18 @@ export interface components {
             chat_id: components["schemas"]["Id"];
             client_temp_id: components["schemas"]["ClientTempId"];
             /** @enum {string} */
-            type: "text" | "file" | "voice" | "sticker";
+            type: "text" | "file" | "voice" | "sticker" | "poll" | "contact" | "location";
             content: string | null;
             reply_to: components["schemas"]["Id"] | null;
             /** @description Uploaded files of the send that still exist, in the order they were sent. */
             attachments: components["schemas"]["Attachment"][];
             sticker?: components["schemas"]["Sticker"];
+            /** @description The poll of an unsent `poll` message, as it was sent. */
+            poll?: components["schemas"]["PollCreate"];
+            /** @description The contact of an unsent `contact` message, as it was sent. */
+            contact?: components["schemas"]["ContactCreate"];
+            /** @description The place of an unsent `location` message, as it was sent. */
+            location?: components["schemas"]["LocationCreate"];
             error_code: components["schemas"]["ErrorCode"];
             created_at: components["schemas"]["Timestamp"];
         };
@@ -5853,8 +6151,18 @@ export interface components {
         SendMessageRequest: {
             client_temp_id: components["schemas"]["ClientTempId"];
             /** @enum {string} */
-            type: "text" | "file" | "voice" | "sticker";
+            type: "text" | "file" | "voice" | "sticker" | "poll" | "contact" | "location";
             content?: string | null;
+            /**
+             * @description The poll of a `poll` message. Poll, contact and location messages have no content, attachment, sticker or
+             *     drawings; the server writes a plain-text summary into `content` for older clients. Send them with this
+             *     operation; the WebSocket `message` event does not take them.
+             */
+            poll?: components["schemas"]["PollCreate"];
+            /** @description The shared user of a `contact` message. */
+            contact?: components["schemas"]["ContactCreate"];
+            /** @description The place of a `location` message. */
+            location?: components["schemas"]["LocationCreate"];
             /**
              * @description The sticker of a `sticker` message, from any pack that is not deleted. Sticker messages have no content,
              *     attachment or drawings; the server sets `content` to the sticker's emoji. Send stickers with this
@@ -5872,7 +6180,7 @@ export interface components {
              *     instead of the sender's own upload: that is how a member draws on an image someone sent.
              */
             drawings?: components["schemas"]["AttachmentDrawing"][];
-        };
+        } & (unknown & unknown & unknown);
         EditMessageRequest: {
             /** @description New text, or the new caption of a file. Empty removes a file's caption; a text message rejects it. */
             content: string;
@@ -9860,6 +10168,117 @@ export interface operations {
             426: components["responses"]["ClientOutdated"];
         };
     };
+    votePoll: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PollVoteRequest"];
+            };
+        };
+        responses: {
+            /** @description The poll as the caller sees it after the vote */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Poll"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    closePoll: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The closed poll as the caller sees it */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Poll"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listPollVoters: {
+        parameters: {
+            query: {
+                option: number;
+                /** @description Page size */
+                limit?: components["parameters"]["Limit"];
+                /** @description Opaque `next_cursor` of the previous page */
+                after?: components["parameters"]["After"];
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+                message_id: components["parameters"]["MessageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Voters of the option */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
     forwardMessages: {
         parameters: {
             query?: never;
@@ -10325,6 +10744,37 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteGroupAvatar: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
         };
     };
@@ -12407,6 +12857,88 @@ export interface operations {
             404: components["responses"]["NotFound"];
             426: components["responses"]["ClientOutdated"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getMapTile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                z: number;
+                /** @description Tile column, `0` to `2^z - 1` */
+                x: number;
+                /** @description Tile row, `0` to `2^z - 1` */
+                y: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PNG tile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+            429: components["responses"]["TooManyRequests"];
+            /** @description The tile provider is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getStaticMap: {
+        parameters: {
+            query: {
+                lat: number;
+                lon: number;
+                sig: string;
+            };
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JPEG image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            426: components["responses"]["ClientOutdated"];
+            /** @description The tile provider is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     getNotificationSettings: {

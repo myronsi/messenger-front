@@ -25,6 +25,31 @@ export const uploadStickerImage = (image: Blob, onProgress?: (percent: number) =
   });
 };
 
+export interface StickerClipUpload {
+  kind: 'video' | 'image';
+  fileName: string;
+  startMs: number;
+  endMs: number;
+  crop: { x: number; y: number; size: number } | null;
+}
+
+export const uploadStickerClip = (file: Blob, clip: StickerClipUpload, onProgress?: (percent: number) => void) => {
+  const form = new FormData();
+  form.set('file', file, clip.fileName);
+  form.set('purpose', 'sticker');
+  form.set('kind', clip.kind);
+  form.set('start_ms', String(Math.round(clip.startMs)));
+  form.set('end_ms', String(Math.round(clip.endMs)));
+  if (clip.crop) {
+    form.set('crop_x', clip.crop.x.toFixed(6));
+    form.set('crop_y', clip.crop.y.toFixed(6));
+    form.set('crop_size', clip.crop.size.toFixed(6));
+  }
+  return uploadWithProgress<components['schemas']['Attachment']>({
+    url: `${String(getApiBaseUrl()).replace(/\/$/, '')}/attachments`, formData: form, onProgress,
+  });
+};
+
 export const ownPacksApi = messengerApi.injectEndpoints({
   endpoints: (builder) => ({
     listOwnStickerPacks: builder.query<StickerPack[], void>({

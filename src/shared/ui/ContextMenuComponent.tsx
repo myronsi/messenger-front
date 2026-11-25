@@ -18,13 +18,14 @@ interface ContextMenuProps {
   onTogglePin?: () => void;
   pinned?: boolean;
   audioActions?: { onPlayNext: () => void; onAddToQueue: () => void; onAddToPlaylist: () => void };
+  extraActions?: MenuAction[];
   isClosing: boolean;
   onClose: () => void;
 }
 
 type MenuView = 'main' | 'more';
 
-interface MenuAction {
+export interface MenuAction {
   key: string;
   icon: LucideIcon;
   label: string;
@@ -37,7 +38,7 @@ const REACTION_MENU_OFFSET = 48;
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({
     x, y, isMine, openLeft = false, onEdit, onDelete, onCopy, onReply, onForward, onMakeSticker,
-    onReport, onTogglePin, pinned = false, audioActions, isClosing, onClose,
+    onReport, onTogglePin, pinned = false, audioActions, extraActions = [], isClosing, onClose,
   }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
@@ -156,6 +157,7 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
                 </button>
               </>
             )}
+            {extraActions.map(renderAction)}
             {isMine && onEdit && (
               <button type="button" className={itemClass} onClick={onEdit}>
                 <Edit className="w-4 h-4 mr-2" />

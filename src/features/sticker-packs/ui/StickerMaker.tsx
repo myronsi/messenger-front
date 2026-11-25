@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronUp, Crop, PenLine, Plus, Smile, Sticker as StickerIcon } from 'lucide-react';
-import { StickerImage, uploadStickerImage, useAddStickerMutation, useCreateStickerPackMutation, useListOwnStickerPacksQuery } from '@/entities/sticker';
+import {
+  StickerImage, uploadStickerClip, uploadStickerImage, useAddStickerMutation, useCreateStickerPackMutation, useListOwnStickerPacksQuery,
+} from '@/entities/sticker';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog';
@@ -9,9 +11,12 @@ import { useStickerSource } from '../model/useStickerSource';
 import { stickerErrorText } from '../model/stickerErrors';
 import { StickerCropper } from './StickerCropper';
 import { StickerEmojiPicker } from './StickerEmojiPicker';
+import { VideoStickerEditor } from './VideoStickerEditor';
+import { CLIP_MAX_BYTES, isClipType, type StickerClip } from '../model/clip';
 
 interface StickerMakerProps {
   sourceUrl: string;
+  sourceType?: string;
   packId?: string;
   onClose: () => void;
   onSaved?: (packId: string) => void;
@@ -38,9 +43,21 @@ const PackChoice = ({ selected, label, cover, onSelect }: PackChoiceProps) => (
   </button>
 );
 
-export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMakerProps) => {
+class ClipTooLarge extends Error {}
+
+const uploadClip = async (url: string, type: string, clip: StickerClip) => {
+  const blob = await fetch(url).then((response) => response.blob());
+  if (blob.size > CLIP_MAX_BYTES) throw new ClipTooLarge();
+  const extension = type === 'image/gif' ? 'gif' : type.split('/')[1]?.replace('quicktime', 'mov') || 'mp4';
+  return uploadStickerClip(blob, { ...clip, fileName: `sticker.${extension}` });
+};
+
+export const StickerMaker = ({ sourceUrl, sourceType, packId, onClose, onSaved }: StickerMakerProps) => {
   const { translations } = useLanguage();
-  const source = useStickerSource(sourceUrl);
+  const source = useStickerSource(sourceUrl, sourceType);
+  const clipMode = isClipType(source.type);
+  const [clip, setClip] = useState<StickerClip | null>(null);
+  const lastClip = useRef<StickerClip | null>(null);
   const [image, setImage] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
@@ -73,7 +90,7 @@ export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMak
   const emojiToggle = moreEmoji ? translations.stickerLessEmoji : translations.stickerMoreEmoji;
   const needsTitle = choice === NEW_PACK && !title.trim();
   const save = async () => {
-    if (!image || !emoji || needsTitle) return;
+    if ((!image && !clip) || !emoji || needsTitle) return;
     setSaving(true);
     setError(null);
     let target = choice;
@@ -88,12 +105,14 @@ export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMak
       return;
     }
     try {
-      const attachment = await uploadStickerImage(image);
+      const attachment = clip && source.url ? await uploadClip(source.url, source.type, clip) : await uploadStickerImage(image as Blob);
       await addSticker({ packId: target, attachmentId: attachment.id, emoji }).unwrap();
       onClose();
       onSaved?.(target);
     } catch (caught) {
-      setError(stickerErrorText(caught, translations));
+      const text = stickerErrorText(caught, translations);
+      const tooLarge = !!clip && (caught instanceof ClipTooLarge || text === translations.stickerImageTooLarge);
+      setError(tooLarge ? translations.videoStickers.tooLarge : text);
       setSaving(false);
     }
   };
@@ -111,23 +130,32 @@ export const StickerMaker = ({ sourceUrl, packId, onClose, onSaved }: StickerMak
   return (
     <Dialog open onOpenChange={(open) => { if (!open && !saving) onClose(); }}>
       <DialogContent className="h-[100dvh] max-h-[100dvh] max-w-none content-start overflow-y-auto rounded-none p-4 sm:h-auto sm:max-h-[92dvh] sm:max-w-md sm:rounded-2xl sm:p-6" onClick={(event) => event.stopPropagation()}>
-        <DialogTitle className="pr-8 text-lg">{translations.stickerMakerTitle}</DialogTitle>
+        <DialogTitle className="pr-8 text-lg">{clipMode ? translations.videoStickers.title : translations.stickerMakerTitle}</DialogTitle>
         <DialogDescription className="sr-only">{translations.stickerCropHint}</DialogDescription>
         {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-        {!image ? (
-          source.url ? <StickerCropper src={source.url} onCancel={onClose} onDone={setImage} onError={setError} />
+        {!image && !clip ? (
+          source.url ? (clipMode
+            ? <VideoStickerEditor src={source.url} type={source.type} initial={lastClip.current} onCancel={onClose} onError={setError}
+              onDone={(next) => { lastClip.current = next; setClip(next); }} />
+            : <StickerCropper src={source.url} onCancel={onClose} onDone={setImage} onError={setError} />)
             : <p className="py-8 text-center text-sm text-muted-foreground">{source.failed ? translations.stickerImageUnreadable : translations.loading}</p>
         ) : (
           <div className="flex flex-col gap-4">
             <div className="relative mx-auto aspect-square w-48 rounded-3xl bg-muted/30 p-3 sm:w-52">
-              {preview && <img src={preview} alt={emoji ?? ''} className="h-full w-full object-contain" />}
+              {clip && source.url && (source.type === 'image/gif'
+                ? <img src={source.url} alt={emoji ?? ''} className="h-full w-full object-contain" />
+                : <video src={source.url} className="h-full w-full object-contain" muted autoPlay loop playsInline aria-label={emoji ?? ''} />)}
+              {!clip && preview && <img src={preview} alt={emoji ?? ''} className="h-full w-full object-contain" />}
               <div className="absolute bottom-2 right-2 flex gap-1.5">
-                <button type="button" className={overlayButton} disabled={saving} onClick={() => setImage(null)} aria-label={translations.stickerCrop} title={translations.stickerCrop}>
+                <button type="button" className={overlayButton} disabled={saving} onClick={() => { setImage(null); setClip(null); }}
+                  aria-label={translations.stickerCrop} title={translations.stickerCrop}>
                   <Crop className="h-4 w-4" />
                 </button>
-                <button type="button" className={overlayButton} disabled={saving} onClick={() => setDrawing(true)} aria-label={translations.stickerDraw} title={translations.stickerDraw}>
-                  <PenLine className="h-4 w-4" />
-                </button>
+                {!clip && (
+                  <button type="button" className={overlayButton} disabled={saving} onClick={() => setDrawing(true)} aria-label={translations.stickerDraw} title={translations.stickerDraw}>
+                    <PenLine className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex flex-col gap-2">

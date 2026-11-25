@@ -57,12 +57,28 @@ const stickerModel = (sticker: Schema['Sticker']) => ({
 
 const isSticker = (item: { type: Schema['MessageType']; is_deleted: boolean }) => item.type === 'sticker' && !item.is_deleted;
 
+const contactModel = (contact: Schema['ContactCard']) => ({ user_id: contact.user_id, user: contact.user ? userModel(contact.user) : null });
+
+const richModel = (message: Pick<Schema['Message'], 'poll' | 'contact' | 'location' | 'is_deleted'>) => (message.is_deleted
+  ? { poll: undefined, contact: undefined, location: undefined }
+  : { poll: message.poll, contact: message.contact ? contactModel(message.contact) : undefined, location: message.location });
+
+const unsentOutgoing = (item: Schema['UnsentMessage']) => {
+  if (item.type === 'poll' && item.poll) return { type: 'poll' as const, poll: item.poll };
+  if (item.type === 'contact' && item.contact) return { type: 'contact' as const, contact: item.contact };
+  if (item.type === 'location' && item.location) return { type: 'location' as const, location: item.location };
+  return undefined;
+};
+
+const withoutLinks = (text: string | null) => (text || '').replace(/\s*https?:\/\/\S+/g, '').trim();
+
 export const unsentModel = (item: Schema['UnsentMessage']) => ({
   type: item.type === 'file' || item.type === 'voice' ? 'file' as const : 'message' as const,
   content: item.type === 'sticker'
     ? item.content || item.sticker?.emoji || ''
     : contentModel({ attachment: item.attachments[0], attachments: item.attachments.length > 1 ? item.attachments : undefined, content: item.content }),
   sticker: item.type === 'sticker' && item.sticker ? stickerModel(item.sticker) : undefined,
+  outgoing: unsentOutgoing(item),
 });
 
 export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
@@ -72,7 +88,7 @@ export const replyPreviewModel = (preview: Schema['ReplyPreview']) => ({
   sender_username: preview.sender?.username,
   timestamp: '',
   type: preview.type === 'file' || preview.type === 'voice' ? 'file' as const : 'message' as const,
-  content: preview.type === 'sticker' ? preview.content || '' : contentModel(preview),
+  content: preview.type === 'sticker' ? preview.content || '' : preview.type === 'location' ? withoutLinks(preview.content) : contentModel(preview),
   sticker: isSticker(preview) ? { emoji: preview.content || '', image_url: preview.attachment?.url } : undefined,
   is_deleted: preview.is_deleted,
   removed_by_moderation: preview.removed_by_moderation,
@@ -89,6 +105,7 @@ export const messageModel = (message: Schema['Message']) => ({
   type: message.type === 'file' || message.type === 'voice' ? 'file' as const : 'message' as const,
   content: message.type === 'sticker' ? message.content || message.sticker?.emoji || '' : contentModel(message),
   sticker: isSticker(message) && message.sticker ? stickerModel(message.sticker) : undefined,
+  ...richModel(message),
   is_system: message.type === 'system',
   reply_preview: message.reply_preview ? replyPreviewModel(message.reply_preview) : undefined,
   reactions: message.reactions.map(({ emoji, user_id }) => ({ reaction: emoji, user_id })),

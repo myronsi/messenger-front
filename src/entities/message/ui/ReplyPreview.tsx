@@ -1,6 +1,7 @@
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import React from 'react';
 import { Message } from '../model/types';
+import { richLabel } from '../model/richMessage';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
@@ -27,6 +28,8 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({ replyMessage, isMine, isRep
     if (message.removed_by_moderation) return { text: translations.moderation.removedByModeration, muted: true };
     if (message.is_deleted) return { text: translations.messageDeleted, muted: true };
     if (message.sticker) return { text: `${message.sticker.emoji} ${translations.sticker}`, imageUrl: message.sticker.image_url && resolveMediaUrl(message.sticker.image_url) };
+    const rich = richLabel(message, translations);
+    if (rich) return { text: rich };
     if (message.type === 'file' && typeof message.content !== 'string') {
       const { file_name: fileName = '', file_type: fileType, caption, thumbnail_url: thumbnail, file_url: url } = message.content;
       if (fileType === 'voice') return { text: translations.voiceMessage };

@@ -99,7 +99,7 @@ export const useGroupManagement = ({
         const form = new FormData();
         form.append('file', avatar);
         await sendGroup('/avatar', { method: 'POST', body: form });
-      }
+      } else if (avatar === null) await sendGroup('/avatar', { method: 'DELETE' });
       if (background !== undefined) await handleGroupBackground(background);
       return true;
     } catch (error) {

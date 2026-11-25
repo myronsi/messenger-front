@@ -1,5 +1,5 @@
 import { FileText, Link2 } from 'lucide-react';
-import { findLinks, globalSearchText, type FileMessageContent, type GlobalSearchHit } from '@/entities/message';
+import { findLinks, globalSearchText, richLabel, type FileMessageContent, type GlobalSearchHit } from '@/entities/message';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
@@ -31,7 +31,7 @@ export const MessageHitRow = ({ hit, context }: HitProps) => {
   const title = chatTitle(context.chatsById.get(hit.chatId), hit, context.translations);
   const sender = senderLabel(hit, context);
   const parts = hitParts(hit, context.query);
-  const fallback = hit.message.sticker ? context.translations.globalSearch.sticker : '';
+  const fallback = hit.message.sticker ? context.translations.globalSearch.sticker : richLabel(hit.message, context.translations) ?? '';
   return (
     <button type="button" data-testid="global-search-message" data-message-id={String(hit.message.id)} onClick={() => context.onOpen(hit)}
       className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent hover:text-accent-foreground">

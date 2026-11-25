@@ -7,7 +7,8 @@ import { Message, ContextMenuState, ModalState } from '@/entities/message';
 import { useDeleteMessageForMeMutation } from '@/entities/message';
 import { discardServerUnsent, notifyMessageDeletedLocally } from '@/entities/message';
 import { messageAudioTrack, queueLast, queueNext, requestAddToPlaylist, requestContentReport } from '@/entities/message';
-import { findPin, isPinnableMessage, requestPinChange, useGetPinnedMessagesQuery } from '@/entities/message';
+import { findPin, isPinnableMessage, requestPinChange, richCopyText, useGetPinnedMessagesQuery } from '@/entities/message';
+import { usePollMenuActions } from '../model/pollMenuActions';
 import { isPersistedId } from '@/shared/api/entityId';
 import ContextMenuComponent from '@/shared/ui/ContextMenuComponent';
 import { makeStickerFrom } from '@/entities/sticker';
@@ -15,6 +16,8 @@ import { isGoApi } from '@/shared/api/goSocket';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { plainEmoji } from '@/shared/lib/customEmoji';
 import { requestMessageDelete } from '../model/deleteRequest';
+
+const VIDEO_STICKER_MAX_BYTES = 15 * 1024 * 1024;
 
 interface ContextMenuProps {
   contextMenu: ContextMenuState;
@@ -86,8 +89,10 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const message = messages.find((m) => m.id === contextMenu.messageId);
     const isFile = message?.type === 'file';
     const fileContent = message && typeof message.content !== 'string' ? message.content : null;
-    const canEdit = !!message && !message.forwarded_from && !message.sticker && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
-    const stickerSource = fileContent && fileContent.file_type.startsWith('image/') && !fileContent.album?.length ? fileContent.file_url : null;
+    const canEdit = !!message && !message.forwarded_from && !message.sticker && !message.poll && !message.contact && !message.location && (message.type === 'message' || (isFile && fileContent?.file_type !== 'voice'));
+    const stickerType = fileContent?.file_type ?? '';
+    const stickerSource = fileContent && !fileContent.album?.length && (stickerType.startsWith('image/')
+      || (stickerType.startsWith('video/') && fileContent.file_size <= VIDEO_STICKER_MAX_BYTES)) ? fileContent.file_url : null;
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
     const song = message ? messageAudioTrack(message, translations.voiceMessage) : null;
     const musicTrack = song?.kind === 'music' ? song : null;
@@ -97,6 +102,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const canPin = pinsOn && !!message && isPinnableMessage(message);
     const canReport = isGoApi() && !!message && !contextMenu.isMine && !message.is_own && isPersistedId(message.id)
       && !message.is_deleted && !message.system_event && !message.is_system;
+
+    const pollActions = usePollMenuActions(chatId, message, () => closeMenu());
 
     const handleEdit = () => {
       if (message && canEdit) {
@@ -152,7 +159,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     };
     const handleCopy = async () => {
       if (message) {
-        const text = message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content);
+        const text = richCopyText(message) ?? (message.type === 'file' && typeof message.content !== 'string' ? message.content.file_url : String(message.content));
         await copyText(text);
       }
       closeMenu();
@@ -192,7 +199,8 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
           closeMenu();
           requestContentReport({ kind: 'message', chatId, messageId: message.id, name: message.sender });
         } : undefined}
-        onMakeSticker={stickerSource && isGoApi() ? () => { closeMenu(); makeStickerFrom(stickerSource); } : undefined}
+        onMakeSticker={stickerSource && isGoApi() ? () => { closeMenu(); makeStickerFrom(stickerSource, fileContent?.file_name); } : undefined}
+        extraActions={pollActions}
         audioActions={musicTrack ? {
           onPlayNext: () => { closeMenu(); queueNext(musicTrack, translations.audioPlayer.playingNext); },
           onAddToQueue: () => { closeMenu(); queueLast(musicTrack, translations.audioPlayer.addedToQueue); },

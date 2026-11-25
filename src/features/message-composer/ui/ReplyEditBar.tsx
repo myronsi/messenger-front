@@ -1,6 +1,6 @@
 import React from 'react';
 import { File as FileIcon, Mic, Pencil, Reply, X } from 'lucide-react';
-import { formatAudioTime, type Message } from '@/entities/message';
+import { formatAudioTime, richLabel, type Message } from '@/entities/message';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DrawingOverlay, type Drawing } from '@/shared/ui/drawing';
@@ -24,9 +24,12 @@ interface ReplyBarPreview {
   isVoice?: boolean;
 }
 
-const preview = (message: Message, voiceLabel: string, stickerLabel: string): ReplyBarPreview => {
+const preview = (message: Message, translations: Translations): ReplyBarPreview => {
   const { content, sticker } = message;
-  if (sticker) return { text: `${sticker.emoji} ${stickerLabel}`, imageUrl: sticker.image_url };
+  const voiceLabel = translations.voiceMessage || 'Voice message';
+  if (sticker) return { text: `${sticker.emoji} ${translations.sticker}`, imageUrl: sticker.image_url };
+  const rich = richLabel(message, translations);
+  if (rich) return { text: rich };
   if (typeof content === 'string') return { text: content.replace(/\s+/g, ' ').trim() };
   if (content?.file_type === 'voice') {
     const seconds = content.audio_metadata?.duration;
@@ -41,7 +44,7 @@ const preview = (message: Message, voiceLabel: string, stickerLabel: string): Re
 };
 
 const ReplyEditBar: React.FC<ReplyEditBarProps> = ({ message, mode, translations, onCancel, showCancel = true }) => {
-  const { text, imageUrl, drawing, aspect, isFile, isVoice } = preview(message, translations.voiceMessage || 'Voice message', translations.sticker);
+  const { text, imageUrl, drawing, aspect, isFile, isVoice } = preview(message, translations);
   const Icon = mode === 'reply' ? Reply : Pencil;
   const label = mode === 'reply' ? translations.replyTo || 'Reply to' : translations.editing || 'Editing';
   const author = mode === 'reply' ? message.sender : null;

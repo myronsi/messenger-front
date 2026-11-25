@@ -40,6 +40,9 @@ const attachmentOf = (message: Message): FileMessageContent | null =>
   (message.content && typeof message.content === 'object' ? message.content : null);
 
 export const globalSearchText = (message: Message) => {
+  if (message.poll) return [message.poll.question, ...message.poll.options.map((option) => option.text)].join(' ');
+  if (message.location) return message.location.title ?? '';
+  if (message.contact) return '';
   const attachment = attachmentOf(message);
   if (!attachment) return typeof message.content === 'string' ? message.content : '';
   return attachment.caption || '';

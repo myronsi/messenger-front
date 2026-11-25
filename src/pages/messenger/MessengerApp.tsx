@@ -6,7 +6,8 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Toaster } from '@/shared/ui/toaster';
 import ChatsListComponentRTK from '@/widgets/chat-list';
 import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-panel';
-import { AddToPlaylistHost, ReactionBurstHost, startAudioSession } from '@/entities/message';
+import { AddToPlaylistHost, PollCloseHost, ReactionBurstHost, startAudioSession } from '@/entities/message';
+import { AttachHost } from '@/widgets/attach-host';
 import { NowPlayingHost } from '@/features/audio-player';
 import { useMessengerController } from './model/useMessengerController';
 import { chatPanelKey } from './model/messengerRoutes';
@@ -207,6 +208,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
         <AddToPlaylistHost />
         <NowPlayingHost />
         <ReactionBurstHost />
+        {isGoApi() && <><AttachHost /><PollCloseHost /></>}
         {isGoApi() && <RecoverySetupPrompt key={username} />}
         {<RecoveryApprovalPrompt key={`approval:${username}`} />}
         {<SecurityNoticeHandler key={`security:${username}`} />}{isGoApi() && <AccountStatusHost key={`moderation:${username}`} />}

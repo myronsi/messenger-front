@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Camera, ChevronDown, ImageIcon, Loader2 } from 'lucide-react';
+import { Camera, ChevronDown, ImageIcon, ImageMinus, Loader2 } from 'lucide-react';
 import type { ProfileBackground } from '@/entities/user';
 import { ProfileBackgroundEditor, type SetBackgroundBody } from '@/features/profile';
 import { EmojiAutocomplete } from '@/features/message-composer';
 import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '@/features/groups';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { cn } from '@/shared/lib/utils';
+import { isDefaultAvatar } from '@/shared/lib/letterAvatar';
 import { Button } from '@/shared/ui/button';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import AvatarCropModal from '@/shared/ui/AvatarCropModal';
@@ -37,6 +38,7 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
   const [avatar, setAvatar] = useState<{ file: File; url: string } | null>(null);
+  const [removeAvatar, setRemoveAvatar] = useState(false);
   const [cropping, setCropping] = useState<{ file: File; url: string } | null>(null);
   const [backgroundDraft, setBackgroundDraft] = useState<BackgroundDraft | undefined>(undefined);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
@@ -55,7 +57,8 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
   useEffect(() => () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); }, [avatarPreview]);
 
   const infoChanged = name !== initialName || description !== initialDescription;
-  const hasChanges = infoChanged || !!avatar || backgroundDraft !== undefined;
+  const hasChanges = infoChanged || !!avatar || removeAvatar || backgroundDraft !== undefined;
+  const hasPhoto = !!avatar || (!removeAvatar && !!avatarUrl && !isDefaultAvatar(avatarUrl));
   const canSave = !!name.trim();
   const shownBackground = backgroundDraft ? backgroundDraft.preview : background;
   const backgroundValue = !shownBackground ? t.noBackground
@@ -65,7 +68,7 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
   const save = async () => {
     const saved = await onSave({
       ...(infoChanged ? { info: { name, description } } : {}),
-      ...(avatar ? { avatar: avatar.file } : {}),
+      ...(avatar ? { avatar: avatar.file } : removeAvatar ? { avatar: null } : {}),
       ...(backgroundDraft !== undefined ? { background: backgroundDraft.body } : {}),
     });
     if (saved) {
@@ -95,7 +98,7 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
 
   const avatarImage = avatar
     ? <img src={avatar.url} alt={g.groupPicture} className="h-full w-full object-cover" />
-    : <AuthenticatedImage src={avatarUrl} alt={g.groupPicture} initialsFrom={name || initialName} className="h-full w-full object-cover" />;
+    : <AuthenticatedImage src={removeAvatar ? undefined : avatarUrl} alt={g.groupPicture} initialsFrom={name || initialName} className="h-full w-full object-cover" />;
   const avatarOverlay = (
     <label htmlFor={inputId} aria-label={g.groupPicture}
       className="absolute inset-1 flex cursor-pointer items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/50">
@@ -122,9 +125,16 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
           avatar={avatarImage}
           avatarOverlay={avatarOverlay}
           actions={(
-            <Button type="button" variant="outline" size="sm" onClick={() => setBackgroundOpen(true)}>
-              <ImageIcon className="h-4 w-4" />{t.changeBackground}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setBackgroundOpen(true)}>
+                <ImageIcon className="h-4 w-4" />{t.changeBackground}
+              </Button>
+              {hasPhoto && (
+                <Button type="button" variant="outline" size="sm" onClick={() => { if (avatar) setAvatar(null); else setRemoveAvatar(true); }}>
+                  <ImageMinus className="h-4 w-4" />{raw.groupPhoto.remove}
+                </Button>
+              )}
+            </div>
           )}
           title={(
             <div className="relative">
@@ -178,6 +188,7 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
         <AvatarCropModal file={cropping.file} imageUrl={cropping.url} title={g.groupPicture} onCancel={closeCrop}
           onConfirm={(file) => {
             setAvatar({ file, url: URL.createObjectURL(file) });
+            setRemoveAvatar(false);
             closeCrop();
           }} />
       )}

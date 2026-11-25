@@ -42,6 +42,9 @@ export const messagePins = {
       message: "un mensaje",
       voice: "un mensaje de voz",
       sticker: "un sticker",
+      poll: "una encuesta",
+      contact: "un contacto",
+      location: "una ubicación",
     },
   },
 };

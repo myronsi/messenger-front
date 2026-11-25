@@ -170,6 +170,21 @@ describe('message text and look', () => {
     expect(await shownBody({ message_id: '5', content_type: 'album' })).toBe('Альбом');
     expect(await shownBody({ message_id: '6', preview: false, title: 'Messenger' })).toBe('Новое сообщение');
   });
+
+  it('names polls, contacts and places with their own label', async () => {
+    const w = worker(); await w.account('1', { api: '/api/v2', language: 'en' });
+    const shownBody = async (extra: Record<string, unknown>) => {
+      await w.message({ chat_id: String(extra.message_id), title: 'Mai', preview: true, body: '', ...extra });
+      return w.registration.showNotification.mock.lastCall?.[1].body;
+    };
+    expect(await shownBody({ message_id: '11', content_type: 'poll', body: 'Lunch?' })).toBe('📊 Lunch?');
+    expect(await shownBody({ message_id: '12', content_type: 'poll', body: '📊 Lunch?' })).toBe('📊 Lunch?');
+    expect(await shownBody({ message_id: '13', content_type: 'location', body: 'Office' })).toBe('📍 Location: Office');
+    expect(await shownBody({ message_id: '14', content_type: 'location', body: '📍 https://www.openstreetmap.org/?mlat=1' })).toBe('📍 Location');
+    expect(await shownBody({ message_id: '15', content_type: 'contact' })).toBe('👤 Contact');
+    expect(await shownBody({ message_id: '16', content_type: 'contact', body: 'Ben' })).toBe('👤 Ben');
+    expect(await shownBody({ message_id: '17', content_type: 'poll', body: 'Lunch?', preview: false, title: 'Messenger' })).toBe('New message');
+  });
   it('shows a group by its name with each sender on its own line', async () => {
     const w = worker(); await w.account('1', { api: '/api/v2' });
     const group = { chat_type: 'group', chat_title: 'Family', preview: true, avatar_token: 'c.7' };
