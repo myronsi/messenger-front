@@ -103,3 +103,14 @@ it('never shows the old day back in place while the next day takes over', () => 
   expect(transform).toBe('');
   expect(seen.some((entry) => entry.transform === '' && entry.label === 'Yesterday')).toBe(false);
 });
+
+it('measures from below the pinned bar, where the badge is drawn', () => {
+  container.style.setProperty('--pinned-inset', '60px');
+  at(yesterday, 40);
+  at(today, 130);
+  const { result, rerender } = render(false);
+  rerender({ on: true });
+  expect(result.current.label).toBe('Today');
+  expect(today.hasAttribute('data-covered')).toBe(true);
+  expect(result.current.badgeRef.current!.style.transform).toBe('');
+});
