@@ -6,6 +6,14 @@ import {
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { Message } from '../model/types';
+import { IMPORT_SOURCE_NAMES } from '../model/importSourceName';
+import { fillTemplate } from '@/shared/lib/fillTemplate';
+import { History } from 'lucide-react';
+
+const importedLabel = (message: Message, translations: Translations) => (message.import ? fillTemplate(translations.chatImport.importedFrom, {
+  source: IMPORT_SOURCE_NAMES[message.import.source],
+  date: new Date(message.import.original_at ?? message.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
+}) : null);
 
 const clockIcons = [Clock1, Clock2, Clock3, Clock4, Clock5, Clock6, Clock7, Clock8, Clock9, Clock10, Clock11, Clock12];
 
@@ -52,8 +60,14 @@ const MessageTime: React.FC<MessageTimeProps> = ({
       {isGroup && message.read_by?.length > 0 && <span>{message.read_by.length}</span>}
     </>
   );
+  const imported = importedLabel(message, translations);
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap">
+      {imported && (
+        <span data-testid="imported-mark" title={imported} className="inline-flex items-center">
+          <History size={12} aria-hidden="true" /><span className="sr-only">{imported}</span>
+        </span>
+      )}
       {message.edited_at && <span>{translations.edited}</span>}
       <span>{time}</span>
       {isMine && !message.delivery_error && (interactive && isGroup && !isUploading && !isPending && onOpenReadStatus ? (

@@ -1,6 +1,6 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
 import React, { useRef, useState } from 'react';
-import { Bookmark, MessageSquarePlus, PenSquare, QrCode, Search, UsersRound } from 'lucide-react';
+import { Bookmark, FileInput, MessageSquarePlus, PenSquare, QrCode, Search, UsersRound } from 'lucide-react';
 import { TabHeader } from '@/shared/ui/TabHeader';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui/drawer';
@@ -14,12 +14,13 @@ interface ChatsListHeaderProps {
   onNewGroup: () => void;
   onScanQr: () => void;
   onOpenSaved?: () => void;
+  onImportChat?: () => void;
 }
 
 type NewAction = { key: string; icon: React.ReactNode; label: string; hint: string; run: () => void };
 
 const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
-  translations, onOpenSearch, onNewGroup, onScanQr, onOpenSaved,
+  translations, onOpenSearch, onNewGroup, onScanQr, onOpenSaved, onImportChat,
 }) => {
   const t = translations.appShell;
   const isMobile = useIsMobile();
@@ -35,6 +36,8 @@ const ChatsListHeader: React.FC<ChatsListHeaderProps> = ({
     { key: 'qr', icon: <QrCode className="h-5 w-5 text-subtle-foreground" />, label: t.scanQr, hint: t.scanQrHint, run: onScanQr },
     ...(onOpenSaved ? [{ key: 'saved', icon: <Bookmark className="h-5 w-5 text-primary" />, label: translations.chatOrganizer.savedMessages,
       hint: translations.chatOrganizer.savedMessagesHint, run: onOpenSaved }] : []),
+    ...(onImportChat ? [{ key: 'import', icon: <FileInput className="h-5 w-5 text-primary" />, label: translations.chatImport.importChat,
+      hint: translations.chatImport.importChatHint, run: onImportChat }] : []),
   ].filter((action) => canScanQr || action.key !== 'qr');
 
   return (

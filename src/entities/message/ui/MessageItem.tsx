@@ -22,6 +22,7 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import { bubbleClass } from '../model/bubbleClass';
 import { readDoubleTapReaction } from '../model/reactionUsage';
+import { importedSenderName } from '../model/importedMessages';
 import { AlertCircle, Check } from 'lucide-react';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
 const PopRing: React.FC<{ isMine: boolean }> = ({ isMine }) => {
@@ -109,7 +110,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
     isValidTimestamp(prevMessage.timestamp) &&
     getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(prevMessage.timestamp)
   );
-  const senderKey = (item: Message) => isOwnMessage(item) ? 'own' : item.sender_id ? `id:${item.sender_id}` : `name:${(item.sender_username || item.sender || '').toLowerCase()}`;
+  const importedName = importedSenderName(message);
+  const senderKey = (item: Message) => importedSenderName(item) !== null ? `import:${importedSenderName(item)}` : isOwnMessage(item) ? 'own'
+    : item.sender_id ? `id:${item.sender_id}` : `name:${(item.sender_username || item.sender || '').toLowerCase()}`;
   const groupedWithPrevious = !!prevMessage && senderKey(message) === senderKey(prevMessage) && !showDateSeparator &&
     !showNewMessagesMarker;
   const groupedWithNext = !!nextMessage && senderKey(message) === senderKey(nextMessage) &&
@@ -117,9 +120,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
       getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(nextMessage.timestamp)) &&
     !nextShowsNewMessagesMarker;
   const isLastInGroup = !groupedWithNext;
-  const showSenderName = isGroup && !isMine && !groupedWithPrevious;
+  const showSenderName = (isGroup || importedName !== null) && !isMine && !groupedWithPrevious;
   const reserveAvatarSpace = isGroup && !isMine;
-  const showAvatar = reserveAvatarSpace && isLastInGroup;
+  const showAvatar = reserveAvatarSpace && isLastInGroup && importedName === null;
   const showTail = isLastInGroup && !isImage;
   const hasImageCaption = isImage && typeof message.content !== 'string' && !!message.content?.caption?.trim();
   const isText = !isSticker && message.type !== 'file' && typeof message.content === 'string';
@@ -218,7 +221,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
           )}
           {reserveAvatarSpace && !showAvatar && <div className="h-8 w-8 shrink-0" aria-hidden="true" />}
           <div data-message-column className={`group relative flex min-w-0 flex-col ${isText ? 'flex-1' : ''} ${isMine ? 'items-end' : 'items-start'}`}>
-            {showSenderName && (
+            {showSenderName && importedName !== null && (
+              <span data-testid="imported-sender" className="mb-1 max-w-[220px] truncate px-1 text-sm text-muted-foreground">{importedName}</span>
+            )}
+            {showSenderName && importedName === null && (
               <button type="button" onClick={(event) => {
                 event.stopPropagation();
                 onAvatarClick(message.sender_username || message.sender);
