@@ -2,6 +2,7 @@ import type { DateOrder, ParsedChat } from '../model/types';
 import { ImportParseError } from '../model/types';
 import { baseName, extensionOf } from '../parsers/common';
 import { isTelegramHtml, parseTelegram } from '../parsers/telegram';
+import { isWhatsAppText, parseWhatsApp } from '../parsers/whatsapp';
 import { dirName, filesArchive, pathResolver, zipArchive, type ExportArchive } from './exportArchive';
 import { ZipError } from './zipReader';
 
@@ -30,6 +31,17 @@ const shortest = (paths: readonly string[]) => [...paths].sort((a, b) => a.lengt
 
 const textOf = async (archive: ExportArchive, path: string) => new TextDecoder('utf-8').decode(await (await archive.file(path)).arrayBuffer());
 
+const findWhatsAppText = async (archive: ExportArchive) => {
+  const texts = archive.paths.filter((path) => extensionOf(path) === 'txt');
+  if (texts.length <= 1) return texts[0] ?? null;
+  const preferred = texts.find((path) => baseName(path) === '_chat.txt') ?? texts.find((path) => /whatsapp/i.test(baseName(path)));
+  if (preferred) return preferred;
+  for (const path of texts) {
+    if (isWhatsAppText(await textOf(archive, path))) return path;
+  }
+  return null;
+};
+
 const withResolvedPaths = (chat: ParsedChat, resolve: (path: string) => string | null, archive: ExportArchive): ParsedChat => ({
   ...chat,
   messages: chat.messages.map((message) => {
@@ -52,9 +64,9 @@ const telegramSession = async (archive: ExportArchive, path: string): Promise<Pa
 
 const parseFailure = (error: unknown) => (error instanceof ZipError ? new ImportParseError('brokenFile') : error);
 
-export const openImportSession = async (files: readonly File[], _options: OpenOptions): Promise<ImportSession> => {
+export const openImportSession = async (files: readonly File[], options: OpenOptions): Promise<ImportSession> => {
   if (files.length === 0) throw new ImportParseError('noChatFile');
-  const { archive } = await openArchive(files).catch((error: unknown) => { throw parseFailure(error); });
+  const { archive, names } = await openArchive(files).catch((error: unknown) => { throw parseFailure(error); });
   const file = archive.file;
   const telegram = archive.paths.filter((path) => baseName(path) === 'result.json' || (archive.paths.length === 1 && extensionOf(path) === 'json'));
   if (telegram.length) {
@@ -62,5 +74,15 @@ export const openImportSession = async (files: readonly File[], _options: OpenOp
     return { chat, reparse: () => chat, file };
   }
   if (isTelegramHtml(archive.paths)) throw new ImportParseError('telegramHtml');
-  throw new ImportParseError('noChatFile');
+  const textPath = await findWhatsAppText(archive);
+  if (!textPath) throw new ImportParseError('noChatFile');
+  const content = await textOf(archive, textPath);
+  const resolve = pathResolver(archive.paths, dirName(textPath));
+  const parse = (order?: DateOrder) => withResolvedPaths(parseWhatsApp(content, {
+    fileNames: [baseName(textPath), ...names, ...files.map((item) => item.name)],
+    hasFile: (name) => resolve(name) !== null,
+    localeOrder: options.localeOrder,
+    order,
+  }), resolve, archive);
+  return { chat: parse(), reparse: parse, file };
 };
