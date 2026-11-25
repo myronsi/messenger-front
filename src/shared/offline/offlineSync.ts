@@ -28,11 +28,8 @@ const headCursor = async (db: OfflineDb) => {
 
 setOfflineCursorInit(headCursor);
 
-const IMPORT_KINDS: ReadonlySet<string> = new Set(['history_imported']);
-
 const toChange = (change: SyncChange): OfflineChange | null => {
   const chatId = change.chat_id;
-  if (IMPORT_KINDS.has(change.type)) return { type: 'imported', chatId };
   switch (change.type) {
     case 'message_updated':
       return change.message ? { type: 'updated', chatId, message: messageModel(change.message) } : null;
@@ -43,6 +40,8 @@ const toChange = (change: SyncChange): OfflineChange | null => {
       return change.before_message_id ? { type: 'cleared', chatId, beforeId: change.before_message_id } : null;
     case 'pins_changed':
       return { type: 'pins', chatId };
+    case 'history_imported':
+      return { type: 'imported', chatId };
     default:
       return null;
   }

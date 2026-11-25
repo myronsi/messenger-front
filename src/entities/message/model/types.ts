@@ -1,5 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Drawing } from '@/shared/ui/drawing';
+import type { components } from '@/shared/api/generated/schema';
 import type { ImportSummaryInfo, MessageImportInfo } from './importTypes';
 
 export interface AudioMetadata {
@@ -56,8 +57,7 @@ export interface ForwardedFrom {
   sender_username?: string | null;
 }
 
-export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call'
-  | 'message_pinned' | 'message_unpinned' | 'history_imported' | 'history_import_ended' | 'imported_note';
+export type SystemEventKind = components['schemas']['SystemEventKind'];
 
 export interface CallSummaryInfo {
   call_id: EntityId;
@@ -75,7 +75,7 @@ export interface SystemEventInfo {
   call?: CallSummaryInfo;
   message_id?: EntityId;
   snippet?: string;
-  message_type?: 'text' | 'file' | 'voice' | 'system' | 'sticker';
+  message_type?: components['schemas']['MessageType'];
   import?: ImportSummaryInfo;
   text?: string;
 }
