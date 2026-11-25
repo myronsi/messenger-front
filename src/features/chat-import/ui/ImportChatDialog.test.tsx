@@ -156,7 +156,8 @@ describe('ImportChatDialog', () => {
   });
 
   it('shows why the server refused to start', async () => {
-    calls.start.mockResolvedValue({ error: { status: 409, data: { code: 'import_overlap' } } });
+    const message = 'the chat already has imported history from that period';
+    calls.start.mockResolvedValue({ error: { status: 409, data: { code: 'conflict', errors: [{ message }] } } });
     show();
     pick(chatFile());
     fireEvent.click(await screen.findByRole('button', { name: en.chatImport.actions.next }));

@@ -59,4 +59,5 @@ export class ImportParseError extends Error {
 
 export const MAX_IMPORT_MESSAGES = 100_000;
 export const MAX_IMPORT_FILES = 5_000;
+export const MAX_IMPORT_SENDERS = 200;
 export const IMPORT_BATCH_SIZE = 500;

@@ -18,6 +18,8 @@ export const chatImport = {
       brokenFile: 'Diese Datei konnte nicht gelesen werden.',
       tooManyMessages: 'Ein Import kann höchstens {count} Nachrichten enthalten.',
       tooManyFiles: 'Ein Import kann höchstens {count} Dateien enthalten. Exportiere den Chat ohne Medien oder wähle weniger Dateien.',
+      tooManySenders: 'Ein Import kann höchstens {count} verschiedene Absender enthalten.',
+      noRoom: 'In diesem Chat ist vor der ersten Nachricht kein Platz für importierten Verlauf.',
       startFailed: 'Der Import konnte nicht starten. Versuche es erneut.',
       overlap: 'Dieser Chat hat bereits importierten Verlauf aus diesem Zeitraum.',
       notAllowed: 'Du kannst in diesen Chat keinen Verlauf importieren.',

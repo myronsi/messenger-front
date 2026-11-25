@@ -85,12 +85,12 @@ describe('runImport', () => {
     expect(batches[0].messages[50]).toMatchObject({ index: 650, attachment_ids: ['old-id'] });
   });
 
-  it('reads next_index again after an index gap', async () => {
+  it('reads next_index again after a 409 for a batch', async () => {
     let first = true;
     const addMessages = vi.fn(async (_id: unknown, body: AddImportMessagesRequest) => {
       if (first) {
         first = false;
-        return fail(409, 'index_gap');
+        return fail(409, 'conflict');
       }
       return ok({ next_index: body.from_index + body.messages.length });
     });

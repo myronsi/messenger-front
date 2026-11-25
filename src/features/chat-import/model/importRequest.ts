@@ -46,10 +46,13 @@ const body = (message: ParsedMessage, context: BuildContext): Pick<ImportedMessa
   return { type: attachment.kind === 'voice' ? 'voice' : 'file', content: message.text ? clip(message.text) : null, attachment_ids: [id] };
 };
 
-export const importedMessage = (message: ParsedMessage, context: BuildContext): ImportedMessage => ({
-  index: message.index,
-  ...(message.senderKey ? { sender_key: message.senderKey } : {}),
-  original_at: message.originalAt,
-  ...body(message, context),
-  ...(message.replyToIndex === undefined ? {} : { reply_to_index: message.replyToIndex }),
-});
+export const importedMessage = (message: ParsedMessage, context: BuildContext): ImportedMessage => {
+  const content = body(message, context);
+  return {
+    index: message.index,
+    ...(message.senderKey && content.type !== 'note' ? { sender_key: message.senderKey } : {}),
+    original_at: message.originalAt,
+    ...content,
+    ...(message.replyToIndex === undefined ? {} : { reply_to_index: message.replyToIndex }),
+  };
+};

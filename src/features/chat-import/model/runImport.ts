@@ -1,5 +1,4 @@
 import type { EntityId } from '@/shared/api/entityId';
-import { problemCode } from '@/shared/api/problem';
 import { importCalls } from '../api/importApi';
 import { errorStatus } from '../api/importFetch';
 import type { ChatImport } from '../api/importTypes';
@@ -97,7 +96,7 @@ const sendBatches = async (options: RunOptions, deps: RunDeps, ids: Map<string, 
     if (!result.error) {
       failures = 0;
       index = Math.max(result.data.next_index, index + 1);
-    } else if (errorStatus(result.error) === 409 && problemCode(result.error) === 'index_gap' && failures < RETRIES) {
+    } else if (errorStatus(result.error) === 409 && failures < RETRIES) {
       failures += 1;
       const current = await deps.calls.get(options.importId, options.signal);
       if (current.error) throw new ImportRunError('stopped');

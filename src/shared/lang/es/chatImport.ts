@@ -18,6 +18,8 @@ export const chatImport = {
       brokenFile: 'No se pudo leer este archivo.',
       tooManyMessages: 'Una importación puede tener como máximo {count} mensajes.',
       tooManyFiles: 'Una importación puede tener como máximo {count} archivos. Exporta el chat sin multimedia o elige menos archivos.',
+      tooManySenders: 'Una importación puede tener como máximo {count} remitentes distintos.',
+      noRoom: 'Este chat no tiene espacio para historial importado antes de su primer mensaje.',
       startFailed: 'No se pudo iniciar la importación. Inténtalo de nuevo.',
       overlap: 'Este chat ya tiene historial importado de ese periodo.',
       notAllowed: 'No puedes importar historial en este chat.',

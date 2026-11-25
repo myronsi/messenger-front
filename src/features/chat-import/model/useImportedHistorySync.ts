@@ -8,11 +8,16 @@ import type { ImportServerEvent } from '../api/importTypes';
 
 const IMPORT_EVENTS: ReadonlySet<string> = new Set(['import_update', 'import_sender_update']);
 
-export const importEventChat = (event: unknown): string | null => {
+const RELOAD_STATES: ReadonlySet<string> = new Set(['done', 'removing']);
+
+export const importEventEffect = (event: unknown): { chatId: string; reload: boolean } | null => {
   const value = event as Partial<ImportServerEvent> | null;
   if (!value || typeof value.type !== 'string' || !IMPORT_EVENTS.has(value.type)) return null;
-  const chatId = value.chat_id;
-  return chatId === undefined || chatId === null ? null : String(chatId);
+  if (value.chat_id === undefined || value.chat_id === null) return null;
+  const reload = value.type === 'import_update'
+    ? RELOAD_STATES.has(value.data?.state ?? '')
+    : (value.data as { sender?: { state?: string } } | undefined)?.sender?.state !== 'pending';
+  return { chatId: String(value.chat_id), reload };
 };
 
 export const useImportedHistorySync = (chatId: EntityId | null, reload: () => unknown) => {
@@ -22,15 +27,18 @@ export const useImportedHistorySync = (chatId: EntityId | null, reload: () => un
 
   useEffect(() => {
     if (chatId === null || !isPersistedId(chatId)) return undefined;
-    const refresh = () => {
+    const refresh = (reload: boolean) => {
       dispatch(importApi.util.invalidateTags([{ type: 'Chat', id: `imports:${chatId}` }]));
-      void reloadRef.current();
+      if (reload) void reloadRef.current();
     };
     const stopRealtime = realtime.subscribe({
-      onEvent: (event) => { if (importEventChat(event) === String(chatId)) refresh(); },
+      onEvent: (event) => {
+        const effect = importEventEffect(event);
+        if (effect?.chatId === String(chatId)) refresh(effect.reload);
+      },
     });
     const stopOffline = onOfflineChanges((changes) => {
-      if (changes.some((change) => change.type === 'imported' && change.chatId === String(chatId))) refresh();
+      if (changes.some((change) => change.type === 'imported' && change.chatId === String(chatId))) refresh(true);
     });
     return () => { stopRealtime(); stopOffline(); };
   }, [chatId, dispatch]);

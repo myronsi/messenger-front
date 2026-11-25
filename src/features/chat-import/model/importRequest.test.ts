@@ -62,10 +62,13 @@ describe('importedMessage', () => {
       type: 'note', content: 'File not imported: v.mp4 (too large)\nParty',
     });
     expect(importedMessage(video, context())).toMatchObject({ type: 'note', content: 'File not imported: v.mp4 (missing)\nParty' });
+    expect(importedMessage(video, context())).not.toHaveProperty('sender_key');
   });
 
-  it('writes notes for polls and leaves the sender out of service lines', () => {
-    expect(importedMessage(message({ notice: { code: 'poll', detail: 'Where?' } }), context())).toMatchObject({ type: 'note', sender_key: 's-2', content: 'Poll: Where?' });
+  it('writes notes without a sender for polls and service lines', () => {
+    const poll = importedMessage(message({ notice: { code: 'poll', detail: 'Where?' } }), context());
+    expect(poll).toMatchObject({ type: 'note', content: 'Poll: Where?' });
+    expect(poll).not.toHaveProperty('sender_key');
     const service = importedMessage(message({ senderKey: null, notice: { code: 'service', detail: 'Anna added Carla' } }), context());
     expect(service).toMatchObject({ type: 'note', content: 'Anna added Carla' });
     expect(service).not.toHaveProperty('sender_key');
