@@ -10,7 +10,7 @@ const ACTION_TITLES = {
     missed: 'Missed call', ended: 'Call ended', answered: 'Answered on another device',
     birthday: (name) => `${name} has a birthday today`, someoneBirthday: 'Someone you chat with has a birthday today',
     newMessage: 'New message', photo: 'Photo', video: 'Video', audio: 'Audio', voice: 'Voice message', file: 'File', album: 'Album',
-    sticker: 'Sticker',
+    sticker: 'Sticker', poll: 'Poll', contact: 'Contact', location: 'Location',
     mentioned: (name, chat) => (chat ? `${name} mentioned you in ${chat}` : `${name} mentioned you`), mentionHidden: 'You were mentioned',
   },
   ru: {
@@ -18,7 +18,7 @@ const ACTION_TITLES = {
     missed: 'Пропущенный звонок', ended: 'Звонок завершён', answered: 'Принят на другом устройстве',
     birthday: (name) => `У ${name} сегодня день рождения`, someoneBirthday: 'У одного из собеседников сегодня день рождения',
     newMessage: 'Новое сообщение', photo: 'Фото', video: 'Видео', audio: 'Аудио', voice: 'Голосовое сообщение', file: 'Файл', album: 'Альбом',
-    sticker: 'Стикер',
+    sticker: 'Стикер', poll: 'Опрос', contact: 'Контакт', location: 'Место',
     mentioned: (name, chat) => (chat ? `${name} упоминает вас в ${chat}` : `${name} упоминает вас`), mentionHidden: 'Вас упомянули',
   },
   es: {
@@ -26,7 +26,7 @@ const ACTION_TITLES = {
     missed: 'Llamada perdida', ended: 'Llamada finalizada', answered: 'Respondida en otro dispositivo',
     birthday: (name) => `${name} cumple años hoy`, someoneBirthday: 'Alguien con quien chateas cumple años hoy',
     newMessage: 'Nuevo mensaje', photo: 'Foto', video: 'Vídeo', audio: 'Audio', voice: 'Mensaje de voz', file: 'Archivo', album: 'Álbum',
-    sticker: 'Sticker',
+    sticker: 'Sticker', poll: 'Encuesta', contact: 'Contacto', location: 'Ubicación',
     mentioned: (name, chat) => (chat ? `${name} te mencionó en ${chat}` : `${name} te mencionó`), mentionHidden: 'Te mencionaron',
   },
   de: {
@@ -34,7 +34,7 @@ const ACTION_TITLES = {
     missed: 'Verpasster Anruf', ended: 'Anruf beendet', answered: 'Auf einem anderen Gerät angenommen',
     birthday: (name) => `${name} hat heute Geburtstag`, someoneBirthday: 'Jemand, mit dem du schreibst, hat heute Geburtstag',
     newMessage: 'Neue Nachricht', photo: 'Foto', video: 'Video', audio: 'Audio', voice: 'Sprachnachricht', file: 'Datei', album: 'Album',
-    sticker: 'Sticker',
+    sticker: 'Sticker', poll: 'Umfrage', contact: 'Kontakt', location: 'Standort',
     mentioned: (name, chat) => (chat ? `${name} hat dich in ${chat} erwähnt` : `${name} hat dich erwähnt`), mentionHidden: 'Du wurdest erwähnt',
   },
 };
@@ -43,7 +43,7 @@ const cancelledCalls = new Map();
 const CALL_REASONS = new Set(['missed', 'declined', 'answered', 'ended']);
 const chatQueues = new Map();
 const readUpTo = new Map();
-const CONTENT_LABELS = new Set(['photo', 'video', 'audio', 'voice', 'file', 'album', 'sticker']);
+const CONTENT_LABELS = new Set(['photo', 'video', 'audio', 'voice', 'file', 'album', 'sticker', 'poll', 'contact', 'location']);
 const APP_ICON = '/pwa-192x192.png';
 const BADGE_SOURCE = '/maskable-icon-512x512.png';
 const ICON_SIZE = 192;
@@ -53,12 +53,22 @@ const icons = new Map();
 function titlesFor(settings) {
   return ACTION_TITLES[settings.language] || ACTION_TITLES.en;
 }
+function withoutLead(body, lead) {
+  return (body.startsWith(lead) ? body.slice(lead.length) : body).trim();
+}
+function richText(type, body, titles) {
+  if (type === 'poll') return `📊 ${withoutLead(body, '📊') || titles.poll}`;
+  if (type === 'contact') return `👤 ${withoutLead(body, '👤') || titles.contact}`;
+  const name = withoutLead(body, '📍').replace(/\s*https?:\/\/\S+/g, '').trim();
+  return name ? `📍 ${titles.location}: ${name}` : `📍 ${titles.location}`;
+}
 function messageText(data, titles, preview) {
   if (!preview) return titles.newMessage;
   const body = typeof data.body === 'string' ? data.body : '';
   const type = String(data.content_type || '');
   if (!CONTENT_LABELS.has(type)) return body || titles.newMessage;
   if (type === 'sticker') return body ? `${body} ${titles.sticker}` : titles.sticker;
+  if (type === 'poll' || type === 'contact' || type === 'location') return richText(type, body, titles);
   if (type === 'voice') return titles.voice;
   return body || titles[type];
 }

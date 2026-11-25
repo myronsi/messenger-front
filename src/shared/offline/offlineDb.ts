@@ -6,10 +6,18 @@ import { indexWords, matchesQuery, queryWords } from './searchWords';
 export interface OfflineMessage {
   id: EntityId;
   content?: unknown;
+  poll?: { question?: unknown; options?: { text?: unknown }[] };
+  contact?: unknown;
+  location?: { title?: unknown } | null;
 }
 
+const words = (parts: unknown[]) => parts.filter((part): part is string => typeof part === 'string' && !!part).join(' ');
+
 export const searchableText = (message: OfflineMessage) => {
-  const { content } = message;
+  const { content, poll, contact, location } = message;
+  if (poll) return words([poll.question, ...(poll.options ?? []).map((option) => option.text)]);
+  if (location) return words([location.title]);
+  if (contact) return '';
   if (typeof content === 'string') return content;
   const { caption, file_name: fileName } = (content ?? {}) as { caption?: unknown; file_name?: unknown };
   return [caption, fileName].filter((part) => typeof part === 'string').join(' ');

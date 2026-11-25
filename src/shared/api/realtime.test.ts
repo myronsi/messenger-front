@@ -136,4 +136,8 @@ describe('one user realtime connection', () => {
     expect(parseRealtimeEvent({ type: 'security_alert', event_id: '2', chat_id: null, data: { type: 'login', user_agent: 'Firefox' } })).not.toBeNull();
     expect(parseRealtimeEvent({ type: 'security_notice', event_id: '3', chat_id: null, data: { type: 'password_reset' } })).not.toBeNull();
   });
+
+  it('passes poll updates on to the open chat', () => {
+    expect(parseRealtimeEvent({ type: 'poll_updated', event_id: '4', chat_id: '1', data: { message_id: '9', poll: { version: 2 } } })).not.toBeNull();
+  });
 });

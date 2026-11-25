@@ -1,8 +1,9 @@
 import type { EntityId } from '@/shared/api/entityId';
-import type { Message } from '@/entities/message';
+import { richCopyText, type Message } from '@/entities/message';
 
 export const messageCopyText = (message: Message) => {
   if (message.sticker) return '';
+  if (message.poll || message.contact || message.location) return richCopyText(message) ?? '';
   const text = typeof message.content === 'string' ? message.content : message.content?.caption ?? '';
   return text.trim();
 };

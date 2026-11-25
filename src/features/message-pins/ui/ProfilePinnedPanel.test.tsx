@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
 vi.mock('@/entities/message', () => ({
   useGetPinnedMessagesQuery: () => state.query,
   useLoadMorePinnedMessagesMutation: () => [state.loadMore, { isLoading: false }],
+  richLabel: () => null,
 }));
 vi.mock('../model/usePinnedMessages', () => ({ pinsEnabled: () => true }));
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: en, language: 'en' }) }));

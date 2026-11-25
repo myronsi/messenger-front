@@ -22,3 +22,15 @@ describe('goServerEvent errors', () => {
     expect(goServerEvent(error('op:1'), '5')).toEqual({ type: 'error', message: 'data does not match the typing event', operation_error: true, code: 'validation_failed' });
   });
 });
+
+describe('goServerEvent poll updates', () => {
+  it('passes the new poll of the message on', () => {
+    const poll = {
+      question: 'Lunch?', options: [{ text: 'Pizza', voter_count: 1 }], multiple_answers: false, anonymous: true, quiz: false, explanation: null,
+      close_at: null, closed_at: null, total_voters: 1, my_votes: [], can_close: false, version: 2,
+    };
+    const event = { type: 'poll_updated', event_id: '1', chat_id: '5', data: { message_id: '30', poll } } as ServerEvent;
+    expect(goServerEvent(event, '5')).toEqual({ type: 'poll_updated', message_id: '30', poll });
+    expect(goServerEvent(event, '6')).toBeNull();
+  });
+});

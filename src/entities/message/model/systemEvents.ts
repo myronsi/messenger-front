@@ -22,7 +22,8 @@ const callText = (call: CallSummaryInfo | undefined, translations: Translations,
 const pinText = (event: SystemEventInfo, translations: Translations, actorIsMe: boolean) => {
   const t = translations.messagePins;
   const pinned = event.kind === 'message_pinned';
-  const kind = event.message_type === 'voice' || event.message_type === 'sticker' ? t.kinds[event.message_type] : t.kinds.message;
+  const type = event.message_type;
+  const kind = type === 'voice' || type === 'sticker' || type === 'poll' || type === 'contact' || type === 'location' ? t.kinds[type] : t.kinds.message;
   const template = event.snippet
     ? (pinned ? (actorIsMe ? t.systemPinnedYou : t.systemPinned) : (actorIsMe ? t.systemUnpinnedYou : t.systemUnpinned))
     : (pinned ? (actorIsMe ? t.systemPinnedKindYou : t.systemPinnedKind) : (actorIsMe ? t.systemUnpinnedKindYou : t.systemUnpinnedKind));
@@ -44,7 +45,10 @@ export const systemEventText =(event: SystemEventInfo, translations: Translation
   const fill = (template: string) => fillTemplate(template, {
     actor: event.actor_name || translations.systemSomeone,
     target: event.target_name || translations.systemSomeone,
+    old: event.old_name ?? '',
+    new: event.new_name ?? '',
   });
+  const group = translations.groupSystemLines;
   switch (event.kind) {
     case 'group_created': return fill(actorIsMe ? translations.systemGroupCreatedYou : translations.systemGroupCreated);
     case 'member_added':
@@ -58,6 +62,13 @@ export const systemEventText =(event: SystemEventInfo, translations: Translation
     case 'history_imported': return importOpenedText(event, translations);
     case 'history_import_ended': return translations.chatImport.system.ended;
     case 'imported_note': return event.text ?? '';
+    case 'group_renamed': return fill(actorIsMe ? group.renamedYou : group.renamed);
+    case 'group_avatar_changed':
+      if (event.avatar_removed) return fill(actorIsMe ? group.photoRemovedYou : group.photoRemoved);
+      return fill(actorIsMe ? group.photoChangedYou : group.photoChanged);
+    case 'owner_transferred':
+      if (actorIsMe) return fill(group.ownerTransferredYou);
+      return fill(targetIsMe ? group.ownerTransferredToYou : group.ownerTransferred);
     default: return '';
   }
 };

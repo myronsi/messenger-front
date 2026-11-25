@@ -8,7 +8,7 @@ import { notificationSettings as ruWords } from '@/shared/lang/ru/notificationSe
 import { notificationSettings as esWords } from '@/shared/lang/es/notificationSettings';
 import { notificationSettings as deWords } from '@/shared/lang/de/notificationSettings';
 
-export type MessageKind = 'text' | 'photo' | 'video' | 'audio' | 'voice' | 'file' | 'album' | 'sticker';
+export type MessageKind = 'text' | 'photo' | 'video' | 'audio' | 'voice' | 'file' | 'album' | 'sticker' | 'poll' | 'contact' | 'location';
 type Words = { newMessage: string; open: string } & Record<Exclude<MessageKind, 'text'>, string>;
 const NOTIFICATION_WORDS: Record<AppLanguage, Words> = {
   en: enWords.notificationSettings, ru: ruWords.notificationSettings, es: esWords.notificationSettings, de: deWords.notificationSettings,
@@ -31,8 +31,18 @@ const messageAge = (message: IncomingMessage) => {
   if (message.live) clockLead = Math.min(clockLead, lag);
   return Number.isFinite(clockLead) && clockLead > STALE_MS ? lag - clockLead : lag;
 };
+const withoutLead = (body: string, lead: string) => (body.startsWith(lead) ? body.slice(lead.length) : body).trim();
+
+const richText = (kind: 'poll' | 'contact' | 'location', body: string, words: Words) => {
+  if (kind === 'poll') return `📊 ${withoutLead(body, '📊') || words.poll}`;
+  if (kind === 'contact') return `👤 ${withoutLead(body, '👤') || words.contact}`;
+  const name = withoutLead(body, '📍').replace(/\s*https?:\/\/\S+/g, '').trim();
+  return name ? `📍 ${words.location}: ${name}` : `📍 ${words.location}`;
+};
+
 export const describeMessage = (message: Pick<IncomingMessage, 'body' | 'kind'>, words: Words) => {
   const kind = message.kind ?? 'text';
+  if (kind === 'poll' || kind === 'contact' || kind === 'location') return richText(kind, message.body, words);
   if (kind === 'text') return message.body || words.newMessage;
   if (kind === 'sticker') return message.body ? `${message.body} ${words.sticker}` : words.sticker;
   if (kind === 'voice') return words.voice;

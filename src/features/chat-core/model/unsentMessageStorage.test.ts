@@ -53,6 +53,18 @@ describe('restoreUnsentMessages', () => {
     expect(isKeptUnsent({ ...pending, is_deleting: true })).toBe(false);
     expect(isKeptUnsent({ ...pending, type: 'file', content: { file_url: 'blob:x', file_name: 'a.png' } } as Message)).toBe(false);
   });
+
+  it('keeps a poll, contact or place only with what is needed to send it again, never as text', () => {
+    const poll = { question: 'Lunch?', options: ['Pizza', 'Soup'], multiple_answers: false, anonymous: true };
+    const shown = {
+      question: 'Lunch?', options: [], multiple_answers: false, anonymous: true, quiz: false, explanation: null, close_at: null, closed_at: null,
+      total_voters: null, my_votes: [], can_close: false, version: 0,
+    };
+    expect(isKeptUnsent({ ...pending, content: '📊 Lunch?', poll: shown, outgoing: { type: 'poll', poll } })).toBe(true);
+    expect(isKeptUnsent({ ...pending, content: '📊 Lunch?', poll: shown })).toBe(false);
+    expect(isKeptUnsent({ ...pending, content: '👤', contact: { user_id: '2', user: null } })).toBe(false);
+    expect(isKeptUnsent({ ...pending, content: '📍', location: { latitude: 1, longitude: 2, accuracy_m: null, title: null, map: null } })).toBe(false);
+  });
 });
 
 describe('useUnsentMessageStorage', () => {

@@ -15,7 +15,7 @@ import { withUploadActivity } from './uploadActivity';
 import type { Drawing } from '@/shared/ui/drawing';
 import { createOptimisticMessage } from './optimisticMessage';
 import { createUploadQueue } from './uploadQueue';
-import { createStickerSender } from './stickerSender';
+import { createStickerSender, richNotSentText } from './stickerSender';
 import type { ChatTransport, OutgoingPayload, SetMessages } from './types';
 
 const BASE_URL = getApiBaseUrl();
@@ -72,7 +72,7 @@ export const useMessageSender = ({
   const stickers = createStickerSender({
     chatId, username, setMessages, markMessageFailed, senderId: () => currentUserIdRef.current || currentUserId || undefined,
     takeReply: () => { const reply = replyToRef.current; if (reply) setReplyTo(null); return reply; },
-    notSent: () => translationsRef.current.stickerNotSent,
+    notSent: () => translationsRef.current.stickerNotSent, richNotSent: (send) => richNotSentText(send, translationsRef.current),
   });
 
   const createOptimisticFileMessage = (files: UploadFile[], caption: string, fileType?: string) => {
@@ -220,8 +220,8 @@ export const useMessageSender = ({
   };
 
   const resendUnsavedMessage = (message: Message) => {
-    if (message.sticker) {
-      void stickers.post(retryUnsavedMessage(message, {}), message.sticker, message.reply_to);
+    if (message.sticker || message.outgoing) {
+      void stickers.resend(retryUnsavedMessage(message, {}), message);
       return;
     }
     if (message.type === 'file') {
@@ -247,7 +247,7 @@ export const useMessageSender = ({
 
   const resendPending = (message: Message) => {
     const tempId = message.client_temp_id ?? message.id;
-    if (message.sticker) { void stickers.post(tempId, message.sticker, message.reply_to); return; }
+    if (message.sticker || message.outgoing) { void stickers.resend(tempId, message); return; }
     if (typeof message.content !== 'string' || messageQueueRef.current.some((queued) => String(queued.client_temp_id) === String(tempId))) return;
     pendingMessageIdsRef.current = [...pendingMessageIdsRef.current.filter((id) => String(id) !== String(message.id)), message.id];
     const content = isGoApi() ? message.content : escapeCurlyBraces(message.content);
@@ -292,7 +292,7 @@ export const useMessageSender = ({
     markOptimisticUploadFailed,
     settleOptimisticUpload,
     handleSendMessage,
-    handleSendSticker: stickers.send,
+    handleSendSticker: stickers.send, handleSendRich: stickers.sendRich,
     handleResendMessage,
     handleFileUpload,
   };

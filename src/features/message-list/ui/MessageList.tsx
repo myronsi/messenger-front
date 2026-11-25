@@ -11,7 +11,7 @@ import { useMessageTap } from '../model/useMessageTap';
 import { audioQueueFor } from '../model/audioQueue';
 import { TypingBubble } from '@/entities/typing';
 import ScrollToBottomButton from './ScrollToBottomButton';
-import { isVisualMediaMessage, Message, MessageItem, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
+import { isVisualMediaMessage, Message, MessageChatContext, MessageItem, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useChatCovered } from '@/shared/contexts/ChatCoveredContext';
@@ -199,7 +199,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
   });
 
   return (
-    <div className="chat-surface relative min-h-0 flex-1">
+    <MessageChatContext.Provider value={props.chatId}><div className="chat-surface relative min-h-0 flex-1">
     <div className="absolute inset-0 overflow-x-hidden overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
         <div data-testid="sticky-date" className="sticky top-[var(--pinned-inset,0px)] z-50 flex h-0 justify-center overflow-visible pointer-events-none md:w-2/3 md:mx-auto md:px-0">
@@ -292,7 +292,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
         />
       </div>
     </div>
-    </div>
+    </div></MessageChatContext.Provider>
   );
 }));
 

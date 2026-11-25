@@ -21,6 +21,7 @@ import type { FileTypeConfig } from '@/shared/contexts/fileTypesConfig';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { prefersReducedMotion } from '../model/messageDeletion';
 import { bubbleClass } from '../model/bubbleClass';
+import { hasRichContent } from '../model/richMessage';
 import { readDoubleTapReaction } from '../model/reactionUsage';
 import { importedSenderName } from '../model/importedMessages';
 import { AlertCircle, Check } from 'lucide-react';
@@ -125,7 +126,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const showAvatar = reserveAvatarSpace && isLastInGroup && importedName === null;
   const showTail = isLastInGroup && !isImage;
   const hasImageCaption = isImage && typeof message.content !== 'string' && !!message.content?.caption?.trim();
-  const isText = !isSticker && message.type !== 'file' && typeof message.content === 'string';
+  const isText = !isSticker && !hasRichContent(message) && message.type !== 'file' && typeof message.content === 'string';
   const hasTime = isValidTimestamp(message.timestamp);
   const timeLabel = hasTime ? getMessageTime(message.timestamp) : '';
   const time = (interactive = true) => (

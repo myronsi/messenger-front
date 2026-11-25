@@ -4,7 +4,7 @@ import { compareIds, isPersistedId } from '@/shared/api/entityId';
 import { isGoApi } from '@/shared/api/goSocket';
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { SERVER_KEPT_ERRORS, useLocalMessageDeletion, removeMessageAnimated, applyModerationRemoval } from '@/entities/message';
+import { SERVER_KEPT_ERRORS, useLocalMessageDeletion, removeMessageAnimated, applyModerationRemoval, applyPollUpdate, usePollUpdates } from '@/entities/message';
 import {
   addReaction, addReadReceipts, applyAttachmentUpdate, applyMessageEdit, buildMessageFromSocketEvent, mergeIncomingMessage, removeReaction,
 } from './messageUpdates';
@@ -45,6 +45,7 @@ export const useMessageEvents = ({
 }: MessageEventsOptions) => {
   useLocalMessageDeletion(chatId, setMessages);
   useOfflineChanges(chatId, setMessages);
+  usePollUpdates(chatId, setMessages);
   const { pendingMessageIdsRef } = transport;
 
   return useCallback((event: ServerEvent, socket: SocketSender) => {
@@ -79,6 +80,9 @@ export const useMessageEvents = ({
         return;
       case 'attachment_updated':
         setMessages((previous) => applyAttachmentUpdate(previous, event.attachment));
+        return;
+      case 'poll_updated':
+        setMessages((previous) => applyPollUpdate(previous, event.message_id, event.poll));
         return;
       case 'history_cleared':
         setMessages((previous) => previous.filter((message) => !isPersistedId(message.id) || BigInt(message.id) > BigInt(event.before_message_id)));

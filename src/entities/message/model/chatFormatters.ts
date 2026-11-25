@@ -1,12 +1,13 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { systemEventText } from './systemEvents';
 import type { ChatLastMessage } from './types';
+import { richLabel } from './richMessage';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatDateLabel, formatTime, parseUtcDate } from '@/shared/utils/dateFormatters';
 
 export const isContentLabel = (lastMessage?: ChatLastMessage | null) => {
   if (!lastMessage || lastMessage.system_event || lastMessage.delivery_error) return false;
-  if (lastMessage.sticker) return true;
+  if (lastMessage.sticker || lastMessage.poll || lastMessage.contact || lastMessage.location) return true;
   if (typeof lastMessage.content === 'string') return false;
   const fileName = lastMessage.content.file_name || '';
   if (lastMessage.content.file_type === 'voice' || /\.opus$/i.test(fileName)) return true;
@@ -32,6 +33,8 @@ export function useChatFormatters(currentUserId?: EntityId) {
     }
     if (lastMessage.delivery_error) return lastMessage.delivery_error;
     if (lastMessage.sticker) return `${lastMessage.sticker.emoji} ${translations.sticker}`;
+    const rich = richLabel(lastMessage, translations);
+    if (rich) return rich;
     return typeof lastMessage.content === 'string' ? lastMessage.content : translations.fileMessagePreview;
   };
 

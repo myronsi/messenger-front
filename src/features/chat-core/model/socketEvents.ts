@@ -1,8 +1,10 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { isPersistedId } from '@/shared/api/entityId';
-import type { FileMessageContent, ForwardedFrom, Message, MessageAttachment, MessageSticker, ReactionInfo, ReadReceiptInfo, SystemEventInfo } from '@/entities/message';
+import type {
+  FileMessageContent, ForwardedFrom, Message, MessageAttachment, MessagePoll, MessageSticker, ReactionInfo, ReadReceiptInfo, RichFields, SystemEventInfo,
+} from '@/entities/message';
 
-export interface NewMessageEvent {
+export interface NewMessageEvent extends Omit<RichFields, 'outgoing'> {
   type: 'message' | 'file';
   data: {
     message_id: EntityId;
@@ -123,6 +125,12 @@ export interface GroupInviteEvent {
   chat_id?: EntityId;
 }
 
+export interface PollUpdatedEvent {
+  type: 'poll_updated';
+  message_id: EntityId;
+  poll: MessagePoll;
+}
+
 export interface AttachmentUpdatedEvent {
   type: 'attachment_updated';
   attachment: MessageAttachment;
@@ -150,13 +158,14 @@ export type ServerEvent =
   | GroupUpdatedEvent
   | GroupInviteEvent
   | AttachmentUpdatedEvent
+  | PollUpdatedEvent
   | UnknownEvent;
 
 const KNOWN_TYPES = new Set<string>([
   'ack',
   'message', 'file', 'edit', 'delete', 'reaction_add', 'reaction_remove', 'is_read', 'chat_list_read',
   'chat_read_batch', 'error', 'chat_deleted', 'presence_update', 'group_updated', 'group_invite_rejected',
-  'group_invite_approved', 'history_cleared', 'attachment_updated',
+  'group_invite_approved', 'history_cleared', 'attachment_updated', 'poll_updated',
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (

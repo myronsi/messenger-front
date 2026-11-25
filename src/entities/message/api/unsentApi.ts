@@ -4,6 +4,7 @@ import { unsentModel } from '@/shared/api/goModels';
 import type { components } from '@/shared/api/generated/schema';
 import type { EntityId } from '@/shared/api/entityId';
 import type { FileMessageContent, Message } from '../model/types';
+import { richFields, richSummary } from '../model/richMessage';
 
 type ServerUnsent = components['schemas']['UnsentMessage'];
 
@@ -12,13 +13,15 @@ export const SERVER_KEPT_ERRORS = new Set(['forbidden', 'blocked_by_user', 'rate
 export interface KeptSend {
   tempId: number;
   code: string;
-  fields: Pick<Message, 'type' | 'content' | 'sticker' | 'reply_to' | 'timestamp'>;
+  fields: Pick<Message, 'type' | 'content' | 'sticker' | 'reply_to' | 'timestamp' | 'poll' | 'contact' | 'location' | 'outgoing'>;
 }
 
 const keptSend = (item: ServerUnsent): KeptSend | null => {
   const tempId = Number(item.client_temp_id);
   if (!Number.isSafeInteger(tempId) || tempId >= 0) return null;
-  return { tempId, code: item.error_code, fields: { ...unsentModel(item), reply_to: item.reply_to, timestamp: item.created_at } };
+  const { outgoing, ...model } = unsentModel(item);
+  const rich = outgoing ? { ...richFields(outgoing), content: richSummary(outgoing) } : {};
+  return { tempId, code: item.error_code, fields: { ...model, ...rich, reply_to: item.reply_to, timestamp: item.created_at } };
 };
 
 export const fetchServerUnsent = async (chatId: EntityId): Promise<KeptSend[]> => {

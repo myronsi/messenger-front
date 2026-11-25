@@ -53,6 +53,22 @@ it('previews a sticker as its emoji', () => {
   expect(result.current.getLastMessagePreview(last)).toBe('🐱 Sticker');
 });
 
+it('previews a poll, a place and a contact by their own label', () => {
+  const { result } = renderHook(() => useChatFormatters('1'), { wrapper });
+  const base = message(new Date(2026, 10, 5, 9, 30));
+  const poll = {
+    question: 'Lunch?', options: [{ text: 'Pizza', voter_count: null }], multiple_answers: false, anonymous: true, quiz: false, explanation: null,
+    close_at: null, closed_at: null, total_voters: null, my_votes: [], can_close: false, version: 1,
+  };
+  const place = { latitude: 1, longitude: 2, accuracy_m: null, map: null };
+  const preview = result.current.getLastMessagePreview;
+  expect(preview({ ...base, content: '📊 Lunch?', poll })).toBe('📊 Lunch?');
+  expect(preview({ ...base, content: '📍', location: { ...place, title: 'Office' } })).toBe('📍 Office');
+  expect(preview({ ...base, content: '📍', location: { ...place, title: null } })).toBe('📍 Location');
+  expect(preview({ ...base, content: '👤 @ann', contact: { user_id: '2', user: { id: '2', username: 'ann', display_name: 'Ann' } } })).toBe('👤 Ann');
+  expect(preview({ ...base, content: '👤', contact: { user_id: '2', user: null } })).toBe('👤 Contact');
+});
+
 it('treats a call as mine when I started it, whoever the system message is from', () => {
   const { result } = renderHook(() => useChatFormatters('1'), { wrapper });
   const call = (actorId: string): ChatLastMessage => ({

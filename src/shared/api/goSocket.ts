@@ -66,6 +66,7 @@ export const goServerEvent = (event: ServerEvent, chatId: EntityId): unknown => 
     case 'chat_deleted': return { type: 'chat_deleted', chat_id: event.chat_id };
     case 'history_cleared': return { type: 'history_cleared', before_message_id: event.data.before_message_id };
     case 'attachment_updated': return { type: 'attachment_updated', attachment: attachmentModel(event.data.attachment) };
+    case 'poll_updated': return { type: 'poll_updated', message_id: event.data.message_id, poll: event.data.poll };
     default: return null;
   }
 };

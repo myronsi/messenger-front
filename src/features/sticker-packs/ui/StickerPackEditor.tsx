@@ -37,6 +37,7 @@ export const StickerPackEditor = ({ packId, onBack }: StickerPackEditorProps) =>
   const [copied, setCopied] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [making, setMaking] = useState<string | null>(null);
+  const [makingType, setMakingType] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [title, setTitle] = useState<string | null>(null);
@@ -196,11 +197,14 @@ export const StickerPackEditor = ({ packId, onBack }: StickerPackEditorProps) =>
           </li>
         ))}
       </ul>
-      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" data-testid="sticker-file-input" onChange={(event) => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (file) setMaking(URL.createObjectURL(file));
-      }} />
+      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/*" className="hidden" data-testid="sticker-file-input"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (!file) return;
+          setMakingType(file.type);
+          setMaking(URL.createObjectURL(file));
+        }} />
       {current && (
         <StickerTileActions sticker={current} isFirst={index === 0} busy={busy}
           onCover={() => reorderTo(moveTo(stickerIds, index, 0))}
@@ -208,7 +212,7 @@ export const StickerPackEditor = ({ packId, onBack }: StickerPackEditorProps) =>
           onDelete={() => { setSelected(null); void run(deleteSticker({ packId, stickerId: current.id }).unwrap()); }} />
       )}
       {making && (
-        <StickerMaker sourceUrl={making} packId={packId} onClose={() => { URL.revokeObjectURL(making); setMaking(null); }} />
+        <StickerMaker sourceUrl={making} sourceType={makingType} packId={packId} onClose={() => { URL.revokeObjectURL(making); setMaking(null); }} />
       )}
     </div>
   );

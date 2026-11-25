@@ -37,6 +37,19 @@ describe('EditGroupPage', () => {
     });
   });
 
+  it('removes the group photo on Save and offers it only while there is one', async () => {
+    const { onSave } = renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove photo' }));
+    expect(screen.queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ avatar: null }));
+  });
+
+  it('has no Remove photo for a group without a photo', () => {
+    render(<EditGroupPage name="Team" description="" avatarUrl="/static/avatars/group.png" background={null} isSaving={false} onSave={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument();
+  });
+
   it('sends only what changed', async () => {
     const { onSave } = renderPage();
     fireEvent.click(screen.getByRole('button', { name: /Background/ }));

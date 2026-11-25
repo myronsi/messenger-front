@@ -2,6 +2,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import type { Drawing } from '@/shared/ui/drawing';
 import type { components } from '@/shared/api/generated/schema';
 import type { ImportSummaryInfo, MessageImportInfo } from './importTypes';
+import type { GroupChangeFields, RichFields } from './richTypes';
 
 export interface AudioMetadata {
   duration?: number;
@@ -66,7 +67,7 @@ export interface CallSummaryInfo {
   duration_seconds: number | null;
 }
 
-export interface SystemEventInfo {
+export interface SystemEventInfo extends GroupChangeFields {
   kind: SystemEventKind;
   actor_id?: EntityId | null;
   actor_name: string;
@@ -80,7 +81,7 @@ export interface SystemEventInfo {
   text?: string;
 }
 
-export interface ChatLastMessage {
+export interface ChatLastMessage extends RichFields {
   id: EntityId;
   sender_id: EntityId;
   sender_name: string;
@@ -115,7 +116,7 @@ export interface ModerationRemovalReason {
   text: string;
 }
 
-export interface Message {
+export interface Message extends RichFields {
   id: EntityId;
   client_temp_id?: EntityId | null;
   server_kept?: boolean;

@@ -4,7 +4,8 @@ import type { Message } from '../model/types';
 import ReplyPreview from './ReplyPreview';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({
-  useLanguage: () => ({ translations: { replyUnavailable: 'Original message', replyFromYou: 'You', messageDeleted: '[Message deleted]', voiceMessage: 'Voice Message', image: 'Image', sticker: 'Sticker' } }),
+  useLanguage: () => ({ translations: { replyUnavailable: 'Original message', replyFromYou: 'You', messageDeleted: '[Message deleted]', voiceMessage: 'Voice Message', image: 'Image', sticker: 'Sticker',
+    locationShare: { label: 'Location' }, contactShare: { label: 'Contact' } } }),
 }));
 vi.mock('@/shared/contexts/fileTypesConfig', () => ({ useFileTypes: () => ({ getFileTypeConfig: () => null }) }));
 
@@ -30,6 +31,19 @@ describe('ReplyPreview', () => {
     };
     render(<ReplyPreview replyMessage={photo} isMine={false} />);
     expect(screen.getByTestId('drawing-overlay')).toHaveAttribute('viewBox', '0 0 1000 500');
+  });
+
+  it('quotes a poll by its question, a place by its name and a contact by the person', () => {
+    const poll = {
+      question: 'Lunch?', options: [], multiple_answers: false, anonymous: true, quiz: false, explanation: null, close_at: null, closed_at: null,
+      total_voters: null, my_votes: [], can_close: false, version: 1,
+    };
+    const { rerender } = render(<ReplyPreview replyMessage={{ ...original, content: '📊 Lunch?', poll }} isMine={false} />);
+    expect(screen.getByText('📊 Lunch?')).toBeInTheDocument();
+    rerender(<ReplyPreview replyMessage={{ ...original, location: { latitude: 1, longitude: 2, accuracy_m: null, title: null, map: null } }} isMine={false} />);
+    expect(screen.getByText('📍 Location')).toBeInTheDocument();
+    rerender(<ReplyPreview replyMessage={{ ...original, contact: { user_id: '2', user: { id: '2', username: 'ann', display_name: 'Ann' } } }} isMine={false} />);
+    expect(screen.getByText('👤 Ann')).toBeInTheDocument();
   });
 
   it('quotes a sticker by its emoji and picture', () => {

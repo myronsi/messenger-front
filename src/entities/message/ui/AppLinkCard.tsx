@@ -37,6 +37,7 @@ interface ShellProps {
   subtitle: string;
   action: ReactNode;
   onOpen: () => void;
+  footer?: ReactNode;
 }
 
 const frame = (isMine: boolean, standalone: boolean) => {
@@ -44,7 +45,7 @@ const frame = (isMine: boolean, standalone: boolean) => {
   return `w-64 rounded-xl ${isMine ? 'bg-primary-foreground/15' : 'border border-border/60 bg-background/50'}`;
 };
 
-const Shell = ({ isMine, grow, standalone, label, media, title, subtitle, action, onOpen }: ShellProps) => (
+export const Shell = ({ isMine, grow, standalone, label, media, title, subtitle, action, onOpen, footer }: ShellProps) => (
   <div className={`max-w-full pb-5 ${standalone ? 'pt-1' : 'pt-1.5'}`}>
     <div data-testid="app-link-card" data-standalone={standalone || undefined}
       className={`${grow ? 'app-link-card-in ' : ''}${frame(isMine, standalone)} max-w-full overflow-hidden`}>
@@ -60,6 +61,7 @@ const Shell = ({ isMine, grow, standalone, label, media, title, subtitle, action
           </button>
           {action}
         </div>
+        {footer}
       </div>
     </div>
   </div>
@@ -78,7 +80,7 @@ interface ActionButtonProps {
   disabled?: boolean;
 }
 
-const ActionButton = ({ isMine, done, label, onClick, disabled }: ActionButtonProps) => (
+export const ActionButton = ({ isMine, done, label, onClick, disabled }: ActionButtonProps) => (
   done
     ? <span className="flex shrink-0 items-center gap-1 text-xs opacity-75"><Check className="h-3.5 w-3.5" />{label}</span>
     : (
