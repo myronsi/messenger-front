@@ -241,7 +241,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({
             drawings={fileDrawings.drawings} onDrawingChange={isGoApi() ? fileDrawings.setDrawing : undefined} />
         )}</ComposerReveal>
         <div className="flex items-end gap-2">
-          <div className="relative flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/55 px-2 py-2 backdrop-blur-2xl">
+          <div className="relative flex min-w-0 flex-1 items-end gap-2 rounded-[28px] border border-border/60 bg-background/95 px-2 py-2 md:bg-background/70 md:backdrop-blur-md">
             {!isRecording && !voicePreview && (
               <AttachMenu chatId={chatId} onPickFile={() => fileInputRef.current?.click()} onSendRich={isGoApi() ? onSendRich : undefined}
                 title={isEditing ? translations.attachDisabledWhileEditing : voiceVideoBlocked ? translations.voiceVideoBlocked : undefined}
