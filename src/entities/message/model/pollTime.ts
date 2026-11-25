@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { MessagePoll } from './types';
+import type { MessagePoll } from './richTypes';
 
 const unit = (value: number, name: 'day' | 'hour' | 'minute', locale?: string) =>
   new Intl.NumberFormat(locale, { style: 'unit', unit: name, unitDisplay: 'short' }).format(value);

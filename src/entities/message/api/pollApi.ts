@@ -2,7 +2,7 @@ import { apiClient } from '@/shared/api/client';
 import { contractData, ContractProblem } from '@/shared/api/tasks';
 import { userModel } from '@/shared/api/goModels';
 import type { EntityId } from '@/shared/api/entityId';
-import type { ContactUser, MessagePoll } from '../model/types';
+import type { ContactUser, MessagePoll } from '../model/richTypes';
 
 export const POLL_VOTERS_PAGE = 50;
 

@@ -1,3 +1,4 @@
+export type * from './richTypes';
 export * from './richMessage';
 export * from './pollUpdates';
 export * from '../api/pollApi';

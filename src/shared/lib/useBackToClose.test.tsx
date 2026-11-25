@@ -71,6 +71,25 @@ it('stacks two panels so each back press closes the top one', () => {
   expect(view.result.current.location.pathname).toBe('/chat/7');
 });
 
+it('keeps the outer window open when a nested window with the same flag opens, and back closes only the inner one', () => {
+  const closeOuter = vi.fn();
+  const closeInner = vi.fn();
+  const view = renderHook(({ outer, inner }) => {
+    useBackToClose(outer, closeOuter, 'dialog');
+    useBackToClose(inner, closeInner, 'dialog');
+    return { location: useLocation(), navigate: useNavigate() };
+  }, { wrapper, initialProps: { outer: false, inner: false } });
+  view.rerender({ outer: true, inner: false });
+  view.rerender({ outer: true, inner: true });
+  expect(closeOuter).not.toHaveBeenCalled();
+  act(() => view.result.current.navigate(-1));
+  expect(closeInner).toHaveBeenCalledOnce();
+  expect(closeOuter).not.toHaveBeenCalled();
+  act(() => view.result.current.navigate(-1));
+  expect(closeOuter).toHaveBeenCalledOnce();
+  expect(view.result.current.location.state).toEqual({ chatName: 'alice' });
+});
+
 it('closing a lower panel keeps the upper one open and back skips the stale entry', () => {
   const { view, closeSearch } = twoPanels();
   view.rerender({ search: false, select: true });

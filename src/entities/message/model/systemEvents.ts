@@ -3,6 +3,7 @@ import type { Translations } from '@/shared/contexts/LanguageContext';
 import type { CallSummaryInfo, SystemEventInfo } from './types';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { formatCallDuration } from '@/shared/lib/callDuration';
+import { IMPORT_SOURCE_NAMES } from './importSourceName';
 
 const callText = (call: CallSummaryInfo | undefined, translations: Translations, actorIsMe: boolean) => {
   if (!call) return translations.systemCallMissed;
@@ -29,6 +30,15 @@ const pinText = (event: SystemEventInfo, translations: Translations, actorIsMe: 
   return fillTemplate(template, { actor: event.actor_name || translations.systemSomeone, snippet: event.snippet ?? '', kind });
 };
 
+const monthYear = (value: string) => new Date(value).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+
+const importOpenedText = (event: SystemEventInfo, translations: Translations) => fillTemplate(translations.chatImport.system.opened, {
+  source: event.import ? IMPORT_SOURCE_NAMES[event.import.source] : '',
+  actor: event.actor_name || translations.systemSomeone,
+  count: (event.import?.message_count ?? 0).toLocaleString(),
+  range: event.import ? `${monthYear(event.import.first_at)} – ${monthYear(event.import.last_at)}` : '',
+});
+
 export const systemEventText =(event: SystemEventInfo, translations: Translations, isMe: (id?: EntityId | null) => boolean) => {
   const actorIsMe = isMe(event.actor_id);
   const targetIsMe = isMe(event.target_id);
@@ -49,6 +59,9 @@ export const systemEventText =(event: SystemEventInfo, translations: Translation
     case 'member_left': return fill(actorIsMe ? translations.systemMemberLeftYou : translations.systemMemberLeft);
     case 'call': return callText(event.call, translations, actorIsMe);
     case 'message_pinned': case 'message_unpinned': return pinText(event, translations, actorIsMe);
+    case 'history_imported': return importOpenedText(event, translations);
+    case 'history_import_ended': return translations.chatImport.system.ended;
+    case 'imported_note': return event.text ?? '';
     case 'group_renamed': return fill(actorIsMe ? group.renamedYou : group.renamed);
     case 'group_avatar_changed':
       if (event.avatar_removed) return fill(actorIsMe ? group.photoRemovedYou : group.photoRemoved);

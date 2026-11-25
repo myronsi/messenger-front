@@ -1,6 +1,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
-import type { Message, MessagePoll } from './types';
+import type { Message } from './types';
+import type { MessagePoll } from './richTypes';
 
 const POLL_EVENT = 'messenger:poll-updated';
 

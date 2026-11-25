@@ -1,5 +1,5 @@
 import type { Translations } from '@/shared/contexts/LanguageContext';
-import type { MessageLocation, MessagePoll, PollCreate, RichFields, RichSend } from './types';
+import type { MessageLocation, MessagePoll, PollCreate, RichFields, RichSend } from './richTypes';
 
 type RichWords = Pick<Translations, 'contactShare' | 'locationShare'>;
 type Place = Pick<MessageLocation, 'latitude' | 'longitude' | 'title'>;

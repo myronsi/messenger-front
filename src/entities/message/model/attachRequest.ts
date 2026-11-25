@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
-import type { RichSend } from './types';
+import type { RichSend } from './richTypes';
 
 export type AttachKind = RichSend['type'];
 

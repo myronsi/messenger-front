@@ -22,6 +22,8 @@ import { selfName } from '@/shared/lib/selfName';
 import { useDelayedUnmount } from '@/shared/lib/useDelayedUnmount';
 import { plainEmoji } from '@/shared/lib/customEmoji';
 import { AudioPlayerBar } from '@/features/audio-player';
+import { ImportChatDialog, useImportMe } from '@/features/chat-import';
+import { isGoApi } from '@/shared/api/goSocket';
 
 const GROUP_EXIT_MS = 260;
 
@@ -35,6 +37,8 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
   const { data: me } = useGetCurrentUserQuery();
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importMe = useImportMe();
   const groupModal = useDelayedUnmount(creatingGroup, GROUP_EXIT_MS);
   const createGroup = useCreateGroup((message, groupName, chatId) => {
     setCreatingGroup(false);
@@ -92,6 +96,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
       onNewGroup={() => setCreatingGroup(true)}
       onScanQr={() => setScanning(true)}
       onOpenSaved={openSaved}
+      onImportChat={importMe && isGoApi() ? () => setImporting(true) : undefined}
     />
   );
   const playerBar = <AudioPlayerBar className={props.activeChatId ? 'md:hidden' : ''} />;
@@ -176,6 +181,7 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
         <GroupCreateModal currentUsername={model.username} closing={groupModal.closing} onClose={() => setCreatingGroup(false)} onCreate={createGroup} />
       )}
       <QrScannerDialog open={scanning} onClose={() => setScanning(false)} />
+      {importMe && <ImportChatDialog open={importing} onOpenChange={setImporting} me={importMe} />}
 
       {model.modal && (
         <ConfirmModal

@@ -7,7 +7,7 @@ import { navigateInApp, openOwnLink } from '@/shared/lib/ownLink';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { cn } from '@/shared/lib/utils';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
-import type { MessageContact } from '../model/types';
+import type { MessageContact } from '../model/richTypes';
 import { ActionButton, Shell } from './AppLinkCard';
 
 const openChat = (username: string) => navigateInApp(`/dm/@${encodeURIComponent(username)}`);

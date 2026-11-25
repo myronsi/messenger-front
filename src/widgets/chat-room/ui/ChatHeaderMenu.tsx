@@ -5,6 +5,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import { ReportUserDialog } from '@/features/moderation';
 import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
 import { openPinnedPanel, pinsEnabled } from '@/features/message-pins';
+import { useChatImportMenu } from '@/features/chat-import';
 
 interface ChatHeaderMenuProps {
   userId: EntityId;
@@ -19,6 +20,9 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
   const actions = useChatActions({ onDeleted: () => onChatDeleted?.() });
   const target: ChatActionTarget = { chatId, userId, username, name };
   const blocked = actions.isBlocked(username);
+  const imports = useChatImportMenu({
+    chat: { chatId: chatId ?? '', name, isGroup: false, peer: { id: userId, username, displayName: name } }, canImport: !blocked,
+  });
   return (
     <>
       <DropdownMenu>
@@ -36,6 +40,7 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
                   <Pin className="mr-2 h-4 w-4" />{translations.messagePins.pinnedMessages}
                 </DropdownMenuItem>
               )}
+              {imports.items}
               <DropdownMenuItem onSelect={() => actions.openClear(target)}>
                 <Eraser className="mr-2 h-4 w-4" />{translations.chatCleanup.clearHistory}
               </DropdownMenuItem>
@@ -54,6 +59,7 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
         </DropdownMenuContent>
       </DropdownMenu>
       {actions.dialogs}
+      {imports.dialogs}
       {actions.reporting && <ReportUserDialog userId={actions.reporting.userId} name={actions.reporting.name} onClose={actions.closeReport} />}
     </>
   );

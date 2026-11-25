@@ -6,7 +6,7 @@ import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { cn } from '@/shared/lib/utils';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
-import type { MessageLocation } from '../model/types';
+import type { MessageLocation } from '../model/richTypes';
 import { locationLinks } from '../model/richMessage';
 
 interface LocationMessageProps {

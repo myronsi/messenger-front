@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronRight, Edit, MoreHorizontal, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag, Pin, PinOff } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Edit, MoreHorizontal, Trash2, Copy, Reply, Forward, Sticker, ListEnd, ListMusic, ListPlus, Flag, Pin, PinOff, UserX } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 
@@ -16,6 +16,7 @@ interface ContextMenuProps {
   onMakeSticker?: () => void;
   onReport?: () => void;
   onTogglePin?: () => void;
+  onNotMine?: () => void;
   pinned?: boolean;
   audioActions?: { onPlayNext: () => void; onAddToQueue: () => void; onAddToPlaylist: () => void };
   extraActions?: MenuAction[];
@@ -38,7 +39,7 @@ const REACTION_MENU_OFFSET = 48;
 const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({
     x, y, isMine, openLeft = false, onEdit, onDelete, onCopy, onReply, onForward, onMakeSticker,
-    onReport, onTogglePin, pinned = false, audioActions, extraActions = [], isClosing, onClose,
+    onReport, onTogglePin, onNotMine, pinned = false, audioActions, extraActions = [], isClosing, onClose,
   }, ref) => {
     const { translations } = useLanguage();
     const [adjustedX, setAdjustedX] = useState(x);
@@ -50,6 +51,7 @@ const ContextMenuComponent = forwardRef<HTMLDivElement, ContextMenuProps>(
     const moreActions: MenuAction[] = [
       ...(onMakeSticker ? [{ key: 'sticker', icon: Sticker, label: translations.makeSticker, onClick: onMakeSticker }] : []),
       ...(onReport ? [{ key: 'report', icon: Flag, label: translations.moderation.reportMessage, onClick: onReport }] : []),
+      ...(onNotMine ? [{ key: 'notMine', icon: UserX, label: translations.chatImport.notMine, onClick: onNotMine }] : []),
     ];
     const showMorePage = moreActions.length > 1;
     const goBack = () => setView({ name: 'main', direction: 'back' });

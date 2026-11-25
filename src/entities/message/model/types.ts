@@ -1,7 +1,8 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Drawing } from '@/shared/ui/drawing';
+import type { components } from '@/shared/api/generated/schema';
+import type { ImportSummaryInfo, MessageImportInfo } from './importTypes';
 import type { GroupChangeFields, RichFields } from './richTypes';
-export type * from './richTypes';
 
 export interface AudioMetadata {
   duration?: number;
@@ -57,9 +58,7 @@ export interface ForwardedFrom {
   sender_username?: string | null;
 }
 
-export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call'
-  | 'message_pinned' | 'message_unpinned' | 'history_imported' | 'history_import_ended' | 'imported_note'
-  | 'group_renamed' | 'group_avatar_changed' | 'owner_transferred';
+export type SystemEventKind = components['schemas']['SystemEventKind'];
 
 export interface CallSummaryInfo {
   call_id: EntityId;
@@ -77,7 +76,9 @@ export interface SystemEventInfo extends GroupChangeFields {
   call?: CallSummaryInfo;
   message_id?: EntityId;
   snippet?: string;
-  message_type?: 'text' | 'file' | 'voice' | 'system' | 'sticker' | 'poll' | 'contact' | 'location';
+  message_type?: components['schemas']['MessageType'];
+  import?: ImportSummaryInfo;
+  text?: string;
 }
 
 export interface ChatLastMessage extends RichFields {
@@ -148,6 +149,7 @@ export interface Message extends RichFields {
   read_by: ReadReceiptInfo[];
   mentions?: EntityId[];
   mentions_all?: boolean;
+  import?: MessageImportInfo | null;
 }
 
 export interface MessageSelection {

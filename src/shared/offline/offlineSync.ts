@@ -12,6 +12,7 @@ export type OfflineChange =
   | { type: 'deleted'; chatId: string; messageId: string }
   | { type: 'cleared'; chatId: string; beforeId: string }
   | { type: 'pins'; chatId: string }
+  | { type: 'imported'; chatId: string }
   | { type: 'reset' };
 
 const SETTLE_MS = 2500;
@@ -39,6 +40,8 @@ const toChange = (change: SyncChange): OfflineChange | null => {
       return change.before_message_id ? { type: 'cleared', chatId, beforeId: change.before_message_id } : null;
     case 'pins_changed':
       return { type: 'pins', chatId };
+    case 'history_imported':
+      return { type: 'imported', chatId };
     default:
       return null;
   }

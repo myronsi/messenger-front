@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
-import type { Message, MessageContact } from '../model/types';
+import type { Message } from '../model/types';
+import type { MessageContact } from '../model/richTypes';
 import MessageItem from './MessageItem';
 
 const links = vi.hoisted(() => ({ navigate: vi.fn(), open: vi.fn() }));

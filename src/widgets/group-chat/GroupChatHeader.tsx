@@ -1,11 +1,14 @@
 import React from 'react';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search } from 'lucide-react';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
 import { plainEmoji } from '@/shared/lib/customEmoji';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import type { GroupTranslations } from './groupChatTypes';
-import type { EntityId } from '@/shared/api/entityId';
+import { isPersistedId, type EntityId } from '@/shared/api/entityId';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
+import { useGetGroupDetailsQuery } from '@/entities/chat';
+import { ImportConfirmBanner, useChatImportMenu } from '@/features/chat-import';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
 import { AudioPlayerBar } from '@/features/audio-player';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -27,7 +30,12 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
   chatId, name, avatar, participantCount, description, translations, onBack, onOpenProfile, onOpenSearch,
 }) => {
   const longPress = useLongPress(onOpenSearch);
-  const { language } = useLanguage();
+  const { language, translations: appTranslations } = useLanguage();
+  const persisted = chatId !== undefined && isPersistedId(chatId) ? chatId : undefined;
+  const { data: details } = useGetGroupDetailsQuery(persisted ?? '', { skip: persisted === undefined });
+  const role = details?.current_user_role;
+  const importChat = { chatId: persisted ?? '', name, isGroup: true };
+  const imports = useChatImportMenu({ chat: importChat, canImport: role === 'owner' || role === 'admin', canRemoveAll: role === 'owner' });
   return (
     <>
       <div data-testid="chat-header" {...longPress.handlers}
@@ -64,10 +72,23 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
               <Search className="h-5 w-5" />
             </button>
           )}
+          {imports.items && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" aria-label={appTranslations.chatImport.info.title} title={appTranslations.chatImport.info.title}
+                  className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent">
+                  <MoreVertical className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">{imports.items}</DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       <AudioPlayerBar />
       <OngoingCallBanner chatId={chatId} />
+      {imports.dialogs}
+      {persisted !== undefined && <ImportConfirmBanner chat={{ ...importChat, chatId: persisted }} />}
     </>
   );
 };

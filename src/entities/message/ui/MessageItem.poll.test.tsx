@@ -1,7 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
-import type { Message, MessagePoll } from '../model/types';
+import type { Message } from '../model/types';
+import type { MessagePoll } from '../model/richTypes';
 import { MessageChatContext } from '../model/messageChat';
 import MessageItem from './MessageItem';
 

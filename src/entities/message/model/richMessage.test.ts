@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyPollUpdate } from './pollUpdates';
 import { draftPoll, isPollClosed, locationLinks, pollShowsResults, richCopyText, richFields, richSendBody, richSummary } from './richMessage';
-import type { MessagePoll } from './types';
+import type { MessagePoll } from './richTypes';
 
 const poll = (extra: Partial<MessagePoll> = {}): MessagePoll => ({
   ...draftPoll({ question: 'Lunch?', options: ['Pizza', 'Soup'], multiple_answers: false, anonymous: true }), version: 1, ...extra,

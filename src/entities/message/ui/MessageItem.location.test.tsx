@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
-import type { Message, MessageLocation } from '../model/types';
+import type { Message } from '../model/types';
+import type { MessageLocation } from '../model/richTypes';
 import MessageItem from './MessageItem';
 
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: en, language: 'en' }) }));
