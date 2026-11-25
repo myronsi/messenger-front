@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { strToU8, zipSync } from 'fflate';
 import { createImportReader } from '../model/importReader';
+import { sampleChat } from '../parsers/whatsappFixtures';
 import { openImportSession } from './importSession';
 
 const bytes = (length: number, seed: number) => Uint8Array.from({ length }, (_, index) => (index * seed) % 251);
@@ -53,6 +54,36 @@ describe('openImportSession', () => {
     expect(session.chat.messages[1].notice).toEqual({ code: 'mediaOmitted', detail: 'image' });
   });
 
+  it('opens a WhatsApp zip with compressed and stored media', async () => {
+    const voice = bytes(70_000, 13);
+    const session = await open([zipFile('WhatsApp Chat - Bob K.zip', {
+      '_chat.txt': strToU8(sampleChat('ios', 'en', 24)),
+      '00000003-PHOTO-2021-03-14-14-08-10.jpg': [bytes(300, 5), { level: 0 }],
+      '00000004-AUDIO-2021-03-15-08-02-00.opus': voice,
+    })]);
+
+    expect(session.chat).toMatchObject({ source: 'whatsapp', title: 'Bob K', fileCount: 2 });
+    expect(session.chat.messages[5].attachment).toMatchObject({ kind: 'voice', size: 70_000 });
+    expect(new Uint8Array(await (await session.file('00000004-AUDIO-2021-03-15-08-02-00.opus')).arrayBuffer())).toEqual(voice);
+  });
+
+  it('opens a WhatsApp text file without media and switches the date order', async () => {
+    const content = ['04/03/2021, 14:08 - Bob: Hi', '05/03/2021, 09:00 - Anna: IMG-1.jpg (file attached)'].join('\n');
+    const session = await open([new File([content], 'WhatsApp Chat with Bob.txt')]);
+    expect(session.chat).toMatchObject({ title: 'Bob', dateOrder: 'dmy', dateOrderCertain: false });
+    expect(session.chat.messages[1].notice).toEqual({ code: 'fileMissing', detail: 'IMG-1.jpg' });
+    const switched = session.reparse('mdy');
+    expect(switched.messages[0].originalAt).toBe(new Date(2021, 3, 3, 14, 8).toISOString());
+  });
+
+  it('picks the chat text among several text files', async () => {
+    const session = await open([zipFile('export.zip', {
+      'notes.txt': strToU8('just notes'),
+      'chat.txt': strToU8('14/03/2021, 14:08 - Bob: Hi'),
+    })]);
+    expect(session.chat.messages[0].text).toBe('Hi');
+  });
+
   it('refuses a Telegram HTML export', async () => {
     await expect(open([zipFile('export.zip', { 'ChatExport/messages.html': strToU8('<html></html>') })])).rejects.toThrow('telegramHtml');
   });
@@ -68,11 +99,12 @@ describe('openImportSession', () => {
 });
 
 describe('createImportReader without a worker', () => {
-  it('opens and reads files in the page', async () => {
+  it('opens, reparses and reads files in the page', async () => {
     const reader = createImportReader(false);
-    const chat = await reader.open([new File([telegramJson], 'result.json')]);
-    expect(chat.messages).toHaveLength(2);
-    expect(await reader.reparse('mdy')).toEqual(chat);
+    const content = ['04/03/2021, 14:08 - Bob: Hi'].join('\n');
+    const chat = await reader.open([new File([content], 'chat.txt')]);
+    expect(chat.messages).toHaveLength(1);
+    expect((await reader.reparse(chat.dateOrder === 'dmy' ? 'mdy' : 'dmy')).dateOrder).not.toBe(chat.dateOrder);
     await expect(reader.file('missing.jpg')).rejects.toThrow('missing');
     reader.close();
   });
