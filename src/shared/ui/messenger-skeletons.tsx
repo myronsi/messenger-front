@@ -1,22 +1,5 @@
 import { Skeleton } from '@/shared/ui/skeleton';
 
-const ChatListBodySkeleton = () => (
-  <div className="space-y-1 p-3">
-    {Array.from({ length: 9 }).map((_, index) => (
-      <div key={index} className="flex items-center gap-3 rounded-md px-2 py-3">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center justify-between gap-4">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-3 w-10" />
-          </div>
-          <Skeleton className="h-3 w-full max-w-[220px]" />
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
 const UserProfileSkeleton = () => (
   <div data-testid="user-profile-skeleton" className="flex min-h-full flex-col">
     <Skeleton className="h-32 w-full rounded-none" />
@@ -52,4 +35,4 @@ const UserProfileSkeleton = () => (
   </div>
 );
 
-export { ChatListBodySkeleton, UserProfileSkeleton };
+export { UserProfileSkeleton };
