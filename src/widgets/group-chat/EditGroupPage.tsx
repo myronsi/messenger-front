@@ -7,6 +7,7 @@ import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '@/features/
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { cn } from '@/shared/lib/utils';
 import { isDefaultAvatar } from '@/shared/lib/letterAvatar';
+import { DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { Button } from '@/shared/ui/button';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import AvatarCropModal from '@/shared/ui/AvatarCropModal';
@@ -98,7 +99,7 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
 
   const avatarImage = avatar
     ? <img src={avatar.url} alt={g.groupPicture} className="h-full w-full object-cover" />
-    : <AuthenticatedImage src={removeAvatar ? undefined : avatarUrl} alt={g.groupPicture} initialsFrom={name || initialName} className="h-full w-full object-cover" />;
+    : <AuthenticatedImage src={removeAvatar ? DEFAULT_GROUP_AVATAR : avatarUrl} alt={g.groupPicture} initialsFrom={name || initialName} className="h-full w-full object-cover" />;
   const avatarOverlay = (
     <label htmlFor={inputId} aria-label={g.groupPicture}
       className="absolute inset-1 flex cursor-pointer items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/50">

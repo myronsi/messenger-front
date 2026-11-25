@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/di
 import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
 import {
-  buildPoll, draftProblem, emptyDraft, EXPLANATION_MAX, localInputValue, MAX_OPTIONS, moveOption, OPTION_MAX, QUESTION_MAX, type PollDraft,
+  buildPoll, draftProblem, emptyDraft, EXPLANATION_MAX, freshCloseAt, localInputValue, MAX_OPTIONS, moveOption, OPTION_MAX, QUESTION_MAX, type PollDraft,
 } from '../model/pollDraft';
 
 interface PollComposerDialogProps {
@@ -114,7 +114,7 @@ export const PollComposerDialog = ({ open, onClose, onSend }: PollComposerDialog
                   onChange={(event) => update({ explanation: event.target.value })} />
               </label>
             </Setting>
-            <Setting label={t.closeAt} checked={draft.closeAtOn} onChange={(closeAtOn) => update({ closeAtOn })}>
+            <Setting label={t.closeAt} checked={draft.closeAtOn} onChange={(closeAtOn) => update({ closeAtOn, closeAt: freshCloseAt(draft.closeAt) })}>
               <label className="mt-2 block space-y-1">
                 <span className="text-xs text-muted-foreground">{t.closeAtLabel}</span>
                 <Input type="datetime-local" value={draft.closeAt} min={localInputValue(new Date(Date.now() + 5 * 60_000))}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { en } from '@/shared/lang/en';
-import { buildPoll, draftProblem, emptyDraft, localInputValue, moveOption, type PollDraft } from './pollDraft';
+import { buildPoll, draftProblem, emptyDraft, freshCloseAt, localInputValue, moveOption, type PollDraft } from './pollDraft';
 
 const NOW = Date.parse('2026-11-25T10:00:00Z');
 const t = en.polls;
@@ -43,6 +43,12 @@ describe('poll draft', () => {
     expect(buildPoll(draft({ multiple: true, anonymous: false, closeAtOn: true, closeAt }))).toEqual({
       question: 'Lunch?', options: ['Pizza', 'Soup'], multiple_answers: true, anonymous: false, close_at: new Date(Date.parse(closeAt)).toISOString(),
     });
+  });
+
+  it('moves a default closing time that has passed to a day from now', () => {
+    const kept = localInputValue(new Date(NOW + 3_600_000));
+    expect(freshCloseAt(kept, NOW)).toBe(kept);
+    expect(freshCloseAt(localInputValue(new Date(NOW - 60_000)), NOW)).toBe(localInputValue(new Date(NOW + 24 * 3_600_000)));
   });
 
   it('moves options up and down within the list', () => {

@@ -26,7 +26,7 @@ const video = new Blob(['clip'], { type: 'video/mp4' });
 beforeEach(() => {
   addSticker.mockReset();
   uploadClip.mockReset();
-  vi.stubGlobal('fetch', vi.fn(async () => new Response(video)));
+  vi.stubGlobal('fetch', vi.fn(async () => ({ blob: async () => video })));
 });
 afterEach(() => vi.unstubAllGlobals());
 

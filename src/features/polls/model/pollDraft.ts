@@ -42,6 +42,11 @@ export const emptyDraft = (now = Date.now()): PollDraft => ({
   closeAt: localInputValue(new Date(now + 24 * 3_600_000)),
 });
 
+export const freshCloseAt = (current: string, now = Date.now()) => {
+  const at = Date.parse(current);
+  return Number.isFinite(at) && at - now >= MIN_CLOSE_MS ? current : localInputValue(new Date(now + 24 * 3_600_000));
+};
+
 export const moveOption = (options: DraftOption[], index: number, step: -1 | 1) => {
   const target = index + step;
   if (target < 0 || target >= options.length) return options;
