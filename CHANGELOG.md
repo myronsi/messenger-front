@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.36](https://github.com/myronsi/messenger-front/compare/v0.6.35...v0.6.36) (2026-11-25)
+
+
+### Features
+
+* import chat history from Telegram exports ([#263](https://github.com/myronsi/messenger-front/issues/263)) ([ba7e3c9](https://github.com/myronsi/messenger-front/commit/ba7e3c9ce37ff2851646b5cc8d1ec0811d6707c2))
+* polls, contact cards, static locations, video stickers and group system lines ([#265](https://github.com/myronsi/messenger-front/issues/265)) ([f6ba6d6](https://github.com/myronsi/messenger-front/commit/f6ba6d6932eea8435efa6c399055abd6e2e16826))
+* smooth long chats, avatar placeholders, logout cleanup and a new poll composer ([#267](https://github.com/myronsi/messenger-front/issues/267)) ([0628773](https://github.com/myronsi/messenger-front/commit/0628773f55762cd24592c7a64e778c2b7eef6989))
+
+
+### Bug Fixes
+
+* keep the outer window open when a nested window of the same kind opens ([#261](https://github.com/myronsi/messenger-front/issues/261)) ([cd4c1aa](https://github.com/myronsi/messenger-front/commit/cd4c1aa6a6d1e30adc56e9717b8eeee55be8fc0d))
+
 ## [0.6.35](https://github.com/myronsi/messenger-front/compare/v0.6.34...v0.6.35) (2026-11-24)
 
 
