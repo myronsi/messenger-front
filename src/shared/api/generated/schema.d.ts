@@ -2168,6 +2168,198 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chats/{chat_id}/imports": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The imported histories of a chat
+         * @description Imports that are running or done, oldest period first. A sender the importer assigned to a member is
+         *     `pending` or `declined` only for the importer and that member; everyone else sees it as `unassigned`
+         *     without `user_id` until the member confirms.
+         */
+        get: operations["listChatImports"];
+        put?: never;
+        /**
+         * Start importing a history from another messenger
+         * @description The client parses the export (Telegram Desktop JSON or a WhatsApp chat export) on the device, uploads the
+         *     files with `POST /attachments`, then sends the messages in order with `PUT /imports/{import_id}/messages`
+         *     and ends with `POST /imports/{import_id}/finish`.
+         *
+         *     In a direct chat either user may import, not in a chat in the Requests folder or with a block (`403`). In a
+         *     group only an admin or the owner may (`403`). One import per chat runs at a time (`409`). The messages are
+         *     placed above the oldest message of the chat, in their original order; a second import goes next to the
+         *     imports whose periods it follows, and an import whose period overlaps an existing one is `409`.
+         *
+         *     `senders` lists every name of the export. `me: true` marks the caller's own messages. `user_id` suggests a
+         *     member of the chat for a name; that member confirms it after the import is finished. Every other name is
+         *     shown as text.
+         */
+        post: operations["startChatImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/imports/{import_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        /** One import, for resuming it or showing its senders */
+        get: operations["getChatImport"];
+        put?: never;
+        post?: never;
+        /**
+         * Remove an imported history
+         * @description The importer, or the owner of a group, removes every message of the import for everyone. The messages
+         *     disappear at once (`import_update` with state `removing`); the worker deletes them afterwards.
+         */
+        delete: operations["removeChatImport"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/imports/{import_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add the next batch of messages to a running import
+         * @description Only the importer. `from_index` must be the import's `next_index`; a batch that was stored already answers
+         *     with the current `next_index`, so a retry after a lost answer is safe. Another `from_index` is `409`.
+         *     Attachments must be the importer's own uploads. Imported messages send no push and count as read.
+         */
+        put: operations["addImportedMessages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/imports/{import_id}/finish": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish an import once every message is stored
+         * @description Only the importer, once `next_index` equals `message_count` (`422` before). Adds the closing system
+         *     message, tells every member to load the chat again (`import_update`, sync change `history_imported`) and
+         *     asks each assigned member to confirm their messages (`import_sender_update`).
+         */
+        post: operations["finishChatImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/imports/{import_id}/senders/{sender_key}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+                sender_key: components["parameters"]["ImportSenderKey"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Suggest a member for a name of the export, or take the suggestion back
+         * @description Only the importer. `user_id` must be another member of the chat; `null` makes the name text again. A name
+         *     that is `me` or `confirmed` cannot be reassigned, and a member who declined or withdrew a name cannot be
+         *     suggested for it again (`409`).
+         */
+        put: operations["assignImportSender"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/imports/{import_id}/senders/{sender_key}/decision": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+                sender_key: components["parameters"]["ImportSenderKey"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm or decline that a name of the export is you, or withdraw a confirmation
+         * @description Only the member the importer suggested, once the import is finished. `confirm` links the messages of the
+         *     name to the caller's account for everyone; `decline` keeps them as text; `withdraw` turns a confirmed name
+         *     back into text. After `decline` or `withdraw` the importer cannot suggest the caller for that name again.
+         *     `404` when the caller is not the suggested member or the name is not in the matching state.
+         */
+        post: operations["decideImportSender"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chats/{chat_id}/messages/forward": {
         parameters: {
             query?: never;
@@ -5899,10 +6091,11 @@ export interface components {
          *     message and its `scope`. `pins_changed`: load the pins of the chat again. `history_cleared`: drop the
          *     messages up to and including `before_message_id` (`scope` says for whom). `chat_hidden`: the caller
          *     deleted the chat for themselves up to `before_message_id`.
+         *     `history_imported`: an imported history was added, removed or a sender confirmed; load the chat again.
          */
         SyncChange: {
             /** @enum {string} */
-            type: "message_updated" | "message_deleted" | "pins_changed" | "history_cleared" | "chat_hidden";
+            type: "message_updated" | "message_deleted" | "pins_changed" | "history_cleared" | "chat_hidden" | "history_imported";
             chat_id: components["schemas"]["Id"];
             message_id?: components["schemas"]["Id"];
             /** @enum {string} */
@@ -5940,9 +6133,11 @@ export interface components {
             attachments?: components["schemas"]["Attachment"][];
             reactions: components["schemas"]["Reaction"][];
             read_by: components["schemas"]["ReadReceipt"][];
+            /** @description When the message was sent; for an imported message, when it was sent in the other messenger. */
             created_at: components["schemas"]["Timestamp"];
             edited_at: components["schemas"]["Timestamp"] | null;
             is_deleted: boolean;
+            import?: components["schemas"]["MessageImport"];
             /**
              * @description `true` when moderation removed the message; it is then also `is_deleted`. Clients show "Removed by
              *     moderation" instead of the deleted placeholder. Absent otherwise.
@@ -5960,9 +6155,9 @@ export interface components {
             mentions?: components["schemas"]["Id"][];
             /** @description `true` when an owner or admin wrote `@all`; it mentions every member. Absent otherwise. */
             mentions_all?: boolean;
-            /** @description The poll of a `poll` message as the requesting user sees it; absent for other types and when deleted. */
+            /** @description The poll of a `poll` message as the requesting user sees it; absent for other types, when deleted and in chat-list previews. */
             poll?: components["schemas"]["Poll"];
-            /** @description The shared user of a `contact` message; absent for other types and when deleted. */
+            /** @description The shared user of a `contact` message; absent for other types, when deleted and in chat-list previews. */
             contact?: components["schemas"]["ContactCard"];
             /** @description The place of a `location` message; absent for other types and when deleted. */
             location?: components["schemas"]["MessageLocation"];
@@ -6037,7 +6232,9 @@ export interface components {
             user: components["schemas"]["User"] | null;
         };
         LocationCreate: {
+            /** Format: double */
             latitude: number;
+            /** Format: double */
             longitude: number;
             /** @description Accuracy of a measured position in metres; omit for a point picked on the map. */
             accuracy_m?: number;
@@ -6046,7 +6243,9 @@ export interface components {
         };
         /** @description Coordinates are rounded to 6 decimals (about 10 cm). */
         MessageLocation: {
+            /** Format: double */
             latitude: number;
+            /** Format: double */
             longitude: number;
             accuracy_m: number | null;
             title: string | null;
@@ -6073,7 +6272,7 @@ export interface components {
             height: number | null;
         };
         /** @enum {string} */
-        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call" | "message_pinned" | "message_unpinned" | "group_renamed" | "group_avatar_changed" | "owner_transferred";
+        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call" | "message_pinned" | "message_unpinned" | "history_imported" | "history_import_ended" | "imported_note" | "group_renamed" | "group_avatar_changed" | "owner_transferred";
         /**
          * @description What a `system` message records; set on system messages only, whose `content` is then `null`. The names
          *     are the display names at the time of the event. `target` fields are set for `member_added`,
@@ -6081,6 +6280,8 @@ export interface components {
          *     `call` messages: one per call, posted when the call ends, `actor` is the initiator. `message_id` and
          *     `snippet` are set for `message_pinned` and `message_unpinned`. `old_name` and `new_name` are set for
          *     `group_renamed`, `avatar_removed` for `group_avatar_changed`.
+         *     `history_imported` opens and `history_import_ended` closes an imported history; both carry `import`, and
+         *     `actor` is the importer. `imported_note` is a line of the export that is not a message; its text is `text`.
          */
         SystemEvent: {
             kind: components["schemas"]["SystemEventKind"];
@@ -6102,6 +6303,9 @@ export interface components {
             new_name?: string;
             /** @description `true` when the group photo was removed, `false` when a new one was set. */
             avatar_removed?: boolean;
+            import?: components["schemas"]["ImportSummary"];
+            /** @description The line of the export, for `imported_note`. */
+            text?: string;
         };
         MessagePage: {
             /** @description Oldest to newest */
@@ -6295,6 +6499,120 @@ export interface components {
             /** @description Newest pin first */
             items: components["schemas"]["PinnedMessage"][];
             next_cursor: components["schemas"]["Cursor"];
+        };
+        /** @enum {string} */
+        ImportSource: "telegram" | "whatsapp";
+        /**
+         * @description `running`: messages are being added. `done`: finished. `removing`: being removed.
+         * @enum {string}
+         */
+        ChatImportState: "running" | "done" | "removing";
+        /** @description The client's key for one name of the export. */
+        ImportSenderKey: string;
+        /**
+         * @description `me`: the importer's own messages. `unassigned`: shown as text. `pending`: suggested for `user_id`, who has
+         *     not answered. `confirmed`: `user_id` confirmed; the messages show their account. `declined`: the suggested
+         *     member said no; shown as text.
+         * @enum {string}
+         */
+        ImportSenderState: "me" | "unassigned" | "pending" | "confirmed" | "declined";
+        ChatImportSender: {
+            key: components["schemas"]["ImportSenderKey"];
+            name: string;
+            message_count: number;
+            state: components["schemas"]["ImportSenderState"];
+            user_id: components["schemas"]["Id"] | null;
+        };
+        ChatImport: {
+            id: components["schemas"]["Id"];
+            chat_id: components["schemas"]["Id"];
+            source: components["schemas"]["ImportSource"];
+            state: components["schemas"]["ChatImportState"];
+            message_count: number;
+            file_count: number;
+            first_at: components["schemas"]["Timestamp"];
+            last_at: components["schemas"]["Timestamp"];
+            /** @description How many messages are stored; the `from_index` of the next batch. */
+            next_index: number;
+            imported_by: components["schemas"]["Id"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            finished_at: components["schemas"]["Timestamp"] | null;
+            senders: components["schemas"]["ChatImportSender"][];
+        };
+        ChatImportList: {
+            items: components["schemas"]["ChatImport"][];
+        };
+        StartChatImportSender: {
+            key: components["schemas"]["ImportSenderKey"];
+            name: string;
+            message_count: number;
+            /** @description The caller's own messages; at most one sender. */
+            me?: boolean;
+            /** @description A member of the chat suggested for this name; not with `me`. */
+            user_id?: components["schemas"]["Id"];
+        };
+        StartChatImportRequest: {
+            source: components["schemas"]["ImportSource"];
+            message_count: number;
+            file_count: number;
+            first_at: components["schemas"]["Timestamp"];
+            last_at: components["schemas"]["Timestamp"];
+            senders: components["schemas"]["StartChatImportSender"][];
+        };
+        /**
+         * @description `note`: a line of the export that is not a message (for example that someone joined), shown as a system message.
+         * @enum {string}
+         */
+        ImportedMessageType: "text" | "file" | "voice" | "note";
+        ImportedMessage: {
+            /** @description Position in the import, counting from 0 without gaps. */
+            index: number;
+            /** @description Required except for `note`. */
+            sender_key?: components["schemas"]["ImportSenderKey"];
+            /** @description When the message was sent in the other messenger; between the import's `first_at` and `last_at`. */
+            original_at: components["schemas"]["Timestamp"];
+            type: components["schemas"]["ImportedMessageType"];
+            content?: string | null;
+            /** @description The importer's uploads; two to ten images or videos make an album. */
+            attachment_ids?: components["schemas"]["AttachmentRef"][];
+            /** @description `index` of an earlier message of the import that this one answers. */
+            reply_to_index?: number;
+        };
+        AddImportedMessagesRequest: {
+            from_index: number;
+            messages: components["schemas"]["ImportedMessage"][];
+        };
+        ImportProgress: {
+            next_index: number;
+        };
+        AssignImportSenderRequest: {
+            user_id: components["schemas"]["Id"] | null;
+        };
+        DecideImportSenderRequest: {
+            /** @enum {string} */
+            decision: "confirm" | "decline" | "withdraw";
+        };
+        /** @description Set on messages that came from an import. */
+        MessageImport: {
+            import_id: components["schemas"]["Id"];
+            source: components["schemas"]["ImportSource"];
+            original_at: components["schemas"]["Timestamp"];
+            /** @description The name in the export; absent on system messages. */
+            sender_name?: string;
+            /**
+             * @description `me`: the importer's own message, `sender` is the importer. `confirmed`: the member confirmed the name,
+             *     `sender` is that member. `unconfirmed`: `sender` is `null`; show `sender_name` as text. Absent on system
+             *     messages.
+             * @enum {string}
+             */
+            sender_state?: "me" | "confirmed" | "unconfirmed";
+        };
+        ImportSummary: {
+            import_id: components["schemas"]["Id"];
+            source: components["schemas"]["ImportSource"];
+            message_count: number;
+            first_at: components["schemas"]["Timestamp"];
+            last_at: components["schemas"]["Timestamp"];
         };
         CreateChatRequest: {
             user_id: components["schemas"]["Id"];
@@ -6892,6 +7210,8 @@ export interface components {
         After: components["schemas"]["Cursor"];
         ChatId: components["schemas"]["Id"];
         MessageId: components["schemas"]["Id"];
+        ImportId: components["schemas"]["Id"];
+        ImportSenderKey: components["schemas"]["ImportSenderKey"];
         UserId: components["schemas"]["Id"];
         InviteLinkId: components["schemas"]["Id"];
         InviteToken: components["schemas"]["InviteToken"];
@@ -10276,6 +10596,279 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listChatImports: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The imports */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatImportList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    startChatImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartChatImportRequest"];
+            };
+        };
+        responses: {
+            /** @description The import, running */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatImport"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getChatImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The import */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatImport"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    removeChatImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removing */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    addImportedMessages: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddImportedMessagesRequest"];
+            };
+        };
+        responses: {
+            /** @description Stored */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportProgress"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    finishChatImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The finished import */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatImport"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    assignImportSender: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+                sender_key: components["parameters"]["ImportSenderKey"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignImportSenderRequest"];
+            };
+        };
+        responses: {
+            /** @description The sender */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatImportSender"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    decideImportSender: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                import_id: components["parameters"]["ImportId"];
+                sender_key: components["parameters"]["ImportSenderKey"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideImportSenderRequest"];
+            };
+        };
+        responses: {
+            /** @description The sender */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatImportSender"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
     };

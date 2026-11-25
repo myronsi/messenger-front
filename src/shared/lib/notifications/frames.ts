@@ -14,10 +14,11 @@ const kindOf = (message: Record<string, unknown>): MessageKind => {
   if (attachment) return attachment;
   return message.type === 'file' ? 'file' : 'text';
 };
+const text = (value: unknown) => (typeof value === 'string' && value ? value : null);
 const richBody = (message: Record<string, unknown>) => {
-  if (message.type === 'poll') return String(record(message.poll).question ?? '');
-  if (message.type === 'location') return String(record(message.location).title ?? '');
-  if (message.type === 'contact') return String(record(record(message.contact).user).display_name ?? '');
+  if (message.type === 'poll') return text(record(message.poll).question);
+  if (message.type === 'location') return text(record(message.location).title);
+  if (message.type === 'contact') return text(record(record(message.contact).user).display_name);
   return null;
 };
 export function notifyMessageFrame(frame: unknown, activeChatId?: string | number) {

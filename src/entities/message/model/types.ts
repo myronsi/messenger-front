@@ -1,6 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { Drawing } from '@/shared/ui/drawing';
-import type { RichFields } from './richTypes';
+import type { GroupChangeFields, RichFields } from './richTypes';
 export type * from './richTypes';
 
 export interface AudioMetadata {
@@ -58,7 +58,8 @@ export interface ForwardedFrom {
 }
 
 export type SystemEventKind = 'group_created' | 'member_added' | 'member_joined' | 'member_removed' | 'member_left' | 'call'
-  | 'message_pinned' | 'message_unpinned' | 'group_renamed' | 'group_avatar_changed' | 'owner_transferred';
+  | 'message_pinned' | 'message_unpinned' | 'history_imported' | 'history_import_ended' | 'imported_note'
+  | 'group_renamed' | 'group_avatar_changed' | 'owner_transferred';
 
 export interface CallSummaryInfo {
   call_id: EntityId;
@@ -67,7 +68,7 @@ export interface CallSummaryInfo {
   duration_seconds: number | null;
 }
 
-export interface SystemEventInfo {
+export interface SystemEventInfo extends GroupChangeFields {
   kind: SystemEventKind;
   actor_id?: EntityId | null;
   actor_name: string;
@@ -77,9 +78,6 @@ export interface SystemEventInfo {
   message_id?: EntityId;
   snippet?: string;
   message_type?: 'text' | 'file' | 'voice' | 'system' | 'sticker' | 'poll' | 'contact' | 'location';
-  old_name?: string;
-  new_name?: string;
-  avatar_removed?: boolean;
 }
 
 export interface ChatLastMessage extends RichFields {

@@ -38,8 +38,10 @@ export const uploadStickerClip = (file: Blob, clip: StickerClipUpload, onProgres
   form.set('file', file, clip.fileName);
   form.set('purpose', 'sticker');
   form.set('kind', clip.kind);
-  form.set('start_ms', String(Math.round(clip.startMs)));
-  form.set('end_ms', String(Math.round(clip.endMs)));
+  if (clip.endMs > clip.startMs) {
+    form.set('start_ms', String(Math.round(clip.startMs)));
+    form.set('end_ms', String(Math.round(clip.endMs)));
+  }
   if (clip.crop) {
     form.set('crop_x', clip.crop.x.toFixed(6));
     form.set('crop_y', clip.crop.y.toFixed(6));

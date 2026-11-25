@@ -28,10 +28,9 @@ class AuthenticatedTiles extends L.TileLayer {
     tile.setAttribute('role', 'presentation');
     const lease = acquireMedia(this.getTileUrl(coords));
     this.leases.set(tile, lease.release);
-    lease.promise.then((objectUrl) => {
-      tile.src = objectUrl;
-      done(undefined, tile);
-    }, (error: Error) => done(error, tile));
+    tile.onload = () => done(undefined, tile);
+    tile.onerror = () => done(new Error('tile failed'), tile);
+    lease.promise.then((objectUrl) => { tile.src = objectUrl; }, (error: Error) => done(error, tile));
     return tile;
   }
 

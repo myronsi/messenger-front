@@ -37,3 +37,9 @@ export interface RichFields {
   location?: MessageLocation;
   outgoing?: RichSend;
 }
+
+export interface GroupChangeFields {
+  old_name?: string;
+  new_name?: string;
+  avatar_removed?: boolean;
+}
