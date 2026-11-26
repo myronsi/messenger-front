@@ -5964,7 +5964,8 @@ export interface components {
         WallpaperPattern: "none" | "dots" | "grid";
         /**
          * @description `preset` a built-in background of the clients (`preset`), `color` one color or a gradient of two (`colors`,
-         *     optional `pattern`), `media` an uploaded photo (`attachment`) with `blur` in px and `dim` in percent.
+         *     optional `pattern`), `media` an uploaded photo (`attachment`) with `blur` in px and `dim` in percent. A `media`
+         *     background without `dim` is dimmed automatically by the client (20 % in a dark theme, none in a light one).
          */
         Wallpaper: {
             kind: components["schemas"]["ProfileBackgroundKind"];
@@ -5977,8 +5978,8 @@ export interface components {
         };
         /**
          * @description `preset` needs `preset`; `color` needs `colors` and may have `pattern`; `media` needs `attachment_id` (an
-         *     upload of the caller with purpose `chat_wallpaper`) and may have `blur` and `dim` (default `0`). Other fields
-         *     must be absent (`422` otherwise).
+         *     upload of the caller with purpose `chat_wallpaper`) and may have `blur` (default `0`) and `dim` (absent:
+         *     automatic, see `Wallpaper`). Other fields must be absent (`422` otherwise).
          */
         SetWallpaperRequest: {
             kind: components["schemas"]["ProfileBackgroundKind"];
