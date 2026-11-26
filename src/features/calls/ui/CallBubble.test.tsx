@@ -34,7 +34,7 @@ describe('CallBubble', () => {
   it('shows the timer and state and maximizes on a tap', () => {
     render(<CallBubble call={call} session={session} userId="1" />);
     expect(bubble()).toHaveAccessibleName('Bob · 1:05 · Muted · Show call');
-    expect(bubble()).toHaveStyle({ left: '920px', top: '640px' });
+    expect(bubble()).toHaveStyle({ left: '872px', top: '592px', width: '112px', height: '112px', borderRadius: '20px' });
     fireEvent.click(bubble());
     expect(callViewStore.get().mode).toBe('full');
   });
@@ -43,7 +43,7 @@ describe('CallBubble', () => {
     render(<CallBubble call={call} session={session} userId="1" />);
     fireEvent.pointerDown(bubble(), { button: 0, pointerId: 1, clientX: 950, clientY: 670 });
     fireEvent.pointerMove(bubble(), { pointerId: 1, clientX: 400, clientY: 300 });
-    expect(bubble()).toHaveStyle({ left: '370px', top: '270px' });
+    expect(bubble()).toHaveStyle({ left: '322px', top: '222px' });
     act(() => {
       fireEvent.pointerMove(bubble(), { pointerId: 1, clientX: 120, clientY: 120 });
       fireEvent.pointerUp(bubble(), { pointerId: 1, clientX: 120, clientY: 120 });

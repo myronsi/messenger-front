@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { callViewStore, maximizeCall, minimizeCall } from '../model/callView';
+import { BUBBLE_RADIUS, callViewStore, maximizeCall, minimizeCall } from '../model/callView';
 import { idleSession, sessionStore } from '../model/stores';
 import CallOverlay from './CallOverlay';
 
@@ -23,6 +23,11 @@ vi.mock('./callHooks', async () => {
 const joinCall = (callId: string, chatId: string) => act(() => {
   sessionStore.set({ ...idleSession, callId, chatId, phase: 'connecting' });
 });
+
+const shownRadius = (frame: Keyframe) => {
+  const scale = Number(/scale\(([\d.]+)\)/.exec(String(frame.transform))?.[1]);
+  return parseFloat(String(frame.borderRadius)) * scale;
+};
 
 describe('CallOverlay', () => {
   beforeEach(() => {
@@ -82,13 +87,15 @@ describe('CallOverlay', () => {
       expect(screen.getByRole('region', { name: 'Call view' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Call bubble' })).not.toBeInTheDocument();
       const shrink = runs[runs.length - 1];
-      expect(shrink.frames[1]).toMatchObject({ opacity: 0, borderRadius: '50%' });
+      expect(shrink.frames[1]).toMatchObject({ opacity: 0 });
+      expect(shownRadius(shrink.frames[1])).toBeCloseTo(BUBBLE_RADIUS);
       act(() => shrink.finish());
       expect(screen.queryByRole('region', { name: 'Call view' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Call bubble' })).toBeInTheDocument();
       act(() => maximizeCall());
       const grow = runs[runs.length - 1];
-      expect(grow.frames[0]).toMatchObject({ opacity: 0, borderRadius: '50%' });
+      expect(grow.frames[0]).toMatchObject({ opacity: 0 });
+      expect(shownRadius(grow.frames[0])).toBeCloseTo(BUBBLE_RADIUS);
       expect(grow.frames[1]).toMatchObject({ opacity: 1, transform: 'translate(0px, 0px) scale(1)' });
     } finally {
       delete (HTMLElement.prototype as { animate?: unknown }).animate;

@@ -4,7 +4,8 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { cn } from '@/shared/lib/utils';
 import type { Call } from '../api/callsApi';
-import { bubbleBox, callViewStore, cornerPosition, maximizeCall, nearestCorner, placeCallBubble, type CallCorner } from '../model/callView';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { BUBBLE_RADIUS, bubbleBox, callViewStore, cornerPosition, maximizeCall, nearestCorner, placeCallBubble, type CallCorner } from '../model/callView';
 import { useStore } from '../model/createStore';
 import type { CallSession } from '../model/stores';
 import { useCallAvatar, useCallTitle } from './callHooks';
@@ -71,6 +72,8 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
   const home = cornerPosition(corner, viewport.width, viewport.height);
   const position = drag ?? home;
   const name = title || translations.callPanelTitle;
+  const status = timer ?? (session.phase === 'rejoin' ? translations.callRejoin : phaseText);
+  const statusColor = session.phase === 'rejoin' ? 'text-destructive' : timer ? 'font-semibold text-success' : 'text-warning';
   const label = [name, timer ?? phaseText, session.muted ? translations.callMuted : '', warning ? translations.callBubbleWarning : '', translations.callExpand]
     .filter(Boolean).join(' · ');
 
@@ -99,13 +102,13 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
       title={label}
       data-corner={corner}
       className={cn(
-        'pointer-events-auto fixed z-[1040] flex touch-none select-none items-center justify-center rounded-full bg-background shadow-2xl',
-        'animate-in fade-in-0 zoom-in-50 duration-200',
-        'ring-4 focus-visible:outline-none focus-visible:ring-primary',
-        session.phase === 'rejoin' ? 'ring-destructive' : session.phase === 'connected' ? 'ring-success' : 'ring-warning',
+        'pointer-events-auto fixed z-[1040] flex touch-none select-none flex-col items-center justify-center gap-1 border-2 bg-card px-2 shadow-2xl',
+        'animate-in fade-in-0 zoom-in-75 duration-200',
+        'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary',
+        session.phase === 'rejoin' ? 'border-destructive' : session.phase === 'connected' ? 'border-success' : 'border-warning',
         drag ? 'cursor-grabbing' : 'cursor-grab transition-[left,top] duration-200 ease-out motion-reduce:transition-none',
       )}
-      style={{ left: position.left, top: position.top, width: bubbleBox.size, height: bubbleBox.size }}
+      style={{ left: position.left, top: position.top, width: bubbleBox.size, height: bubbleBox.size, borderRadius: BUBBLE_RADIUS }}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         suppressClick.current = false;
@@ -144,20 +147,16 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
       }}
     >
       <AuthenticatedImage src={avatar} initialsFrom={name} alt="" draggable={false}
-        className="pointer-events-none h-full w-full rounded-full object-cover" />
-      {timer && (
-        <span aria-hidden="true"
-          className="pointer-events-none absolute -bottom-2 rounded-full bg-success px-1.5 text-[11px] font-semibold tabular-nums leading-4 text-success-foreground">
-          {timer}
-        </span>
-      )}
+        className="pointer-events-none h-12 w-12 shrink-0 rounded-full object-cover" />
+      <span aria-hidden="true" className="pointer-events-none max-w-full truncate text-xs font-semibold"><EmojiText text={name} /></span>
+      <span aria-hidden="true" className={cn('pointer-events-none max-w-full truncate text-xs tabular-nums', statusColor)}>{status}</span>
       {session.muted && (
-        <span aria-hidden="true" className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-foreground p-1 text-background">
+        <span aria-hidden="true" className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground">
           <MicOff className="h-3 w-3" />
         </span>
       )}
       {warning && (
-        <span aria-hidden="true" className="pointer-events-none absolute -left-1 -top-1 rounded-full bg-warning p-1 text-warning-foreground">
+        <span aria-hidden="true" className="pointer-events-none absolute left-1.5 top-1.5 rounded-full bg-warning p-1 text-warning-foreground">
           <AlertTriangle className="h-3 w-3" />
         </span>
       )}
