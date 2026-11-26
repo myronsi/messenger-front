@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.38](https://github.com/myronsi/messenger-front/compare/v0.6.37...v0.6.38) (2026-11-26)
+
+
+### Features
+
+* **appearance:** sync appearance, chat backgrounds, recent emoji and playlists across devices ([#273](https://github.com/myronsi/messenger-front/issues/273)) ([c556777](https://github.com/myronsi/messenger-front/commit/c5567770c1ff2e931ff1778cac71961b14223e80))
+
 ## [0.6.37](https://github.com/myronsi/messenger-front/compare/v0.6.36...v0.6.37) (2026-11-26)
 
 
