@@ -1,4 +1,4 @@
-import { Ban, Eraser, Flag, MoreVertical, Pin, Trash2 } from 'lucide-react';
+import { Ban, Eraser, Flag, Image, MoreVertical, Pin, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { EntityId } from '@/shared/api/entityId';
@@ -6,6 +6,7 @@ import { ReportUserDialog } from '@/features/moderation';
 import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
 import { openPinnedPanel, pinsEnabled } from '@/features/message-pins';
 import { useChatImportMenu } from '@/features/chat-import';
+import { useChatWallpaperAction } from '@/features/chat-wallpaper';
 
 interface ChatHeaderMenuProps {
   userId: EntityId;
@@ -20,6 +21,7 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
   const actions = useChatActions({ onDeleted: () => onChatDeleted?.() });
   const target: ChatActionTarget = { chatId, userId, username, name };
   const blocked = actions.isBlocked(username);
+  const wallpaper = useChatWallpaperAction();
   const imports = useChatImportMenu({
     chat: { chatId: chatId ?? '', name, isGroup: false, peer: { id: userId, username, displayName: name } }, canImport: !blocked,
   });
@@ -41,6 +43,9 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
                 </DropdownMenuItem>
               )}
               {imports.items}
+              <DropdownMenuItem onSelect={() => wallpaper.open({ chatId: String(chatId), peerName: name, direct: true, blocked })}>
+                <Image className="mr-2 h-4 w-4" />{translations.appearance.wallpaper.menuItem}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => actions.openClear(target)}>
                 <Eraser className="mr-2 h-4 w-4" />{translations.chatCleanup.clearHistory}
               </DropdownMenuItem>
@@ -60,6 +65,7 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
       </DropdownMenu>
       {actions.dialogs}
       {imports.dialogs}
+      {wallpaper.dialog}
       {actions.reporting && <ReportUserDialog userId={actions.reporting.userId} name={actions.reporting.name} onClose={actions.closeReport} />}
     </>
   );

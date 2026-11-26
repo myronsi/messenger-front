@@ -1,7 +1,11 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render as renderView, screen, waitFor, within } from '@testing-library/react';
+import { configureStore } from '@reduxjs/toolkit';
+import { Provider } from 'react-redux';
+import type { ReactElement } from 'react';
+import { messengerApi } from '@/shared/api/baseApi';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { audioLibrary, audioPlayerState, playAudio, rememberPlayed, stopAudio, type AudioTrack } from '@/entities/message';
+import { audioPlayerState, playAudio, rememberPlayed, stopAudio, type AudioTrack } from '@/entities/message';
 import { openNowPlaying } from '../model/nowPlaying';
 import { NowPlayingHost } from './NowPlayingSheet';
 
@@ -15,6 +19,33 @@ vi.mock('@/shared/auth/session', () => ({ getAccessToken: () => 'token', subscri
 vi.mock('@/shared/auth/tokenClaims', async (importOriginal) => ({ ...await importOriginal<typeof import('@/shared/auth/tokenClaims')>(), getTokenSubject: () => 'me' }));
 vi.mock('@/shared/ui/sonner', () => ({ toast: vi.fn() }));
 
+type FakePlaylist = { id: string; name: string; track_count: number; version: number; created_at: string; updated_at: string; tracks: unknown[] };
+const server = vi.hoisted(() => ({ playlists: [] as FakePlaylist[] }));
+vi.mock('@/shared/api/client', () => {
+  const ok = (data: unknown, status = 200) => ({ data, response: new Response(null, { status }) });
+  return {
+    apiClient: {
+      GET: async (path: string, options?: { params?: { path?: { playlist_id?: string } } }) => {
+        if (path === '/me/playlists') return ok({ items: server.playlists.map(({ tracks: _tracks, ...summary }) => summary) });
+        return ok(server.playlists.find((playlist) => playlist.id === options?.params?.path?.playlist_id));
+      },
+      POST: async (_path: string, { body }: { body: { name: string } }) => {
+        const playlist = { id: String(server.playlists.length + 1), name: body.name, track_count: 0, version: 1, created_at: '', updated_at: '', tracks: [] };
+        server.playlists.unshift(playlist);
+        return ok(playlist, 201);
+      },
+    },
+  };
+});
+
+const render = (view: ReactElement) => {
+  const store = configureStore({
+    reducer: { [messengerApi.reducerPath]: messengerApi.reducer },
+    middleware: (getDefault) => getDefault().concat(messengerApi.middleware),
+  });
+  return renderView(<Provider store={store}>{view}</Provider>);
+};
+
 const song = (id: string, extra: Partial<AudioTrack> = {}): AudioTrack => ({ id, src: `/${id}.mp3`, title: `Song ${id}`, kind: 'music', ...extra });
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
@@ -25,7 +56,7 @@ beforeAll(() => {
 });
 
 describe('NowPlayingSheet', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => { localStorage.clear(); server.playlists = []; });
   afterEach(() => act(() => stopAudio()));
 
   it('shows the track with controls and the up next list, and closes when playback stops', async () => {
@@ -95,10 +126,10 @@ describe('NowPlayingSheet', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Playlists' }));
     fireEvent.change(screen.getByLabelText('Playlist name'), { target: { value: 'Evening' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-    expect(screen.getByTestId('playlist-detail')).toHaveTextContent('Evening');
-    expect(audioLibrary().playlists.map((list) => list.name)).toEqual(['Evening']);
+    await waitFor(() => expect(screen.getByTestId('playlist-detail')).toHaveTextContent('Evening'));
+    expect(server.playlists.map((list) => list.name)).toEqual(['Evening']);
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(screen.getByText('Evening')).toBeInTheDocument();
+    expect(await screen.findByText('Evening')).toBeInTheDocument();
     act(() => rememberPlayed(song('z', { title: 'Old song' })));
     fireEvent.click(screen.getByRole('tab', { name: 'Recently played' }));
     expect(within(screen.getByTestId('audio-recent')).getByText('Old song')).toBeInTheDocument();

@@ -2,6 +2,7 @@ import { useDragSelect } from '../model/useDragSelect';
 import { DelayedSpinner } from '@/shared/ui/DelayedSpinner';
 import type { SocketSender } from '@/shared/api/realtime';
 import { isPersistedId } from '@/shared/api/entityId';
+import { ChatWallpaperLayer } from '@/entities/chat-wallpaper';
 import type { EntityId } from '@/shared/api/entityId';
 import React, { forwardRef, memo, useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useMessageListScroll } from '../model/useMessageListScroll';
@@ -159,7 +160,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
   });
 
   const onPlayAudio = useStableCallback((id: EntityId, startAt?: number) => {
-    const queue = audioQueueFor(messages, id, translations.voiceMessage);
+    const queue = audioQueueFor(messages, id, translations.voiceMessage, props.chatId !== undefined && isPersistedId(props.chatId) ? props.chatId : undefined);
     if (queue) playAudio(queue.track, queue.upcoming, startAt);
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -204,6 +205,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
 
   return (
     <MessageChatContext.Provider value={props.chatId}><div className="chat-surface relative min-h-0 flex-1">
+    <ChatWallpaperLayer chatId={props.chatId !== undefined && isPersistedId(props.chatId) ? props.chatId : undefined} />
     <div className="absolute inset-0 overflow-x-hidden overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
         <div data-testid="sticky-date" className="sticky top-[var(--pinned-inset,0px)] z-20 flex h-0 justify-center overflow-visible pointer-events-none md:w-2/3 md:mx-auto md:px-0">

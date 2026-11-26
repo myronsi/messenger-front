@@ -96,7 +96,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     const stickerSource = fileContent && !fileContent.album?.length && (stickerType.startsWith('image/')
       || (stickerType.startsWith('video/') && fileContent.file_size <= VIDEO_STICKER_MAX_BYTES)) ? fileContent.file_url : null;
     const canDelete = message ? (canDeleteMessage ? canDeleteMessage(message) : contextMenu.isMine) : contextMenu.isMine;
-    const song = message ? messageAudioTrack(message, translations.voiceMessage) : null;
+    const song = message ? messageAudioTrack(message, translations.voiceMessage, isPersistedId(chatId) ? chatId : undefined) : null;
     const musicTrack = song?.kind === 'music' ? song : null;
     const pinsOn = isGoApi() && isPersistedId(chatId);
     const { data: pinState } = useGetPinnedMessagesQuery(chatId, { skip: !pinsOn });

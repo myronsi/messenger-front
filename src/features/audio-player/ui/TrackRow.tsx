@@ -17,11 +17,12 @@ export const TrackRow = ({ track, onPlay, actions }: TrackRowProps) => {
   const t = translations.audioPlayer;
   const current = useAudioPlayer((player) => !!player.track && String(player.track.id) === String(track.id));
   const playing = useAudioPlayer((player) => player.playing);
-  const subtitle = trackSubtitle(track, t.fromName);
+  const unavailable = !!track.unavailable;
+  const subtitle = unavailable ? t.unavailable : trackSubtitle(track, t.fromName);
   return (
-    <li className="flex h-14 items-center gap-1 pl-3 pr-1">
-      <button type="button" onClick={onPlay} aria-current={current || undefined}
-        className="flex h-full min-w-0 flex-1 items-center gap-3 rounded-lg pr-2 text-left hover:bg-accent/60">
+    <li className="flex h-14 items-center gap-1 pl-3 pr-1" data-unavailable={unavailable || undefined}>
+      <button type="button" onClick={onPlay} aria-current={current || undefined} disabled={unavailable} title={unavailable ? t.unavailableHint : undefined}
+        className="flex h-full min-w-0 flex-1 items-center gap-3 rounded-lg pr-2 text-left hover:bg-accent/60 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent">
         <span className="relative">
           <TrackCover track={track} className="h-10 w-10 rounded-lg" />
           {current && (

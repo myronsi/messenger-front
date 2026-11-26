@@ -7,6 +7,7 @@ import { Toaster } from '@/shared/ui/toaster';
 import ChatsListComponentRTK from '@/widgets/chat-list';
 import { UserProfileComponentRTK, UserProfileLayer } from '@/widgets/profile-panel';
 import { AddToPlaylistHost, PollCloseHost, ReactionBurstHost, startAudioSession } from '@/entities/message';
+import { ClientSyncHost } from '@/features/client-sync';
 import { AttachHost } from '@/widgets/attach-host';
 import { NowPlayingHost } from '@/features/audio-player';
 import { useMessengerController } from './model/useMessengerController';
@@ -206,6 +207,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
       <div className="min-h-screen bg-gradient-to-br from-primary/10 to-background">
         <Toaster />
         <AddToPlaylistHost />
+        {isGoApi() && <ClientSyncHost key={`sync:${username}`} />}
         <NowPlayingHost />
         <ReactionBurstHost />
         {isGoApi() && <><AttachHost /><PollCloseHost /></>}
