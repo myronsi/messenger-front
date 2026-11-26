@@ -39,7 +39,9 @@ are in the backend docs: [calls.md](https://github.com/myronsi/messenger-back/bl
 | `public/notification-worker.js` | Call push (`type: "call"`, `ring` / `cancel`) |
 | `e2e/smoke/go-calls.spec.ts` | Direct call with fake audio: audio both ways, mute, codes, encrypted frames, decline, missed |
 | `e2e/smoke/go-calls-group.spec.ts` | Group call of three: key rotation on leave and rejoin, a revoked session leaves the room |
+| `e2e/smoke/go-calls-video.spec.ts` | Fake camera and screen: video both ways, every LiveKit track `GCM`, two shares at once, video after a key change, camera released when off |
 | `e2e/smoke/callHelpers.ts`, `e2e/smoke/livekitHelpers.ts` | Audio level, frame and transport probes; LiveKit room checks |
+| `e2e/smoke/videoHelpers.ts` | Video frame probes (size, frames per second, picture variance); Chromium flags for a stable fake camera and auto-accepted screen capture |
 
 `livekit-client` and `@hpke/core` live only in the lazily loaded `callEngine` chunk, which is fetched when the user
 starts or answers a call. The LiveKit encryption worker is emitted as `assets/livekit-client.e2ee.worker-*.js` on the
