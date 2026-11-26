@@ -3,7 +3,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import type { Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import {
-  DEFAULT_ROW_HEIGHT, coversView, messageKey, resolveSpan, sameRange, spanForView, type Span, type WindowRange,
+  DEFAULT_ROW_HEIGHT, coversView, keepsView, messageKey, resolveSpan, sameRange, spanForView, type Span, type WindowRange,
 } from './messageWindow';
 
 const HEIGHT_CACHE_LIMIT = 5000;
@@ -60,11 +60,12 @@ export const useMessageWindow = ({ messages, messageRefs, containerRef, focusIds
   let bottomSpace = 0;
   for (let index = 0; index < span.start; index += 1) topSpace += heights.get(keys[index]);
   for (let index = span.end; index < count; index += 1) bottomSpace += heights.get(keys[index]);
-  const latest = useLatestRef({ span, keys, messages, chatKey, all: current.all, placed: !!current.range });
+  const own = current.range ? resolveSpan(count, indexOf, current.range, []) : span;
+  const latest = useLatestRef({ span, own, keys, messages, chatKey, all: current.all, placed: !!current.range });
 
   const sync = useCallback(() => {
     const container = containerRef.current;
-    const { span: rendered, keys: rowKeys, messages: rows, chatKey: chat, all, placed } = latest.current;
+    const { span: rendered, own, keys: rowKeys, messages: rows, chatKey: chat, all, placed } = latest.current;
     if (!container) return;
     const update = (next: WindowState) => setState((previous) => (
       previous.chat === next.chat && previous.all === next.all && sameRange(previous.range, next.range) ? previous : next
@@ -93,7 +94,7 @@ export const useMessageWindow = ({ messages, messageRefs, containerRef, focusIds
     const view = { top: container.scrollTop, height: container.clientHeight };
     const top = bottoms[0] - heightAt(rendered.start);
     const covered = coversView(rendered, rowKeys.length, top, bottoms[bottoms.length - 1], view);
-    if (!all && placed && covered) return;
+    if (!all && placed && keepsView(rendered, own, rowKeys.length, bottoms, heightAt, view)) return;
     const next = covered && !all ? rendered : spanForView(rowKeys.length, rendered, bottoms, heightAt, view);
     update({ chat, all: false, range: { startKey: rowKeys[next.start], endKey: rowKeys[next.end - 1], atEnd: next.end === rowKeys.length } });
   }, [containerRef, heights, latest, messageRefs]);

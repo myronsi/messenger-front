@@ -1,5 +1,5 @@
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
-import { MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getAppendedMessages, type Message } from '@/entities/message';
 import { useLatestRef } from '@/shared/lib/useLatestRef';
 import { useRowResizes } from './useRowResizes';
@@ -12,28 +12,7 @@ import { maxScrollTop, useScrollAnimation } from './smoothScroll';
 import { prefetchPages } from './prefetchPages';
 import { useBottomInset } from './useBottomInset';
 import { useMessageWindow } from './useMessageWindow';
-
-interface MessageListScrollOptions {
-  messages: Message[];
-  messageRefs: MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
-  firstUnreadMessageId?: EntityId | null;
-  highlightedMessageId: EntityId | null;
-  tempHighlightedMessageId: EntityId | null;
-  getFormattedDateLabel: (timestamp: string) => string;
-  hasMoreMessages: boolean;
-  hasMoreNewerMessages: boolean;
-  isLoadingInitialMessages: boolean;
-  isLoadingOlderMessages: boolean;
-  isLoadingNewerMessages: boolean;
-  onLoadOlderMessages?: () => Promise<void>;
-  onLoadNewerMessages?: () => Promise<void>;
-  onLoadLatestMessages?: () => Promise<void>;
-  onLoadMessagesAround?: (messageId: EntityId) => Promise<void>;
-  onScrollStart?: () => void;
-  scrollToBottomKey?: string | number;
-  isOwnMessage: (message: Message) => boolean;
-  bottomInsetSource?: HTMLElement | null;
-}
+import type { MessageListScrollOptions } from './messageListScrollTypes';
 
 const BOTTOM_TOLERANCE = 4;
 const USER_SCROLL_WINDOW_MS = 1000;
@@ -65,11 +44,13 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   const rowLayoutRef = useRef<RowLayout>(EMPTY_LAYOUT);
   const replacedWindowRef = useRef<Message[] | null>(null);
   const pendingBottomRef = useRef(false);
+  const hadMoreNewerRef = useRef(hasMoreNewerMessages);
   const isAnchoringRef = useRef(() => hasScrolledInitialRef.current && !settleRef.current && !shouldStickToBottomRef.current);
   const latest = useLatestRef(options);
   const isOwnMessageRef = useLatestRef(isOwnMessage);
   const messagesRef = useLatestRef(messages);
   const jumpTargetId = tempHighlightedMessageId ?? highlightedMessageId;
+  const isJumping = useCallback(() => (latest.current.tempHighlightedMessageId ?? latest.current.highlightedMessageId) != null, [latest]);
   const { messageWindow, sync: syncWindow } = useMessageWindow({ messages, messageRefs, containerRef: chatContainerRef,
     chatKey: scrollToBottomKey, focusIds: [jumpTargetId, isPositioned ? null : visibleFirstUnreadId] });
   const { renderKey, firstRendered } = messageWindow;
@@ -139,7 +120,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     hasScrolledToFirstUnreadRef.current = false;
     isSeekingFirstUnreadRef.current = false;
     firstUnreadMarkerRef.current = null;
-    shouldStickToBottomRef.current = true;
+    shouldStickToBottomRef.current = !isJumping();
     lastMessageIdRef.current = null;
     previousMessagesRef.current = [];
     pendingBottomRef.current = false;
@@ -147,7 +128,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     settleRef.current = null;
     cancelAnimationFrame(positionedFrameRef.current);
     setIsPositioned(false);
-  }, [scrollToBottomKey, stopAnimation]);
+  }, [scrollToBottomKey, stopAnimation, isJumping]);
 
   useEffect(() => () => cancelAnimationFrame(positionedFrameRef.current), []);
 
@@ -193,7 +174,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
       syncWindow();
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       const jumping = (current.tempHighlightedMessageId ?? current.highlightedMessageId) != null;
-      if (distanceFromBottom <= BOTTOM_TOLERANCE && !pendingBottomRef.current && (movedByUser || !jumping)) {
+      const atNewest = !current.hasMoreNewerMessages;
+      if (distanceFromBottom <= BOTTOM_TOLERANCE && atNewest && !pendingBottomRef.current && (movedByUser || !jumping)) {
         shouldStickToBottomRef.current = true;
         clearUnseen();
       } else if (movedByUser && !isAnimatingRef.current) {
@@ -236,6 +218,8 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
   useLayoutEffect(() => {
     const container = chatContainerRef.current;
     const lastMessageId = messages[messages.length - 1]?.id || null;
+    const loadedNewerPage = hadMoreNewerRef.current;
+    hadMoreNewerRef.current = hasMoreNewerMessages;
     if (!container || !lastMessageId) {
       lastMessageIdRef.current = lastMessageId;
       return;
@@ -257,7 +241,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
           return;
         }
         nextContainer.scrollTop = nextContainer.scrollHeight;
-        shouldStickToBottomRef.current = true;
+        shouldStickToBottomRef.current = !isJumping();
       };
       positionInitially();
       settleRef.current = shouldPreferFirstUnread ? positionInitially : null;
@@ -273,7 +257,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     if (lastMessageIdRef.current !== lastMessageId) {
       const appended = getAppendedMessages(previousMessagesRef.current, messages);
       const leftCache = previousMessagesRef.current.some(m => m.is_cached) && !messages.some(m => m.is_cached) && shouldStickToBottomRef.current;
-      if ((appended.length > 0 && isOwnMessageRef.current(messages[messages.length - 1])) || leftCache) {
+      if ((appended.length > 0 && !loadedNewerPage && isOwnMessageRef.current(messages[messages.length - 1])) || leftCache) {
         stopAnimation();
         shouldStickToBottomRef.current = true;
         pendingBottomRef.current = false;
@@ -290,7 +274,7 @@ export const useMessageListScroll = (options: MessageListScrollOptions) => {
     previousMessagesRef.current = messages;
     lastMessageIdRef.current = lastMessageId;
   }, [messages, scrollToBottomKey, visibleFirstUnreadId, messageRefs, scrollFirstUnreadIntoView, countIncoming, hasMoreMessages,
-    isOwnMessageRef, startAnimation, stopAnimation, isLoadingInitialMessages]);
+    hasMoreNewerMessages, isOwnMessageRef, startAnimation, stopAnimation, isLoadingInitialMessages, isJumping]);
 
   return {
     currentDate, dateBadgeRef, isScrolling, visibleFirstUnreadId, setVisibleFirstUnreadId, chatContainerRef, contentRef, firstUnreadMarkerRef,

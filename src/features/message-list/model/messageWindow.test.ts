@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FOCUS_ROWS, INITIAL_ROWS, coversView, resolveSpan, sameRange, spanForView } from './messageWindow';
+import { FOCUS_ROWS, INITIAL_ROWS, coversView, keepsView, resolveSpan, sameRange, spanForView } from './messageWindow';
 
 const keys = (count: number) => Array.from({ length: count }, (_, index) => `m${index}`);
 const indexOf = (count: number) => new Map(keys(count).map((key, index) => [key, index]));
@@ -52,6 +52,28 @@ describe('coversView', () => {
 
   it('asks to drop rows far outside the view', () => {
     expect(coversView({ start: 0, end: 100 }, 100, -5000, 1600, view)).toBe(false);
+  });
+});
+
+describe('keepsView', () => {
+  const rowHeight = 50;
+  const rendered = { start: 24, end: 144 };
+  const bottoms = Array.from({ length: rendered.end - rendered.start }, (_, offset) => (rendered.start + offset + 1) * rowHeight);
+  const heightAt = () => rowHeight;
+  const view = { top: 5300, height: 700 };
+
+  it('keeps the window when its own rows cover the view although a jump target stretches it far up', () => {
+    expect(coversView(rendered, 150, rendered.start * rowHeight, bottoms[bottoms.length - 1], view)).toBe(false);
+    expect(keepsView(rendered, { start: 73, end: 142 }, 150, bottoms, heightAt, view)).toBe(true);
+  });
+
+  it('asks for new rows when its own rows no longer cover the view', () => {
+    expect(keepsView(rendered, { start: 100, end: 142 }, 150, bottoms, heightAt, view)).toBe(false);
+  });
+
+  it('does not judge rows that are not rendered', () => {
+    expect(keepsView(rendered, { start: 10, end: 142 }, 150, bottoms, heightAt, view)).toBe(false);
+    expect(keepsView(rendered, { start: 73, end: 150 }, 150, bottoms, heightAt, view)).toBe(false);
   });
 });
 
