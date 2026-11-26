@@ -9,7 +9,7 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 vi.mock('./UserProfileConnections', () => ({ default: () => <div data-testid="profile-connections-slot" /> }));
 vi.mock('@/entities/message', async () => ({
-  ProfileBio: (await vi.importActual<typeof import('@/entities/message/ui/ProfileChatPanels')>('@/entities/message/ui/ProfileChatPanels')).ProfileBio,
+  ProfileBio: (await vi.importActual<typeof import('@/entities/message')>('@/entities/message')).ProfileBio,
   formatAudioTime: (value: number) => `0:${String(Math.round(value)).padStart(2, '0')}`,
   playAudio: vi.fn(), pauseAudio: vi.fn(), useAudioPlayer: () => false, TrackMenu: () => null,
 }));
