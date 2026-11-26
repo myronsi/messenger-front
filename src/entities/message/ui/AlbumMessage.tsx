@@ -1,12 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { ImageViewer, type ViewerImage, type ViewerImageInfo } from '@/shared/ui/image-viewer';
 import type { MessageAttachment } from '../model/types';
 import { isVideoAttachment } from '../model/videoAttachment';
 import { attachmentAspect, drawActionFor } from '../model/drawAction';
+import { mayBeAnimatedWebP } from '../model/animatedWebP';
+import { makeStickerAction } from '../model/stickerSource';
 import { useImageDrawing } from '@/shared/ui/drawing';
 import type { EntityId } from '@/shared/api/entityId';
 import MediaTile from './MediaTile';
+import { useGalleryOpener, type OpenGallery } from '../model/chatGallery';
 
 const ROW_SIZES: Record<number, number[]> = {
   2: [2], 3: [1, 2], 4: [1, 3], 5: [2, 3], 6: [3, 3], 7: [1, 3, 3], 8: [2, 3, 3], 9: [3, 3, 3], 10: [1, 3, 3, 3],
@@ -36,7 +39,9 @@ interface AlbumMessageProps {
 }
 
 export default function AlbumMessage({ messageId, items, viewerInfo }: AlbumMessageProps) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [viewer, setViewer] = useState<OpenGallery | null>(null);
+  const closeViewer = useCallback(() => setViewer(null), []);
+  const openGallery = useGalleryOpener(messageId, closeViewer);
   const drawing = useImageDrawing();
   const media = useMemo(() => items.map((item, index) => {
     const isVideo = isVideoAttachment(item);
@@ -44,17 +49,18 @@ export default function AlbumMessage({ messageId, items, viewerInfo }: AlbumMess
     const draw = isVideo ? undefined : drawActionFor(drawing, messageId, item, url);
     return {
       index, ratio: ratioOf(item), isVideo, url, name: item.file_name, drawing: item.drawing, aspect: attachmentAspect(item),
-      poster: item.thumbnail_url ? resolveMediaUrl(item.thumbnail_url) : undefined,
+      poster: item.thumbnail_url && !mayBeAnimatedWebP(item) ? resolveMediaUrl(item.thumbnail_url) : undefined,
       display: !isVideo && item.display_url ? resolveMediaUrl(item.display_url) : undefined,
       placeholder: item.placeholder,
-      onDraw: draw && (() => draw(() => setOpenIndex(null))),
+      onDraw: draw && (() => draw(closeViewer)), onMakeSticker: makeStickerAction(item),
     };
-  }), [drawing, items, messageId]);
+  }), [closeViewer, drawing, items, messageId]);
   const viewerItems = useMemo<ViewerImage[]>(() => media.map((item) => ({
     url: item.display ?? item.url, fullUrl: item.display ? item.url : undefined, name: item.name, downloadName: item.name,
     previewUrl: item.poster, isVideo: item.isVideo, info: viewerInfo,
-    drawing: item.drawing, aspect: item.aspect, onDraw: item.onDraw,
+    drawing: item.drawing, aspect: item.aspect, onDraw: item.onDraw, onMakeSticker: item.onMakeSticker,
   })), [media, viewerInfo]);
+  const open = (index: number) => setViewer(openGallery(viewerItems, media.map((item) => item.url), index));
 
   return (
     <div data-testid="message-album" className="flex w-[20rem] max-w-full flex-col gap-0.5 overflow-hidden rounded-2xl">
@@ -63,11 +69,11 @@ export default function AlbumMessage({ messageId, items, viewerInfo }: AlbumMess
           {row.map((item) => (
             <MediaTile key={`${item.url}-${item.index}`} url={item.url} poster={item.poster} name={item.name} isVideo={item.isVideo} placeholder={item.placeholder} viewUrl={item.display}
               badge={row.length > 2 ? 'sm' : 'md'} className="h-full" style={{ flex: `${item.ratio} 1 0%` }} drawing={item.drawing} aspect={item.aspect}
-              onOpen={() => setOpenIndex(item.index)} />
+              onOpen={() => open(item.index)} />
           ))}
         </div>
       ))}
-      {openIndex !== null && <ImageViewer images={viewerItems} initialIndex={openIndex} onClose={() => setOpenIndex(null)} />}
+      {viewer && <ImageViewer images={viewer.images} initialIndex={viewer.index} onClose={closeViewer} />}
     </div>
   );
 }

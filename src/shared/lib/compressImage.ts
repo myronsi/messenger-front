@@ -1,4 +1,5 @@
 import { getExtension, UPLOAD_LIMIT_BYTES } from './uploadValidation';
+import { isAnimatedWebP } from './animatedWebP';
 
 export const MAX_IMAGE_EDGE = 2560;
 const WEBP_QUALITY = 0.82;
@@ -101,6 +102,7 @@ const extensionOf = (type: string) => (type === 'image/webp' ? 'webp' : type ===
 export const compressImageForUpload = async (file: File, limit = UPLOAD_LIMIT_BYTES.image): Promise<File> => {
   const type = sourceType(file);
   if (!type || !canCompressImage(file)) return file;
+  if (type === 'image/webp' && await isAnimatedWebP(file)) return file;
   let bitmap: ImageBitmap | undefined;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });

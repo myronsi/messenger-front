@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ImageIcon, Loader2, Music2 } from 'lucide-react';
 import type { ProfileBackground, ProfileMusic } from '@/entities/user';
 import { ProfileBackgroundEditor, ProfileMusicEditor, type MusicChoice, type SetBackgroundBody } from '@/features/profile';
-import { EmojiAutocomplete } from '@/features/message-composer';
+import { EmojiAutocomplete, EmojiInputButton } from '@/features/message-composer';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -140,7 +140,8 @@ export const EditProfilePage = (props: EditProfilePageProps) => {
             <div className="relative">
               <input ref={nameRef} type="text" value={props.name} maxLength={NAME_MAX} aria-label={t.nameLabel}
                 placeholder={translations.displayNameHint || t.nameLabel} onChange={(event) => props.onNameChange(event.target.value)}
-                className="w-full rounded-md border border-transparent bg-transparent px-1 -mx-1 py-0.5 text-2xl font-bold tracking-tight text-foreground outline-none transition-colors hover:border-border focus:border-ring" />
+                className="w-full rounded-md border border-transparent bg-transparent py-0.5 pl-1 pr-10 -mx-1 text-2xl font-bold tracking-tight text-foreground outline-none transition-colors hover:border-border focus:border-ring" />
+              <EmojiInputButton inputRef={nameRef} value={props.name} onChange={props.onNameChange} maxLength={NAME_MAX} className="absolute inset-y-0 right-0 my-auto" />
               <EmojiAutocomplete inputRef={nameRef} value={props.name} onChange={props.onNameChange} className="top-full bottom-auto mt-1 mb-0" />
             </div>
           )}

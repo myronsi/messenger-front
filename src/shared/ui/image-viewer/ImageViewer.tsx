@@ -68,7 +68,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
     stageRef, imageRef, isStageMounted, { onSwipe: isGallery ? onSwipe : undefined, onDismiss, tapZoom: !image?.isVideo },
   );
   useSwipeMorph(stageRef, swipeY, [image?.thumbnailSource, image?.url, image?.previewUrl]);
-  useOpenFlight(stageRef, isStageMounted, [image?.thumbnailSource, image?.url, image?.previewUrl], !image?.isVideo);
+  useOpenFlight(stageRef, isStageMounted, [image?.thumbnailSource, image?.url, image?.previewUrl]);
   useEffect(() => { reset(); }, [index, reset]);
   const markLoaded = useCallback((url: string) => {
     setLoadedUrls((loaded) => (loaded[url] ? loaded : { ...loaded, [url]: true }));
@@ -212,15 +212,15 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ images, initialIndex = 0, onC
             onKeyDown={stopPropagation}
             onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}
           >
-            <BackToClose onClose={fadeClose} flag="imageViewer" />
+            <BackToClose onClose={() => onDismiss(0)} flag="imageViewer" />
             <DialogPrimitive.Title className="sr-only">{image.name}</DialogPrimitive.Title>
             <div data-testid="image-viewer-chrome" inert={!chrome.visible} aria-hidden={!chrome.visible || undefined}
               className={`pointer-events-none fixed inset-0 z-[10000] transition-opacity duration-200 ease-out ${chrome.visible ? 'opacity-100' : 'opacity-0'}`}>
             <ImageViewerHeader info={image.info} index={index} total={images.length} onShowInChat={image.onShowInChat} onClose={onClose} />
             <ViewerToolbar
-              canDownload={!isBroken || isVideo} isDownloading={isDownloading} deleteButtonRef={deleteButtonRef}
+              canDownload={!isBroken || isVideo} isDownloading={isDownloading} deleteButtonRef={deleteButtonRef} onForward={image.onForward}
               onZoom={zoomBy} onDownload={() => void handleDownload()} onClose={fadeClose} onDraw={!isBroken && !isVideo ? image.onDraw : undefined}
-              onDelete={image.onDelete ? () => setDeleting({ url: image.url, busy: false, failed: false }) : undefined}
+              onDelete={image.onDelete ? () => setDeleting({ url: image.url, busy: false, failed: false }) : undefined} onMakeSticker={image.onMakeSticker}
             />
             {deleteState && (
               <DeleteImageConfirm

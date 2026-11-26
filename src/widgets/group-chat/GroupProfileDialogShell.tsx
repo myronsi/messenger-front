@@ -10,7 +10,7 @@ import { Eraser, Flag, LogOut, Pencil, Trash2, UserMinus } from 'lucide-react';
 import { requestContentReport } from '@/entities/message';
 import { isGoApi } from '@/shared/api/goSocket';
 import { CallButton, useCallsAvailable } from '@/features/calls';
-import { ProfileActions, ProfileBanner, ProfileCloseButton, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
+import { BANNER_BUTTON, ProfileActions, ProfileBanner, ProfileCloseButton, ProfileMoreMenu, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { ProfilePageBackdrop } from '@/shared/ui/profile/ProfileBackgroundFill';
 import type { ProfileBackground } from '@/entities/user';
@@ -88,18 +88,17 @@ const GroupProfileDialogShell: React.FC<Props> = ({
     ...(canMute ? [{ key: 'mute', label: t.mute, primary: true, render: (className: string) => <ChatMuteAction chatId={chatId} className={className} /> }] : []),
   ];
   const isOwner = currentRole === 'owner';
-  if (onEdit) tiles.unshift({ key: 'edit', label: (rawTranslations as unknown as GroupTranslations).editGroupShort, primary: true, icon: <Pencil className="h-5 w-5" />, onClick: onEdit });
+  const editLabel = translations.editGroupShort;
   const clearHistory = () => cleanup.open({ kind: 'clear', target: {
     chatId, name: currentGroupName, isGroup: true, isSaved: false, canClearForEveryone: isOwner || currentRole === 'admin',
   } });
-  if (isOwner) tiles.push({ key: 'clear', label: rawTranslations.chatCleanup.clearHistory, icon: <Eraser className="h-5 w-5" />, onClick: clearHistory });
-  const menu: ProfileMenuItem[] = isOwner ? [] : [
+  const menu: ProfileMenuItem[] = [
     { key: 'clear', label: rawTranslations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: clearHistory },
-    ...(isGoApi() ? [{
+    ...(isGoApi() && !isOwner ? [{
       key: 'report', label: rawTranslations.moderation.reportGroup, danger: true, icon: <Flag className="h-4 w-4" />,
       onSelect: () => requestContentReport({ kind: 'group', chatId, name: currentGroupName }),
     }] : []),
-    ...(onLeaveGroup ? [{
+    ...(onLeaveGroup && !isOwner ? [{
       key: 'leave', label: rawTranslations.leaveGroup || 'Leave group', danger: true, icon: <LogOut className="h-4 w-4" />, onSelect: onLeaveGroup,
     }] : []),
   ];
@@ -131,11 +130,15 @@ const GroupProfileDialogShell: React.FC<Props> = ({
                   seed={currentGroupName}
                   background={background}
                   avatar={hasCustomAvatar ? <button type="button" aria-label="View group picture" onClick={() => setIsAvatarViewerOpen(true)} className="block h-full w-full">{groupAvatar}</button> : groupAvatar}
-                  actions={<ProfileActions tiles={tiles} menu={menu} moreLabel={t.more} />}
+                  actions={tiles.length > 0 && <ProfileActions tiles={tiles} />}
                   title={<h3 className="break-words"><EmojiText text={currentGroupName} /></h3>}
                   subtitle={<span>{online ? fillTemplate(t.membersHere, { count, online: String(online) }) : fillTemplate(t.membersCount, { count })}</span>}
                   topLeft={isMobile && closeButton}
-                  topRight={!isMobile && closeButton}
+                  topRight={<div className="flex items-center">
+                    {onEdit && <button type="button" aria-label={editLabel} title={editLabel} onClick={onEdit} className={BANNER_BUTTON}><Pencil className="h-5 w-5" /></button>}
+                    {menu.length > 0 && <ProfileMoreMenu menu={menu} label={t.more} triggerClassName={BANNER_BUTTON} />}
+                    {!isMobile && closeButton}
+                  </div>}
                 />
                 <ProfileTabs tabs={visibleViews.map((key) => ({ key, label: tabLabels[key] }))} active={activeView} onSelect={onSelectView} />
               </div>

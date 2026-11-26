@@ -31,6 +31,14 @@ export const moderation = {
       restricted: "Restricted",
       suspended: "Suspended",
     },
+    standingScale: "Account standing",
+    standingHeadlines: {
+      good: "Your account is in good standing",
+      warned: "Your account has a warning",
+      limited: "Your account is limited",
+      restricted: "Your account is restricted",
+      suspended: "Your account is suspended",
+    },
     statusDescriptions: {
       good: "Your account has no restrictions.",
       warned: "Several people reported your account. Nothing is restricted yet, but more reports will limit it.",

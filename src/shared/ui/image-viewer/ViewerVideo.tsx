@@ -148,7 +148,7 @@ export function ViewerVideo({
   return (
     <>
       {src && (
-        <video key={src} ref={attach} src={src} poster={posterSrc} aria-label={name} autoPlay playsInline data-active-slide
+        <video key={src} ref={attach} src={src} poster={posterSrc} aria-label={name} autoPlay loop playsInline data-active-slide
           className={className} style={style} onLoadedData={loadedData} onError={failed} />
       )}
       {!loaded && <Loader2 data-testid="viewer-video-loading" className="pointer-events-none absolute inset-0 z-[1] m-auto h-7 w-7 animate-spin text-white/80" />}

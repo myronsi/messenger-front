@@ -11,6 +11,8 @@ import AudioMessage from './AudioMessage';
 import ImageMessage from './ImageMessage';
 import AlbumMessage from './AlbumMessage';
 import { attachmentView, isVoiceAttachment } from '../model/videoAttachment';
+import { mayBeAnimatedWebP } from '../model/animatedWebP';
+import { makeStickerAction } from '../model/stickerSource';
 import { UploadProgressRing } from './UploadProgress';
 import FileMessage from './FileMessage';
 import { LinkedMessageText } from './LinkedMessageText';
@@ -140,8 +142,9 @@ const MessageContent: React.FC<MessageContentProps> = ({
   if ((mediaBroken && isPicture) || !(isVideo || isPicture)) return withCaption(fileMessage);
   return withCaption(
     <ImageMessage
+      messageId={message.id}
       fileUrl={fullFileUrl}
-      thumbnailUrl={message.content.thumbnail_url ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
+      thumbnailUrl={message.content.thumbnail_url && !mayBeAnimatedWebP(message.content) ? resolveMediaUrl(message.content.thumbnail_url) : undefined}
       displayUrl={message.content.display_url ? resolveMediaUrl(message.content.display_url) : undefined}
       animationUrl={message.content.animation_url}
       placeholder={message.content.placeholder}
@@ -155,6 +158,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
       viewerInfo={viewerInfo}
       drawing={message.content.drawing}
       onDraw={isVideo ? undefined : drawActionFor(imageDrawing, message.id, message.content, fullFileUrl)}
+      onMakeSticker={uploadProgress === undefined ? makeStickerAction(message.content) : undefined}
       uploadProgress={uploadProgress}
     />,
     true

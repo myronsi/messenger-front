@@ -54,6 +54,7 @@ export const messages = {
   uploadFilesEmpty: "Empty files were not added: {names}. Choose them again.",
   replyUnavailable: "Original message",
   showInChat: "Show in chat",
+  mediaOptions: "More options",
   pinned: "Pinned",
   olderSearchResult: "Older match",
   newerSearchResult: "Newer match",

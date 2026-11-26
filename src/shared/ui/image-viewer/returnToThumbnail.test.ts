@@ -135,3 +135,28 @@ it('carries the strokes of a drawing into the thumbnail and gives them back afte
     Element.prototype.animate = original;
   }
 });
+
+it('flies the current frame of a video back to its poster in the chat', () => {
+  const video = document.createElement('video');
+  Object.defineProperty(video, 'videoWidth', { value: 640 });
+  Object.defineProperty(video, 'videoHeight', { value: 360 });
+  video.getBoundingClientRect = () => rect(0, 100, 640, 360);
+  const target = document.createElement('img');
+  target.getBoundingClientRect = () => rect(10, 20, 160, 90);
+  document.body.append(target);
+  const drawImage = vi.fn();
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+  const original = Element.prototype.animate;
+  Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation);
+  try {
+    const result = returnToThumbnail(video, target, { duration: 320 });
+    const frame = document.body.querySelector<HTMLCanvasElement>('div[aria-hidden="true"] canvas');
+    expect(frame).toHaveProperty('width', 640);
+    expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 640, 360);
+    expect(video.style.visibility).toBe('hidden');
+    result?.cleanup();
+    expect(video.style.visibility).toBe('');
+  } finally {
+    Element.prototype.animate = original;
+  }
+});

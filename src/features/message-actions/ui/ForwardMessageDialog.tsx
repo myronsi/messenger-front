@@ -21,7 +21,7 @@ import { ForwardTargetRow } from './ForwardTargetRow';
 interface ForwardMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  message: Message | null;
+  message: Pick<Message, 'id'> | null;
   bulk?: { chatId: EntityId; messageIds: EntityId[] } | null;
   username: string;
   onForwarded?: () => void;

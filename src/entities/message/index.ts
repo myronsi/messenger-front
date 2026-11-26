@@ -8,7 +8,7 @@ export * from './model/systemEvents';
 export { isAudioAttachment, isVisualMediaMessage, isVoiceAttachment } from './model/videoAttachment';
 export * from './api/messageApi';
 export * from './api/unsentApi';
-export * from './model/messageRemoval';
+export * from './model/messageRemoval'; export { ChatGalleryContext } from './model/chatGallery'; export { requestMediaForward, useMediaForwardRequest } from './model/mediaForward'; export { stickerSourceOf } from './model/stickerSource'; export { useChatGalleryEntries } from './model/useChatGalleryEntries';
 export * from './model/messageListScrollUtils';
 export { default as MessageItem } from './ui/MessageItem';
 export * from './ui/profilePanels';

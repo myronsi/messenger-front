@@ -3,7 +3,9 @@ import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { getImageDimensions, rememberImageDimensions } from '../../../shared/lib/imageDimensions';
-import { ImageViewer, type ViewerImageInfo } from '@/shared/ui/image-viewer';
+import { ImageViewer, type ViewerImage, type ViewerImageInfo } from '@/shared/ui/image-viewer';
+import type { EntityId } from '@/shared/api/entityId';
+import { useGalleryOpener, type OpenGallery } from '../model/chatGallery';
 import { useMediaPreload } from '@/shared/api/useMediaPreload';
 import { VideoPlayBadge } from '@/shared/ui/VideoPlayBadge';
 import { MediaVisual } from './MediaVisual';
@@ -19,6 +21,7 @@ const PLACEHOLDER = { width: 240, height: 180 };
 const VIDEO_PLACEHOLDER = { width: 16, height: 10 };
 
 interface ImageMessageProps {
+  messageId?: EntityId;
   fileUrl: string;
   thumbnailUrl?: string;
   displayUrl?: string;
@@ -35,15 +38,16 @@ interface ImageMessageProps {
   viewerInfo?: ViewerImageInfo;
   drawing?: Drawing | null;
   onDraw?: (onSent?: () => void) => void;
+  onMakeSticker?: () => void;
   uploadProgress?: number;
 }
 
 const ImageMessage: React.FC<ImageMessageProps> = ({
-  fileUrl, thumbnailUrl, displayUrl, animationUrl, placeholder, processing, width, height, fileName, isVideo = false, onBroken, onReply,
-  viewerInfo, drawing, onDraw, uploadProgress,
+  messageId, fileUrl, thumbnailUrl, displayUrl, animationUrl, placeholder, processing, width, height, fileName, isVideo = false, onBroken, onReply,
+  viewerInfo, drawing, onDraw, onMakeSticker, uploadProgress,
 }) => {
   const { translations } = useLanguage();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [viewer, setViewer] = useState<OpenGallery | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const knownSize = width && height && width > 0 && height > 0 ? { width, height } : undefined;
   const [dimensions, setDimensions] = useState(() => knownSize ?? (isVideo ? undefined : getImageDimensions(fileUrl)));
@@ -59,16 +63,22 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   }, [isLoaded, isVideo, previewUrl]);
   const preloadHandlers = useMediaPreload(isVideo ? undefined : displayUrl ?? fileUrl);
 
-  const closeViewer = useCallback(() => setIsExpanded(false), []);
+  const closeViewer = useCallback(() => setViewer(null), []);
+  const openGallery = useGalleryOpener(messageId, closeViewer);
   const markLoaded = useCallback(() => setIsLoaded(true), []);
-  const open = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setIsExpanded(true);
-  };
 
   const shape = knownSize ?? dimensions;
   const box = shape ?? (isVideo ? VIDEO_PLACEHOLDER : PLACEHOLDER);
   const aspect = shape ? shape.width / shape.height : undefined;
+  const open = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const local: ViewerImage[] = [{
+      url: !isVideo && displayUrl ? displayUrl : fileUrl, fullUrl: !isVideo && displayUrl ? fileUrl : undefined, downloadName: fileName,
+      name: fileName, isVideo, previewUrl: thumbnailFailed ? undefined : thumbnailUrl, info: viewerInfo,
+      drawing, aspect, onDraw: onDraw && (() => onDraw(closeViewer)), onMakeSticker,
+    }];
+    setViewer(openGallery(local, [fileUrl], 0));
+  };
   const visualClass = `block h-full w-full select-none rounded-2xl object-cover ${shownAtOnce ? '' : 'transition-opacity duration-150'} ${isLoaded ? 'opacity-100' : 'opacity-0'}`;
   const blur = isLoaded && (shownAtOnce || fadedIn) ? undefined : placeholderDataURL(placeholder);
   const optimizing = isVideo && (processing === 'queued' || processing === 'running');
@@ -153,16 +163,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
         )}
       </div>
 
-      {isExpanded && (
-        <ImageViewer
-          images={[{
-            url: !isVideo && displayUrl ? displayUrl : fileUrl, fullUrl: !isVideo && displayUrl ? fileUrl : undefined, downloadName: fileName,
-            name: fileName, isVideo, previewUrl: thumbnailFailed ? undefined : thumbnailUrl, info: viewerInfo,
-            drawing, aspect, onDraw: onDraw && (() => onDraw(() => setIsExpanded(false))),
-          }]}
-          onClose={closeViewer}
-        />
-      )}
+      {viewer && <ImageViewer images={viewer.images} initialIndex={viewer.index} onClose={closeViewer} />}
     </>
   );
 };

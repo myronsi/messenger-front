@@ -10,6 +10,7 @@ const translations = { writeMessage: 'Write a message', newMessages: 'New messag
 vi.mock('@/entities/emoji', async () => (await import('@/test/emojiMock')).emojiEntityMock());
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations, language: 'en' }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
+vi.mock('@/entities/message/model/useChatGalleryEntries', () => ({ useChatGalleryEntries: () => [] }));
 const listRenders = vi.hoisted(() => ({ count: 0 }));
 vi.mock('@/features/message-list/model/useMessageReadReceipts', async (importOriginal) => {
   const original: { useMessageReadReceipts: (options: unknown) => void } = await importOriginal();

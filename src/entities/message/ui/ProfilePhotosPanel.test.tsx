@@ -2,13 +2,15 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ProfilePhotosPanel } from './ProfileChatPanels';
 import type { ProfilePhotoItem } from '../model/profileMedia';
+import { requestMediaForward } from '../model/mediaForward';
 
-vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { playVideo: "Play video", close: "Close", seekVideo: "Seek through video", videoRewind: 'Back {count} seconds', videoForward: 'Forward {count} seconds', videoSeconds: '{count} s' }, language: 'en' }) }));
+vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: { forward: 'Forward', playVideo: "Play video", close: "Close", seekVideo: "Seek through video", videoRewind: 'Back {count} seconds', videoForward: 'Forward {count} seconds', videoSeconds: '{count} s' }, language: 'en' }) }));
 vi.mock('@/shared/ui/AuthenticatedImage', async () => {
   const { forwardRef } = await import('react');
   return { AuthenticatedImage: forwardRef<HTMLImageElement, React.ImgHTMLAttributes<HTMLImageElement>>((props, ref) => <img ref={ref} {...props} />) };
 });
 vi.mock('../api/messageApi', () => ({ useSearchChatMessagesQuery: () => ({ data: undefined }) }));
+vi.mock('../model/mediaForward', () => ({ requestMediaForward: vi.fn() }));
 
 const photos: ProfilePhotoItem[] = ['one', 'two', 'three'].map((name, index) => ({
   id: String(index + 1), url: `/${name}.png`, thumbnailUrl: `/${name}-thumb.png`, name: `${name}.png`, timestamp: '2026-11-02T10:00:00Z',
@@ -39,6 +41,14 @@ describe('ProfilePhotosPanel', () => {
     expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'two.png');
     expect(screen.getByText('2 / 3')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('forwards the shown media from the viewer and closes it', () => {
+    render(<ProfilePhotosPanel photos={photos} />);
+    fireEvent.click(screen.getByTitle('two.png'));
+    fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    expect(requestMediaForward).toHaveBeenCalledWith('2');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

@@ -14,5 +14,7 @@ export interface ViewerImage {
   aspect?: number;
   onDraw?: () => void;
   onShowInChat?: () => void;
+  onForward?: () => void;
+  onMakeSticker?: () => void;
   onDelete?: () => Promise<void>;
 }

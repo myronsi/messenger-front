@@ -1,4 +1,4 @@
-import { pictureRect } from './pictureRect';
+import { naturalSize, pictureRect, type ViewerMedia } from './pictureRect';
 
 const MAX_SHAPE_DEPTH = 4;
 
@@ -24,7 +24,24 @@ const thumbnailShape = (clipped: HTMLElement, box: DOMRect) => {
   return '0px';
 };
 
-export function returnToThumbnail(image: HTMLImageElement, target: HTMLImageElement, options: KeyframeAnimationOptions) {
+const frameOf = (media: ViewerMedia) => {
+  if (media instanceof HTMLImageElement) {
+    const clone = document.createElement('img');
+    clone.src = media.currentSrc || media.src;
+    return clone;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = media.videoWidth;
+  canvas.height = media.videoHeight;
+  try {
+    canvas.getContext('2d')?.drawImage(media, 0, 0, canvas.width, canvas.height);
+  } catch {
+    return null;
+  }
+  return canvas;
+};
+
+export function returnToThumbnail(image: ViewerMedia, target: HTMLImageElement, options: KeyframeAnimationOptions) {
   const from = pictureRect(image);
   let startRadius = '8px';
   const clip = image.style.clipPath.match(/^inset\((.*?) round ([\d.]+)px\)$/);
@@ -44,15 +61,15 @@ export function returnToThumbnail(image: HTMLImageElement, target: HTMLImageElem
   const to = clipped.getBoundingClientRect();
   const width = from.right - from.left;
   const height = from.bottom - from.top;
-  if (!image.naturalWidth || !width || !height) return null;
+  if (!naturalSize(image).width || !width || !height) return null;
+  const clone = frameOf(image);
+  if (!clone) return null;
   const shell = document.createElement('div');
   Object.assign(shell.style, {
     position: 'fixed', left: `${from.left}px`, top: `${from.top}px`, width: `${width}px`, height: `${height}px`,
     overflow: 'hidden', pointerEvents: 'none', zIndex: '10002', borderRadius: startRadius,
   });
   shell.setAttribute('aria-hidden', 'true');
-  const clone = document.createElement('img');
-  clone.src = image.currentSrc || image.src;
   Object.assign(clone.style, { width: '100%', height: '100%', objectFit: 'cover', objectPosition: getComputedStyle(target).objectPosition });
   shell.append(clone);
   const overlay = image.parentElement?.querySelector<SVGSVGElement>(':scope > [data-testid="drawing-overlay"]') ?? null;

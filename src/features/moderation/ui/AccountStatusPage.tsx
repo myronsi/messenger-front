@@ -1,4 +1,7 @@
 import { ShieldAlert, UserCheck } from 'lucide-react';
+import { useGetCurrentUserQuery } from '@/shared/api/currentUserApi';
+import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
+import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/shared/ui/breadcrumb';
 import { PageBackHeader } from '@/shared/ui/PageBackHeader';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -6,7 +9,9 @@ import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { formatDate } from '@/shared/utils/dateFormatters';
 import { toast } from '@/shared/ui/sonner';
 import { useAppealAccountStatusMutation, useGetAccountStatusQuery, useListReportOutcomesQuery } from '../api/moderationApi';
-import { decidedByStaff, decisionReasonLabel, outcomeNotice, restrictionLabel, statusLevel } from '../model/accountStatus';
+import { decidedByStaff, decisionReasonLabel, outcomeNotice, statusLevel } from '../model/accountStatus';
+import { StandingScale } from './StandingScale';
+import { RestrictionList } from './RestrictionList';
 import { ReviewRequestSection } from './ReviewRequestSection';
 import { GuidelinesHint } from './GuidelinesHint';
 
@@ -18,11 +23,6 @@ interface AccountStatusPageProps {
 
 const statusOf = (error: unknown) => (typeof error === 'object' && error !== null ? (error as { status?: unknown }).status : undefined);
 
-const tone: Record<string, string> = {
-  good: 'bg-success-soft text-success', warned: 'bg-warning-soft text-foreground', limited: 'bg-warning-soft text-foreground',
-  restricted: 'bg-destructive-soft text-destructive', suspended: 'bg-destructive-soft text-destructive',
-};
-
 export const AccountStatusPage = ({ onBack, hideBack = false, isActive = true }: AccountStatusPageProps) => {
   const { translations, language } = useLanguage();
   const t = translations.moderation;
@@ -31,6 +31,8 @@ export const AccountStatusPage = ({ onBack, hideBack = false, isActive = true }:
   const [appeal, { isLoading: isAppealing }] = useAppealAccountStatusMutation();
   const level = statusLevel(data?.status);
   const staff = decidedByStaff(data);
+  const { data: me } = useGetCurrentUserQuery(undefined, { skip: !isActive });
+  const avatar = <AuthenticatedImage src={resolveMediaUrl(me?.avatar_url)} initialsFrom={me?.display_name || me?.username || '?'} alt="" className="h-full w-full object-cover" />;
 
   const submitAppeal = async () => {
     try {
@@ -61,13 +63,19 @@ export const AccountStatusPage = ({ onBack, hideBack = false, isActive = true }:
           </div>
         )}
         {data && <>
-          <section className="space-y-2">
-            <span data-testid="account-status-level" className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${tone[level]}`}>{t.statuses[level]}</span>
-            <p className="text-sm text-muted-foreground">{staff ? t.staffDescription : t.statusDescriptions[level]}</p>
-            <GuidelinesHint />
-            {data.since && level !== 'good' && <p className="text-xs text-muted-foreground">{fillTemplate(t.since, { date: formatDate(data.since, language) })}</p>}
-            {data.probation_until && (
-              <p className="text-xs font-medium">{fillTemplate(t.probationUntil, { date: formatDate(data.probation_until, language) })}</p>
+          <section data-testid="standing-card" className="space-y-5 rounded-2xl border border-border p-5">
+            <div className="space-y-1.5">
+              <h2 data-testid="account-status-level" className="text-lg font-semibold leading-snug">{t.standingHeadlines[level]}</h2>
+              <p className="text-sm text-muted-foreground">{staff ? t.staffDescription : t.statusDescriptions[level]}</p>
+            </div>
+            <StandingScale level={level} avatar={avatar} />
+            {((data.since && level !== 'good') || data.probation_until) && (
+              <div className="space-y-1 border-t border-border pt-3">
+                {data.since && level !== 'good' && <p className="text-xs text-muted-foreground">{fillTemplate(t.since, { date: formatDate(data.since, language) })}</p>}
+                {data.probation_until && (
+                  <p className="text-xs font-medium">{fillTemplate(t.probationUntil, { date: formatDate(data.probation_until, language) })}</p>
+                )}
+              </div>
             )}
           </section>
           {staff && (
@@ -86,11 +94,7 @@ export const AccountStatusPage = ({ onBack, hideBack = false, isActive = true }:
           )}
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">{t.restrictionsTitle}</h3>
-            {data.restrictions.length === 0 ? <p className="text-sm text-muted-foreground">{t.noRestrictions}</p> : (
-              <ul className="list-disc space-y-1 pl-5 text-sm" data-testid="account-restrictions">
-                {data.restrictions.map((item) => <li key={item}>{restrictionLabel(item, t)}</li>)}
-              </ul>
-            )}
+            <RestrictionList restrictions={data.restrictions} />
           </section>
           {level !== 'good' && staff && (
             <section className="space-y-2 rounded-lg border border-border p-4">
@@ -110,6 +114,7 @@ export const AccountStatusPage = ({ onBack, hideBack = false, isActive = true }:
             </section>
           )}
           {level !== 'good' && <ReviewRequestSection status={data} />}
+          <GuidelinesHint />
         </>}
         {outcomes && outcomes.items.length > 0 && (
           <section className="space-y-2">

@@ -31,6 +31,14 @@ export const moderation = {
       restricted: "Eingeschränkt",
       suspended: "Gesperrt",
     },
+    standingScale: "Kontostatus",
+    standingHeadlines: {
+      good: "Dein Konto ist in Ordnung",
+      warned: "Dein Konto hat eine Verwarnung",
+      limited: "Dein Konto ist begrenzt",
+      restricted: "Dein Konto ist eingeschränkt",
+      suspended: "Dein Konto ist gesperrt",
+    },
     statusDescriptions: {
       good: "Dein Konto hat keine Einschränkungen.",
       warned: "Mehrere Personen haben dein Konto gemeldet. Noch ist nichts eingeschränkt, weitere Meldungen begrenzen es aber.",
