@@ -5,6 +5,7 @@ import { isCallOver, participantOf } from './callState';
 import { CallFailure } from './errors';
 import type { MediaOwnership } from './tabOwnership';
 import { callsStore, idleSession, receiveCall, sessionStore, type CallNotice } from './stores';
+import { resetVideo, setVideoFeeds } from './videoStore';
 
 export interface AttemptTicket {
   run: number;
@@ -42,6 +43,10 @@ export const releaseOwnership = () => {
 export const detachEngine = async () => {
   const current = runtime.engine;
   runtime.engine = null;
+  if (current) {
+    sessionStore.update((session) => ({ ...session, camera: 'off', sharing: 'off' }));
+    setVideoFeeds([]);
+  }
   await current?.dispose().catch(() => undefined);
 };
 
@@ -49,8 +54,9 @@ export const hangUpLocally = async (notice: CallNotice | null = null) => {
   runtime.generation += 1;
   const current = runtime.engine;
   runtime.engine = null;
-  const { input, output, chatId } = sessionStore.get();
-  sessionStore.set({ ...idleSession, notice, input, output, chatId: notice ? chatId : null });
+  const { input, output, cameraDevice, chatId } = sessionStore.get();
+  sessionStore.set({ ...idleSession, notice, input, output, cameraDevice, chatId: notice ? chatId : null });
+  resetVideo();
   releaseOwnership();
   await current?.dispose().catch(() => undefined);
 };

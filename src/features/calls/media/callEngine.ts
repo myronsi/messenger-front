@@ -1,6 +1,7 @@
 import {
   AudioPresets, ConnectionQuality, DisconnectReason, MediaDeviceFailure, Room, RoomEvent, Track, createLocalAudioTrack, isE2EESupported,
   supportsAudioOutputSelection, type LocalAudioTrack, type Participant, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication,
+  type TrackPublication,
 } from 'livekit-client';
 import E2EEWorker from 'livekit-client/e2ee-worker?worker';
 import type { Call, CallGrant, CallKeyEnvelope, CallsApi } from '../api/callsApi';
@@ -8,10 +9,13 @@ import type { CallIdentity } from '../crypto/identity';
 import { CallFailure } from '../model/errors';
 import type { CallSession, DeviceOption } from '../model/stores';
 import type { RosterEntry } from '../model/callState';
+import type { VideoFeed } from '../model/videoStore';
 import { CallKeyProvider } from './keyProvider';
 import { KeyExchange, participantIdentity } from './keyExchange';
+import { LocalMedia } from './localMedia';
 import { MicrophoneGate } from './microphoneGate';
 import { RemoteAudio } from './remoteAudio';
+import { RemoteVideo } from './remoteVideo';
 
 export const encryptionSupported = () => isE2EESupported();
 
@@ -31,6 +35,8 @@ export const openMicrophone = async (deviceId?: string) => {
 
 export interface EngineEvents {
   patch: (patch: Partial<CallSession>) => void;
+  video: (feeds: VideoFeed[]) => void;
+  speakers: (identities: string[]) => void;
   call: (call: Call) => void;
   epoch: (epoch: number, roster: RosterEntry[]) => void;
   lost: (removed: boolean) => void;
@@ -52,9 +58,11 @@ const REMOVED = new Set<DisconnectReason>([
   DisconnectReason.PARTICIPANT_REMOVED, DisconnectReason.ROOM_DELETED, DisconnectReason.DUPLICATE_IDENTITY, DisconnectReason.ROOM_CLOSED,
 ]);
 
+const DEVICE_NAMES: Record<MediaDeviceKind, string> = { audioinput: 'Microphone', audiooutput: 'Speaker', videoinput: 'Camera' };
+
 const deviceOptions = (devices: MediaDeviceInfo[]): DeviceOption[] => devices
   .filter((device) => device.deviceId && device.deviceId !== 'default' && device.deviceId !== 'communications')
-  .map((device, index) => ({ id: device.deviceId, label: device.label || `${device.kind === 'audioinput' ? 'Microphone' : 'Speaker'} ${index + 1}` }));
+  .map((device, index) => ({ id: device.deviceId, label: device.label || `${DEVICE_NAMES[device.kind]} ${index + 1}` }));
 
 export class CallEngine {
   private readonly worker = new E2EEWorker();
@@ -63,29 +71,46 @@ export class CallEngine {
   private readonly keys: KeyExchange;
   private readonly audio: RemoteAudio;
   private readonly gate: MicrophoneGate;
+  private readonly ownIdentity: string;
+  private readonly remoteVideo: RemoteVideo;
+  private readonly local: LocalMedia;
   private published = false;
   private connected = false;
   private fallingBack = false;
   private closed = false;
 
   constructor(private readonly options: EngineOptions) {
-    this.audio = new RemoteAudio(participantIdentity(options.userId, options.sessionId));
+    this.ownIdentity = participantIdentity(options.userId, options.sessionId);
+    this.audio = new RemoteAudio(this.ownIdentity);
+    this.remoteVideo = new RemoteVideo({ ownIdentity: this.ownIdentity, onChange: () => this.emitVideo() });
     this.gate = new MicrophoneGate(options.microphone, options.muted, () => { void this.recoverMicrophone(); });
     this.room = new Room({
       encryption: { keyProvider: this.provider, worker: this.worker },
-      adaptiveStream: false,
-      dynacast: false,
+      adaptiveStream: true,
+      dynacast: true,
       disconnectOnPageLeave: true,
       stopLocalTrackOnUnpublish: true,
-      publishDefaults: { audioPreset: AudioPresets.speech, dtx: true },
+      publishDefaults: { audioPreset: AudioPresets.speech, dtx: true, videoCodec: 'vp8' },
+    });
+    this.local = new LocalMedia({
+      ownIdentity: this.ownIdentity,
+      target: {
+        publishTrack: (track, publish) => this.room.localParticipant.publishTrack(track, publish),
+        unpublishTrack: (track, stop) => this.room.localParticipant.unpublishTrack(track, stop),
+      },
+      patch: (patch) => { if (!this.closed) options.events.patch(patch); },
+      changed: () => this.emitVideo(),
+      devicesChanged: () => { void this.refreshDevices(); },
     });
     this.keys = new KeyExchange({
       callId: options.call.id, userId: options.userId, sessionId: options.sessionId, identity: options.identity,
-      sink: this.provider, api: options.api,
+      sink: { setParticipantKey: (identity, key, epoch) => this.installKey(identity, key, epoch) }, api: options.api,
       onCall: options.events.call,
       onEpoch: (epoch, roster) => {
         void this.gate.setKeyReady(false);
+        void this.local.setKeyReady(false);
         this.audio.setRoster(roster);
+        this.remoteVideo.setRoster(roster);
         options.events.patch({ encryption: 'pending' });
         options.events.epoch(epoch, roster);
       },
@@ -100,8 +125,15 @@ export class CallEngine {
     this.room
       .on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         this.audio.add(track, publication, participant.identity);
+        this.remoteVideo.add(track, publication, participant.identity);
       })
-      .on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => this.audio.remove(track))
+      .on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+        this.audio.remove(track);
+        this.remoteVideo.remove(track);
+      })
+      .on(RoomEvent.TrackMuted, (_publication: TrackPublication, participant: Participant) => { if (!participant.isLocal) this.remoteVideo.refresh(); })
+      .on(RoomEvent.TrackUnmuted, (_publication: TrackPublication, participant: Participant) => { if (!participant.isLocal) this.remoteVideo.refresh(); })
+      .on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => events.speakers(speakers.map((speaker) => speaker.identity)))
       .on(RoomEvent.AudioPlaybackStatusChanged, () => events.patch({ audioBlocked: !this.room.canPlaybackAudio }))
       .on(RoomEvent.Reconnecting, () => events.patch({ phase: 'reconnecting' }))
       .on(RoomEvent.Reconnected, () => {
@@ -150,7 +182,33 @@ export class CallEngine {
         return;
       }
     }
-    if (this.keys.hasOwnKey()) await this.gate.setKeyReady(true);
+    if (!this.keys.hasOwnKey()) return;
+    await Promise.all([this.gate.setKeyReady(true), this.local.setKeyReady(true)]);
+  }
+
+  private async installKey(identity: string, key: Uint8Array, epoch: number) {
+    await this.provider.setParticipantKey(identity, key, epoch);
+    if (identity !== this.ownIdentity) this.remoteVideo.keyChanged(identity);
+  }
+
+  private emitVideo() {
+    if (!this.closed) this.options.events.video([...this.local.feeds(), ...this.remoteVideo.feeds()]);
+  }
+
+  setCameraEnabled(on: boolean, deviceId?: string) {
+    return this.local.setCameraEnabled(on, deviceId);
+  }
+
+  flipCamera() {
+    return this.local.flipCamera();
+  }
+
+  startScreenShare() {
+    return this.local.startScreenShare();
+  }
+
+  stopScreenShare() {
+    return this.local.stopScreenShare();
   }
 
   handleCall(call: Call) {
@@ -206,13 +264,15 @@ export class CallEngine {
   }
 
   private async refreshDevices() {
-    const [inputs, outputs] = await Promise.all([
+    const [inputs, outputs, cameras] = await Promise.all([
       Room.getLocalDevices('audioinput', false).catch(() => []),
       supportsAudioOutputSelection() ? Room.getLocalDevices('audiooutput', false).catch(() => []) : Promise.resolve([]),
+      Room.getLocalDevices('videoinput', false).catch(() => []),
     ]);
     if (this.closed) return;
     this.options.events.patch({
-      inputs: deviceOptions(inputs), outputs: deviceOptions(outputs), outputSupported: supportsAudioOutputSelection() && outputs.length > 0,
+      inputs: deviceOptions(inputs), outputs: deviceOptions(outputs), cameras: deviceOptions(cameras),
+      outputSupported: supportsAudioOutputSelection() && outputs.length > 0,
       input: this.room.getActiveDevice('audioinput') ?? '', output: this.room.getActiveDevice('audiooutput') ?? '',
     });
   }
@@ -222,10 +282,12 @@ export class CallEngine {
     this.closed = true;
     this.keys.dispose();
     this.gate.dispose();
+    this.remoteVideo.dispose();
     try {
       await this.room.disconnect(true);
     } finally {
       this.options.microphone.stop();
+      this.local.release();
       this.room.removeAllListeners();
       this.audio.dispose();
       this.worker.terminate();

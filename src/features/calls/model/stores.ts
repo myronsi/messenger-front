@@ -6,8 +6,11 @@ import { createStore } from './createStore';
 
 export type CallPhase = 'idle' | 'preparing' | 'connecting' | 'connected' | 'reconnecting' | 'rejoin';
 export type CallNotice = 'mic-denied' | 'mic-missing' | 'mic-in-use' | 'mic-failed' | 'unsupported' | 'full' | 'ended' | 'unavailable'
-  | 'not-allowed' | 'failed' | 'removed' | 'moved' | 'rate-limited';
+  | 'not-allowed' | 'failed' | 'removed' | 'moved' | 'rate-limited' | 'camera-denied' | 'camera-missing' | 'camera-in-use' | 'camera-failed'
+  | 'share-denied' | 'share-failed';
 export type EncryptionStatus = 'pending' | 'ready' | 'failed';
+export type MediaSwitch = 'off' | 'starting' | 'on';
+export type CameraFacing = 'user' | 'environment';
 
 export interface DeviceOption {
   id: string;
@@ -31,6 +34,11 @@ export interface CallSession {
   input: string;
   output: string;
   outputSupported: boolean;
+  camera: MediaSwitch;
+  cameras: DeviceOption[];
+  cameraDevice: string;
+  facing: CameraFacing;
+  sharing: MediaSwitch;
   takeoverCallId: string | null;
   otherTab: boolean;
 }
@@ -38,7 +46,7 @@ export interface CallSession {
 export const idleSession: CallSession = {
   callId: null, chatId: null, phase: 'idle', notice: null, muted: false, audioBlocked: false, encryption: 'pending', code: null,
   verified: false, keyChanges: [], quality: 'unknown', inputs: [], outputs: [], input: '', output: '', outputSupported: false,
-  takeoverCallId: null, otherTab: false,
+  camera: 'off', cameras: [], cameraDevice: '', facing: 'user', sharing: 'off', takeoverCallId: null, otherTab: false,
 };
 
 export const callsStore = createStore<CallsState>(emptyCallsState);

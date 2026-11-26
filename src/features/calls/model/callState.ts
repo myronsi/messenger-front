@@ -24,6 +24,8 @@ export const pruneEndedCalls = (state: CallsState, now: number, keepMs = ENDED_C
   return { byId };
 };
 
+export const participantIdentity = (userId: string, sessionId: string) => `${userId}:${sessionId}`;
+
 export const isCallOver = (call: Pick<Call, 'state'>) => call.state === 'ended';
 
 export const participantOf = (call: Pick<Call, 'participants'>, userId: string | null | undefined): CallParticipant | undefined => (

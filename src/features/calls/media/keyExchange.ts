@@ -1,6 +1,6 @@
 import type { Call, CallKeyEnvelope, CallsApi } from '../api/callsApi';
 import { callErrorCode } from '../api/callErrors';
-import { callRoster, type RosterEntry } from '../model/callState';
+import { callRoster, participantIdentity, type RosterEntry } from '../model/callState';
 import type { CallIdentity } from '../crypto/identity';
 import { newSenderKey, openSenderKey, sealSenderKey } from '../crypto/sealing';
 
@@ -26,7 +26,7 @@ export interface KeyExchangeOptions {
 const MAX_PENDING = 128;
 const MAX_ENVELOPES_PER_REQUEST = 64;
 
-export const participantIdentity = (userId: string, sessionId: string) => `${userId}:${sessionId}`;
+export { participantIdentity };
 
 export class KeyExchange {
   private rosters = new Map<number, RosterEntry[]>();

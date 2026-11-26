@@ -11,6 +11,7 @@ import {
 import { loadEngine, type EngineModule } from './engineLoader';
 import { CallFailure } from './errors';
 import { callsStore, currentAccount, patchSession, receiveCall, sessionStore } from './stores';
+import { setSpeakers, setVideoFeeds } from './videoStore';
 
 export const RECOVERY_DELAYS_MS = [0, 1000, 3000, 7000];
 
@@ -49,6 +50,8 @@ const engineEvents = (callId: string, ticket: AttemptTicket, binding: Binding): 
   const live = () => !!binding.engine && runtime.engine === binding.engine && ticket.run === runtime.generation;
   return {
     patch: (patch) => { if (live()) patchSession(patch); },
+    video: (feeds) => { if (live()) setVideoFeeds(feeds); },
+    speakers: (identities) => { if (live()) setSpeakers(identities); },
     call: (call) => receiveCall(call),
     epoch: (epoch, roster) => {
       if (!live()) return;

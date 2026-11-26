@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { callsApi } from '../api/callsApi';
+import { callsApi, type CallConfig } from '../api/callsApi';
 import { useStore } from './createStore';
 import { configStore } from './stores';
 
@@ -69,3 +69,16 @@ export const useCallsAvailable = () => {
   const config = useStore(configStore);
   return !!config?.enabled && !isNativeShell() && browserSupportsCallEncryption();
 };
+
+export const browserCanShareScreen = () => (
+  typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
+);
+
+export const prefersTouch = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
+
+export const videoFeatures = (config: CallConfig | null, canShareScreen: boolean) => ({
+  camera: config?.video_enabled === true,
+  screenShare: config?.screen_share_enabled === true && canShareScreen,
+});
+
+export const useVideoFeatures = () => videoFeatures(useStore(configStore), browserCanShareScreen());
