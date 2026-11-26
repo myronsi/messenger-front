@@ -24,7 +24,6 @@ export interface ClientEnvironment {
 const BROWSERS: [RegExp, string][] = [
   [/Edg(?:e|A|iOS)?\/([\d.]+)/, 'Edge'], [/OPR\/([\d.]+)/, 'Opera'], [/SamsungBrowser\/([\d.]+)/, 'Samsung Internet'],
   [/Firefox\/([\d.]+)/, 'Firefox'], [/FxiOS\/([\d.]+)/, 'Firefox'], [/CriOS\/([\d.]+)/, 'Chrome'], [/Chrome\/([\d.]+)/, 'Chrome'],
-  [/Version\/([\d.]+).*Safari/, 'Safari'],
 ];
 
 export const browserOf = (userAgent: string) => {
@@ -32,7 +31,8 @@ export const browserOf = (userAgent: string) => {
     const match = userAgent.match(pattern);
     if (match) return `${name} ${match[1].split('.')[0]}`;
   }
-  return '—';
+  const safari = userAgent.includes('Safari/') ? userAgent.match(/Version\/(\d+)/) : null;
+  return safari ? `Safari ${safari[1]}` : '—';
 };
 
 export const osOf = (userAgent: string) => {
