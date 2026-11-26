@@ -29,4 +29,10 @@ describe('limitErrorText', () => {
     expect(limitErrorText(chat(200), t)).toBeNull();
     expect(limitErrorText(chat(201), t)).toBe('An import can hold up to 200 different senders.');
   });
+
+  it('accepts up to 500,000 messages and refuses more', () => {
+    const withMessages = (count: number): ParsedChat => ({ ...chat(1), messages: new Array(count) as ParsedChat['messages'] });
+    expect(limitErrorText(withMessages(500_000), t)).toBeNull();
+    expect(limitErrorText(withMessages(500_001), t)).toBe(`An import can hold up to ${(500_000).toLocaleString()} messages.`);
+  });
 });
