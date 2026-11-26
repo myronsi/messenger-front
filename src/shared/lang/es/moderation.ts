@@ -31,6 +31,14 @@ export const moderation = {
       restricted: "Restringida",
       suspended: "Suspendida",
     },
+    standingScale: "Estado de la cuenta",
+    standingHeadlines: {
+      good: "Tu cuenta está en regla",
+      warned: "Tu cuenta tiene una advertencia",
+      limited: "Tu cuenta está limitada",
+      restricted: "Tu cuenta está restringida",
+      suspended: "Tu cuenta está suspendida",
+    },
     statusDescriptions: {
       good: "Tu cuenta no tiene restricciones.",
       warned: "Varias personas denunciaron tu cuenta. Aún no hay restricciones, pero más denuncias la limitarán.",

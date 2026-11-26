@@ -10,6 +10,7 @@ import { AddToPlaylistHost, PollCloseHost, ReactionBurstHost, startAudioSession 
 import { ClientSyncHost } from '@/features/client-sync';
 import { AttachHost } from '@/widgets/attach-host';
 import { NowPlayingHost } from '@/features/audio-player';
+import { MediaForwardHost } from '@/features/message-actions';
 import { useMessengerController } from './model/useMessengerController';
 import { chatPanelKey } from './model/messengerRoutes';
 import { useVisualViewport, visualViewportStyle } from '@/shared/lib/useVisualViewport';
@@ -89,7 +90,6 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
   const [settingsNavTarget, setSettingsNavTarget] = useState<HTMLDivElement | null>(null);
   useEffect(() => startAudioSession(), []);
   const mainTab = useMainTab({ routeTab: isProfileOpen ? 'settings' : isMeOpen ? 'profile' : null, showRouteTab });
-  const openChatFromList: typeof openChat = (...args) => { mainTab.showChats(); return openChat(...args); };
   const tabPanes = <MainTabPanes tab={mainTab.active} username={username} onShowChats={() => mainTab.select('chats')} onOpenGroup={openGroupFromProfile}
     isEditingProfile={mainTab.isEditingProfile} setEditingProfile={mainTab.setEditingProfile} />;
   const location = useLocation();
@@ -127,13 +127,13 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     onJumpToMessage: (messageId: EntityId, chatId: EntityId) => {
       requestCloseUserProfile();
       requestJump(chatId, messageId);
-      if (String(currentChat?.id) !== String(chatId)) openChatFromList(chatId, renderedUserProfileProps.username, false, 'one-on-one');
+      if (String(currentChat?.id) !== String(chatId)) openChat(chatId, renderedUserProfileProps.username, false, 'one-on-one');
     },
     onClose: requestCloseUserProfile,
   };
 
   const chatListProps = {
-    username, onChatOpen: openChatFromList, setIsProfileOpen, onOpenRequests: openMessageRequests, activeChatId: currentChat?.id,
+    username, onChatOpen: openChat, setIsProfileOpen, onOpenRequests: openMessageRequests, activeChatId: currentChat?.id,
     activeChatName: currentChat?.name, onActiveChatUpdate: updateActiveChatFromList, onChatDeleted: handleChatDeleted,
     hidden: mainTab.active !== 'chats', onJumpToMessage: requestJump,
   };
@@ -206,7 +206,7 @@ const MessengerApp = ({ username, onLogout }: MessengerAppProps) => {
     <ChatCoveredContext.Provider value={isProfileOpen}>
       <div className="min-h-screen bg-gradient-to-br from-primary/10 to-background">
         <Toaster />
-        <AddToPlaylistHost />
+        <AddToPlaylistHost /><MediaForwardHost username={username} />
         {isGoApi() && <ClientSyncHost key={`sync:${username}`} />}
         <NowPlayingHost />
         <ReactionBurstHost />

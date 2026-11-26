@@ -162,7 +162,7 @@ export interface MessageSelection {
   dragTo?: (message: Message) => void;
 }
 
-export interface ChatPhoto {
+export interface ChatPhoto extends Pick<FileMessageContent, 'album' | 'display_url' | 'kind'> {
   id: EntityId;
   file_url?: string;
   url?: string;

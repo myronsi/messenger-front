@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from 'react';
 import { OwnProfileEditor, UserProfileComponentRTK } from '@/widgets/profile-panel';
-import { CallsComingSoon, type MainTab } from '@/widgets/main-nav';
+import type { MainTab } from '@/widgets/main-nav';
 import { useGetOneOnOneChatsQuery } from '@/entities/chat';
 import { useGetUserByUsernameQuery } from '@/entities/user';
 import { ProfilePageBackdrop } from '@/shared/ui/profile/ProfileBackgroundFill';
@@ -40,9 +40,6 @@ export function MainTabPanes({ tab, username, onShowChats, onOpenGroup, isEditin
     const timer = window.setTimeout(() => setEntering(false), MORPH_MS + 120);
     return () => window.clearTimeout(timer);
   }, [entering]);
-  if (tab === 'calls') {
-    return <div className="absolute inset-0 z-40"><CallsComingSoon /></div>;
-  }
   if (tab === 'profile') {
     return (
       <div data-testid="profile-tab" className="absolute inset-0 z-40 isolate overflow-hidden bg-background md:flex md:items-center md:justify-center md:p-6">

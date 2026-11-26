@@ -13,6 +13,8 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { formatTime } from '@/shared/utils/dateFormatters';
 import { ImageViewer } from '@/shared/ui/image-viewer';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { requestMediaForward } from '../model/mediaForward';
+import { makeStickerAction } from '../model/stickerSource';
 
 
 
@@ -102,9 +104,12 @@ export const ProfilePhotosPanel: React.FC<{
       ? { sender: isMine ? translations.replyFromYou : photo.sender, avatarName: photo.sender, avatarUrl: photo.avatarUrl, sentAt: photo.timestamp }
       : undefined;
     const onShowInChat = onJumpToMessage && isPersistedId(photo.id) ? () => onJumpToMessage(photo.id) : undefined;
+    const sticker = makeStickerAction({ file_type: photo.fileType ?? '', file_size: photo.fileSize ?? 0, file_url: photo.url, file_name: photo.name });
     return {
       url: photo.url, name: photo.name, previewUrl: photo.thumbnailUrl || undefined, isVideo: !!photo.isVideo, info, onShowInChat,
       drawing: photo.drawing, aspect: photo.aspect,
+      onForward: isPersistedId(photo.id) ? () => { setOpenIndex(null); requestMediaForward(photo.id); } : undefined,
+      onMakeSticker: sticker && (() => { setOpenIndex(null); sticker(); }),
     };
   }), [currentUsername, onJumpToMessage, photos, translations.replyFromYou]);
 

@@ -70,10 +70,12 @@ export const EmojiStickerPanel = ({ onEmoji, onSticker, onDone, onStickersVisibl
         </div>
       )}
       <div className="m-2 flex shrink-0 items-center gap-2">
-        <TabsList className="grid flex-1 grid-cols-2">
-          <TabsTrigger value="emoji">{translations.emojiTab}</TabsTrigger>
-          <TabsTrigger value="stickers" disabled={!onSticker}>{translations.stickersTab}</TabsTrigger>
-        </TabsList>
+        {onSticker ? (
+          <TabsList className="grid flex-1 grid-cols-2">
+            <TabsTrigger value="emoji">{translations.emojiTab}</TabsTrigger>
+            <TabsTrigger value="stickers">{translations.stickersTab}</TabsTrigger>
+          </TabsList>
+        ) : <h3 className="flex-1 px-2 text-sm font-medium">{translations.emojiTab}</h3>}
         {!searchOpen && (
           <button type="button" onClick={() => setSearchOpen(true)} aria-label={translations.searchEmojiAndStickers} title={translations.searchEmojiAndStickers}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">

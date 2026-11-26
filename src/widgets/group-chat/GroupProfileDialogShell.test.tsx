@@ -39,11 +39,12 @@ describe('GroupProfileDialogShell', () => {
     expect(screen.getByRole('button', { name: 'View group picture' })).toBeInTheDocument();
   });
 
-  it('offers a group call next to the other tiles', () => {
+  it('offers a group call beside the avatar and keeps More on the banner', () => {
     renderShell(getAvatarSrc(DEFAULT_GROUP_AVATAR));
     const tiles = screen.getByTestId('profile-action-tiles');
     expect(within(tiles).getByRole('button', { name: 'Start call' })).toBeInTheDocument();
-    expect(within(tiles).getByRole('button', { name: 'More' })).toBeInTheDocument();
+    expect(within(tiles).queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
     expect(within(tiles).queryByRole('button', { name: 'Search' })).not.toBeInTheDocument();
   });
 
@@ -63,11 +64,11 @@ describe('GroupProfileDialogShell', () => {
     expect(leave).toHaveBeenCalledOnce();
   });
 
-  it('shows the owner a Clear history button and no More menu', () => {
+  it('keeps Clear history for the owner in the More menu instead of its own button', () => {
     renderShell(getAvatarSrc(DEFAULT_GROUP_AVATAR), 'owner');
-    const tiles = screen.getByTestId('profile-action-tiles');
-    expect(within(tiles).getByRole('button', { name: 'Clear history' })).toBeInTheDocument();
-    expect(within(tiles).queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear history' })).not.toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), { button: 0, ctrlKey: false, pointerType: 'mouse' });
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Clear history']);
   });
 
   it('offers an Edit tile only when the group can be edited', () => {
@@ -81,7 +82,8 @@ describe('GroupProfileDialogShell', () => {
         isAvatarViewerOpen={false} setIsAvatarViewerOpen={vi.fn()} currentRole="admin" onEdit={onEdit}
       />,
     );
-    fireEvent.click(within(screen.getByTestId('profile-action-tiles')).getByRole('button', { name: 'Edit' }));
+    expect(within(screen.getByTestId('profile-action-tiles')).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledOnce();
     unmount();
     renderShell(getAvatarSrc(DEFAULT_GROUP_AVATAR), 'member');

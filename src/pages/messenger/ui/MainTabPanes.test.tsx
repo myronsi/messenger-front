@@ -26,7 +26,6 @@ vi.mock('@/widgets/profile-panel', () => ({
     </div>
   ),
 }));
-vi.mock('@/widgets/main-nav', () => ({ CallsComingSoon: () => null }));
 vi.mock('@/entities/chat', () => ({ useGetOneOnOneChatsQuery: () => ({ data: undefined }) }));
 vi.mock('@/entities/user', () => ({ useGetUserByUsernameQuery: () => ({ data: undefined }) }));
 vi.mock('@/shared/ui/profile/ProfileBackgroundFill', () => ({ ProfilePageBackdrop: () => null }));

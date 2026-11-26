@@ -15,6 +15,8 @@ export interface ProfilePhotoItem {
   url: string;
   thumbnailUrl: string;
   isVideo?: boolean;
+  fileType?: string;
+  fileSize?: number;
   drawing?: Drawing | null;
   aspect?: number;
   name: string;
@@ -47,6 +49,8 @@ export const toProfilePhotos = (photos: ChatPhoto[] = [], fallbackName: string):
         url: url ? normalizeProfileMediaUrl(url) : '',
         thumbnailUrl: photo.thumbnail_url ? normalizeProfileMediaUrl(photo.thumbnail_url) : (url && !isVideo ? normalizeProfileMediaUrl(url) : ''),
         isVideo,
+        fileType: photo.file_type || '',
+        fileSize: photo.file_size ?? 0,
         drawing: photo.drawing,
         aspect: photo.image_width && photo.image_height ? photo.image_width / photo.image_height : undefined,
         name,

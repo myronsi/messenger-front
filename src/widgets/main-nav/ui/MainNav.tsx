@@ -1,5 +1,5 @@
 import type React from 'react';
-import { MessageCircle, Phone, Settings } from 'lucide-react';
+import { MessageCircle, Settings } from 'lucide-react';
 import { useGetCurrentUserQuery } from '@/features/profile';
 import { useGetApprovalRequestInboxQuery } from '@/entities/chat';
 import { useGetUserByUsernameQuery } from '@/entities/user';
@@ -26,9 +26,8 @@ const MainNav: React.FC<MainNavProps> = ({ active, onSelect, variant, className 
   const rail = variant === 'rail';
   const iconClass = 'h-6 w-6';
   const fill = (tab: MainTab) => (active === tab ? 'currentColor' : 'none');
-  const items: { key: MainTab; label: string; icon: React.ReactNode; badge?: string; count?: number; startsAccountGroup?: boolean }[] = [
+  const items: { key: MainTab; label: string; icon: React.ReactNode; count?: number; startsAccountGroup?: boolean }[] = [
     { key: 'chats', label: t.chats, icon: <MessageCircle className={iconClass} fill={fill('chats')} />, count: requests },
-    { key: 'calls', label: t.calls, icon: <Phone className={iconClass} fill={fill('calls')} />, badge: t.soon },
     {
       key: 'settings', label: t.settings, startsAccountGroup: true,
       icon: active === 'settings' ? <FilledSettingsIcon className={iconClass} /> : <Settings className={iconClass} />,
@@ -44,7 +43,7 @@ const MainNav: React.FC<MainNavProps> = ({ active, onSelect, variant, className 
     <nav aria-label={t.label}
       className={rail
         ? `flex w-[76px] shrink-0 flex-col items-center gap-1 border-r border-border bg-background py-4 ${className}`
-        : `grid grid-cols-4 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur ${className}`}>
+        : `grid grid-cols-3 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur ${className}`}>
       {items.map((item) => {
         const isActive = active === item.key;
         return (
@@ -59,18 +58,8 @@ const MainNav: React.FC<MainNavProps> = ({ active, onSelect, variant, className 
                   {item.count > 99 ? '99+' : item.count}
                 </span>
               )}
-              {item.badge && !rail && (
-                <span className="absolute -right-4 -top-1.5 rounded-full bg-muted px-1.5 py-px text-[9px] font-semibold uppercase leading-tight text-muted-foreground">
-                  {item.badge}
-                </span>
-              )}
             </span>
             <span className="max-w-full truncate px-1">{item.label}</span>
-            {item.badge && rail && (
-              <span className="-mt-0.5 rounded-full bg-muted px-1.5 py-px text-[8px] font-semibold uppercase leading-tight text-muted-foreground">
-                {item.badge}
-              </span>
-            )}
           </button>
         );
       })}

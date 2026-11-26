@@ -7,7 +7,7 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
   return { useLanguage: () => ({ language: 'en', translations: en }) };
 });
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: (props: { alt?: string }) => <img alt={props.alt} /> }));
-vi.mock('@/features/message-composer', () => ({ EmojiAutocomplete: () => null }));
+vi.mock('@/features/message-composer', () => ({ EmojiAutocomplete: () => null, EmojiInputButton: () => null }));
 vi.mock('@/shared/ui/BackToClose', () => ({ BackToClose: () => null }));
 vi.mock('@/features/profile', () => ({
   ProfileBackgroundEditor: ({ onSave }: { onSave: (body: unknown, preview: unknown) => Promise<unknown> }) => (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export type MainTab = 'chats' | 'calls' | 'settings' | 'profile';
+export type MainTab = 'chats' | 'settings' | 'profile';
 type RouteTab = 'settings' | 'profile';
 
 interface UseMainTabOptions {
@@ -9,17 +9,15 @@ interface UseMainTabOptions {
 }
 
 export const useMainTab = ({ routeTab, showRouteTab }: UseMainTabOptions) => {
-  const [tab, setTab] = useState<'chats' | 'calls'>('chats');
   const [isEditingProfile, setEditingProfile] = useState(false);
-  const active: MainTab = routeTab ?? tab;
+  const active: MainTab = routeTab ?? 'chats';
   const select = (next: MainTab) => {
     setEditingProfile(false);
     if (next === 'settings' || next === 'profile') {
       showRouteTab(next);
       return;
     }
-    setTab(next);
     showRouteTab(null);
   };
-  return { active, select, showChats: () => setTab('chats'), isEditingProfile, setEditingProfile };
+  return { active, select, isEditingProfile, setEditingProfile };
 };

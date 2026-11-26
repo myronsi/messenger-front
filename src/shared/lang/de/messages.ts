@@ -54,6 +54,7 @@ export const messages = {
   uploadFilesEmpty: "Leere Dateien wurden nicht hinzugefügt: {names}. Wähle sie erneut aus.",
   replyUnavailable: "Ursprüngliche Nachricht",
   showInChat: "Im Chat anzeigen",
+  mediaOptions: "Weitere Optionen",
   pinned: "Angeheftet",
   olderSearchResult: "Älterer Treffer",
   newerSearchResult: "Neuerer Treffer",

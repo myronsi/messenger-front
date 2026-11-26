@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountStatus } from '../api/moderationApi';
 import { AccountStatusPage } from './AccountStatusPage';
@@ -10,6 +10,8 @@ vi.mock('@/shared/contexts/LanguageContext', async () => {
   return { useLanguage: () => ({ language: 'en', translations: en }) };
 });
 vi.mock('@/shared/ui/sonner', () => ({ toast: mocks.toast }));
+vi.mock('@/shared/api/currentUserApi', () => ({ useGetCurrentUserQuery: () => ({ data: { username: 'me', display_name: 'Me' } }) }));
+vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 vi.mock('../api/moderationApi', () => ({
   useGetAccountStatusQuery: () => ({ data: mocks.status, isLoading: false, isError: false, refetch: vi.fn() }),
   useAppealAccountStatusMutation: () => [mocks.appeal, { isLoading: false }],
@@ -74,7 +76,8 @@ describe('AccountStatusPage', () => {
 
   it('shows the status, what is restricted and the probation rules', () => {
     render(<AccountStatusPage onBack={vi.fn()} />);
-    expect(screen.getByTestId('account-status-level')).toHaveTextContent('Limited');
+    expect(screen.getByTestId('account-status-level')).toHaveTextContent('Your account is limited');
+    expect(within(screen.getByTestId('standing-scale')).getByRole('listitem', { current: 'step' })).toHaveTextContent('Limited');
     expect(screen.getByTestId('account-restrictions')).toHaveTextContent('Calling people who are not your contacts');
     expect(screen.getByText(/lowers your status by one level for 14 days/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Appeal now' })).toBeEnabled();

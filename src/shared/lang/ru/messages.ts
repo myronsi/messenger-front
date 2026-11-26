@@ -54,6 +54,7 @@ export const messages = {
   uploadFileTooLarge: "Файл слишком большой. Максимальный размер для этого типа — {size} МБ.",
   replyUnavailable: "Исходное сообщение",
   showInChat: "Показать в чате",
+  mediaOptions: "Ещё",
   pinned: "Закреплён",
   olderSearchResult: "Предыдущее совпадение",
   newerSearchResult: "Следующее совпадение",

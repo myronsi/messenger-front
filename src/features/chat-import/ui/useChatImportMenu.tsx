@@ -8,6 +8,7 @@ import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { ImportChatTarget, ImportMe } from '../model/useImportTargets';
 import { ImportChatDialog } from './ImportChatDialog';
 import { ImportInfoPanel } from './ImportInfoPanel';
+import { useGetChatImportsQuery } from '../api/importApi';
 
 interface ChatImportMenuOptions {
   chat: ImportChatTarget;
@@ -27,6 +28,7 @@ export const useChatImportMenu = ({ chat, canImport, canRemoveAll = false }: Cha
   const [dialogOpen, setDialogOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const enabled = !!me && isGoApi() && isPersistedId(chat.chatId);
+  const { data: imports = [] } = useGetChatImportsQuery(chat.chatId, { skip: !enabled });
   if (!enabled) return { items: null, dialogs: null };
   const self = { id: me.id, username: me.username, displayName: me.displayName };
 
@@ -38,9 +40,11 @@ export const useChatImportMenu = ({ chat, canImport, canRemoveAll = false }: Cha
             <FileInput className="mr-2 h-4 w-4" />{t.importHistory}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onSelect={() => setInfoOpen(true)}>
-          <History className="mr-2 h-4 w-4" />{t.info.title}
-        </DropdownMenuItem>
+        {imports.length > 0 && (
+          <DropdownMenuItem onSelect={() => setInfoOpen(true)}>
+            <History className="mr-2 h-4 w-4" />{t.info.title}
+          </DropdownMenuItem>
+        )}
       </>
     ),
     dialogs: (

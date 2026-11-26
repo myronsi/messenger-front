@@ -67,7 +67,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
 
   const tiles: ProfileTile[] = [
     ...(props.isCurrentUser && props.onEditProfile ? [
-      { key: 'edit', label: translations.editProfileAction, primary: true, icon: <Pencil className="h-5 w-5" />, onClick: props.onEditProfile },
+      { key: 'edit', label: translations.editProfileAction, icon: <Pencil className="h-5 w-5" />, onClick: props.onEditProfile },
     ] : []),
     ...(props.isCurrentUser ? [
       { key: 'share', label: translations.sharing.shareProfile, icon: <Share2 className="h-5 w-5" />, onClick: () => setShareOpen(true) },

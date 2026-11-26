@@ -17,6 +17,7 @@ describe('ImageViewer with videos', () => {
       { url: 'https://example.test/clip.mp4', name: 'clip.mp4', isVideo: true, previewUrl: '/clip-thumb.jpg' },
     ]} />);
     const video = screen.getByLabelText('clip.mp4', { selector: 'video' }) as HTMLVideoElement;
+    expect(video.loop).toBe(true);
     expect(screen.getByTestId('image-viewer-preview')).toHaveAttribute('src', '/clip-thumb.jpg');
     expect(screen.getByTestId('viewer-video-controls')).toBeInTheDocument();
     play.mockClear();

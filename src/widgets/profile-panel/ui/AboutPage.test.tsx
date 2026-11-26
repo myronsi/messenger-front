@@ -1,26 +1,30 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import AboutPage from './AboutPage';
 
+const mocks = vi.hoisted(() => ({ copyText: vi.fn(async () => true), toast: vi.fn() }));
 vi.mock('@/shared/contexts/LanguageContext', async () => {
-  const { es: translations } = await import('@/shared/lang/es');
-  return { useLanguage: () => ({ translations, language: 'es' }) };
+  const { en: translations } = await import('@/shared/lang/en');
+  return { useLanguage: () => ({ translations, language: 'en' }) };
 });
-vi.mock('@/shared/api/versionApi', () => ({ useGetServerVersionQuery: () => ({ data: undefined, isLoading: false }) }));
+vi.mock('@/shared/api/versionApi', () => ({
+  useGetServerVersionQuery: () => ({ data: { serverVersion: '1.38.0', commit: '3904a3a', apiVersion: '2.1.0-alpha.50', minClientApiVersion: '2.0.0-alpha.1' }, isLoading: false }),
+}));
+vi.mock('@/shared/lib/copyText', () => ({ copyText: mocks.copyText }));
+vi.mock('@/shared/ui/sonner', () => ({ toast: mocks.toast }));
 
-it('links help and the legal pages in the user language', () => {
+it('shows client and server details apart and copies the client details', async () => {
   render(<AboutPage onBack={vi.fn()} />);
-  expect(screen.getByRole('link', { name: 'Ayuda' })).toHaveAttribute('href', 'https://docs.messenger.viserix.com/');
-  const legal = screen.getByRole('region', { name: 'Información legal' });
-  const links = within(legal).getAllByRole('link');
-  expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-    ['Política de privacidad', 'https://docs.messenger.viserix.com/#/privacy/es'],
-    ['Condiciones de uso', 'https://docs.messenger.viserix.com/#/terms/es'],
-    ['Normas de la comunidad', 'https://docs.messenger.viserix.com/#/guidelines/es'],
-    ['Aviso legal', 'https://docs.messenger.viserix.com/#/imprint/es'],
-  ]);
-  for (const link of [...links, screen.getByRole('link', { name: 'Ayuda' })]) {
-    expect(link).toHaveAttribute('target', '_blank');
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-  }
+  const server = screen.getByRole('heading', { name: 'Server' }).closest('section') as HTMLElement;
+  expect(within(server).getByText('1.38.0')).toBeInTheDocument();
+  expect(within(server).getByText('2.0.0-alpha.1')).toBeInTheDocument();
+  const client = screen.getByRole('heading', { name: 'Client' }).closest('section') as HTMLElement;
+  expect(within(client).getByText('Browser')).toBeInTheDocument();
+  expect(within(client).getByText('Time zone')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+  await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('Client info copied'));
+  const [copied] = mocks.copyText.mock.calls[0] as unknown as [string];
+  expect(copied).toMatch(/^App version: /);
+  expect(copied).toContain('\nRunning as: ');
+  expect(copied).not.toContain('1.38.0');
 });

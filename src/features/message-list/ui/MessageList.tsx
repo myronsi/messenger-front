@@ -14,7 +14,7 @@ import { audioQueueFor } from '../model/audioQueue';
 import { TypingBubble } from '@/entities/typing';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { LoadingPill } from './LoadingPill';
-import { isVisualMediaMessage, Message, MessageChatContext, MessageItem, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
+import { ChatGalleryContext, isVisualMediaMessage, Message, MessageChatContext, MessageItem, useChatGalleryEntries, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useChatCovered } from '@/shared/contexts/ChatCoveredContext';
@@ -163,6 +163,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
     const queue = audioQueueFor(messages, id, translations.voiceMessage, props.chatId !== undefined && isPersistedId(props.chatId) ? props.chatId : undefined);
     if (queue) playAudio(queue.track, queue.upcoming, startAt);
   });
+  const gallery = useChatGalleryEntries(props.chatId, messages.some((message) => message.type === 'file'));
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -204,7 +205,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
   });
 
   return (
-    <MessageChatContext.Provider value={props.chatId}><div className="chat-surface relative min-h-0 flex-1">
+    <MessageChatContext.Provider value={props.chatId}><ChatGalleryContext.Provider value={gallery}><div className="chat-surface relative min-h-0 flex-1">
     <ChatWallpaperLayer chatId={props.chatId !== undefined && isPersistedId(props.chatId) ? props.chatId : undefined} />
     <div className="absolute inset-0 overflow-x-hidden overflow-y-auto overflow-anchor-none" ref={chatContainerRef}>
       {currentDate && (
@@ -289,7 +290,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
         />
       </div>
     </div>
-    </div></MessageChatContext.Provider>
+    </div></ChatGalleryContext.Provider></MessageChatContext.Provider>
   );
 }));
 

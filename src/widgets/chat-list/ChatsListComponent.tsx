@@ -1,6 +1,6 @@
 import { usePrefetchRecentChats } from './model/usePrefetchRecentChats';
 import React, { useState } from 'react';
-import { Ban, ChevronRight, Eraser, Flag, Inbox, Trash2 } from 'lucide-react';
+import { ChevronRight, Flag, Inbox, Trash2 } from 'lucide-react';
 import ConfirmModal from '@/shared/ui/ConfirmModal';
 import { toast } from '@/shared/ui/sonner';
 import { useGetCurrentUserQuery } from '@/features/profile';
@@ -72,14 +72,11 @@ const ChatsListComponent: React.FC<ChatsListComponentProps> = (props) => {
       action(target);
     };
     const direct = chat.type === 'one-on-one' && !chat.is_saved && !chat.interlocutor_deleted;
-    const blocked = direct && actions.isBlocked(chat.name);
     return [
-      { key: 'clear', label: t.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: run(actions.openClear) },
       ...(chat.type === 'one-on-one' ? [
         { key: 'delete', label: t.chatCleanup.deleteChat, icon: <Trash2 className="h-4 w-4" />, danger: true, onSelect: run(actions.openDelete) },
       ] : []),
       ...(direct ? [
-        { key: 'block', label: blocked ? t.blockUser.unblock : t.blockUser.block, icon: <Ban className="h-4 w-4" />, danger: !blocked, onSelect: run(actions.openBlock) },
         { key: 'report', label: t.moderation.report, icon: <Flag className="h-4 w-4" />, danger: true, onSelect: run((value) => void actions.openReport(value)) },
       ] : []),
     ];

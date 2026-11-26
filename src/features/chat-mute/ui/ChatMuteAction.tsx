@@ -25,7 +25,7 @@ const ChatMuteAction: React.FC<ChatMuteActionProps> = ({ chatId, className }) =>
   };
 
   const status = mute && (mute.forever ? translations.mutedForever : translations.mutedUntil.replace('{time}', formatMuteUntil(mute.until, language)));
-  const title = failed ? translations.muteChatFailed : status || undefined;
+  const title = failed ? translations.muteChatFailed : status || translations.muteChat;
 
   if (mute) {
     return (

@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Camera, ChevronDown, ImageIcon, ImageMinus, Loader2 } from 'lucide-react';
 import type { ProfileBackground } from '@/entities/user';
 import { ProfileBackgroundEditor, type SetBackgroundBody } from '@/features/profile';
-import { EmojiAutocomplete } from '@/features/message-composer';
+import { EmojiAutocomplete, EmojiInputButton } from '@/features/message-composer';
 import { GROUP_DESCRIPTION_MAX_LENGTH, GROUP_NAME_MAX_LENGTH } from '@/features/groups';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { cn } from '@/shared/lib/utils';
@@ -141,7 +141,8 @@ const EditGroupPage = ({ name: initialName, description: initialDescription, ava
             <div className="relative">
               <input ref={nameRef} type="text" value={name} maxLength={GROUP_NAME_MAX_LENGTH} aria-label={g.groupName}
                 placeholder={g.groupName} onChange={(event) => setName(event.target.value)}
-                className="-mx-1 w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-2xl font-bold tracking-tight text-foreground outline-none transition-colors hover:border-border focus:border-ring" />
+                className="-mx-1 w-full rounded-md border border-transparent bg-transparent py-0.5 pl-1 pr-10 text-2xl font-bold tracking-tight text-foreground outline-none transition-colors hover:border-border focus:border-ring" />
+              <EmojiInputButton inputRef={nameRef} value={name} onChange={setName} maxLength={GROUP_NAME_MAX_LENGTH} className="absolute inset-y-0 right-0 my-auto" />
               <EmojiAutocomplete inputRef={nameRef} value={name} onChange={setName} className="top-full bottom-auto mt-1 mb-0" />
             </div>
           )}

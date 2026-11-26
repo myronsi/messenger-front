@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { thumbnailTarget } from './thumbnailTarget';
 import { openerElement } from './openerElement';
 import { returnToThumbnail } from './returnToThumbnail';
+import { useHiddenThumbnail } from './useHiddenThumbnail';
 
 export function useSwipeDismiss(stage: RefObject<HTMLDivElement | null>, onClose: () => void, sources: (string | undefined)[] = []) {
   const running = useRef<Animation[]>([]);
@@ -9,6 +10,7 @@ export function useSwipeDismiss(stage: RefObject<HTMLDivElement | null>, onClose
   const cleanup = useRef<(() => void) | undefined>(undefined);
   const sourceRef = useRef(sources);
   sourceRef.current = sources;
+  useHiddenThumbnail(sources, opener.current);
   useEffect(() => () => {
     running.current.forEach(animation => animation.cancel());
     running.current = [];
@@ -25,8 +27,9 @@ export function useSwipeDismiss(stage: RefObject<HTMLDivElement | null>, onClose
     const options: KeyframeAnimationOptions = { duration: 320, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' };
     const target = thumbnailTarget(sourceRef.current, opener.current);
     const active = [...element.querySelectorAll<HTMLElement | SVGSVGElement>('[data-active-slide], [data-testid="drawing-overlay"]')];
-    const shown = active.find((image): image is HTMLImageElement => (
-      image instanceof HTMLImageElement && getComputedStyle(image).opacity !== '0' && image.naturalWidth > 0
+    const shown = active.find((media): media is HTMLImageElement | HTMLVideoElement => (
+      media instanceof HTMLVideoElement ? media.videoWidth > 0
+        : media instanceof HTMLImageElement && getComputedStyle(media).opacity !== '0' && media.naturalWidth > 0
     ));
     const returning = target && shown ? returnToThumbnail(shown, target, options) : null;
     cleanup.current = returning?.cleanup;

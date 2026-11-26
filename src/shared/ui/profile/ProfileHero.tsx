@@ -15,9 +15,11 @@ interface ProfileCloseButtonProps {
   className?: string;
 }
 
+export const BANNER_BUTTON = 'motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20';
+
 export const ProfileCloseButton = ({ mobile, onClick, backLabel, closeLabel, className = '' }: ProfileCloseButtonProps) => (
   <button type="button" onClick={onClick} aria-label={mobile ? backLabel : closeLabel} title={mobile ? undefined : closeLabel}
-    className={`motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20 ${className}`}>
+    className={`${BANNER_BUTTON} ${className}`}>
     {mobile ? <ArrowLeft className="h-5 w-5" /> : <X className="h-5 w-5" />}
   </button>
 );
@@ -60,7 +62,7 @@ export const ProfileBanner = ({ seed, avatar, online = false, title, subtitle, a
         {avatarOverlay}
         {online && <span data-testid="profile-online-dot" className="absolute bottom-2 right-2 h-5 w-5 rounded-full border-[3px] border-background bg-success" />}
       </div>
-      {actions && <div data-morph-fade="" className="flex min-w-0 flex-wrap justify-end gap-2 pt-3">{actions}</div>}
+      {actions && <div data-morph-fade="" className="flex min-w-0 justify-end gap-2 pt-3">{actions}</div>}
     </div>
     <div className="px-5 pt-2">
       <div data-morph="name" data-morph-mode="move" className="break-words text-2xl font-bold leading-tight tracking-tight">{title}</div>
@@ -81,8 +83,7 @@ export interface ProfileTile {
 
 const tileClass = (tile: ProfileTile) => {
   const tone = tile.danger ? 'border-destructive/40 text-destructive' : 'border-border text-foreground';
-  const size = tile.primary ? 'px-4 text-sm font-medium [&>span]:text-sm' : 'w-10 [&>span]:sr-only';
-  return `${OUTLINE_BUTTON} ${tone} ${size}`;
+  return `${OUTLINE_BUTTON} ${tone} w-10 [&>span]:sr-only`;
 };
 
 export interface ProfileMenuItem {
@@ -106,29 +107,30 @@ export const ProfileActions = ({ tiles, menu = [], moreLabel = 'More' }: Profile
         {tile.render ? tile.render(tileClass(tile)) : (
           <button type="button" aria-label={tile.label} title={tile.label} onClick={tile.onClick} className={tileClass(tile)}>
             {tile.icon}
-            {tile.primary && <span>{tile.label}</span>}
           </button>
         )}
       </div>
     ))}
-    {menu.length > 0 && (
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <button type="button" aria-label={moreLabel} title={moreLabel} className={tileClass({ key: 'more', label: moreLabel })}>
-            <MoreHorizontal className="h-5 w-5" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="z-[1300] min-w-44" onCloseAutoFocus={(event) => event.preventDefault()}>
-          {menu.map((item) => (
-            <DropdownMenuItem key={item.key} onSelect={item.onSelect}
-              className={`gap-2 ${item.danger ? 'text-destructive focus:text-destructive' : ''}`}>
-              {item.icon}{item.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )}
+    {menu.length > 0 && <ProfileMoreMenu menu={menu} label={moreLabel} triggerClassName={tileClass({ key: 'more', label: moreLabel })} />}
   </div>
+);
+
+export const ProfileMoreMenu = ({ menu, label, triggerClassName }: { menu: ProfileMenuItem[]; label: string; triggerClassName: string }) => (
+  <DropdownMenu modal={false}>
+    <DropdownMenuTrigger asChild>
+      <button type="button" aria-label={label} title={label} className={triggerClassName}>
+        <MoreHorizontal className="h-5 w-5" />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="z-[1300] min-w-44" onCloseAutoFocus={(event) => event.preventDefault()}>
+      {menu.map((item) => (
+        <DropdownMenuItem key={item.key} onSelect={item.onSelect}
+          className={`gap-2 ${item.danger ? 'text-destructive focus:text-destructive' : ''}`}>
+          {item.icon}{item.label}
+        </DropdownMenuItem>
+      ))}
+    </DropdownMenuContent>
+  </DropdownMenu>
 );
 
 interface ProfileTabsProps<T extends string> {

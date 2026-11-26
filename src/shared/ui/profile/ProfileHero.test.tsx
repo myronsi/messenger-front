@@ -27,7 +27,7 @@ describe('profile hero parts', () => {
     expect(container.querySelector('svg circle')).toBeNull();
   });
 
-  it('puts the labeled primary action first and keeps the others as icon buttons', () => {
+  it('puts the primary action first and shows every action as a named icon button', () => {
     const onBlock = vi.fn();
     render(<ProfileActions tiles={[
       { key: 'block', label: 'Block', icon: <span />, danger: true, onClick: onBlock },
@@ -35,8 +35,8 @@ describe('profile hero parts', () => {
     ]} />);
     const buttons = within(screen.getByTestId('profile-action-tiles')).getAllByRole('button');
     expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual(['Chat', 'Block']);
-    expect(buttons[0]).toHaveTextContent('Chat');
-    expect(buttons[1]).toHaveTextContent('');
+    expect(buttons.map((button) => button.textContent)).toEqual(['', '']);
+    expect(buttons[0]).toHaveAttribute('title', 'Chat');
     expect(buttons[1]).toHaveClass('text-destructive');
     fireEvent.click(buttons[1]);
     expect(onBlock).toHaveBeenCalledOnce();

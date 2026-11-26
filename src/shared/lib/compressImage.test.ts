@@ -104,6 +104,17 @@ describe('compressImageForUpload', () => {
     expect(result.name).toBe('screen.jpg');
   });
 
+  it('keeps animated WebP files as they are so they stay animated', async () => {
+    const header = new Uint8Array(32);
+    header.set([...'RIFF'].map((c) => c.charCodeAt(0)), 0);
+    header.set([...'WEBPVP8X'].map((c) => c.charCodeAt(0)), 8);
+    header[20] = 0x02;
+    const file = new File([header], 'sticker.webp', { type: 'image/webp' });
+    Object.defineProperty(file, 'size', { value: 5 * MB });
+    await expect(compressImageForUpload(file)).resolves.toBe(file);
+    expect(encodings).toEqual([]);
+  });
+
   it('skips GIF, SVG and HEIC files', async () => {
     const files = [sizedFile('a.gif', 'image/gif', 30 * MB), sizedFile('b.svg', 'image/svg+xml', 30 * MB), sizedFile('c.heic', 'image/heic', 30 * MB)];
     for (const file of files) {
