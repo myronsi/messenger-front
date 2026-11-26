@@ -1,65 +1,12 @@
 import { act, render } from '@testing-library/react';
-import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Message } from '@/entities/message';
-import { useMessageListScroll } from './useMessageListScroll';
-
-const message = (id: string): Message => ({
-  id, sender: 'alice', sender_id: '1', content: `m${id}`, timestamp: '2026-11-02T10:00:00Z', type: 'message', read_by: [],
-});
-
-let resize: () => void = () => {};
-let observed: [Element, ResizeObserverOptions | undefined][] = [];
-let frames: FrameRequestCallback[] = [];
-let clock = 0;
-const flushFrames = (count = 5) => {
-  for (let i = 0; i < count && frames.length; i += 1) {
-    const pending = frames;
-    frames = [];
-    clock += 1000 / 60;
-    pending.forEach((callback) => callback(clock));
-  }
-};
-
-const List = ({ messages, chat = 'chat', target = null, ownId, onScrollStart, loading = false }: {
-  messages: Message[]; chat?: string; target?: string | null; ownId?: string; onScrollStart?: () => void; loading?: boolean;
-}) => {
-  const messageRefs = useRef({});
-  const { chatContainerRef, contentRef } = useMessageListScroll({
-    messages, messageRefs, highlightedMessageId: target, tempHighlightedMessageId: null,
-    getFormattedDateLabel: () => '', hasMoreMessages: false, hasMoreNewerMessages: false,
-    isLoadingInitialMessages: loading, isLoadingOlderMessages: false, isLoadingNewerMessages: false,
-    scrollToBottomKey: chat, isOwnMessage: (item) => item.id === ownId, onScrollStart,
-  });
-  return <div data-testid="container" ref={chatContainerRef}><div ref={contentRef} /></div>;
-};
-
-const setup = (messages: Message[]) => {
-  let scrollHeight = 1000;
-  const view = render(<List messages={messages} />);
-  const container = view.getByTestId('container');
-  let scrollTop = 0;
-  let clientHeight = 500;
-  Object.defineProperty(container, 'clientHeight', { configurable: true, get: () => clientHeight });
-  Object.defineProperty(container, 'scrollHeight', { configurable: true, get: () => scrollHeight });
-  Object.defineProperty(container, 'scrollTop', {
-    configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = Math.min(value, scrollHeight - clientHeight); },
-  });
-  container.scrollTo = ((options: ScrollToOptions) => { container.scrollTop = options.top ?? 0; }) as typeof container.scrollTo;
-  return {
-    view, container,
-    grow: (height: number) => { scrollHeight = height; },
-    shrinkView: (height: number) => { clientHeight = height; },
-  };
-};
+import {
+  flushFrames, message, observedOptions, pendingFrames, setup, stubBrowser, triggerResize,
+} from './messageListScrollHarness';
+import { MessageListScrollProbe as List } from './MessageListScrollProbe';
 
 describe('useMessageListScroll menus', () => {
-  beforeEach(() => {
-    frames = [];
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
-    vi.stubGlobal('cancelAnimationFrame', () => {});
-    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
-  });
+  beforeEach(() => stubBrowser({ observeResizes: false }));
   afterEach(() => vi.unstubAllGlobals());
 
   it('keeps menus open when the list scrolls by itself, like for a typing bubble, and closes them on a user scroll', () => {
@@ -78,17 +25,7 @@ describe('useMessageListScroll menus', () => {
 });
 
 describe('useMessageListScroll', () => {
-  beforeEach(() => {
-    frames = [];
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
-    vi.stubGlobal('cancelAnimationFrame', () => {});
-    vi.stubGlobal('ResizeObserver', class {
-      constructor(callback: () => void) { resize = callback; }
-      observe(element: Element, options?: ResizeObserverOptions) { observed.push([element, options]); }
-      disconnect() {}
-    });
-    observed = [];
-  });
+  beforeEach(() => stubBrowser());
   afterEach(() => vi.unstubAllGlobals());
 
   it('stays at the bottom when an image grows the list before the resize is observed', async () => {
@@ -100,7 +37,7 @@ describe('useMessageListScroll', () => {
     grow(1300);
     container.dispatchEvent(new Event('scroll'));
     await act(async () => { flushFrames(); });
-    act(() => resize());
+    act(() => triggerResize());
 
     expect(container.scrollTop).toBe(800);
   });
@@ -114,7 +51,7 @@ describe('useMessageListScroll', () => {
     view.rerender(<List messages={[message('1'), message('2')]} />);
     await act(async () => { flushFrames(); });
     grow(1400);
-    act(() => resize());
+    act(() => triggerResize());
     await act(async () => { flushFrames(100); });
 
     expect(container.scrollTop).toBe(900);
@@ -127,14 +64,14 @@ describe('useMessageListScroll', () => {
     expect(container.scrollTop).toBe(500);
 
     shrinkView(220);
-    act(() => resize());
+    act(() => triggerResize());
 
     expect(container.scrollTop).toBe(780);
   });
 
   it('notices a taller composer space, which is padding on the message content', () => {
     setup([]);
-    expect(observed.some(([, options]) => options?.box === 'border-box')).toBe(true);
+    expect(observedOptions().some((options) => options?.box === 'border-box')).toBe(true);
   });
 
   it('stays at the bottom when the browser lowers the scroll position itself', async () => {
@@ -148,7 +85,7 @@ describe('useMessageListScroll', () => {
     container.dispatchEvent(new Event('scroll'));
     await act(async () => { flushFrames(); });
     grow(1250);
-    act(() => resize());
+    act(() => triggerResize());
 
     expect(container.scrollTop).toBe(750);
   });
@@ -163,7 +100,7 @@ describe('useMessageListScroll', () => {
     expect(container.scrollTop).toBe(500);
     await act(async () => { flushFrames(); });
     grow(1030);
-    act(() => resize());
+    act(() => triggerResize());
 
     expect(container.scrollTop).toBe(530);
   });
@@ -217,7 +154,7 @@ describe('useMessageListScroll', () => {
     container.dispatchEvent(new Event('scroll'));
     await act(async () => { flushFrames(); });
     grow(1300);
-    act(() => resize());
+    act(() => triggerResize());
 
     expect(container.scrollTop).toBe(200);
   });
@@ -230,7 +167,7 @@ describe('useMessageListScroll', () => {
     grow(1200);
     container.dispatchEvent(new Event('scroll'));
     await act(async () => { flushFrames(); });
-    act(() => resize());
+    act(() => triggerResize());
     expect(container.scrollTop).toBe(700);
   });
 
@@ -244,7 +181,7 @@ describe('useMessageListScroll', () => {
     container.dispatchEvent(new Event('scroll'));
     await act(async () => { flushFrames(); });
     grow(1300);
-    act(() => resize());
+    act(() => triggerResize());
     expect(container.scrollTop).toBe(200);
   });
 
@@ -260,7 +197,7 @@ describe('useMessageListScroll', () => {
     grow(1300);
     view.rerender(<List messages={[message('1'), message('2'), message('3')]} ownId="3" />);
     expect(container.scrollTop).toBe(800);
-    expect(frames).toHaveLength(0);
+    expect(pendingFrames()).toBe(0);
   });
 
   it('stays on a search result it jumped to when new content arrives', async () => {
@@ -274,7 +211,7 @@ describe('useMessageListScroll', () => {
     container.dispatchEvent(new Event('scroll'));
     await act(async () => { flushFrames(); });
     grow(1300);
-    act(() => resize());
+    act(() => triggerResize());
 
     expect(container.scrollTop).toBe(200);
   });

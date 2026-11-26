@@ -43,6 +43,15 @@ export const coversView = (span: Span, count: number, top: number, bottom: numbe
   return above && below && top >= view.top - excess && bottom <= viewBottom + excess;
 };
 
+export const keepsView = (
+  rendered: Span, own: Span, count: number, renderedBottoms: number[], heightAt: (index: number) => number, view: View,
+) => {
+  if (own.end <= own.start || own.start < rendered.start || own.end > rendered.end) return false;
+  const top = renderedBottoms[own.start - rendered.start] - heightAt(own.start);
+  const bottom = renderedBottoms[own.end - 1 - rendered.start];
+  return coversView(own, count, top, bottom, view);
+};
+
 export const spanForView = (count: number, span: Span, renderedBottoms: number[], heightAt: (index: number) => number, view: View): Span => {
   const bottoms = new Array<number>(count);
   for (let index = span.start; index < span.end; index += 1) bottoms[index] = renderedBottoms[index - span.start];
