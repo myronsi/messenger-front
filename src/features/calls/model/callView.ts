@@ -19,7 +19,8 @@ export interface BubbleBox {
 const CORNER_KEY = 'messenger:call-bubble-corner';
 const corners: readonly CallCorner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
 
-export const bubbleBox: BubbleBox = { size: 64, margin: 16, top: 80, bottom: 96 };
+export const bubbleBox: BubbleBox = { size: 112, margin: 16, top: 80, bottom: 96 };
+export const BUBBLE_RADIUS = 20;
 
 const readCorner = (): CallCorner => {
   try {

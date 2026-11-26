@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
-import { Lock, Mic, MicOff, Minimize2, PhoneOff, Volume2, WifiOff } from 'lucide-react';
+import {
+  Ellipsis, Lock, Mic, MicOff, Minimize2, PhoneOff, RotateCw, SignalHigh, SlidersHorizontal, Volume2, WifiOff,
+} from 'lucide-react';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { Button } from '@/shared/ui/button';
-import type { Call, CallParticipant } from '../api/callsApi';
-import { endCallForEveryone, leaveCall, rejoinCall } from '../model/callController';
+import { EmojiText } from '@/shared/ui/CustomEmoji';
+import { cn } from '@/shared/lib/utils';
+import type { Call } from '../api/callsApi';
+import { leaveCall, rejoinCall } from '../model/callController';
 import { enableCallAudio, selectInputDevice, selectOutputDevice, toggleMute } from '../model/callControls';
 import { minimizeCall } from '../model/callView';
 import { canEndForEveryone } from '../model/permissions';
 import type { CallSession } from '../model/stores';
+import CallControl from './CallControl';
+import CallMoreSheet from './CallMoreSheet';
+import CallSheet from './CallSheet';
 import CallWarnings from './CallWarnings';
-import DeviceSelect from './DeviceSelect';
-import SecurityCodePanel from './SecurityCodePanel';
-import { useCallAvatar, useCallTitle, useGroupInfo, useUserName } from './callHooks';
+import DeviceList from './DeviceList';
+import { useCallAvatar, useCallTitle, useGroupInfo } from './callHooks';
 import { useCallStatus } from './useCallStatus';
-import { EmojiText } from '@/shared/ui/CustomEmoji';
 
 interface ActiveCallPanelProps {
   call: Call | null;
@@ -22,108 +27,97 @@ interface ActiveCallPanelProps {
   userId: string | null;
 }
 
-const ParticipantRow: React.FC<{ participant: CallParticipant; isMe: boolean }> = ({ participant, isMe }) => {
-  const { translations } = useLanguage();
-  const name = useUserName(participant.user_id);
-  return (
-    <li className="flex items-center justify-between gap-2 py-1.5 text-sm">
-      <span className="truncate">{isMe ? translations.callYou : name || '…'}</span>
-      <span className={participant.state === 'joined' ? 'text-success' : 'text-muted-foreground'}>
-        {participant.state === 'joined' ? translations.callStateJoined : translations.callStateRinging}
-      </span>
-    </li>
-  );
-};
+type Sheet = 'devices' | 'more' | null;
+
+const TOP_BUTTON = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/80 text-foreground transition-colors hover:bg-accent '
+  + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
+const ringColor = (phase: CallSession['phase']) => (
+  phase === 'connected' ? 'border-success' : phase === 'rejoin' ? 'border-destructive' : 'border-warning'
+);
 
 const ActiveCallPanel: React.FC<ActiveCallPanelProps> = ({ call, session, userId }) => {
   const { translations } = useLanguage();
-  const [showCode, setShowCode] = useState(false);
+  const [sheet, setSheet] = useState<Sheet>(null);
   const { title } = useCallTitle(call, userId);
   const avatar = useCallAvatar(call, userId);
   const group = useGroupInfo(call);
   const { phaseText, timer, poorNetwork } = useCallStatus(call, session);
-  const visible = (call?.participants ?? []).filter((participant) => participant.state === 'joined' || participant.state === 'ringing');
   const allowedToEnd = !!call && canEndForEveryone(call, userId, group.role);
   const name = title || translations.callPanelTitle;
+  const goodNetwork = session.phase === 'connected' && session.quality === 'good';
+  const closeSheet = () => setSheet(null);
 
   return (
-    <section aria-label={translations.callPanelTitle} className="flex h-full w-full flex-col bg-background bg-gradient-to-b from-muted/50 to-background">
-      <header className="flex items-center gap-2 border-b border-border bg-background px-4 py-3">
-        <h2 className="min-w-0 flex-1 truncate font-semibold">{translations.callPanelTitle}</h2>
-        <Button variant="ghost" size="icon" aria-label={translations.callMinimize} title={translations.callMinimize} onClick={minimizeCall}>
-          <Minimize2 />
-        </Button>
-      </header>
-      <CallWarnings session={session} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5 px-4 py-8">
-          <AuthenticatedImage src={avatar} initialsFrom={name} alt="" loading="eager"
-            className="h-28 w-28 rounded-full border border-border object-cover shadow-md" />
-          <div className="flex flex-col items-center gap-1 text-center">
-            <p className="max-w-full truncate text-2xl font-semibold"><EmojiText text={name} /></p>
-            <p className="flex items-center gap-1 text-sm text-muted-foreground">
-              {poorNetwork && <WifiOff className="h-4 w-4" aria-hidden="true" />}
-              {timer && <span className="tabular-nums">{timer}</span>}
-              <span aria-live="polite" className="flex items-center gap-1">
-                <span className={timer ? 'sr-only' : undefined}>{phaseText}</span>
-                {poorNetwork && <span>· {translations.callPoorNetwork}</span>}
-              </span>
-            </p>
-          </div>
-          {session.encryption !== 'failed' && (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
-              {session.encryption === 'ready' ? translations.callEncrypted : translations.callEncryptionPending}
-            </p>
-          )}
-          <ul aria-label={translations.callParticipantsCount.replace('{count}', String(visible.length))}
-            className="w-full divide-y divide-border rounded-xl border border-border bg-background px-4">
-            {visible.map((participant) => (
-              <ParticipantRow key={participant.user_id} participant={participant} isMe={participant.user_id === userId} />
-            ))}
-          </ul>
-          {session.audioBlocked && (
-            <div className="flex w-full items-center gap-2 rounded-lg bg-warning-soft p-2 text-sm text-warning">
-              <span className="flex-1">{translations.callAudioBlocked}</span>
-              <Button size="sm" onClick={() => { void enableCallAudio(); }}><Volume2 aria-hidden="true" />{translations.callEnableAudio}</Button>
-            </div>
-          )}
-          <div className="grid w-full gap-2 sm:grid-cols-2">
-            <DeviceSelect id="call-input-device" label={translations.callMicrophone} defaultLabel={translations.callDefaultDevice}
-              value={session.input} options={session.inputs} onChange={(id) => { void selectInputDevice(id); }} />
-            {session.outputSupported && (
-              <DeviceSelect id="call-output-device" label={translations.callAudioOutput} defaultLabel={translations.callDefaultDevice}
-                value={session.output} options={session.outputs} onChange={(id) => { void selectOutputDevice(id); }} />
-            )}
-          </div>
-          <div className="flex w-full flex-col items-center gap-3">
-            <Button variant="outline" size="sm" aria-expanded={showCode} onClick={() => setShowCode((value) => !value)}>
-              {showCode ? translations.callHideSecurityCode : translations.callShowSecurityCode}
-            </Button>
-            {showCode && <SecurityCodePanel session={session} />}
-          </div>
-        </div>
+    <section aria-label={translations.callPanelTitle}
+      className="relative flex h-full w-full flex-col overflow-hidden bg-background bg-gradient-to-b from-muted/60 via-background to-background">
+      <div className="flex items-center justify-between gap-2 px-4 pb-1 pt-3">
+        <button type="button" className={TOP_BUTTON} aria-label={translations.callMinimize} title={translations.callMinimize} onClick={minimizeCall}>
+          <Minimize2 className="h-5 w-5" aria-hidden="true" />
+        </button>
+        {session.encryption !== 'failed' && (
+          <button type="button" onClick={() => setSheet('more')} aria-haspopup="dialog"
+            className={cn(
+              'flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              session.encryption === 'ready' ? 'bg-success-soft text-success hover:bg-success-soft/80' : 'bg-muted text-muted-foreground hover:bg-accent',
+            )}>
+            <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="truncate">{session.encryption === 'ready' ? translations.callEncrypted : translations.callEncryptionPending}</span>
+          </button>
+        )}
+        <button type="button" className={TOP_BUTTON} aria-label={translations.callMore} title={translations.callMore} aria-haspopup="dialog"
+          onClick={() => setSheet('more')}>
+          <Ellipsis className="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
-      <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-border bg-background px-4 py-4">
+      <CallWarnings session={session} />
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 overflow-y-auto px-6 py-6 text-center">
+        <div className={cn('rounded-full border-[3px] p-1.5 transition-colors', ringColor(session.phase))}>
+          <AuthenticatedImage src={avatar} initialsFrom={name} alt="" loading="eager"
+            className="h-32 w-32 rounded-full object-cover sm:h-36 sm:w-36" />
+        </div>
+        <p className="mt-4 max-w-full truncate text-2xl font-semibold"><EmojiText text={name} /></p>
+        <p className="flex items-center gap-1 text-base text-muted-foreground">
+          {timer && <span className="tabular-nums">{timer}</span>}
+          <span aria-live="polite" className={timer ? 'sr-only' : undefined}>{phaseText}</span>
+        </p>
+        {poorNetwork && (
+          <p className="flex items-center gap-1 text-xs text-warning"><WifiOff className="h-3.5 w-3.5" aria-hidden="true" />{translations.callPoorNetwork}</p>
+        )}
+        {goodNetwork && (
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            <SignalHigh className="h-3.5 w-3.5 text-success" aria-hidden="true" />{translations.callGoodNetwork}
+          </p>
+        )}
+        {session.audioBlocked && (
+          <div className="mt-4 flex w-full max-w-sm items-center gap-2 rounded-xl bg-warning-soft p-2 text-left text-sm text-warning">
+            <span className="flex-1">{translations.callAudioBlocked}</span>
+            <Button size="sm" onClick={() => { void enableCallAudio(); }}><Volume2 aria-hidden="true" />{translations.callEnableAudio}</Button>
+          </div>
+        )}
+      </div>
+      <footer className="flex items-start justify-center gap-4 px-4 pb-8 pt-4 sm:gap-6">
         {session.phase === 'rejoin' ? (
-          <Button onClick={() => { void rejoinCall(); }}>{translations.callRejoin}</Button>
+          <CallControl icon={RotateCw} label={translations.callRejoin} tone="primary" onClick={() => { void rejoinCall(); }} />
         ) : (
-          <Button variant={session.muted ? 'secondary' : 'outline'} size="icon" className="h-14 w-14 rounded-full" aria-pressed={session.muted}
-            aria-label={translations.callMute} title={translations.callMute}
-            onClick={() => { void toggleMute(); }}>
-            {session.muted ? <MicOff /> : <Mic />}
-          </Button>
+          <CallControl icon={session.muted ? MicOff : Mic} label={session.muted ? translations.callMuted : translations.callMuteShort}
+            ariaLabel={translations.callMute} pressed={session.muted} tone={session.muted ? 'active' : 'default'}
+            onClick={() => { void toggleMute(); }} />
         )}
-        <Button variant="destructive" className="h-14 rounded-full px-8" onClick={() => { void leaveCall(); }}>
-          <PhoneOff aria-hidden="true" />
-          {translations.callLeave}
-        </Button>
-        {allowedToEnd && call?.kind === 'group' && (
-          <Button variant="outline" className="h-14 rounded-full" onClick={() => { void endCallForEveryone(); }}>
-            {translations.callEndForEveryone}
-          </Button>
-        )}
+        <CallControl icon={SlidersHorizontal} label={translations.callDevices} hasPopup onClick={() => setSheet('devices')} />
+        <CallControl icon={PhoneOff} label={translations.callLeave} tone="danger" onClick={() => { void leaveCall(); }} />
       </footer>
+      <CallSheet open={sheet === 'devices'} title={translations.callDevices} onClose={closeSheet}>
+        <DeviceList label={translations.callMicrophone} defaultLabel={translations.callDefaultDevice} icon={Mic}
+          value={session.input} options={session.inputs} onChange={(id) => { void selectInputDevice(id); }} />
+        {session.outputSupported && (
+          <DeviceList label={translations.callAudioOutput} defaultLabel={translations.callDefaultDevice} icon={Volume2}
+            value={session.output} options={session.outputs} onChange={(id) => { void selectOutputDevice(id); }} />
+        )}
+      </CallSheet>
+      <CallSheet open={sheet === 'more'} title={translations.callMore} onClose={closeSheet}>
+        <CallMoreSheet call={call} session={session} userId={userId} allowedToEnd={allowedToEnd} />
+      </CallSheet>
     </section>
   );
 };

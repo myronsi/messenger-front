@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import {
-  bubbleMorph, CALL_VIEW_EASE, CALL_VIEW_MOTION_MS, dragAsMorphStart, minimizeCall, type CallCorner, type CallViewDrag, type CallViewMode,
+  BUBBLE_RADIUS, bubbleMorph, CALL_VIEW_EASE, CALL_VIEW_MOTION_MS, dragAsMorphStart, minimizeCall, type CallCorner, type CallViewDrag, type CallViewMode,
 } from '../model/callView';
 import { useSwipeToMinimize } from './useSwipeToMinimize';
 
@@ -18,7 +18,7 @@ const morphFrames = (element: HTMLElement, corner: CallCorner, drag: CallViewDra
   const from = drag ? dragAsMorphStart(drag, rect.width, originX, originY) : 'translate(0px, 0px) scale(1)';
   return [
     { transformOrigin: origin, transform: from, opacity: 1, borderRadius: '0px' },
-    { transformOrigin: origin, transform: `translate(0px, 0px) scale(${scale})`, opacity: 0, borderRadius: '50%' },
+    { transformOrigin: origin, transform: `translate(0px, 0px) scale(${scale})`, opacity: 0, borderRadius: `${BUBBLE_RADIUS / scale}px` },
   ];
 };
 
