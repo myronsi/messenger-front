@@ -11,7 +11,9 @@ vi.mock('@/shared/contexts/LanguageContext', () => ({
 }));
 
 const scope = window as unknown as { RTCRtpScriptTransform?: unknown };
-const enable = () => act(() => configStore.set({ enabled: true, max_participants: 10, ring_timeout_seconds: 30 }));
+const enable = () => act(() => configStore.set({
+  enabled: true, video_enabled: false, screen_share_enabled: false, max_participants: 10, ring_timeout_seconds: 30,
+}));
 
 describe('CallButton', () => {
   beforeEach(() => {
@@ -30,7 +32,7 @@ describe('CallButton', () => {
   });
 
   it('stays hidden when calls are disabled on the server', () => {
-    act(() => configStore.set({ enabled: false, max_participants: 10, ring_timeout_seconds: 30 }));
+    act(() => configStore.set({ enabled: false, video_enabled: false, screen_share_enabled: false, max_participants: 10, ring_timeout_seconds: 30 }));
     render(<CallButton chatId="77" />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
