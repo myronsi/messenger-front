@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.39](https://github.com/myronsi/messenger-front/compare/v0.6.38...v0.6.39) (2026-11-26)
+
+
+### Features
+
+* **ui:** chat media gallery, viewer actions and settings redesigns ([#275](https://github.com/myronsi/messenger-front/issues/275)) ([d3598ad](https://github.com/myronsi/messenger-front/commit/d3598ade37d60adede1f56ea4ea42006510ed1c9))
+
 ## [0.6.38](https://github.com/myronsi/messenger-front/compare/v0.6.37...v0.6.38) (2026-11-26)
 
 
