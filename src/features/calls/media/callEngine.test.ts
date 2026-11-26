@@ -14,7 +14,7 @@ const rooms = vi.hoisted(() => [] as {
 
 const media = vi.hoisted(() => {
   const make = (kind: 'video' | 'audio', source: string) => {
-    const listeners = new Map<string, Set<() => void>>();
+    const listeners = new Map<string, Set<(target?: unknown) => void>>();
     const track = {
       kind, source, isUpstreamPaused: false, mediaStreamTrack: { enabled: true },
       pauseUpstream: vi.fn(async () => { track.isUpstreamPaused = true; }),
@@ -23,9 +23,9 @@ const media = vi.hoisted(() => {
       stop: vi.fn(),
       attach: vi.fn((element: unknown) => element),
       detach: vi.fn(),
-      on: vi.fn((event: string, listener: () => void) => { listeners.set(event, (listeners.get(event) ?? new Set()).add(listener)); }),
-      off: vi.fn((event: string, listener: () => void) => { listeners.get(event)?.delete(listener); }),
-      emit: (event: string) => listeners.get(event)?.forEach((listener) => listener()),
+      on: vi.fn((event: string, listener: (target?: unknown) => void) => { listeners.set(event, (listeners.get(event) ?? new Set()).add(listener)); }),
+      off: vi.fn((event: string, listener: (target?: unknown) => void) => { listeners.get(event)?.delete(listener); }),
+      emit: (event: string) => listeners.get(event)?.forEach((listener) => listener(track)),
     };
     return track;
   };
@@ -184,6 +184,21 @@ describe('call engine', () => {
     await engine.setCameraEnabled(false);
     expect(room.localParticipant.unpublishTrack).toHaveBeenCalledWith(camera, true);
     expect(events.patch).toHaveBeenLastCalledWith({ camera: 'off' });
+    await engine.dispose();
+  });
+
+  it('turns the camera off with a notice when the browser loses the camera for good', async () => {
+    const { engine, events, room } = await setup();
+    await engine.connect();
+    await engine.setCameraEnabled(true);
+    const [camera] = media.created;
+    await vi.waitFor(() => expect(room.localParticipant.publishTrack).toHaveBeenCalledWith(camera, expect.objectContaining({ source: 'camera' })));
+    camera.emit('muted');
+    await vi.waitFor(() => expect(room.localParticipant.unpublishTrack).toHaveBeenCalledWith(camera, true));
+    expect(camera.stop).toHaveBeenCalled();
+    expect(events.patch).toHaveBeenCalledWith({ camera: 'off' });
+    expect(events.patch).toHaveBeenLastCalledWith({ notice: 'camera-failed' });
+    expect(events.video).toHaveBeenLastCalledWith([]);
     await engine.dispose();
   });
 

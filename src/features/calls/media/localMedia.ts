@@ -166,6 +166,7 @@ export class LocalMedia {
   release() {
     this.closed = true;
     this.screen?.video.off(TrackEvent.Ended, this.onScreenEnded);
+    this.camera?.off(TrackEvent.Muted, this.onCameraLost);
     this.publisher.release();
     this.camera = null;
     this.cameraFeed = null;
@@ -198,6 +199,7 @@ export class LocalMedia {
     }
     this.camera = track;
     this.cameraFeed = null;
+    track.on(TrackEvent.Muted, this.onCameraLost);
     this.publisher.add(track, CAMERA_PUBLISH);
     this.host.changed();
     this.host.patch({ camera: 'on' });
@@ -209,8 +211,14 @@ export class LocalMedia {
     this.camera = null;
     this.host.changed();
     this.host.patch({ camera: 'off' });
-    if (track) await this.publisher.remove(track);
+    if (!track) return;
+    track.off(TrackEvent.Muted, this.onCameraLost);
+    await this.publisher.remove(track);
   }
+
+  private onCameraLost = (track: LocalTrack) => {
+    if (track === this.camera) void this.dropTrack(track, new Error('camera track ended'));
+  };
 
   private onScreenEnded = () => { void this.stopScreenShare(); };
 
