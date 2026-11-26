@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.37](https://github.com/myronsi/messenger-front/compare/v0.6.36...v0.6.37) (2026-11-26)
+
+
+### Features
+
+* **calls:** end-to-end encrypted camera and screen sharing ([#272](https://github.com/myronsi/messenger-front/issues/272)) ([870021a](https://github.com/myronsi/messenger-front/commit/870021aaf3a8eb718b085fc62a925820e99167a2))
+* **calls:** redesign the call screen and make the minimized call square ([#270](https://github.com/myronsi/messenger-front/issues/270)) ([42239dd](https://github.com/myronsi/messenger-front/commit/42239ddb8fad911ad314e92a4abb8fd422cba6b2))
+
+
+### Bug Fixes
+
+* **chat-import:** allow imports of up to 500,000 messages ([#271](https://github.com/myronsi/messenger-front/issues/271)) ([9a75f78](https://github.com/myronsi/messenger-front/commit/9a75f78f7fa583e5cab051fbbd88ec3452d0a655))
+* **chat:** keep the view on a search result in long chats ([#268](https://github.com/myronsi/messenger-front/issues/268)) ([6d4fb7b](https://github.com/myronsi/messenger-front/commit/6d4fb7b50a5dbd7c68eb55e43a96cdd677a21822))
+
 ## [0.6.36](https://github.com/myronsi/messenger-front/compare/v0.6.35...v0.6.36) (2026-11-25)
 
 
