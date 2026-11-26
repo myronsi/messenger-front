@@ -27,3 +27,10 @@ it('shows names with special characters as they are', () => {
   expect(systemEventText({ kind: 'member_added', actor_id: '2', actor_name: 'Cost $&', target_id: '3', target_name: 'Max' }, en, (id) => id === '1'))
     .toBe('Cost $& added Max');
 });
+
+it('describes a background set for both people of a direct chat', () => {
+  expect(systemEventText({ kind: 'chat_wallpaper_set', actor_id: '2', actor_name: 'Anna' }, en, (id) => id === '1'))
+    .toBe('Anna set a new background for this chat');
+  expect(systemEventText({ kind: 'chat_wallpaper_set', actor_id: '1', actor_name: 'Me' }, en, (id) => id === '1'))
+    .toBe('You set a new background for this chat');
+});

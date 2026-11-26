@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, type LucideIcon } from 'lucide-react';
+import { Switch } from '@/shared/ui/switch';
 import { ACCENTS, toCss, type AccentId, type ThemeTone } from '@/shared/lib/appearance/palette';
-import { CHAT_BACKGROUNDS, type ChatBackground } from '@/shared/lib/appearance/settings';
 
 export const AppearanceSection: React.FC<{ title: string; children: React.ReactNode; aside?: React.ReactNode }> = ({ title, children, aside }) => (
   <section className="space-y-2">
@@ -64,25 +64,16 @@ export const AccentSwatches: React.FC<AccentSwatchesProps> = ({ label, value, to
   </div>
 );
 
-interface BackgroundSwatchesProps {
+interface DeviceOnlySwitchProps {
   label: string;
-  value: ChatBackground;
-  names: Record<ChatBackground, string>;
-  onChange: (value: ChatBackground) => void;
+  setting: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
 }
 
-export const BackgroundSwatches: React.FC<BackgroundSwatchesProps> = ({ label, value, names, onChange }) => (
-  <div role="radiogroup" aria-label={label} className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-    {CHAT_BACKGROUNDS.map((id) => {
-      const active = id === value;
-      return (
-        <button key={id} type="button" role="radio" aria-checked={active} onClick={() => onChange(id)}
-          className="group flex flex-col items-center gap-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span aria-hidden="true" className={`chat-bg-${id} block h-14 w-full rounded-lg border-2 transition-colors ${
-            active ? 'border-primary' : 'border-border group-hover:border-input'}`} />
-          <span className={`text-xs ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{names[id]}</span>
-        </button>
-      );
-    })}
-  </div>
+export const DeviceOnlySwitch: React.FC<DeviceOnlySwitchProps> = ({ label, setting, checked, onChange }) => (
+  <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+    <span>{label}</span>
+    <Switch checked={checked} onCheckedChange={onChange} aria-label={`${label}: ${setting}`} className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 [&>span]:data-[state=checked]:translate-x-4" />
+  </label>
 );

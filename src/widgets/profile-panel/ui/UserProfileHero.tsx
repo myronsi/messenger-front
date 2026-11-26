@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ban, Cake, Eraser, Flag, MessageCircle, Pencil, Share2, Trash2 } from 'lucide-react';
+import { Ban, Cake, Eraser, Flag, Image, MessageCircle, Pencil, Share2, Trash2 } from 'lucide-react';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { ProfileActions, ProfileBanner, ProfileCloseButton, ProfileTabs, type ProfileMenuItem, type ProfileTile } from '@/shared/ui/profile/ProfileHero';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -13,6 +13,8 @@ import { CallButton, useCallsAvailable } from '@/features/calls';
 import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
 import { ReportUserDialog, RestrictedAccountLabel } from '@/features/moderation';
 import { publicNameLink, ShareLinkDialog } from '@/features/sharing';
+import { useChatWallpaperAction } from '@/features/chat-wallpaper';
+import { isGoApi } from '@/shared/api/goSocket';
 import { ContactNameHeading } from './ContactNameHeading';
 import type { ProfilePanelView } from './UserProfilePanelContent';
 import type { ProfileBackground } from '@/entities/user';
@@ -53,6 +55,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
   const callsAvailable = useCallsAvailable();
   const [shareOpen, setShareOpen] = useState(false);
   const actions = useChatActions({ onDeleted: () => props.onChatDeleted?.() });
+  const wallpaper = useChatWallpaperAction();
   const target: ChatActionTarget = {
     chatId: hasChat ? props.directChatId : undefined, userId: props.userId, username: props.username,
     name: props.displayName, isSaved: props.isCurrentUser,
@@ -77,9 +80,16 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
       { key: 'mute', label: t.mute, primary: !props.canMessage, render: (className: string) => <ChatMuteAction chatId={props.directChatId!} className={className} /> },
     ] : []),
   ];
+  const wallpaperItem: ProfileMenuItem[] = hasChat && isGoApi() ? [{
+    key: 'wallpaper', label: translations.appearance.wallpaper.menuItem, icon: <Image className="h-4 w-4" />,
+    onSelect: () => wallpaper.open({
+      chatId: String(props.directChatId), peerName: props.displayName, direct: true, blocked: props.isBlocked,
+    }),
+  }] : [];
   const menu: ProfileMenuItem[] = props.isCurrentUser ? [] : [
     { key: 'share', label: translations.sharing.shareProfile, icon: <Share2 className="h-4 w-4" />, onSelect: () => setShareOpen(true) },
     { key: 'rename', label: t.rename, icon: <Pencil className="h-4 w-4" />, onSelect: props.onEditContactName },
+    ...wallpaperItem,
     ...(hasChat ? [{ key: 'clear', label: translations.chatCleanup.clearHistory, icon: <Eraser className="h-4 w-4" />, onSelect: () => actions.openClear(target) }] : []),
     ...(hasChat && !props.isCurrentUser ? [{ key: 'delete', label: translations.chatCleanup.deleteChat, danger: true, icon: <Trash2 className="h-4 w-4" />, onSelect: () => actions.openDelete(target) }] : []),
     {
@@ -120,6 +130,7 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
       />
       <ProfileTabs tabs={props.tabs.map((key) => ({ key, label: tabLabels[key] }))} active={props.activeView} onSelect={props.onSelectView} />
       {actions.dialogs}
+      {wallpaper.dialog}
       {shareOpen && (
         <ShareLinkDialog title={translations.sharing.shareProfile} hint={translations.sharing.shareProfileHint}
           url={publicNameLink(props.username)} onClose={() => setShareOpen(false)} />

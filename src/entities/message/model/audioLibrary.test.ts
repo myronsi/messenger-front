@@ -28,36 +28,31 @@ describe('audio library', () => {
     expect(lib.audioLibrary().history).toEqual([]);
   });
 
-  it('creates, fills, reorders, renames and deletes playlists', async () => {
+  it('keeps old local playlists only for the one-time upload and drops them after', async () => {
+    localStorage.setItem('audio_library:user-token-a', JSON.stringify({ history: [], playlists: [{ id: 'p', name: 'Mine', tracks: [song('a')] }] }));
     const lib = await load();
-    const list = lib.createPlaylist('  Road trip  ', [song('a')]);
-    expect(list?.name).toBe('Road trip');
-    expect(lib.createPlaylist('   ')).toBeNull();
-    lib.addToPlaylist(list!.id, song('b'));
-    lib.addToPlaylist(list!.id, song('b'));
-    lib.moveInPlaylist(list!.id, 1, 0);
-    expect(lib.audioLibrary().playlists[0].tracks.map((track) => track.id)).toEqual(['b', 'a']);
-    lib.removeFromPlaylist(list!.id, 'b');
-    lib.renamePlaylist(list!.id, 'Gym');
-    expect(lib.audioLibrary().playlists[0]).toMatchObject({ name: 'Gym', tracks: [song('a')] });
-    lib.deletePlaylist(list!.id);
-    expect(lib.audioLibrary().playlists).toEqual([]);
+    expect(lib.localPlaylists().map((list) => list.name)).toEqual(['Mine']);
+    lib.dropLocalPlaylists();
+    expect(lib.localPlaylists()).toEqual([]);
+    vi.resetModules();
+    expect((await load()).localPlaylists()).toEqual([]);
   });
 
-  it('stores the library per account and survives a reload', async () => {
+  it('stores the history per account and survives a reload', async () => {
     let lib = await load();
-    lib.createPlaylist('Mine', [song('a')]);
+    lib.rememberPlayed(song('a'));
     vi.resetModules();
     lib = await load();
-    expect(lib.audioLibrary().playlists.map((list) => list.name)).toEqual(['Mine']);
+    expect(lib.audioLibrary().history.map((track) => track.id)).toEqual(['a']);
     session.token = 'token-b';
     session.listeners.forEach((listener) => listener());
-    expect(lib.audioLibrary().playlists).toEqual([]);
+    expect(lib.audioLibrary().history).toEqual([]);
   });
 
   it('ignores broken saved data', async () => {
     localStorage.setItem('audio_library:user-token-a', '{"history":[{"nope":1}],"playlists":"x"}');
     const lib = await load();
-    expect(lib.audioLibrary()).toEqual({ history: [], playlists: [] });
+    expect(lib.audioLibrary().history).toEqual([]);
+    expect(lib.localPlaylists()).toEqual([]);
   });
 });

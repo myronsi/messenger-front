@@ -2,6 +2,8 @@ export const ACCOUNT_CLEARED_EVENT = 'messenger:account-cleared';
 
 export const ACCOUNT_STORAGE_KEYS = [
   'messenger.recentEmoji',
+  'messenger.recentReactions',
+  'messenger:wallpapers',
   'chat-import:pending',
   'image_dimensions',
   'avatar-blur-v1',
@@ -13,6 +15,7 @@ export const ACCOUNT_STORAGE_PREFIXES = [
   'messenger.reactionUsage',
   'messenger.doubleTapReaction',
   'messenger:call-identities:',
+  'messenger:client-settings:',
   'messenger:notification-seen:',
   'passkey_offer_dismissed:',
 ];

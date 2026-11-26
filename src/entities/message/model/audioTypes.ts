@@ -11,6 +11,9 @@ export interface AudioTrack {
   artist?: string;
   cover?: string;
   origin?: string;
+  attachmentId?: string;
+  chatId?: EntityId;
+  unavailable?: boolean;
 }
 
 export type RepeatMode = 'off' | 'all' | 'one';

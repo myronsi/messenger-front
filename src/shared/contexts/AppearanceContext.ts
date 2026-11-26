@@ -1,13 +1,15 @@
 import { createContext, useContext } from 'react';
-import type { AppearanceSettings, ThemeChoice } from '@/shared/lib/appearance/settings';
+import type { AppearanceKey, AppearanceSettings, ThemeChoice } from '@/shared/lib/appearance/settings';
 import type { ThemeTone } from '@/shared/lib/appearance/palette';
 
 export interface AppearanceContextValue {
   settings: AppearanceSettings;
   theme: ThemeChoice;
   tone: ThemeTone;
+  deviceOnly: Record<AppearanceKey, boolean>;
   setTheme: (theme: ThemeChoice) => void;
   update: (patch: Partial<AppearanceSettings>) => void;
+  setDeviceOnly: (key: AppearanceKey, enabled: boolean) => void;
   reset: () => void;
 }
 

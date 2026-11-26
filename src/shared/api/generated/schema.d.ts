@@ -419,6 +419,216 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/client-settings": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Appearance and recent emoji shared by all of the caller's devices
+         * @description `appearance` is `null` until a device saved it once. Theme and language are not part of it; they stay on each
+         *     device.
+         */
+        get: operations["getClientSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change some of the synced settings
+         * @description Send only the parts that changed; each part replaces the stored one (last write wins). `version` goes up on
+         *     every change. Sends `client_settings_updated` with the result to all of the caller's sessions.
+         */
+        patch: operations["updateClientSettings"];
+        trace?: never;
+    };
+    "/me/wallpapers": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's chat backgrounds
+         * @description The default background for all chats (`chat_id: null`) and every chat with its own background. A chat
+         *     without an entry uses the default; without a default, clients show their built-in plain background.
+         */
+        get: operations["listWallpapers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/wallpapers/default": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the background for all chats
+         * @description For `media`, upload the image with purpose `chat_wallpaper` first. Sends `wallpaper_updated` to the caller's
+         *     sessions.
+         */
+        put: operations["setDefaultWallpaper"];
+        post?: never;
+        /**
+         * Go back to the built-in background for all chats
+         * @description Chats with their own background keep it. Sends `wallpaper_updated` to the caller's sessions.
+         */
+        delete: operations["deleteDefaultWallpaper"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chat_id}/wallpaper": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the background of one chat
+         * @description Only the caller sees it, unless `for_both` is `true`: in a direct chat with another person this stores the
+         *     same background for both of them (each can change or reset their own copy afterwards), posts the system line
+         *     `chat_wallpaper_set` and sends `wallpaper_updated` to both. `for_both` is refused with `403` in groups and
+         *     Saved Messages, and with `403` `blocked_by_user` when either person blocked the other. For `media`, upload
+         *     the image with purpose `chat_wallpaper` first.
+         */
+        put: operations["setChatWallpaper"];
+        post?: never;
+        /**
+         * Use the default background in this chat again
+         * @description Only the caller's copy is removed. Sends `wallpaper_updated` to the caller's sessions.
+         */
+        delete: operations["deleteChatWallpaper"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/playlists": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's playlists, newest first, without their tracks */
+        get: operations["listPlaylists"];
+        put?: never;
+        /**
+         * Create a playlist
+         * @description At most 100 playlists per user (`409` `limit_reached`). Sends `playlists_updated` to the caller's sessions.
+         */
+        post: operations["createPlaylist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/playlists/{playlist_id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                playlist_id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        /** A playlist with its tracks */
+        get: operations["getPlaylist"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a playlist
+         * @description Sends `playlists_updated` to the caller's sessions.
+         */
+        delete: operations["deletePlaylist"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a playlist
+         * @description Sends `playlists_updated` to the caller's sessions.
+         */
+        patch: operations["renamePlaylist"];
+        trace?: never;
+    };
+    "/me/playlists/{playlist_id}/tracks": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                playlist_id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the tracks of a playlist
+         * @description The full ordered list, so adding, removing and moving tracks are one call. `version` must be the playlist's
+         *     current version; otherwise `409` `conflict` and nothing changes (load the playlist again and reapply the
+         *     change). At most 1000 tracks and each attachment once (`422`). Sends `playlists_updated` to the caller's
+         *     sessions.
+         */
+        put: operations["replacePlaylistTracks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/password": {
         parameters: {
             query?: never;
@@ -5714,6 +5924,146 @@ export interface components {
             colors?: components["schemas"]["BackgroundColor"][];
         };
         /**
+         * @description The look of the app shared by the user's devices. A device may keep its own value for any field ("only on
+         *     this device"); that choice is stored on the device, not here.
+         */
+        AppearanceSettings: {
+            /** @description Name of a client accent color. Clients use their default for a name they do not know. */
+            accent: string;
+            font_size: number;
+            /** @enum {string} */
+            density: "comfortable" | "compact";
+            /** @enum {string} */
+            corners: "sharp" | "default" | "round";
+        };
+        /** @description A Unicode emoji or a custom emoji token, exactly as the client inserts it. */
+        RecentEmoji: string;
+        ClientSettings: {
+            appearance: components["schemas"]["AppearanceSettings"] | null;
+            /** @description Newest first. */
+            recent_emoji: components["schemas"]["RecentEmoji"][];
+            /** @description Newest first. */
+            recent_reactions: components["schemas"]["RecentEmoji"][];
+            /**
+             * Format: int64
+             * @description Goes up on every change; `0` when nothing was saved yet.
+             */
+            version: number;
+            updated_at: components["schemas"]["Timestamp"] | null;
+        };
+        /** @description Only the parts to replace. Duplicates in the lists are dropped, keeping the first. */
+        UpdateClientSettingsRequest: {
+            appearance?: components["schemas"]["AppearanceSettings"];
+            recent_emoji?: components["schemas"]["RecentEmoji"][];
+            recent_reactions?: components["schemas"]["RecentEmoji"][];
+        };
+        /**
+         * @description Dots or a grid drawn over a `color` background.
+         * @enum {string}
+         */
+        WallpaperPattern: "none" | "dots" | "grid";
+        /**
+         * @description `preset` a built-in background of the clients (`preset`), `color` one color or a gradient of two (`colors`,
+         *     optional `pattern`), `media` an uploaded photo (`attachment`) with `blur` in px and `dim` in percent. A `media`
+         *     background without `dim` is dimmed automatically by the client (20 % in a dark theme, none in a light one).
+         */
+        Wallpaper: {
+            kind: components["schemas"]["ProfileBackgroundKind"];
+            preset?: components["schemas"]["BackgroundPreset"];
+            colors?: components["schemas"]["BackgroundColor"][];
+            pattern?: components["schemas"]["WallpaperPattern"];
+            attachment?: components["schemas"]["Attachment"];
+            blur?: number;
+            dim?: number;
+        };
+        /**
+         * @description `preset` needs `preset`; `color` needs `colors` and may have `pattern`; `media` needs `attachment_id` (an
+         *     upload of the caller with purpose `chat_wallpaper`) and may have `blur` (default `0`) and `dim` (absent:
+         *     automatic, see `Wallpaper`). Other fields must be absent (`422` otherwise).
+         */
+        SetWallpaperRequest: {
+            kind: components["schemas"]["ProfileBackgroundKind"];
+            preset?: components["schemas"]["BackgroundPreset"];
+            colors?: components["schemas"]["BackgroundColor"][];
+            pattern?: components["schemas"]["WallpaperPattern"];
+            attachment_id?: components["schemas"]["AttachmentRef"];
+            blur?: number;
+            dim?: number;
+        };
+        SetChatWallpaperRequest: components["schemas"]["SetWallpaperRequest"] & {
+            /**
+             * @description Direct chats with another person only. Also sets it as the other person's background.
+             * @default false
+             */
+            for_both: boolean;
+        };
+        WallpaperEntry: {
+            /** @description The chat, or `null` for the default of all chats. */
+            chat_id: components["schemas"]["Id"] | null;
+            wallpaper: components["schemas"]["Wallpaper"];
+            /** @description Who set it; the other person when they used `for_both`. */
+            set_by: components["schemas"]["Id"];
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        WallpaperList: {
+            items: components["schemas"]["WallpaperEntry"][];
+        };
+        /** @description Trimmed by the server; empty after trimming is `422`. */
+        PlaylistName: string;
+        PlaylistSummary: {
+            id: components["schemas"]["Id"];
+            name: string;
+            track_count: number;
+            /**
+             * Format: int64
+             * @description Goes up on every change of the name or the tracks.
+             */
+            version: number;
+            created_at: components["schemas"]["Timestamp"];
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        PlaylistTrack: {
+            attachment_id: components["schemas"]["AttachmentRef"];
+            /** @description Set only when `available`. */
+            attachment?: components["schemas"]["Attachment"];
+            /**
+             * @description `false` when the caller can no longer open the file (left the chat, the message was deleted). Clients show
+             *     the track greyed out; the server does not serve it.
+             */
+            available: boolean;
+            chat_id?: components["schemas"]["Id"];
+            message_id?: components["schemas"]["Id"];
+            title: string;
+            artist?: string;
+            duration_seconds?: number;
+        };
+        Playlist: components["schemas"]["PlaylistSummary"] & {
+            tracks: components["schemas"]["PlaylistTrack"][];
+        };
+        PlaylistList: {
+            items: components["schemas"]["PlaylistSummary"][];
+        };
+        PlaylistTrackInput: {
+            attachment_id: components["schemas"]["AttachmentRef"];
+            chat_id?: components["schemas"]["Id"];
+            message_id?: components["schemas"]["Id"];
+            title: string;
+            artist?: string;
+            duration_seconds?: number;
+        };
+        CreatePlaylistRequest: {
+            name: components["schemas"]["PlaylistName"];
+            tracks?: components["schemas"]["PlaylistTrackInput"][];
+        };
+        RenamePlaylistRequest: {
+            name: components["schemas"]["PlaylistName"];
+        };
+        ReplacePlaylistTracksRequest: {
+            /** Format: int64 */
+            version: number;
+            tracks: components["schemas"]["PlaylistTrackInput"][];
+        };
+        /**
          * @description `media` needs `attachment_id` (uploaded with purpose `profile_background`), `preset` needs `preset`, `color`
          *     needs `colors`; other fields must be absent (`422` otherwise).
          */
@@ -5769,9 +6119,13 @@ export interface components {
          *     `emoji`: a PNG, JPEG, still WebP or GIF of at most 8 MB. The server scales it into 128 x 128 px (a GIF frame
          *     by frame) and refuses it with `413` when the result is still over 256 KB. Use it with
          *     `POST /emoji/packs/{pack_id}/emoji`.
+         *
+         *     `chat_wallpaper`: a still image (JPEG, PNG, WebP or HEIC) of at most 10 MB; no GIF or video. Use it with
+         *     `PUT /me/wallpapers/default` or `PUT /chats/{chat_id}/wallpaper`. Its uploader can load it, and the other
+         *     person of a direct chat once it was set there for both.
          * @enum {string}
          */
-        UploadPurpose: "message" | "avatar" | "sticker" | "profile_music" | "profile_background" | "emoji";
+        UploadPurpose: "message" | "avatar" | "sticker" | "profile_music" | "profile_background" | "emoji" | "chat_wallpaper";
         UploadAttachmentRequest: {
             /** Format: binary */
             file: string;
@@ -6276,14 +6630,15 @@ export interface components {
             height: number | null;
         };
         /** @enum {string} */
-        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call" | "message_pinned" | "message_unpinned" | "history_imported" | "history_import_ended" | "imported_note" | "group_renamed" | "group_avatar_changed" | "owner_transferred";
+        SystemEventKind: "group_created" | "member_added" | "member_joined" | "member_removed" | "member_left" | "call" | "message_pinned" | "message_unpinned" | "history_imported" | "history_import_ended" | "imported_note" | "group_renamed" | "group_avatar_changed" | "owner_transferred" | "chat_wallpaper_set";
         /**
          * @description What a `system` message records; set on system messages only, whose `content` is then `null`. The names
          *     are the display names at the time of the event. `target` fields are set for `member_added`,
          *     `member_removed` and `owner_transferred` (the new owner; `actor` is the previous one). `call` is set for
          *     `call` messages: one per call, posted when the call ends, `actor` is the initiator. `message_id` and
          *     `snippet` are set for `message_pinned` and `message_unpinned`. `old_name` and `new_name` are set for
-         *     `group_renamed`, `avatar_removed` for `group_avatar_changed`.
+         *     `group_renamed`, `avatar_removed` for `group_avatar_changed`. `chat_wallpaper_set`: `actor` set a background
+         *     for both people of a direct chat.
          *     `history_imported` opens and `history_import_ended` closes an imported history; both carry `import`, and
          *     `actor` is the importer. `imported_note` is a line of the export that is not a message; its text is `text`.
          */
@@ -7224,6 +7579,7 @@ export interface components {
         /** @description Opaque `next_cursor` of the previous page */
         After: components["schemas"]["Cursor"];
         ChatId: components["schemas"]["Id"];
+        PlaylistId: components["schemas"]["Id"];
         MessageId: components["schemas"]["Id"];
         ImportId: components["schemas"]["Id"];
         ImportSenderKey: components["schemas"]["ImportSenderKey"];
@@ -7956,6 +8312,408 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getClientSettings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    updateClientSettings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClientSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Settings after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listWallpapers: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Backgrounds */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WallpaperList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    setDefaultWallpaper: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetWallpaperRequest"];
+            };
+        };
+        responses: {
+            /** @description The stored background */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WallpaperEntry"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteDefaultWallpaper: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    setChatWallpaper: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetChatWallpaperRequest"];
+            };
+        };
+        responses: {
+            /** @description The caller's background of this chat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WallpaperEntry"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deleteChatWallpaper: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                chat_id: components["parameters"]["ChatId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    listPlaylists: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Playlists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaylistList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    createPlaylist: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePlaylistRequest"];
+            };
+        };
+        responses: {
+            /** @description Created playlist */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    getPlaylist: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                playlist_id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Playlist */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    deletePlaylist: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                playlist_id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    renamePlaylist: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                playlist_id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenamePlaylistRequest"];
+            };
+        };
+        responses: {
+            /** @description Renamed playlist */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaylistSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            426: components["responses"]["ClientOutdated"];
+        };
+    };
+    replacePlaylistTracks: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Version of the client app, for logs and the per-client metric. */
+                "X-Client-Version"?: components["parameters"]["ClientVersion"];
+                /** @description Contract version the client was built with (`API_VERSION` of `@myronsi/messenger-api`). A different MAJOR or a version below `min_client_api_version` is answered with `426`; a malformed value with `400` (`invalid_client_version`). */
+                "X-Client-Api-Version"?: components["parameters"]["ClientApiVersion"];
+            };
+            path: {
+                playlist_id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplacePlaylistTracksRequest"];
+            };
+        };
+        responses: {
+            /** @description Playlist after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
             426: components["responses"]["ClientOutdated"];
         };
     };

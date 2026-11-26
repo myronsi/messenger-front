@@ -69,6 +69,7 @@ export const systemEventText =(event: SystemEventInfo, translations: Translation
     case 'owner_transferred':
       if (actorIsMe) return fill(group.ownerTransferredYou);
       return fill(targetIsMe ? group.ownerTransferredToYou : group.ownerTransferred);
+    case 'chat_wallpaper_set': return fill(actorIsMe ? translations.appearance.wallpaper.systemSetYou : translations.appearance.wallpaper.systemSet);
     default: return '';
   }
 };

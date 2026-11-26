@@ -1,62 +1,61 @@
 import { onAccountCleared } from '@/shared/auth/accountStorage';
 import { useMemo, useSyncExternalStore } from 'react';
 import type { EntityId } from '@/shared/api/entityId';
+import {
+  LIST_DEBOUNCE_MS, RECENT_REACTIONS_KEY, RECENT_REACTIONS_MAX, getClientSettings, reloadClientSettingsCache, subscribeClientSettings,
+  updateClientSettings,
+} from '@/shared/lib/clientSettings/clientSettingsStore';
 
-const KEY = 'messenger.reactionUsage';
-const KEEP = 30;
+const LEGACY_KEY = 'messenger.reactionUsage';
 export const QUICK_REACTION_COUNT = 6;
 export const DEFAULT_QUICK_REACTIONS = ['❤️', '👍', '😂', '🥰', '😢', '😠'];
 export const DOUBLE_TAP_REACTION = '❤️';
 
-export type ReactionUsage = Record<string, { count: number; last: number }>;
-
-const EMPTY: ReactionUsage = {};
-const cache = new Map<string, ReactionUsage>();
 const listeners = new Set<() => void>();
-const storageKey = (userId: EntityId) => `${KEY}.${String(userId)}`;
+const readRecent = () => getClientSettings().recentReactions;
 
 const isEntry = (value: unknown): value is { count: number; last: number } => !!value && typeof value === 'object'
   && typeof (value as { count?: unknown }).count === 'number' && typeof (value as { last?: unknown }).last === 'number';
 
-export const readReactionUsage = (userId: EntityId): ReactionUsage => {
-  const key = storageKey(userId);
-  const cached = cache.get(key);
-  if (cached) return cached;
-  let usage: ReactionUsage = EMPTY;
+export const legacyRecentReactions = (raw: string | null): string[] => {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(key) || '{}');
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      usage = Object.fromEntries(Object.entries(parsed).filter(([, value]) => isEntry(value))) as ReactionUsage;
-    }
+    const parsed: unknown = JSON.parse(raw || '{}');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+    return Object.entries(parsed)
+      .filter((entry): entry is [string, { count: number; last: number }] => isEntry(entry[1]))
+      .sort(([, a], [, b]) => b.last - a.last)
+      .map(([reaction]) => reaction)
+      .slice(0, RECENT_REACTIONS_MAX);
   } catch {
-    usage = EMPTY;
+    return [];
   }
-  cache.set(key, usage);
-  return usage;
 };
 
-const ranked = (usage: ReactionUsage) => Object.entries(usage)
-  .sort(([, a], [, b]) => b.count - a.count || b.last - a.last)
-  .map(([reaction]) => reaction);
-
-export const recordReaction = (userId: EntityId, reaction: string, now = Date.now()) => {
-  const current = readReactionUsage(userId);
-  const entry = current[reaction];
-  const next = { ...current, [reaction]: { count: (entry?.count ?? 0) + 1, last: now } };
-  const kept: ReactionUsage = Object.fromEntries(ranked(next).slice(0, KEEP).map((key) => [key, next[key]]));
-  cache.set(storageKey(userId), kept);
+export const adoptLegacyReactionUsage = (userId: EntityId) => {
+  const key = `${LEGACY_KEY}.${String(userId)}`;
   try {
-    localStorage.setItem(storageKey(userId), JSON.stringify(kept));
+    const raw = localStorage.getItem(key);
+    if (raw === null) return;
+    localStorage.removeItem(key);
+    const legacy = legacyRecentReactions(raw);
+    if (!legacy.length || readRecent().length) return;
+    localStorage.setItem(RECENT_REACTIONS_KEY, JSON.stringify(legacy));
+    reloadClientSettingsCache(RECENT_REACTIONS_KEY);
   } catch {
-    cache.set(storageKey(userId), { ...kept });
+    return;
   }
-  listeners.forEach((listener) => listener());
 };
 
-export const resetReactionUsage = () => cache.clear();
+export const recordReaction = (_userId: EntityId, reaction: string) => {
+  const current = readRecent();
+  if (current[0] === reaction) return;
+  updateClientSettings({ recentReactions: [reaction, ...current.filter((item) => item !== reaction)].slice(0, RECENT_REACTIONS_MAX) }, LIST_DEBOUNCE_MS);
+};
 
-export const quickReactions = (usage: ReactionUsage, count = QUICK_REACTION_COUNT) => (
-  [...new Set([...ranked(usage), ...DEFAULT_QUICK_REACTIONS])].slice(0, count)
+export const resetReactionUsage = () => reloadClientSettingsCache(RECENT_REACTIONS_KEY);
+
+export const quickReactions = (recent: readonly string[], count = QUICK_REACTION_COUNT) => (
+  [...new Set([...recent, ...DEFAULT_QUICK_REACTIONS])].slice(0, count)
 );
 
 const subscribe = (listener: () => void) => {
@@ -64,9 +63,9 @@ const subscribe = (listener: () => void) => {
   return () => { listeners.delete(listener); };
 };
 
-export const useQuickReactions = (userId: EntityId) => {
-  const usage = useSyncExternalStore(subscribe, () => readReactionUsage(userId), () => readReactionUsage(userId));
-  return useMemo(() => quickReactions(usage), [usage]);
+export const useQuickReactions = (_userId?: EntityId | null) => {
+  const recent = useSyncExternalStore(subscribeClientSettings, readRecent, readRecent);
+  return useMemo(() => quickReactions(recent), [recent]);
 };
 
 const DOUBLE_TAP_KEY = 'messenger.doubleTapReaction';
@@ -105,6 +104,5 @@ export const useDoubleTapReaction = (userId?: EntityId | null) => useSyncExterna
 );
 
 onAccountCleared(() => {
-  resetReactionUsage();
   resetDoubleTapReaction();
 });

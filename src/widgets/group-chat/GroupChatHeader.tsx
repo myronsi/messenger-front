@@ -1,14 +1,16 @@
 import React from 'react';
-import { ArrowLeft, MoreVertical, Search } from 'lucide-react';
+import { ArrowLeft, Image, MoreVertical, Search } from 'lucide-react';
 import { EmojiText } from '@/shared/ui/CustomEmoji';
 import { plainEmoji } from '@/shared/lib/customEmoji';
 import { AuthenticatedImage } from '@/shared/ui/AuthenticatedImage';
 import { useLongPress } from '@/shared/lib/useLongPress';
 import type { GroupTranslations } from './groupChatTypes';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { useGetGroupDetailsQuery } from '@/entities/chat';
 import { ImportConfirmBanner, useChatImportMenu } from '@/features/chat-import';
+import { useChatWallpaperAction } from '@/features/chat-wallpaper';
+import { isGoApi } from '@/shared/api/goSocket';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
 import { AudioPlayerBar } from '@/features/audio-player';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -36,6 +38,8 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
   const role = details?.current_user_role;
   const importChat = { chatId: persisted ?? '', name, isGroup: true };
   const imports = useChatImportMenu({ chat: importChat, canImport: role === 'owner' || role === 'admin', canRemoveAll: role === 'owner' });
+  const wallpaper = useChatWallpaperAction();
+  const wallpaperChat = isGoApi() ? persisted : undefined;
   return (
     <>
       <div data-testid="chat-header" {...longPress.handlers}
@@ -72,15 +76,22 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
               <Search className="h-5 w-5" />
             </button>
           )}
-          {imports.items && (
+          {(imports.items || wallpaperChat !== undefined) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" aria-label={appTranslations.chatImport.info.title} title={appTranslations.chatImport.info.title}
+                <button type="button" aria-label={appTranslations.profileRework.more} title={appTranslations.profileRework.more}
                   className="motion-press flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent">
                   <MoreVertical className="h-5 w-5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">{imports.items}</DropdownMenuContent>
+              <DropdownMenuContent align="end">
+                {wallpaperChat !== undefined && (
+                  <DropdownMenuItem onSelect={() => wallpaper.open({ chatId: String(wallpaperChat), direct: false })}>
+                    <Image className="mr-2 h-4 w-4" />{appTranslations.appearance.wallpaper.menuItem}
+                  </DropdownMenuItem>
+                )}
+                {imports.items}
+              </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
@@ -88,6 +99,7 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
       <AudioPlayerBar />
       <OngoingCallBanner chatId={chatId} />
       {imports.dialogs}
+      {wallpaper.dialog}
       {persisted !== undefined && <ImportConfirmBanner chat={{ ...importChat, chatId: persisted }} />}
     </>
   );
