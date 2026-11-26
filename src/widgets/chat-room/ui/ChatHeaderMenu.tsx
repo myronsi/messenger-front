@@ -7,6 +7,7 @@ import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
 import { openPinnedPanel, pinsEnabled } from '@/features/message-pins';
 import { useChatImportMenu } from '@/features/chat-import';
 import { useChatWallpaperAction } from '@/features/chat-wallpaper';
+import { isGoApi } from '@/shared/api/goSocket';
 
 interface ChatHeaderMenuProps {
   userId: EntityId;
@@ -43,9 +44,11 @@ export const ChatHeaderMenu = ({ userId, username, name, chatId, onChatDeleted }
                 </DropdownMenuItem>
               )}
               {imports.items}
-              <DropdownMenuItem onSelect={() => wallpaper.open({ chatId: String(chatId), peerName: name, direct: true, blocked })}>
-                <Image className="mr-2 h-4 w-4" />{translations.appearance.wallpaper.menuItem}
-              </DropdownMenuItem>
+              {isGoApi() && (
+                <DropdownMenuItem onSelect={() => wallpaper.open({ chatId: String(chatId), peerName: name, direct: true, blocked })}>
+                  <Image className="mr-2 h-4 w-4" />{translations.appearance.wallpaper.menuItem}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={() => actions.openClear(target)}>
                 <Eraser className="mr-2 h-4 w-4" />{translations.chatCleanup.clearHistory}
               </DropdownMenuItem>

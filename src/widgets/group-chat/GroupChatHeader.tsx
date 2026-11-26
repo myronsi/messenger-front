@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useGetGroupDetailsQuery } from '@/entities/chat';
 import { ImportConfirmBanner, useChatImportMenu } from '@/features/chat-import';
 import { useChatWallpaperAction } from '@/features/chat-wallpaper';
+import { isGoApi } from '@/shared/api/goSocket';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
 import { AudioPlayerBar } from '@/features/audio-player';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -38,6 +39,7 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
   const importChat = { chatId: persisted ?? '', name, isGroup: true };
   const imports = useChatImportMenu({ chat: importChat, canImport: role === 'owner' || role === 'admin', canRemoveAll: role === 'owner' });
   const wallpaper = useChatWallpaperAction();
+  const wallpaperChat = isGoApi() ? persisted : undefined;
   return (
     <>
       <div data-testid="chat-header" {...longPress.handlers}
@@ -74,7 +76,7 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
               <Search className="h-5 w-5" />
             </button>
           )}
-          {(imports.items || persisted !== undefined) && (
+          {(imports.items || wallpaperChat !== undefined) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button" aria-label={appTranslations.profileRework.more} title={appTranslations.profileRework.more}
@@ -83,8 +85,8 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {persisted !== undefined && (
-                  <DropdownMenuItem onSelect={() => wallpaper.open({ chatId: String(persisted), direct: false })}>
+                {wallpaperChat !== undefined && (
+                  <DropdownMenuItem onSelect={() => wallpaper.open({ chatId: String(wallpaperChat), direct: false })}>
                     <Image className="mr-2 h-4 w-4" />{appTranslations.appearance.wallpaper.menuItem}
                   </DropdownMenuItem>
                 )}

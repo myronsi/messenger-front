@@ -103,7 +103,7 @@ it('offers pinned messages, clear history, delete chat, block and report in the 
   render(<ChatHeader chatId="77" chatName="eve" chatDisplayName="Eve" interlocutorDeleted={false} onBack={vi.fn()} onChatDeleted={vi.fn()}
     onOpenProfile={vi.fn()} interlocutorAvatar="/e.png" />);
   openMenu();
-  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Pinned messages', 'Clear history', 'Delete chat', 'Block', 'Report']);
+  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Pinned messages', 'Chat background', 'Clear history', 'Delete chat', 'Block', 'Report']);
   const target = expect.objectContaining({ chatId: '77', username: 'eve', name: 'Eve', userId: '42' });
   fireEvent.click(screen.getByRole('menuitem', { name: 'Clear history' }));
   expect(actions.openClear).toHaveBeenCalledWith(target);

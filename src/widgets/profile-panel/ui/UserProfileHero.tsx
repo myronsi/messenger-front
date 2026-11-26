@@ -14,6 +14,7 @@ import { useChatActions, type ChatActionTarget } from '@/features/chat-cleanup';
 import { ReportUserDialog, RestrictedAccountLabel } from '@/features/moderation';
 import { publicNameLink, ShareLinkDialog } from '@/features/sharing';
 import { useChatWallpaperAction } from '@/features/chat-wallpaper';
+import { isGoApi } from '@/shared/api/goSocket';
 import { ContactNameHeading } from './ContactNameHeading';
 import type { ProfilePanelView } from './UserProfilePanelContent';
 import type { ProfileBackground } from '@/entities/user';
@@ -79,13 +80,13 @@ const UserProfileHero: React.FC<UserProfileHeroProps> = (props) => {
       { key: 'mute', label: t.mute, primary: !props.canMessage, render: (className: string) => <ChatMuteAction chatId={props.directChatId!} className={className} /> },
     ] : []),
   ];
-  const wallpaperItem: ProfileMenuItem[] = hasChat ? [{
+  const wallpaperItem: ProfileMenuItem[] = hasChat && isGoApi() ? [{
     key: 'wallpaper', label: translations.appearance.wallpaper.menuItem, icon: <Image className="h-4 w-4" />,
     onSelect: () => wallpaper.open({
-      chatId: String(props.directChatId), peerName: props.displayName, direct: !props.isCurrentUser, blocked: props.isBlocked,
+      chatId: String(props.directChatId), peerName: props.displayName, direct: true, blocked: props.isBlocked,
     }),
   }] : [];
-  const menu: ProfileMenuItem[] = props.isCurrentUser ? wallpaperItem : [
+  const menu: ProfileMenuItem[] = props.isCurrentUser ? [] : [
     { key: 'share', label: translations.sharing.shareProfile, icon: <Share2 className="h-4 w-4" />, onSelect: () => setShareOpen(true) },
     { key: 'rename', label: t.rename, icon: <Pencil className="h-4 w-4" />, onSelect: props.onEditContactName },
     ...wallpaperItem,
