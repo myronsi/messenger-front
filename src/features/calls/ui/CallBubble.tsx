@@ -8,6 +8,8 @@ import { EmojiText } from '@/shared/ui/CustomEmoji';
 import { BUBBLE_RADIUS, bubbleBox, callViewStore, cornerPosition, maximizeCall, nearestCorner, placeCallBubble, type CallCorner } from '../model/callView';
 import { useStore } from '../model/createStore';
 import type { CallSession } from '../model/stores';
+import type { VideoFeed } from '../model/videoStore';
+import VideoView from './VideoView';
 import { useCallAvatar, useCallTitle } from './callHooks';
 import { useCallStatus } from './useCallStatus';
 
@@ -15,6 +17,7 @@ interface CallBubbleProps {
   call: Call | null;
   session: CallSession;
   userId: string | null;
+  video?: VideoFeed | null;
 }
 
 interface DragStart {
@@ -57,7 +60,7 @@ const useViewport = () => {
   return viewport;
 };
 
-const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
+const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId, video = null }) => {
   const { translations } = useLanguage();
   const { corner } = useStore(callViewStore);
   const viewport = useViewport();
@@ -102,7 +105,8 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
       title={label}
       data-corner={corner}
       className={cn(
-        'pointer-events-auto fixed z-[1040] flex touch-none select-none flex-col items-center justify-center gap-1 border-2 bg-card px-2 shadow-2xl',
+        'pointer-events-auto fixed z-[1040] flex touch-none select-none flex-col items-center gap-1 overflow-hidden border-2 bg-card px-2 shadow-2xl',
+        video ? 'justify-end pb-2' : 'justify-center',
         'animate-in fade-in-0 zoom-in-75 duration-200',
         'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary',
         session.phase === 'rejoin' ? 'border-destructive' : session.phase === 'connected' ? 'border-success' : 'border-warning',
@@ -146,10 +150,19 @@ const CallBubble: React.FC<CallBubbleProps> = ({ call, session, userId }) => {
         maximizeCall();
       }}
     >
-      <AuthenticatedImage src={avatar} initialsFrom={name} alt="" draggable={false}
-        className="pointer-events-none h-12 w-12 shrink-0 rounded-full object-cover" />
-      <span aria-hidden="true" className="pointer-events-none max-w-full truncate text-xs font-semibold"><EmojiText text={name} /></span>
-      <span aria-hidden="true" className={cn('pointer-events-none max-w-full truncate text-xs tabular-nums', statusColor)}>{status}</span>
+      {video ? (
+        <span aria-hidden="true" data-bubble-video="" className="pointer-events-none absolute inset-0">
+          <VideoView feed={video} />
+          <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
+        </span>
+      ) : (
+        <AuthenticatedImage src={avatar} initialsFrom={name} alt="" draggable={false}
+          className="pointer-events-none h-12 w-12 shrink-0 rounded-full object-cover" />
+      )}
+      <span aria-hidden="true" className={cn('pointer-events-none relative max-w-full truncate text-xs font-semibold', video && 'text-white')}>
+        <EmojiText text={name} />
+      </span>
+      <span aria-hidden="true" className={cn('pointer-events-none relative max-w-full truncate text-xs tabular-nums', statusColor)}>{status}</span>
       {session.muted && (
         <span aria-hidden="true" className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground">
           <MicOff className="h-3 w-3" />

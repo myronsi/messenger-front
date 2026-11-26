@@ -24,7 +24,7 @@ const tones: Record<Tone, string> = {
 const CallControl: React.FC<CallControlProps> = ({ icon: Icon, label, ariaLabel, tone = 'default', pressed, hasPopup, onClick }) => (
   <button type="button" aria-label={ariaLabel} title={ariaLabel ?? label} aria-pressed={pressed} aria-haspopup={hasPopup ? 'dialog' : undefined}
     onClick={onClick}
-    className="group flex w-[4.5rem] flex-col items-center gap-2 rounded-2xl text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    className="group flex w-16 shrink-0 flex-col items-center gap-2 rounded-2xl sm:w-[4.5rem] text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
     <span className={cn('flex h-14 w-14 items-center justify-center rounded-full transition-colors sm:h-16 sm:w-16', tones[tone])}>
       <Icon className="h-6 w-6" aria-hidden="true" />
     </span>

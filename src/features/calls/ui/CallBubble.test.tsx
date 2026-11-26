@@ -92,4 +92,16 @@ describe('CallBubble', () => {
     render(<CallBubble call={call} session={{ ...session, muted: false, keyChanges: ['2'] }} userId="1" />);
     expect(bubble()).toHaveAccessibleName('Bob · 1:05 · Security warning · Show call');
   });
+
+  it('shows the given video instead of the avatar', () => {
+    const attach = vi.fn((element: HTMLMediaElement) => element);
+    const video = {
+      id: '2:s-2/TR', identity: '2:s-2', source: 'camera' as const, local: false, muted: false, mirrored: false, handle: { attach, detach: vi.fn() },
+    };
+    render(<CallBubble call={call} session={session} userId="1" video={video} />);
+    const shown = bubble().querySelector('video');
+    expect(shown).not.toBeNull();
+    expect(attach).toHaveBeenCalledWith(shown);
+    expect(bubble()).toHaveAccessibleName('Bob · 1:05 · Muted · Show call');
+  });
 });
