@@ -117,7 +117,8 @@ test('three users talk in an encrypted group call, keys rotate when someone leav
     expect(codeC2).toBe(codeA2);
     report('levels after rejoin', { A: await hearsEveryone(a.page, 2), B: await hearsEveryone(b.page, 2), C: await hearsEveryone(c.page, 2) });
 
-    await callPanel(a.page).getByRole('button', { name: 'End for everyone' }).click();
+    await callPanel(a.page).getByRole('button', { name: 'More' }).click();
+    await a.page.getByRole('button', { name: 'End for everyone' }).click();
     for (const member of [a, b, c]) await expect(callPanel(member.page)).toBeHidden({ timeout: 15_000 });
     await expect.poll(async () => (await getCall(a.page, callId)).state).toBe('ended');
     report('ended', { end_reason: (await getCall(a.page, callId)).end_reason });

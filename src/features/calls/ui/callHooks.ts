@@ -6,6 +6,7 @@ import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from '@/shared/base/ui';
 import { resolveMediaUrl } from '@/shared/lib/resolveMediaUrl';
 import { getTokenSession, getTokenSubject } from '@/shared/auth/tokenClaims';
 import type { Translations } from '@/shared/contexts/LanguageContext';
+import { useLanguage } from '@/shared/contexts/LanguageContext';
 import type { Call } from '../api/callsApi';
 import { useStore } from '../model/createStore';
 import { callsStore, sessionStore, type CallNotice } from '../model/stores';
@@ -65,7 +66,25 @@ export const noticeText = (translations: Translations, notice: CallNotice) => ({
   removed: translations.callRemoved,
   moved: translations.callMovedAway,
   'rate-limited': translations.callRateLimited,
+  'camera-denied': translations.callCameraDenied,
+  'camera-missing': translations.callCameraMissing,
+  'camera-in-use': translations.callCameraInUse,
+  'camera-failed': translations.callCameraFailed,
+  'share-denied': translations.callShareDenied,
+  'share-failed': translations.callShareFailed,
 })[notice];
+
+export const useUserAvatar = (userId?: string | null) => {
+  const { data } = useGetUserByIdQuery(userId ?? '', { skip: !userId });
+  return resolveMediaUrl(data?.avatar_url, DEFAULT_AVATAR);
+};
+
+export const useTileName = (tile: { userId: string; self: boolean; kind: 'person' | 'screen' }) => {
+  const { translations } = useLanguage();
+  const userName = useUserName(tile.userId);
+  const person = tile.self ? translations.callYou : userName || '…';
+  return { person, name: tile.kind === 'screen' ? translations.callScreenOf.replace('{name}', person) : person };
+};
 
 export const useCallAvatar = (call: Call | null | undefined, userId: string | null) => {
   const peerId = call && call.kind === 'direct' ? peerOf(call, userId) : null;

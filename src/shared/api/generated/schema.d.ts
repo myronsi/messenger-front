@@ -4795,9 +4795,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Whether audio calls are available and their limits
+         * Whether calls are available and their limits
          * @description `enabled` is `false` when the server has no media service configured or calls are switched off; clients then
-         *     hide every call control. Clients must also check that the browser supports call encryption before offering
+         *     hide every call control. `video_enabled` and `screen_share_enabled` say whether the camera and screen sharing
+         *     controls are offered; the media grant allows only the sources that are switched on. Clients must also check that the browser supports call encryption before offering
          *     calls.
          */
         get: operations["getCallConfig"];
@@ -5745,7 +5746,10 @@ export interface components {
         /** @enum {string} */
         AttachmentKind: "image" | "audio" | "voice" | "video" | "file";
         /**
-         * @description `sticker`: a PNG, JPEG or still WebP of at most 5 MB. The server fits it into 512 x 512 px with a transparent
+         * @description `message`: an animated WebP keeps its frames (at most 300); the server removes its metadata and checks every
+         *     frame. `avatar` and `profile_background` take only still WebP (`415` otherwise).
+         *
+         *     `sticker`: a PNG, JPEG or still WebP of at most 5 MB. The server fits it into 512 x 512 px with a transparent
          *     border and stores a WebP (`413` when that is still over 512 KB). Only its uploader can load it until it is
          *     added to a pack.
          *
@@ -6948,6 +6952,17 @@ export interface components {
         };
         CallConfig: {
             enabled: boolean;
+            /**
+             * @description Participants may publish their camera. Always `false` while `enabled` is `false`. Clients treat a missing
+             *     field (older servers) as `false`.
+             */
+            video_enabled: boolean;
+            /**
+             * @description Participants may share their screen, with its sound where the browser offers it. Several participants may
+             *     share at the same time. Always `false` while `enabled` is `false`. Clients treat a missing field as
+             *     `false`.
+             */
+            screen_share_enabled: boolean;
             /** @description Most sessions joined to one call at the same time. */
             max_participants: number;
             /** @description How long an invitation rings before it counts as missed. */

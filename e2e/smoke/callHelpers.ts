@@ -35,8 +35,8 @@ export interface TrackedContext {
 
 const apiUrl = () => process.env.E2E_API_URL!;
 
-export const callContext = async (browser: Browser, label: string): Promise<TrackedContext> => {
-  const context = await browser.newContext({ permissions: ['microphone'] });
+export const callContext = async (browser: Browser, label: string, permissions = ['microphone']): Promise<TrackedContext> => {
+  const context = await browser.newContext({ permissions });
   trackAccessTokens(context);
   await context.addInitScript(() => {
     window.localStorage.setItem('language', 'en');
@@ -135,19 +135,24 @@ export const currentCallId = async (page: Page) => {
 
 export const callPanel = (page: Page) => page.getByRole('region', { name: 'Audio call' });
 
-export const securityCode = async (page: Page) => {
-  const panel = callPanel(page);
-  const show = panel.getByRole('button', { name: 'Show security code' });
-  if (await show.isVisible()) await show.click();
-  const code = panel.getByTestId('call-security-code');
-  await expect(code).toHaveText(/^(\d{5}){6}$/);
-  return (await code.textContent()) ?? '';
+const readCode = async (page: Page, check: (code: ReturnType<Page['getByTestId']>) => Promise<void>) => {
+  const code = page.getByTestId('call-security-code');
+  await callPanel(page).getByRole('button', { name: 'More' }).click();
+  try {
+    await check(code);
+    return (await code.textContent()) ?? '';
+  } finally {
+    await page.keyboard.press('Escape');
+    await expect(code).toBeHidden();
+  }
 };
 
-export const waitForCodeChange = async (page: Page, previous: string) => {
-  await expect(callPanel(page).getByTestId('call-security-code')).not.toHaveText(previous, { timeout: 20_000 });
-  return securityCode(page);
-};
+export const securityCode = (page: Page) => readCode(page, (code) => expect(code).toHaveText(/^(\d{5}){6}$/));
+
+export const waitForCodeChange = (page: Page, previous: string) => readCode(page, async (code) => {
+  await expect(code).toHaveText(/^(\d{5}){6}$/);
+  await expect(code).not.toHaveText(previous, { timeout: 20_000 });
+});
 
 export const remoteAudioLevels = (page: Page, windowMs = 2_500) => page.evaluate(async (duration) => {
   const elements = Array.from(document.querySelectorAll<HTMLAudioElement>('[data-call-audio] audio'));
