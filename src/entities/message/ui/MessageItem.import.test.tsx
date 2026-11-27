@@ -13,9 +13,10 @@ const imported = (state: NonNullable<Message['import']>['sender_state'], fields:
   import: { import_id: '9', source: 'whatsapp', original_at: '2019-03-12T14:05:00Z', sender_name: 'Bob K.', sender_state: state }, ...fields,
 });
 
-const show = (message: Message, isGroup = false) => render(
+const show = (message: Message, isGroup = false, showImportedName = false) => render(
   <MessageItem
-    message={message} prevMessage={null} nextMessage={null} replyMessage={undefined} userId="1" isGroup={isGroup} isImage={false} isMobile={false}
+    message={message} prevMessage={null} nextMessage={null} replyMessage={undefined} userId="1" isGroup={isGroup} showImportedName={showImportedName}
+    isImage={false} isMobile={false}
     showNewMessagesMarker={false} nextShowsNewMessagesMarker={false} translations={en} interlocutorDeleted={false} isHighlighted={false}
     isContextHighlighted={false} messageRefs={{ current: {} }} firstUnreadMarkerRef={{ current: null }} getFormattedDateLabel={() => '12 Mar 2019'}
     getMessageTime={() => '14:05'} isOwnMessage={(item) => item.sender_id === '1'} getFileTypeConfig={() => undefined}
@@ -44,6 +45,27 @@ describe('MessageItem with imported messages', () => {
     expect(screen.queryByTestId('imported-sender')).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Bob Kramer' })).toHaveLength(2);
     expect(screen.getByRole('img', { name: 'Bob Kramer' })).toBeInTheDocument();
+  });
+
+  it('names the importer in a direct chat while the import still has unconfirmed senders', () => {
+    show(imported('me', { sender: 'Anna Berg', sender_id: '2', sender_username: 'anna' }), false, true);
+    expect(screen.getByRole('button', { name: 'Anna Berg' })).toBeInTheDocument();
+    expect(screen.queryByTestId('imported-sender')).not.toBeInTheDocument();
+  });
+
+  it('names a confirmed sender in a direct chat while the import still has unconfirmed senders', () => {
+    show(imported('confirmed', { sender: 'Bob Kramer', sender_id: '2', sender_username: 'bob' }), false, true);
+    expect(screen.getByRole('button', { name: 'Bob Kramer' })).toBeInTheDocument();
+  });
+
+  it('names nobody on imported messages in a direct chat once every sender is confirmed', () => {
+    show(imported('me', { sender: 'Anna Berg', sender_id: '2', sender_username: 'anna' }));
+    expect(screen.queryByRole('button', { name: 'Anna Berg' })).not.toBeInTheDocument();
+  });
+
+  it('never names my own imported messages', () => {
+    show(imported('me', { sender: 'Me', sender_id: '1', sender_username: 'me' }), false, true);
+    expect(screen.queryByRole('button', { name: 'Me' })).not.toBeInTheDocument();
   });
 
   it('tells where and when an imported message was sent', () => {
