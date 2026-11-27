@@ -3,6 +3,7 @@ import { getApiBaseUrl } from '@/shared/api/config';
 import type { components } from '@/shared/api/generated/schema';
 import { contractQuery } from '@/shared/api/queryResult';
 import { UploadError, uploadWithProgress } from '@/shared/api/uploadWithProgress';
+import { tgsToGif } from '../lib/tgsToGif';
 import { extensionOf } from '../parsers/common';
 import type { StickerCalls } from '../model/importStickers';
 import { errorStatus } from '../model/importErrors';
@@ -13,10 +14,13 @@ const refused = (status: unknown) => typeof status === 'number' && REFUSED.has(s
 
 export const importStickerCalls: StickerCalls = {
   upload: async (file, attachment, signal) => {
+    const extension = extensionOf(attachment.path);
+    const source = extension === 'tgs' ? await tgsToGif(file) : file;
+    if (!source) return null;
     const form = new FormData();
-    form.set('file', file, attachment.name);
+    form.set('file', source, extension === 'tgs' ? 'sticker.gif' : attachment.name);
     form.set('purpose', 'sticker');
-    form.set('kind', extensionOf(attachment.name) === 'webm' ? 'video' : 'image');
+    form.set('kind', extension === 'webm' ? 'video' : 'image');
     try {
       const url = `${String(getApiBaseUrl()).replace(/\/$/, '')}/attachments`;
       return (await uploadWithProgress<components['schemas']['Attachment']>({ url, formData: form, signal })).id;

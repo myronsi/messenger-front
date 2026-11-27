@@ -1,7 +1,9 @@
 import type { DateOrder, ParsedChat, ParsedMessage } from '../model/types';
 import { ImportParseError } from '../model/types';
-import { baseName, buildChat, cleanName, kindFromName, stripInvisible } from './common';
+import { baseName, buildChat, cleanName, extensionOf, kindFromName, stripInvisible } from './common';
+import { maskPhone } from './normalize';
 import { guessDateOrder, lineDate, scanLines, type RawLine } from './whatsappLines';
+import { browserTimeZone } from './zonedTime';
 import {
   ANDROID_ATTACHMENT, DELETED, EDITED_SUFFIX, ENCRYPTION_NOTICE, ENCRYPTION_START, IOS_ATTACHMENT, LOCATION, POLL, omittedKind, titleFromFileName,
 } from './whatsappPatterns';
@@ -13,16 +15,25 @@ export interface WhatsAppOptions {
   hasFile: HasFile;
   localeOrder: DateOrder;
   order?: DateOrder;
+  timeZone?: string;
 }
 
 type Body = Omit<ParsedMessage, 'index' | 'originalAt' | 'senderKey'> | null;
 
 const systemBody = (text: string): Body => (ENCRYPTION_NOTICE.test(text) || !text ? null : { text: '', notice: { code: 'service', detail: text } });
 
+const ANDROID_AUDIO_FILE = /^AUD-/i;
+
+const whatsAppKind = (fileName: string) => {
+  const kind = kindFromName(fileName);
+  return kind === 'voice' && ANDROID_AUDIO_FILE.test(fileName) ? 'audio' : kind;
+};
+
 const attachmentBody = (name: string, caption: string, hasFile: HasFile): Body => {
   const fileName = baseName(name.trim());
+  if (extensionOf(fileName) === 'vcf') return { text: caption, notice: { code: 'contact', detail: maskPhone(fileName.slice(0, -4).trim() || fileName) } };
   if (!hasFile(fileName)) return { text: caption, notice: { code: 'fileMissing', detail: fileName } };
-  return { text: caption, attachment: { path: fileName, name: fileName, kind: kindFromName(fileName) } };
+  return { text: caption, attachment: { path: fileName, name: fileName, kind: whatsAppKind(fileName) } };
 };
 
 const messageBody = (raw: string, hasFile: HasFile): Body => {
@@ -62,9 +73,10 @@ export const parseWhatsApp = (content: string, options: WhatsAppOptions): Parsed
   if (lines.length === 0) throw new ImportParseError('unknownFormat');
   const guess = guessDateOrder(lines, options.localeOrder);
   const order = options.order ?? guess.order;
+  const timeZone = options.timeZone ?? browserTimeZone();
   const messages: ParsedMessage[] = [];
   for (const line of lines) {
-    const originalAt = lineDate(line, order);
+    const originalAt = lineDate(line, order, timeZone);
     const body = originalAt ? bodyOf(line, options.hasFile) : null;
     if (!originalAt || !body) continue;
     const isSystem = !line.sender || (body.notice?.code === 'service');
@@ -72,7 +84,7 @@ export const parseWhatsApp = (content: string, options: WhatsAppOptions): Parsed
     messages.push({ index: messages.length, senderKey: senderKey || null, originalAt, ...body });
   }
   const chat = buildChat({ source: 'whatsapp', title: 'WhatsApp', messages });
-  return { ...chat, title: pickTitle(options.fileNames, chat.senders), dateOrder: order, dateOrderCertain: guess.certain };
+  return { ...chat, title: pickTitle(options.fileNames, chat.senders), dateOrder: order, dateOrderCertain: guess.certain, timeZone };
 };
 
 export const isWhatsAppText = (content: string) => scanLines(content.slice(0, 4096)).length > 0;

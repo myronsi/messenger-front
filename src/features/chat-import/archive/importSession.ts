@@ -12,7 +12,7 @@ export interface OpenOptions {
 
 export interface ImportSession {
   chat: ParsedChat;
-  reparse: (order: DateOrder) => ParsedChat;
+  reparse: (order: DateOrder, timeZone?: string) => ParsedChat;
   file: (path: string) => Promise<File>;
 }
 
@@ -78,11 +78,12 @@ export const openImportSession = async (files: readonly File[], options: OpenOpt
   if (!textPath) throw new ImportParseError('noChatFile');
   const content = await textOf(archive, textPath);
   const resolve = pathResolver(archive.paths, dirName(textPath));
-  const parse = (order?: DateOrder) => withResolvedPaths(parseWhatsApp(content, {
+  const parse = (order?: DateOrder, timeZone?: string) => withResolvedPaths(parseWhatsApp(content, {
     fileNames: [baseName(textPath), ...names, ...files.map((item) => item.name)],
     hasFile: (name) => resolve(name) !== null,
     localeOrder: options.localeOrder,
     order,
+    timeZone,
   }), resolve, archive);
   return { chat: parse(), reparse: parse, file };
 };

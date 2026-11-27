@@ -30,12 +30,15 @@ export const chatImport = {
     preview: {
       messages: 'Сообщений: {count}',
       files: 'Файлов: {count}',
+      filesOverLimit: '{count} старых файлов сверх лимита в 5 000 не будут импортированы.',
       people: 'Участников: {count}',
       range: '{from} – {to}',
       dateOrder: 'Даты в экспорте',
       dayFirst: 'Сначала день (31.12.)',
       monthFirst: 'Сначала месяц (12/31)',
       dateOrderUnsure: 'По экспорту не видно, что идёт первым: день или месяц. Проверьте дату, которую вы знаете.',
+      timeZone: 'Часовой пояс экспорта',
+      timeZoneHint: 'WhatsApp записывает время без часового пояса. Выберите, где был телефон при экспорте.',
     },
     target: {
       label: 'Куда импортировать',
@@ -84,6 +87,7 @@ export const chatImport = {
       fileMissing: 'Файл не импортирован: {detail} (отсутствует)',
       fileTooLarge: 'Файл не импортирован: {detail} (слишком большой)',
       fileUnsupported: 'Файл не импортирован: {detail} (тип не поддерживается)',
+      fileOverLimit: 'Файл не импортирован: {detail} (больше 5 000 файлов)',
       sticker: 'Стикер {detail}',
       groupCreated: '{actor} создал(а) группу «{detail}»',
       membersAdded: '{actor} добавил(а) {detail}',

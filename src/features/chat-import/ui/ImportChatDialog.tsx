@@ -40,7 +40,8 @@ const ImportChatDialogBody = ({ onOpenChange, me, chat: fixedChat, onDone }: Omi
         )}
         {step === 'preview' && chat && (
           <ImportPreviewStep chat={chat} busy={busy} target={dialog.target} chats={fixedChat ? undefined : targets.options}
-            onTarget={dialog.setTarget} onDateOrder={(order) => void dialog.switchDateOrder(order)} />
+            onTarget={dialog.setTarget} onDateOrder={(order) => void dialog.switchDateOrder(order)}
+            onTimeZone={(zone) => void dialog.switchTimeZone(zone)} />
         )}
         {step === 'senders' && chat && (
           <ImportSendersStep senders={chat.senders} members={targets.members} meId={me.id} assignments={dialog.assignments}

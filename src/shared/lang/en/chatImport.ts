@@ -30,12 +30,15 @@ export const chatImport = {
     preview: {
       messages: '{count} messages',
       files: '{count} files',
+      filesOverLimit: '{count} older files are over the limit of 5,000 and will not be imported.',
       people: '{count} people',
       range: '{from} – {to}',
       dateOrder: 'Dates in the export',
       dayFirst: 'Day first (31.12.)',
       monthFirst: 'Month first (12/31)',
       dateOrderUnsure: 'The export does not show whether the day or the month comes first. Check one date you know.',
+      timeZone: 'Time zone of the export',
+      timeZoneHint: 'WhatsApp writes times without a zone. Pick where the phone was when the chat was exported.',
     },
     target: {
       label: 'Import into',
@@ -84,6 +87,7 @@ export const chatImport = {
       fileMissing: 'File not imported: {detail} (missing)',
       fileTooLarge: 'File not imported: {detail} (too large)',
       fileUnsupported: 'File not imported: {detail} (type not supported)',
+      fileOverLimit: 'File not imported: {detail} (over the limit of 5,000 files)',
       sticker: 'Sticker {detail}',
       groupCreated: '{actor} created the group “{detail}”',
       membersAdded: '{actor} added {detail}',

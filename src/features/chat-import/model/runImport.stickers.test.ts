@@ -91,6 +91,13 @@ describe('runImport stickers', () => {
     expect(captioned.batches[0].messages[0]).toMatchObject({ type: 'file', content: 'look' });
   });
 
+  it('keeps the sticker line when an animated Telegram sticker cannot be converted', async () => {
+    const { deps, batches } = setup({ upload: vi.fn(async () => null) });
+    await runImport(options(chatOf([sticker('s.tgs', '🐱')])), deps);
+    expect(deps.upload).not.toHaveBeenCalled();
+    expect(batches[0].messages[0]).toMatchObject({ type: 'note', content: 'sticker' });
+  });
+
   it('uploads identical files once even under different names', async () => {
     const photo = (path: string): ParsedAttachment => ({ path, name: path, kind: 'image', size: 10 });
     const { deps, batches } = setup();

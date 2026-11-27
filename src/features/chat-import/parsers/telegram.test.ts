@@ -64,6 +64,7 @@ describe('parseTelegram', () => {
     [{ file: 'files/song.mp3', file_name: 'Song.mp3', media_type: 'audio_file' }, { path: 'files/song.mp3', name: 'Song.mp3', kind: 'audio' }],
     [{ file: 'stickers/s.webp', media_type: 'sticker', sticker_emoji: '😀' }, { path: 'stickers/s.webp', name: 's.webp', kind: 'sticker', emoji: '😀' }],
     [{ file: 'stickers/s.webm', media_type: 'sticker', sticker_emoji: '😀' }, { path: 'stickers/s.webm', name: 's.webm', kind: 'sticker', emoji: '😀' }],
+    [{ file: 'stickers/s.tgs', media_type: 'sticker', sticker_emoji: '🐱' }, { path: 'stickers/s.tgs', name: 's.tgs', kind: 'sticker', emoji: '🐱' }],
     [{ file: 'files/report.pdf', file_name: 'Report.pdf' }, { path: 'files/report.pdf', name: 'Report.pdf', kind: 'file' }],
   ])('reads media %o', (fields, attachment) => {
     const chat = parseTelegram(exportOf([message(1, fields)]), all);
@@ -82,7 +83,7 @@ describe('parseTelegram', () => {
       message(1, { photo: notIncluded }),
       message(2, { file: notIncluded, file_name: 'Report.pdf' }),
       message(3, { file: 'voice_messages/missing.ogg', media_type: 'voice_message' }),
-      message(4, { file: 'stickers/a.tgs', media_type: 'sticker', sticker_emoji: '🐱' }),
+      message(4, { file: 'stickers/missing.tgs', media_type: 'sticker', sticker_emoji: '🐱' }),
       message(5, { photo: notIncluded, text: 'Caption stays' }),
     ]), (path) => !path.includes('missing'));
     expect(chat.messages.map(({ notice, text }) => ({ notice, text }))).toEqual([

@@ -107,14 +107,16 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
     }
   }, [execute, reader, resume.pending, t]);
 
-  const switchDateOrder = useCallback(async (order: DateOrder) => {
+  const reparse = useCallback(async (order: DateOrder, timeZone?: string) => {
     setBusy(true);
     try {
-      setChat(await reader().reparse(order));
+      setChat(await reader().reparse(order, timeZone));
     } finally {
       setBusy(false);
     }
   }, [reader]);
+  const switchDateOrder = useCallback((order: DateOrder) => reparse(order, chat?.timeZone), [chat?.timeZone, reparse]);
+  const switchTimeZone = useCallback((timeZone: string) => reparse(chat?.dateOrder ?? 'dmy', timeZone), [chat?.dateOrder, reparse]);
 
   const start = useCallback(async () => {
     if (!chat || !target) return;
@@ -165,6 +167,6 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
 
   return {
     step, setStep, busy, error, chat, target, setTarget, assignments, setAssignments, progress, result,
-    pending: resume.pending, discardPending: resume.discard, chooseFiles, switchDateOrder, toSenders, start, retry, cancel,
+    pending: resume.pending, discardPending: resume.discard, chooseFiles, switchDateOrder, switchTimeZone, toSenders, start, retry, cancel,
   };
 };

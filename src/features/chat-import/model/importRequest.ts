@@ -43,6 +43,9 @@ const body = (message: ParsedMessage, context: BuildContext): Pick<ImportedMessa
   if (sticker !== undefined) return { type: 'sticker', sticker_id: String(sticker) };
   const id = context.attachmentIds.get(attachment.path);
   if (id === undefined) {
+    if (attachment.kind === 'sticker' && attachment.path.toLowerCase().endsWith('.tgs')) {
+      return { type: 'note', content: withCaption(context.noticeText({ code: 'sticker', detail: attachment.emoji ?? '' }), message.text) };
+    }
     const code = context.skipped.get(attachment.path) ?? 'fileMissing';
     return { type: 'note', content: withCaption(context.noticeText({ code, detail: attachment.name }), message.text) };
   }

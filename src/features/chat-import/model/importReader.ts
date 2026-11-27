@@ -5,7 +5,7 @@ import { ImportParseError } from './types';
 
 export interface ImportReader {
   open: (files: File[]) => Promise<ParsedChat>;
-  reparse: (order: DateOrder) => Promise<ParsedChat>;
+  reparse: (order: DateOrder, timeZone?: string) => Promise<ParsedChat>;
   file: (path: string) => Promise<File>;
   close: () => void;
 }
@@ -51,7 +51,7 @@ export const createImportReader = (useWorker = typeof Worker !== 'undefined'): I
   const { send, close } = useWorker ? workerSend() : localSend();
   return {
     open: async (files) => await send({ type: 'open', files, localeOrder: localeDateOrder() }) as ParsedChat,
-    reparse: async (order) => await send({ type: 'reparse', order }) as ParsedChat,
+    reparse: async (order, timeZone) => await send({ type: 'reparse', order, timeZone }) as ParsedChat,
     file: async (path) => await send({ type: 'file', path }) as File,
     close,
   };

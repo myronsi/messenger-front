@@ -1,4 +1,5 @@
 import type { DateOrder } from '../model/types';
+import { zonedToUtc } from './zonedTime';
 
 const SPACE = String.raw`[\s\u202f\u00a0]`;
 const DATE = String.raw`(\d{1,4})[./-](\d{1,2})[./-](\d{1,4})\.?`;
@@ -79,10 +80,11 @@ const hour24 = (line: RawLine) => {
   return line.meridiem === 'pm' ? base + 12 : base;
 };
 
-export const lineDate = (line: RawLine, order: DateOrder) => {
+export const lineDate = (line: RawLine, order: DateOrder, timeZone: string) => {
   const [a, b, c] = line.parts;
   const [year, month, day] = line.yearFirst ? [a, b, c] : [fullYear(c), order === 'dmy' ? b : a, order === 'dmy' ? a : b];
-  const date = new Date(year, month - 1, day, hour24(line), line.minute, line.second);
-  const valid = date.getMonth() === month - 1 && date.getDate() === day && !Number.isNaN(date.getTime());
-  return valid ? date.toISOString() : null;
+  const wall = Date.UTC(year, month - 1, day, hour24(line), line.minute, line.second);
+  const check = new Date(wall);
+  const valid = !Number.isNaN(wall) && check.getUTCMonth() === month - 1 && check.getUTCDate() === day;
+  return valid ? new Date(zonedToUtc(wall, timeZone)).toISOString() : null;
 };

@@ -5,7 +5,7 @@ import type { ChatImport } from '../api/importTypes';
 import { errorStatus } from './importErrors';
 import { importedMessage, type SkipReason } from './importRequest';
 import { addImportSticker, FILE_HASH_KEY, fileDigest, STICKER_HASH_KEY, STICKER_KEY, type StickerCalls } from './importStickers';
-import { precheck, uploadImportFile } from './uploadImportFile';
+import { isLottieSticker, precheck, uploadImportFile } from './uploadImportFile';
 import { IMPORT_BATCH_SIZE, type ParsedAttachment, type ParsedChat, type ParsedNotice } from './types';
 
 export interface ImportProgress {
@@ -87,6 +87,10 @@ const placeFile = async (attachment: ParsedAttachment, ids: Map<string, EntityId
   const file = await deps.readFile(attachment.path);
   const hash = await fileDigest(file);
   if (await placeSticker(file, attachment, hash, ids, options, deps)) return;
+  if (isLottieSticker(attachment)) {
+    skipped.set(attachment.path, 'fileUnsupported');
+    return;
+  }
   const known = hash === null ? undefined : ids.get(FILE_HASH_KEY + hash);
   if (known !== undefined) {
     ids.set(attachment.path, known);
