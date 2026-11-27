@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.6.40](https://github.com/myronsi/messenger-front/compare/v0.6.39...v0.6.40) (2026-11-27)
+
+
+### Features
+
+* **import:** guard running imports against closing, sleeping and parallel runs ([#279](https://github.com/myronsi/messenger-front/issues/279)) ([1152a0b](https://github.com/myronsi/messenger-front/commit/1152a0b12aeb8ed98f9dd286715c38a4a95b5e82))
+* **import:** real stickers, one upload per file and export edge cases ([#277](https://github.com/myronsi/messenger-front/issues/277)) ([ce1843a](https://github.com/myronsi/messenger-front/commit/ce1843af3e317e2ec1e3be943cbe0ffed75af15b))
+* **import:** show the history import in the chat with its percent ([#281](https://github.com/myronsi/messenger-front/issues/281)) ([18e089c](https://github.com/myronsi/messenger-front/commit/18e089cb99a3b8a05e95a8ba141fa6ffbb6bdc5a))
+
+
+### Bug Fixes
+
+* **import:** name every sender while an import waits, show the percent with one decimal ([#282](https://github.com/myronsi/messenger-front/issues/282)) ([f5c93d2](https://github.com/myronsi/messenger-front/commit/f5c93d207f3fec5dec59033b7912ab79e563153a))
+* **import:** wait and retry on rate limits and busy answers, never leak upload sessions ([#280](https://github.com/myronsi/messenger-front/issues/280)) ([e846294](https://github.com/myronsi/messenger-front/commit/e846294818e66e5ab5fd40edbd2f91a876408b7a))
+
+
+### Performance Improvements
+
+* **import:** prepare files up to three batches ahead within a 64 MB budget ([#285](https://github.com/myronsi/messenger-front/issues/285)) ([acb04c3](https://github.com/myronsi/messenger-front/commit/acb04c392fbcf25dd1de1da13661730fcd612984))
+* **import:** send the import id with imported sticker uploads ([#284](https://github.com/myronsi/messenger-front/issues/284)) ([30bc81b](https://github.com/myronsi/messenger-front/commit/30bc81bcbbf8cf783fc73102d7caa16e68a039b9))
+* **import:** upload three files at once and prepare the next batch while sending ([#283](https://github.com/myronsi/messenger-front/issues/283)) ([dce6121](https://github.com/myronsi/messenger-front/commit/dce612130b97da879b56589d5a454dbce2906af5))
+
 ## [0.6.39](https://github.com/myronsi/messenger-front/compare/v0.6.38...v0.6.39) (2026-11-26)
 
 
