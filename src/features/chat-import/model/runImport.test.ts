@@ -67,7 +67,7 @@ describe('runImport', () => {
     ]);
   });
 
-  it('uploads the files of each batch right before that batch', async () => {
+  it('uploads the files of each batch before that batch', async () => {
     const file = (n: number) => ({ path: `f${n}.jpg`, name: `f${n}.jpg`, kind: 'image' as const, size: 10 });
     const chat = chatOf(1001, { 0: file(0), 600: file(1), 1000: file(2) });
     const order: string[] = [];
@@ -83,7 +83,10 @@ describe('runImport', () => {
       return { data: { next_index: body.from_index + body.messages.length } };
     });
     await runImport(options(chat), deps);
-    expect(order).toEqual(['upload:f0.jpg', 'batch:0', 'upload:f1.jpg', 'batch:500', 'upload:f2.jpg', 'batch:1000']);
+    expect(order.filter((step) => step.startsWith('batch:'))).toEqual(['batch:0', 'batch:500', 'batch:1000']);
+    expect(order.indexOf('upload:f0.jpg')).toBeLessThan(order.indexOf('batch:0'));
+    expect(order.indexOf('upload:f1.jpg')).toBeLessThan(order.indexOf('batch:500'));
+    expect(order.indexOf('upload:f2.jpg')).toBeLessThan(order.indexOf('batch:1000'));
   });
 
   it('skips files over the limit and files the server refuses as grey lines', async () => {
