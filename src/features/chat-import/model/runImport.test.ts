@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AddImportMessagesRequest, ChatImport } from '../api/importTypes';
 import { ImportRunError, runImport, type RunDeps, type RunOptions } from './runImport';
+import { RETRY_DELAYS_SECONDS } from './uploadRetry';
+import { UploadError } from '@/shared/api/uploadWithProgress';
 import type { ParsedChat, ParsedMessage } from './types';
 
 const MB = 1024 * 1024;
@@ -120,11 +122,25 @@ describe('runImport', () => {
     expect(addMessages.mock.calls.map(([, body]) => (body as AddImportMessagesRequest).from_index)).toEqual([0, 500]);
   });
 
+  it('waits and continues when an upload hits the rate limit', async () => {
+    const photo = { path: 'p.jpg', name: 'p.jpg', kind: 'image' as const, size: 10 };
+    const upload = vi.fn()
+      .mockRejectedValueOnce(new UploadError(429, null))
+      .mockResolvedValue({ id: 'id-p' });
+    const { deps, batches } = setup({}, upload as unknown as RunDeps['upload']);
+    const progress = vi.fn();
+    await runImport(options(chatOf(2, { 0: photo }), { onProgress: progress }), deps);
+    expect(upload).toHaveBeenCalledTimes(2);
+    expect(deps.wait).toHaveBeenCalledWith(10_000);
+    expect(progress.mock.calls.some(([value]) => value.waitingSeconds === 10)).toBe(true);
+    expect(batches[0].messages[0]).toMatchObject({ attachment_ids: ['id-p'] });
+  });
+
   it('retries a failed batch and stops after repeated failures', async () => {
     const { deps } = setup({ addMessages: vi.fn(() => fail(503)) } as never);
     await expect(runImport(options(chatOf(10)), deps)).rejects.toEqual(new ImportRunError('stopped'));
-    expect(deps.calls.addMessages).toHaveBeenCalledTimes(3);
-    expect(deps.wait).toHaveBeenCalledTimes(2);
+    expect(deps.calls.addMessages).toHaveBeenCalledTimes(RETRY_DELAYS_SECONDS.length + 1);
+    expect(deps.wait).toHaveBeenCalledTimes(RETRY_DELAYS_SECONDS.length);
   });
 
   it('stops when cancelled', async () => {

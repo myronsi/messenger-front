@@ -62,6 +62,7 @@ export const chatImport = {
       messages: 'Importando mensajes: {done} de {total}',
       finishing: 'Terminando…',
       keepOpen: 'Mantén esta ventana abierta hasta que termine la importación. La importación se pausa si cierras la pestaña o el dispositivo entra en reposo.',
+      waiting: 'El servidor está ocupado. Reintento en {seconds} s…',
     },
     done: '{count} mensajes importados.',
     stickerPack: 'Stickers importados',

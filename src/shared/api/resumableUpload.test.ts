@@ -48,4 +48,34 @@ describe('resumableUpload', () => {
     await expect(resumableUpload(new File([new Uint8Array(5)], 'x'), { signal: controller.signal })).rejects.toThrow('Upload cancelled');
     expect(authFetch.mock.calls.some(([url, init]) => String(url).endsWith('/upload-sessions/s2') && init?.method === 'DELETE')).toBe(true);
   });
+
+  const deleted = (id: string) => authFetch.mock.calls.some(([url, init]) => String(url).endsWith(`/upload-sessions/${id}`) && init?.method === 'DELETE');
+
+  it('cancels the session when stopped while a chunk is on its way', async () => {
+    const { resumableUpload } = await import('./resumableUpload');
+    const controller = new AbortController();
+    authFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/upload-sessions')) return json({ id: 's3', size: 5, chunk_size: 10, received: 0, expires_at: '2026-11-19T00:00:00Z' }, 201);
+      if (url.includes('/chunks')) {
+        controller.abort();
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      expect(init?.keepalive).toBe(true);
+      return new Response(null, { status: 204 });
+    });
+    await expect(resumableUpload(new File([new Uint8Array(5)], 'x'), { signal: controller.signal })).rejects.toThrow('Upload cancelled');
+    expect(deleted('s3')).toBe(true);
+  });
+
+  it('cancels the session when completing fails', async () => {
+    const { resumableUpload } = await import('./resumableUpload');
+    authFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith('/upload-sessions')) return json({ id: 's4', size: 5, chunk_size: 10, received: 0, expires_at: '2026-11-19T00:00:00Z' }, 201);
+      if (url.includes('/chunks')) return json({ id: 's4', size: 5, chunk_size: 10, received: 5, expires_at: '2026-11-19T00:00:00Z' });
+      if (url.endsWith('/complete')) return json({ code: 'internal_error' }, 503);
+      return new Response(null, { status: 204 });
+    });
+    await expect(resumableUpload(new File([new Uint8Array(5)], 'x'))).rejects.toMatchObject({ status: 503 });
+    expect(deleted('s4')).toBe(true);
+  });
 });

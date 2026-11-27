@@ -34,27 +34,30 @@ export const resumableUpload = async (file: File, { kind, onProgress, signal }: 
     method: 'POST', signal, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ purpose: 'message', filename: file.name || 'file', size: file.size, ...(kind && kind !== 'voice' ? { kind } : {}) }),
   }));
+  const drop = () => { void authFetch(sessionUrl(session.id), { method: 'DELETE', keepalive: true }).catch(() => undefined); };
   let failures = 0;
-  while (session.received < session.size) {
-    if (signal?.aborted) {
-      void authFetch(sessionUrl(session.id), { method: 'DELETE' }).catch(() => undefined);
-      throw cancelled();
-    }
-    const end = Math.min(session.received + session.chunk_size, session.size);
-    try {
-      const response = await authFetch(sessionUrl(session.id, `/chunks?offset=${session.received}`), {
-        method: 'PUT', signal, headers: { 'Content-Type': 'application/octet-stream' }, body: file.slice(session.received, end),
-      });
-      session = response.status === 409 ? await response.json() as Session : await json<Session>(response);
-      failures = 0;
-      onProgress?.((session.received / session.size) * 100);
-    } catch (error) {
+  try {
+    while (session.received < session.size) {
       if (signal?.aborted) throw cancelled();
-      failures += 1;
-      if (failures > MAX_FAILURES) throw error;
-      await wait(1000 * failures, signal);
-      session = await json<Session>(await authFetch(sessionUrl(session.id))).catch(() => session);
+      const end = Math.min(session.received + session.chunk_size, session.size);
+      try {
+        const response = await authFetch(sessionUrl(session.id, `/chunks?offset=${session.received}`), {
+          method: 'PUT', signal, headers: { 'Content-Type': 'application/octet-stream' }, body: file.slice(session.received, end),
+        });
+        session = response.status === 409 ? await response.json() as Session : await json<Session>(response);
+        failures = 0;
+        onProgress?.((session.received / session.size) * 100);
+      } catch (error) {
+        if (signal?.aborted) throw cancelled();
+        failures += 1;
+        if (failures > MAX_FAILURES) throw error;
+        await wait(1000 * failures, signal);
+        session = await json<Session>(await authFetch(sessionUrl(session.id))).catch(() => session);
+      }
     }
+    return await json<Attachment>(await authFetch(sessionUrl(session.id, '/complete'), { method: 'POST', signal }));
+  } catch (error) {
+    drop();
+    throw error;
   }
-  return json<Attachment>(await authFetch(sessionUrl(session.id, '/complete'), { method: 'POST', signal }));
 };
