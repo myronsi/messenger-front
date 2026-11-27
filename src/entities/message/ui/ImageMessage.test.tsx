@@ -41,6 +41,15 @@ describe('ImageMessage', () => {
     naturalWidth.mockRestore();
   });
 
+  it('shows a neutral placeholder for an imported image the server is still preparing, then the photo', () => {
+    const { rerender } = render(<ImageMessage fileUrl="/big.jpg" fileName="big.jpg" isMine={false} processing="queued" width={2400} height={1600} />);
+    expect(screen.getByTestId('image-preparing')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByAltText('big.jpg')).not.toBeInTheDocument();
+    rerender(<ImageMessage fileUrl="/big.jpg" thumbnailUrl="/big-thumb.webp" fileName="big.jpg" isMine={false} processing="done" width={2400} height={1600} />);
+    expect(screen.queryByTestId('image-preparing')).not.toBeInTheDocument();
+    expect(screen.getByAltText('big.jpg')).toHaveAttribute('src', '/big-thumb.webp');
+  });
+
   it('fades in a photo that still has to load', () => {
     render(<ImageMessage fileUrl="/new.png" thumbnailUrl="/new-thumb.png" fileName="new.png" isMine={false} />);
     const image = screen.getByAltText('new.png');
