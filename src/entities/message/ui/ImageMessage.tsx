@@ -82,11 +82,12 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
   const visualClass = `block h-full w-full select-none rounded-2xl object-cover ${shownAtOnce ? '' : 'transition-opacity duration-150'} ${isLoaded ? 'opacity-100' : 'opacity-0'}`;
   const blur = isLoaded && (shownAtOnce || fadedIn) ? undefined : placeholderDataURL(placeholder);
   const optimizing = isVideo && (processing === 'queued' || processing === 'running');
+  const preparing = !isVideo && !thumbnailUrl && (processing === 'queued' || processing === 'running');
 
   return (
     <>
       <div
-        className={`relative group max-w-full overflow-hidden rounded-2xl ${isVideo ? 'bg-muted' : ''}`}
+        className={`relative group max-w-full overflow-hidden rounded-2xl ${isVideo || preparing ? 'bg-muted' : ''}`}
         style={{
           width: `${Math.min(MAX_WIDTH, MAX_HEIGHT * (box.width / box.height))}px`,
           aspectRatio: `${box.width} / ${box.height}`,
@@ -102,6 +103,9 @@ const ImageMessage: React.FC<ImageMessageProps> = ({
               }} />
             <VideoPlayBadge className="absolute inset-0 m-auto transition-transform duration-200 group-hover:scale-110" />
           </button>
+        ) : preparing ? (
+          <button type="button" onClick={open} title={fileName} aria-label={fileName} aria-busy="true" data-testid="image-preparing"
+            className="block h-full w-full animate-pulse cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring" />
         ) : (
           <AuthenticatedImage
             ref={imageRef}

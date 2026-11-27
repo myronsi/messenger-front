@@ -43,9 +43,8 @@ export const uploadImportFile = async (original: File, attachment: ParsedAttachm
     const form = new FormData();
     form.set('file', file, name);
     form.set('purpose', 'message');
-    form.set('import_id', String(importId));
     if (kind) form.set('kind', kind);
-    const url = `${String(getApiBaseUrl()).replace(/\/$/, '')}/attachments`;
+    const url = `${String(getApiBaseUrl()).replace(/\/$/, '')}/attachments?import_id=${encodeURIComponent(String(importId))}`;
     return { id: (await uploadWithProgress<Attachment>({ url, formData: form, signal })).id };
   } catch (error) {
     const status = error instanceof UploadError ? error.status : Number((error as { status?: unknown } | null)?.status);

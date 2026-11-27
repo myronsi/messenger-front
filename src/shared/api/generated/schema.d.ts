@@ -1514,6 +1514,11 @@ export interface paths {
          * @description The server checks the content, not the file name or the client's content type. The
          *     returned `attachment_id` is used in messages (`type: file` or `voice`) or for
          *     avatars. Attachments that are not used within 24 hours are deleted.
+         *
+         *     At most 60 uploads per minute per user (`429` with `Retry-After`, before the body is read). Uploads with the
+         *     `import_id` of the caller's own running import have their own limit of 300 per minute (burst 50). For them a
+         *     JPEG, PNG or still WebP image is stored with its metadata removed and its size read from the header; the
+         *     thumbnail, display copy and placeholder follow in the background (`processing`, then `attachment_updated`).
          */
         post: operations["uploadAttachment"];
         delete?: never;
@@ -2407,9 +2412,14 @@ export interface paths {
          *     and ends with `POST /imports/{import_id}/finish`.
          *
          *     In a direct chat either user may import, not in a chat in the Requests folder or with a block (`403`). In a
-         *     group only an admin or the owner may (`403`). One import per chat runs at a time (`409`). The messages are
-         *     placed above the oldest message of the chat, in their original order; a second import goes next to the
-         *     imports whose periods it follows, and an import whose period overlaps an existing one is `409`.
+         *     group only an admin or the owner may (`403`). One import per chat runs at a time, and one per user: a user
+         *     with a running import in any chat gets `409` until it is finished or removed. The messages are placed above
+         *     the oldest message of the chat, in their original order; a second import goes next to the imports whose
+         *     periods it follows, and an import whose period overlaps an existing one is `409`.
+         *
+         *     A running import that gets no batch for 24 hours is removed like `DELETE /imports/{import_id}`
+         *     (`import_update` with `removing`). Clients send the files of each batch right before the batch, so a long
+         *     upload keeps the import alive.
          *
          *     `senders` lists every name of the export. `me: true` marks the caller's own messages. `user_id` suggests a
          *     member of the chat for a name; that member confirms it after the import is finished. Every other name is
@@ -6171,8 +6181,10 @@ export interface components {
             /** @description A ThumbHash (base64) of the image or video poster, to draw a blurred preview before the thumbnail arrives. */
             readonly placeholder?: string | null;
             /**
-             * @description Whether the server is still making an optimized copy of a video, GIF or audio file. Clients play `url`
-             *     meanwhile and swap to the new copy on `attachment_updated`. `null` when there is nothing to do.
+             * @description Whether the server is still making an optimized copy of a video, GIF or audio file, or the thumbnail,
+             *     display copy and placeholder of an imported image. Clients play `url` meanwhile (for an image: a neutral
+             *     placeholder or `url` itself) and swap to the new copy on `attachment_updated`. `null` when there is nothing
+             *     to do.
              */
             readonly processing?: components["schemas"]["MediaProcessing"] | null;
             /** @description The file as uploaded, when `url` serves an optimized copy; `null` otherwise. */
@@ -9996,7 +10008,13 @@ export interface operations {
     };
     uploadAttachment: {
         parameters: {
-            query?: never;
+            query?: {
+                /**
+                 * @description `message` uploads of a history import: the id of the caller's own running import. Other ids are ignored
+                 *     (the upload is handled like any other).
+                 */
+                import_id?: components["schemas"]["Id"];
+            };
             header?: {
                 /** @description Version of the client app, for logs and the per-client metric. */
                 "X-Client-Version"?: components["parameters"]["ClientVersion"];

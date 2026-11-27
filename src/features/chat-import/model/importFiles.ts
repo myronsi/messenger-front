@@ -6,6 +6,7 @@ import { withRetry } from './uploadRetry';
 import type { ParsedAttachment, ParsedChat, ParsedMessage } from './types';
 
 const SAVE_EVERY = 20;
+export const UPLOAD_CONCURRENCY = 3;
 
 export interface FileDeps {
   upload: typeof uploadImportFile;
@@ -50,6 +51,27 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
   const seen = new Set<string>();
   const total = distinctAttachments(options.chat.messages.slice(options.fromIndex)).length;
   let sinceSave = 0;
+  const inflight = new Map<string, Promise<unknown>>();
+  let stickerLane: Promise<unknown> = Promise.resolve();
+
+  const once = async <T>(key: string | null, run: () => Promise<T>): Promise<T> => {
+    if (key === null) return run();
+    const before = inflight.get(key);
+    if (before) await before.catch(() => undefined);
+    const current = run();
+    inflight.set(key, current);
+    try {
+      return await current;
+    } finally {
+      if (inflight.get(key) === current) inflight.delete(key);
+    }
+  };
+
+  const inStickerLane = <T>(run: () => Promise<T>): Promise<T> => {
+    const next = stickerLane.catch(() => undefined).then(run);
+    stickerLane = next;
+    return next;
+  };
 
   const retry = { wait: deps.wait, signal: options.signal, onWait: options.onWait };
   const stickerCalls: StickerCalls | undefined = deps.stickers && {
@@ -65,8 +87,11 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
 
   const placeSticker = async (file: File, attachment: ParsedAttachment, hash: string | null) => {
     if (attachment.kind !== 'sticker' || !stickerCalls || !options.stickerPackTitle || captionedPaths(options.chat).has(attachment.path)) return false;
-    const known = hash === null ? undefined : ids.get(STICKER_HASH_KEY + hash);
-    const sticker = known ?? await addImportSticker(file, attachment, ids, options.stickerPackTitle, stickerCalls, options.signal);
+    const title = options.stickerPackTitle;
+    const sticker = await once(hash === null ? null : STICKER_HASH_KEY + hash, () => inStickerLane(async () => {
+      const known = hash === null ? undefined : ids.get(STICKER_HASH_KEY + hash);
+      return known ?? addImportSticker(file, attachment, ids, title, stickerCalls, options.signal);
+    }));
     if (sticker === null) return false;
     ids.set(STICKER_KEY + attachment.path, sticker);
     if (hash !== null) ids.set(STICKER_HASH_KEY + hash, sticker);
@@ -81,34 +106,50 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
       skipped.set(attachment.path, 'fileUnsupported');
       return;
     }
-    const known = hash === null ? undefined : ids.get(FILE_HASH_KEY + hash);
-    if (known !== undefined) {
-      ids.set(attachment.path, known);
-      return;
-    }
-    const outcome = await withRetry(() => deps.upload(file, attachment, options.importId, options.signal), retry);
+    const outcome = await once(hash === null ? null : FILE_HASH_KEY + hash, async () => {
+      const known = hash === null ? undefined : ids.get(FILE_HASH_KEY + hash);
+      if (known !== undefined) return { id: known };
+      const uploaded = await withRetry(() => deps.upload(file, attachment, options.importId, options.signal), retry);
+      if ('id' in uploaded && hash !== null) ids.set(FILE_HASH_KEY + hash, uploaded.id);
+      return uploaded;
+    });
     if ('skipped' in outcome) {
       skipped.set(attachment.path, outcome.skipped);
       return;
     }
     ids.set(attachment.path, outcome.id);
-    if (hash !== null) ids.set(FILE_HASH_KEY + hash, outcome.id);
+  };
+
+  const placeOne = async (attachment: ParsedAttachment, onStep: () => void) => {
+    const reason = placed(attachment.path) ? null : precheck(attachment);
+    if (reason) skipped.set(attachment.path, reason);
+    else if (!placed(attachment.path)) {
+      await placeFile(attachment);
+      sinceSave += 1;
+      if (sinceSave >= SAVE_EVERY) save();
+    }
+    seen.add(attachment.path);
+    onStep();
   };
 
   const place = async (messages: readonly ParsedMessage[], onStep: () => void, checkAbort: () => void) => {
-    for (const attachment of distinctAttachments(messages)) {
-      if (seen.has(attachment.path)) continue;
-      checkAbort();
-      const reason = placed(attachment.path) ? null : precheck(attachment);
-      if (reason) skipped.set(attachment.path, reason);
-      else if (!placed(attachment.path)) {
-        await placeFile(attachment);
-        sinceSave += 1;
-        if (sinceSave >= SAVE_EVERY) save();
+    const queue = distinctAttachments(messages).filter((attachment) => !seen.has(attachment.path));
+    let next = 0;
+    let failed = false;
+    const lane = async () => {
+      while (!failed && next < queue.length) {
+        const attachment = queue[next];
+        next += 1;
+        try {
+          checkAbort();
+          await placeOne(attachment, onStep);
+        } catch (error) {
+          failed = true;
+          throw error;
+        }
       }
-      seen.add(attachment.path);
-      onStep();
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, queue.length) }, lane));
   };
 
   return { ids, skipped, total, done: () => seen.size, place, save };

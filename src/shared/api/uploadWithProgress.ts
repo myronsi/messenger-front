@@ -17,10 +17,18 @@ interface UploadWithProgressOptions {
 const cancelled = () => new Error('Upload cancelled');
 
 export class UploadError extends Error {
-  constructor(readonly status: number, readonly body: unknown) {
+  constructor(readonly status: number, readonly body: unknown, readonly retryAfter: number | null = null) {
     super(`Upload failed with status ${status}`);
   }
 }
+
+export const parseRetryAfter = (value: string | null) => {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds;
+  const at = Date.parse(value);
+  return Number.isNaN(at) ? null : Math.max(0, Math.round((at - Date.now()) / 1000));
+};
 
 const sendUploadRequest = async <T>({ url, formData, onProgress, signal }: UploadWithProgressOptions, token: string | null): Promise<T> => (
   new Promise((resolve, reject) => {
@@ -61,7 +69,7 @@ const sendUploadRequest = async <T>({ url, formData, onProgress, signal }: Uploa
       }
 
       if (!reportIfClientOutdated(xhr.status, parsedBody)) reportIfAccountRestricted(xhr.status, parsedBody);
-      reject(new UploadError(xhr.status, parsedBody));
+      reject(new UploadError(xhr.status, parsedBody, parseRetryAfter(xhr.getResponseHeader('Retry-After'))));
     };
 
     xhr.onerror = () => reject(new Error('Upload failed'));

@@ -7,7 +7,7 @@ import { errorStatus } from './importErrors';
 import { importedMessage } from './importRequest';
 import type { StickerCalls } from './importStickers';
 import { uploadImportFile } from './uploadImportFile';
-import { isTransient, RETRY_DELAYS_SECONDS, retryDelay } from './uploadRetry';
+import { isTransient, MAX_RETRIES, retryDelay } from './uploadRetry';
 import { IMPORT_BATCH_SIZE, type ParsedChat, type ParsedNotice } from './types';
 
 export interface ImportProgress {
@@ -76,14 +76,28 @@ export const runImport = async (options: RunOptions, deps: RunDeps | RunDeps['re
   report = (phase = 'importing') => options.onProgress({
     phase, done: Math.min(index, total), total, filesDone: files.done(), filesTotal: files.total, waitingSeconds,
   });
+  const windowAt = (from: number) => options.chat.messages.slice(from, from + IMPORT_BATCH_SIZE);
+  const startPlacing = (from: number) => ({
+    from,
+    failure: files.place(windowAt(from), () => report(), checkAbort).then(() => null, (error: unknown) => error),
+  });
+  let placing: ReturnType<typeof startPlacing> | null = null;
   report();
   while (index < total) {
     checkAbort();
-    const window = options.chat.messages.slice(index, index + IMPORT_BATCH_SIZE);
-    await files.place(window, () => report(), checkAbort)
-      .catch((error: unknown) => { throw options.signal?.aborted ? new ImportRunError('cancelled') : error; });
+    if (placing && placing.from !== index) {
+      await placing.failure;
+      placing = null;
+    }
+    placing ??= startPlacing(index);
+    const failure = await placing.failure;
+    placing = null;
+    if (failure) throw options.signal?.aborted ? new ImportRunError('cancelled') : failure;
     files.save();
+    const window = windowAt(index);
     const messages = window.map((message) => importedMessage(message, context));
+    const following = index + window.length;
+    if (following < total) placing = startPlacing(following);
     const result = await resolved.calls.addMessages(options.importId, { from_index: index, messages }, options.signal);
     if (!result.error) {
       failures = 0;
@@ -94,8 +108,8 @@ export const runImport = async (options: RunOptions, deps: RunDeps | RunDeps['re
       const current = await resolved.calls.get(options.importId, options.signal);
       if (current.error) throw new ImportRunError('stopped');
       index = current.data.next_index;
-    } else if (isTransient(result.error) && transient < RETRY_DELAYS_SECONDS.length) {
-      await retryDelay(retry, transient).catch(() => checkAbort());
+    } else if (isTransient(result.error) && transient < MAX_RETRIES) {
+      await retryDelay(retry, transient, result.error).catch(() => checkAbort());
       transient += 1;
     } else {
       checkAbort();

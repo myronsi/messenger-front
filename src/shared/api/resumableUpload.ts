@@ -1,6 +1,7 @@
 import { authFetch } from '@/shared/auth/session';
 import { apiUrl } from './config';
 import type { components } from './generated/schema';
+import { parseRetryAfter } from './uploadWithProgress';
 
 type Session = components['schemas']['UploadSession'];
 type Attachment = components['schemas']['Attachment'];
@@ -18,7 +19,9 @@ const wait = (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, r
 });
 
 const json = async <T>(response: Response): Promise<T> => {
-  if (!response.ok) throw { status: response.status, body: await response.json().catch(() => null) };
+  if (!response.ok) {
+    throw { status: response.status, body: await response.json().catch(() => null), retryAfter: parseRetryAfter(response.headers.get('Retry-After')) };
+  }
   return await response.json() as T;
 };
 
