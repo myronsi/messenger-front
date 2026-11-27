@@ -7,7 +7,7 @@ import type { GroupTranslations } from './groupChatTypes';
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'en', translations: { search: 'Search', back: 'Back' } }) }));
 vi.mock('@/entities/chat', () => ({ useGetGroupDetailsQuery: () => ({ data: undefined }) }));
-vi.mock('@/features/chat-import', () => ({ useChatImportMenu: () => ({ items: null, dialogs: null }), ImportConfirmBanner: () => null }));
+vi.mock('@/features/chat-import', () => ({ useChatImportMenu: () => ({ items: null, dialogs: null }), ImportConfirmBanner: () => null, ImportStatusBanner: () => null }));
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

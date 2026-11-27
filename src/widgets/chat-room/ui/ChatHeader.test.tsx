@@ -5,7 +5,7 @@ import ChatHeader from './ChatHeader';
 
 vi.mock('@/shared/ui/AuthenticatedImage', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 vi.mock('@/features/profile', () => ({ useGetCurrentUserQuery: () => ({ data: { username: 'me' } }) }));
-vi.mock('@/features/chat-import', () => ({ useChatImportMenu: () => ({ items: null, dialogs: null }), ImportConfirmBanner: () => null }));
+vi.mock('@/features/chat-import', () => ({ useChatImportMenu: () => ({ items: null, dialogs: null }), ImportConfirmBanner: () => null, ImportStatusBanner: () => null }));
 const peer = vi.hoisted(() => ({ current: undefined as undefined | { id: string; account_label?: string } }));
 vi.mock('@/entities/user', () => ({ useGetUserByUsernameQuery: () => ({ data: peer.current }) }));
 vi.mock('@/features/moderation', async () => ({

@@ -14,7 +14,7 @@ import { EmojiText } from '@/shared/ui/CustomEmoji';
 import { useGetUserByUsernameQuery } from '@/entities/user';
 import { RestrictedAccountLabel } from '@/features/moderation';
 import { ChatHeaderMenu } from './ChatHeaderMenu';
-import { ImportConfirmBanner } from '@/features/chat-import';
+import { ImportConfirmBanner, ImportStatusBanner } from '@/features/chat-import';
 
 interface ChatHeaderProps {
   chatId?: EntityId;
@@ -89,6 +89,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
       <AudioPlayerBar />
       {!interlocutorDeleted && <OngoingCallBanner chatId={chatId} />}
+      {persistedChatId !== undefined && peer?.id && <ImportStatusBanner
+        chat={{ chatId: persistedChatId, name: displayName, isGroup: false, peer: { id: peer.id, username: chatName, displayName } }} />}
       {persistedChatId !== undefined && peer?.id && <ImportConfirmBanner
         chat={{ chatId: persistedChatId, name: displayName, isGroup: false, peer: { id: peer.id, username: chatName, displayName } }} />}
     </>

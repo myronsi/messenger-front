@@ -8,7 +8,7 @@ import type { GroupTranslations } from './groupChatTypes';
 import { isPersistedId, type EntityId } from '@/shared/api/entityId';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { useGetGroupDetailsQuery } from '@/entities/chat';
-import { ImportConfirmBanner, useChatImportMenu } from '@/features/chat-import';
+import { ImportConfirmBanner, ImportStatusBanner, useChatImportMenu } from '@/features/chat-import';
 import { useChatWallpaperAction } from '@/features/chat-wallpaper';
 import { isGoApi } from '@/shared/api/goSocket';
 import { CallButton, OngoingCallBanner } from '@/features/calls';
@@ -100,6 +100,7 @@ const GroupChatHeader: React.FC<GroupChatHeaderProps> = ({
       <OngoingCallBanner chatId={chatId} />
       {imports.dialogs}
       {wallpaper.dialog}
+      {persisted !== undefined && <ImportStatusBanner chat={{ ...importChat, chatId: persisted }} />}
       {persisted !== undefined && <ImportConfirmBanner chat={{ ...importChat, chatId: persisted }} />}
     </>
   );

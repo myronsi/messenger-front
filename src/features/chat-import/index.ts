@@ -1,5 +1,6 @@
 export { ImportChatDialog, type ImportChatDialogProps } from './ui/ImportChatDialog';
 export { ImportConfirmBanner } from './ui/ImportConfirmBanner';
+export { ImportStatusBanner } from './ui/ImportStatusBanner';
 export { ImportInfoPanel } from './ui/ImportInfoPanel';
 export { ImportActionHost } from './ui/ImportActionHost';
 export { useChatImportMenu, useImportMe } from './ui/useChatImportMenu';
