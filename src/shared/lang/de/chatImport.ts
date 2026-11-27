@@ -123,6 +123,18 @@ export const chatImport = {
       ended: 'Ende des importierten Verlaufs',
     },
     importedFrom: 'Importiert aus {source}, gesendet am {date}',
+    status: {
+      importing: 'Der Chatverlauf wird importiert…',
+      waiting: 'Der Chatverlauf wird importiert… Der Server ist ausgelastet, es geht gleich weiter.',
+      paused: 'Der Import des Verlaufs ist pausiert.',
+      pausedHint: 'Setze ihn innerhalb von 24 Stunden mit demselben Export fort.',
+      other: '{name} importiert den Chatverlauf…',
+      continue: 'Fortsetzen',
+      remove: 'Entfernen',
+      removeTitle: 'Importierten Teil entfernen?',
+      removeHint: 'Die bisher importierten {percent}% verschwinden für alle in diesem Chat.',
+      removeFailed: 'Der Import konnte nicht entfernt werden. Versuche es erneut.',
+    },
     banner: {
       text: '{name} hat {total} Nachrichten aus {source} importiert. {count} davon sind von „{sender}“. Sind das deine?',
       yes: 'Ja, das sind meine',

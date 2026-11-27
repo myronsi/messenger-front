@@ -3,6 +3,7 @@ import { Progress } from '@/shared/ui/progress';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import type { ChatImport } from '../api/importTypes';
+import { importPercent } from '../model/activeImport';
 import type { ImportProgress } from '../model/runImport';
 
 interface ImportProgressStepProps {
@@ -23,10 +24,13 @@ export const ImportProgressStep = ({ progress, result }: ImportProgressStepProps
   const finishing = progress?.phase === 'finishing';
   const count = (value = 0) => value.toLocaleString();
   const label = finishing ? t.progress.finishing : fillTemplate(t.progress.messages, { done: count(progress?.done), total: count(progress?.total) });
-  const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : finishing ? 100 : 0;
+  const percent = progress && progress.total > 0 ? importPercent(progress.done, progress.total) : finishing ? 100 : 0;
   return (
     <div className="space-y-3">
-      <p role="status" className="text-sm">{label}</p>
+      <p role="status" className="flex items-baseline gap-2 text-sm">
+        <span className="min-w-0 flex-1">{label}</span>
+        <span data-testid="import-percent" className="shrink-0 text-base font-semibold tabular-nums">{percent}%</span>
+      </p>
       <Progress value={percent} aria-label={label} className="h-2" />
       {!!progress?.waitingSeconds && (
         <p role="status" className="text-xs text-warning">{fillTemplate(t.progress.waiting, { seconds: String(progress.waitingSeconds) })}</p>

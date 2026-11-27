@@ -123,6 +123,18 @@ export const chatImport = {
       ended: 'End of imported history',
     },
     importedFrom: 'Imported from {source}, sent {date}',
+    status: {
+      importing: 'Importing the chat history…',
+      waiting: 'Importing the chat history… The server is busy, it continues in a moment.',
+      paused: 'The history import is paused.',
+      pausedHint: 'Continue with the same export within 24 hours.',
+      other: '{name} is importing the chat history…',
+      continue: 'Continue',
+      remove: 'Remove',
+      removeTitle: 'Remove the imported part?',
+      removeHint: 'The {percent}% imported so far disappear for everyone in this chat.',
+      removeFailed: 'The import could not be removed. Try again.',
+    },
     banner: {
       text: '{name} imported {total} messages from {source}. {count} are from “{sender}”. Are these yours?',
       yes: 'Yes, these are mine',

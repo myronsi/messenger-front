@@ -9,6 +9,7 @@ import { createImportReader, type ImportReader } from './importReader';
 import { startRequest, type ImportTarget } from './importRequest';
 import { noticeText } from './noticeText';
 import { fileKeyOf } from './resumeStore';
+import { setActiveImport } from './activeImport';
 import { ImportRunError, runImport, type ImportProgress } from './runImport';
 import { suggestAssignments, type ImportMember } from './senderSuggestions';
 import type { DateOrder, ParsedChat } from './types';
@@ -78,7 +79,10 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
         importId, chat: parsed, fromIndex, uploaded, signal: abortRef.current.signal,
         noticeText: (notice) => noticeText(notice, translations),
         stickerPackTitle: t.stickerPack,
-        onProgress: setProgress,
+        onProgress: (next) => {
+          setProgress(next);
+          setActiveImport({ importId, chatId: record.chatId, done: next.done, total: next.total, waitingSeconds: next.waitingSeconds });
+        },
         onUploaded: (next) => {
           runRef.current = { importId, uploaded: next };
           resume.remember({ ...base, uploaded: next });
@@ -91,6 +95,8 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
     } catch (caught) {
       if (caught instanceof ImportRunError && caught.code === 'cancelled') return;
       setError(t.errors.stopped);
+    } finally {
+      setActiveImport(null);
     }
   }, [onDone, reader, resume, t.errors.stopped, t.stickerPack, translations]);
 
