@@ -1,5 +1,6 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { ImportedMessage, SenderAssignment, StartImportRequest } from '../api/importTypes';
+import { STICKER_KEY } from './importStickers';
 import type { ParsedChat, ParsedMessage, ParsedNotice } from './types';
 
 export type ImportTarget = { kind: 'chat'; chatId: EntityId } | { kind: 'newGroup'; title: string };
@@ -34,10 +35,12 @@ const clip = (text: string) => (text.length > MAX_CONTENT_LENGTH ? `${text.slice
 
 const withCaption = (line: string, caption: string) => clip(caption ? `${line}\n${caption}` : line);
 
-const body = (message: ParsedMessage, context: BuildContext): Pick<ImportedMessage, 'type' | 'content' | 'attachment_ids'> => {
+const body = (message: ParsedMessage, context: BuildContext): Pick<ImportedMessage, 'type' | 'content' | 'attachment_ids' | 'sticker_id'> => {
   if (message.notice) return { type: 'note', content: withCaption(context.noticeText(message.notice), message.text) };
   const attachment = message.attachment;
   if (!attachment) return { type: 'text', content: clip(message.text) };
+  const sticker = message.text ? undefined : context.attachmentIds.get(STICKER_KEY + attachment.path);
+  if (sticker !== undefined) return { type: 'sticker', sticker_id: String(sticker) };
   const id = context.attachmentIds.get(attachment.path);
   if (id === undefined) {
     const code = context.skipped.get(attachment.path) ?? 'fileMissing';

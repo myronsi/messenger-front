@@ -62,6 +62,7 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
       const done = await runImport({
         importId, chat: parsed, fromIndex, uploaded, signal: abortRef.current.signal,
         noticeText: (notice) => noticeText(notice, translations),
+        stickerPackTitle: t.stickerPack,
         onProgress: setProgress,
         onUploaded: (next) => {
           runRef.current = { importId, uploaded: next };
@@ -76,7 +77,7 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
       if (caught instanceof ImportRunError && caught.code === 'cancelled') return;
       setError(t.errors.stopped);
     }
-  }, [onDone, reader, resume, t.errors.stopped, translations]);
+  }, [onDone, reader, resume, t.errors.stopped, t.stickerPack, translations]);
 
   const chooseFiles = useCallback(async (picked: File[]) => {
     if (!picked.length) return;

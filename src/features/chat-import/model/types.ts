@@ -7,6 +7,7 @@ export interface ParsedAttachment {
   name: string;
   kind: AttachmentKind;
   size?: number;
+  emoji?: string;
 }
 
 export type NoticeCode = 'poll' | 'location' | 'contact' | 'call' | 'mediaOmitted' | 'fileMissing' | 'fileTooLarge' | 'fileUnsupported' | 'sticker'

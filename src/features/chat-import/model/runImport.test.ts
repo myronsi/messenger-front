@@ -59,7 +59,7 @@ describe('runImport', () => {
     expect(deps.upload).toHaveBeenCalledTimes(1);
     expect(batches[0].messages[0]).toMatchObject({ type: 'file', attachment_ids: ['id-photos/p.jpg'] });
     expect(batches[0].messages[2]).toMatchObject({ attachment_ids: ['id-photos/p.jpg'] });
-    expect(uploaded).toHaveBeenLastCalledWith({ 'photos/p.jpg': 'id-photos/p.jpg' });
+    expect(uploaded).toHaveBeenLastCalledWith(expect.objectContaining({ 'photos/p.jpg': 'id-photos/p.jpg' }));
     expect(progress.mock.calls.map(([value]) => value.phase)).toEqual(['files', 'files', 'messages', 'messages', 'finishing']);
   });
 

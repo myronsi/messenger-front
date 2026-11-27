@@ -62,8 +62,8 @@ describe('parseTelegram', () => {
     [{ file: 'round_video_messages/r.mp4', media_type: 'video_message' }, { path: 'round_video_messages/r.mp4', name: 'r.mp4', kind: 'video' }],
     [{ file: 'video_files/a.gif.mp4', media_type: 'animation' }, { path: 'video_files/a.gif.mp4', name: 'a.gif.mp4', kind: 'video' }],
     [{ file: 'files/song.mp3', file_name: 'Song.mp3', media_type: 'audio_file' }, { path: 'files/song.mp3', name: 'Song.mp3', kind: 'audio' }],
-    [{ file: 'stickers/s.webp', media_type: 'sticker', sticker_emoji: '😀' }, { path: 'stickers/s.webp', name: 's.webp', kind: 'sticker' }],
-    [{ file: 'stickers/s.webm', media_type: 'sticker', sticker_emoji: '😀' }, { path: 'stickers/s.webm', name: 's.webm', kind: 'video' }],
+    [{ file: 'stickers/s.webp', media_type: 'sticker', sticker_emoji: '😀' }, { path: 'stickers/s.webp', name: 's.webp', kind: 'sticker', emoji: '😀' }],
+    [{ file: 'stickers/s.webm', media_type: 'sticker', sticker_emoji: '😀' }, { path: 'stickers/s.webm', name: 's.webm', kind: 'sticker', emoji: '😀' }],
     [{ file: 'files/report.pdf', file_name: 'Report.pdf' }, { path: 'files/report.pdf', name: 'Report.pdf', kind: 'file' }],
   ])('reads media %o', (fields, attachment) => {
     const chat = parseTelegram(exportOf([message(1, fields)]), all);

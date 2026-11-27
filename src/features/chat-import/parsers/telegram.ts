@@ -88,9 +88,10 @@ const mediaOf = (message: TelegramMessage, hasFile: HasFile): MediaResult => {
   }
   if (message.file === undefined) return {};
   const kind = (message.media_type && MEDIA_KINDS[message.media_type]) || 'file';
-  const sticker = kind === 'sticker' && extensionOf(message.file) !== 'webp' ? 'video' : kind;
+  const sticker = kind === 'sticker' && !['webp', 'webm'].includes(extensionOf(message.file)) ? 'video' : kind;
+  const emoji = sticker === 'sticker' && message.sticker_emoji ? { emoji: message.sticker_emoji } : {};
   return included(message.file, hasFile)
-    ? { attachment: { path: message.file, name: message.file_name || baseName(message.file), kind: sticker } }
+    ? { attachment: { path: message.file, name: message.file_name || baseName(message.file), kind: sticker, ...emoji } }
     : { notice: { code: 'mediaOmitted', detail: message.file_name || sticker } };
 };
 

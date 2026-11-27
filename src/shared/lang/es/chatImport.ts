@@ -59,6 +59,7 @@ export const chatImport = {
       keepOpen: 'Mantén esta ventana abierta hasta que termine la importación.',
     },
     done: '{count} mensajes importados.',
+    stickerPack: 'Stickers importados',
     resume: {
       title: '¿Continuar la importación?',
       hint: 'La importación de «{name}» se detuvo en el mensaje {index} de {total}. Elige la misma exportación para continuar.',

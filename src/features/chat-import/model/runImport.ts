@@ -1,8 +1,10 @@
 import type { EntityId } from '@/shared/api/entityId';
 import { importCalls } from '../api/importApi';
+import { importStickerCalls } from '../api/importStickerCalls';
 import type { ChatImport } from '../api/importTypes';
 import { errorStatus } from './importErrors';
 import { importedMessage, type SkipReason } from './importRequest';
+import { addImportSticker, FILE_HASH_KEY, fileDigest, STICKER_HASH_KEY, STICKER_KEY, type StickerCalls } from './importStickers';
 import { precheck, uploadImportFile } from './uploadImportFile';
 import { IMPORT_BATCH_SIZE, type ParsedAttachment, type ParsedChat, type ParsedNotice } from './types';
 
@@ -17,6 +19,7 @@ export interface RunDeps {
   upload: typeof uploadImportFile;
   readFile: (path: string) => Promise<File>;
   wait: (ms: number) => Promise<void>;
+  stickers?: StickerCalls;
 }
 
 export interface RunOptions {
@@ -25,6 +28,7 @@ export interface RunOptions {
   fromIndex: number;
   uploaded: Record<string, EntityId>;
   noticeText: (notice: ParsedNotice) => string;
+  stickerPackTitle?: string;
   onProgress: (progress: ImportProgress) => void;
   onUploaded: (uploaded: Record<string, EntityId>) => void;
   signal?: AbortSignal;
@@ -56,6 +60,47 @@ const checkAbort = (signal?: AbortSignal) => {
   if (signal?.aborted) throw new ImportRunError('cancelled');
 };
 
+const placed = (ids: Map<string, EntityId>, path: string) => ids.has(path) || ids.has(STICKER_KEY + path);
+
+const captioned = new WeakMap<ParsedChat, Set<string>>();
+
+const captionedPaths = (chat: ParsedChat) => {
+  let paths = captioned.get(chat);
+  if (!paths) {
+    paths = new Set(chat.messages.flatMap((message) => (message.attachment && message.text ? [message.attachment.path] : [])));
+    captioned.set(chat, paths);
+  }
+  return paths;
+};
+
+const placeSticker = async (file: File, attachment: ParsedAttachment, hash: string | null, ids: Map<string, EntityId>, options: RunOptions, deps: RunDeps) => {
+  if (attachment.kind !== 'sticker' || !deps.stickers || !options.stickerPackTitle || captionedPaths(options.chat).has(attachment.path)) return false;
+  const known = hash === null ? undefined : ids.get(STICKER_HASH_KEY + hash);
+  const sticker = known ?? await addImportSticker(file, attachment, ids, options.stickerPackTitle, deps.stickers, options.signal);
+  if (sticker === null) return false;
+  ids.set(STICKER_KEY + attachment.path, sticker);
+  if (hash !== null) ids.set(STICKER_HASH_KEY + hash, sticker);
+  return true;
+};
+
+const placeFile = async (attachment: ParsedAttachment, ids: Map<string, EntityId>, skipped: Map<string, SkipReason>, options: RunOptions, deps: RunDeps) => {
+  const file = await deps.readFile(attachment.path);
+  const hash = await fileDigest(file);
+  if (await placeSticker(file, attachment, hash, ids, options, deps)) return;
+  const known = hash === null ? undefined : ids.get(FILE_HASH_KEY + hash);
+  if (known !== undefined) {
+    ids.set(attachment.path, known);
+    return;
+  }
+  const outcome = await deps.upload(file, attachment, options.importId, options.signal);
+  if ('skipped' in outcome) {
+    skipped.set(attachment.path, outcome.skipped);
+    return;
+  }
+  ids.set(attachment.path, outcome.id);
+  if (hash !== null) ids.set(FILE_HASH_KEY + hash, outcome.id);
+};
+
 const uploadFiles = async (options: RunOptions, deps: RunDeps) => {
   const ids = new Map(Object.entries(options.uploaded));
   const skipped = new Map<string, SkipReason>();
@@ -64,13 +109,11 @@ const uploadFiles = async (options: RunOptions, deps: RunDeps) => {
   options.onProgress({ phase: 'files', done: 0, total: attachments.length });
   for (const [position, attachment] of attachments.entries()) {
     checkAbort(options.signal);
-    const reason = ids.has(attachment.path) ? null : precheck(attachment);
+    const reason = placed(ids, attachment.path) ? null : precheck(attachment);
     if (reason) skipped.set(attachment.path, reason);
-    else if (!ids.has(attachment.path)) {
-      const outcome = await deps.upload(await deps.readFile(attachment.path), attachment, options.importId, options.signal)
+    else if (!placed(ids, attachment.path)) {
+      await placeFile(attachment, ids, skipped, options, deps)
         .catch((error: unknown) => { throw options.signal?.aborted ? new ImportRunError('cancelled') : error; });
-      if ('id' in outcome) ids.set(attachment.path, outcome.id);
-      else skipped.set(attachment.path, outcome.skipped);
       sinceSave += 1;
       if (sinceSave >= SAVE_EVERY) {
         sinceSave = 0;
@@ -116,6 +159,7 @@ const defaultDeps = (readFile: RunDeps['readFile']): RunDeps => ({
   calls: importCalls,
   upload: uploadImportFile,
   readFile,
+  stickers: importStickerCalls,
   wait: (ms) => new Promise((resolve) => { setTimeout(resolve, ms); }),
 });
 
