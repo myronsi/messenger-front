@@ -76,7 +76,8 @@ describe('ImportStatusBanner', () => {
     act(() => setActiveImport({ importId: '25', chatId: '7', done: 120000, total: 146512, waitingSeconds: 0 }));
     const banner = screen.getByTestId('import-status-banner');
     expect(banner).toHaveTextContent(en.chatImport.status.importing);
-    expect(banner).toHaveTextContent('81%');
+    expect(banner).toHaveTextContent('81.9%');
+    expect(screen.getByRole('progressbar', { name: en.chatImport.status.importing })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: en.chatImport.status.continue })).not.toBeInTheDocument();
   });
 

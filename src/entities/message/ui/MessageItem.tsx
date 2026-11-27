@@ -49,6 +49,7 @@ interface MessageItemProps {
   replyMessage?: Message;
   userId: EntityId;
   isGroup: boolean;
+  showImportedName?: boolean;
   isImage: boolean;
   isMobile: boolean;
   showNewMessagesMarker: boolean;
@@ -80,7 +81,7 @@ interface MessageItemProps {
   onSwipeReply?: (message: Message) => void;
 }
 const MessageItem: React.FC<MessageItemProps> = ({
-  message, prevMessage, nextMessage, replyMessage, userId, isGroup, isImage: isImageMessage, isMobile, showNewMessagesMarker,
+  message, prevMessage, nextMessage, replyMessage, userId, isGroup, showImportedName = false, isImage: isImageMessage, isMobile, showNewMessagesMarker,
   nextShowsNewMessagesMarker, translations, interlocutorDeleted, isHighlighted, isContextHighlighted, messageRefs,
   firstUnreadMarkerRef, getFormattedDateLabel, getMessageTime, isOwnMessage, getFileTypeConfig,
   renderMessageContent, onPlayAudio,
@@ -121,7 +122,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       getFormattedDateLabel(message.timestamp) !== getFormattedDateLabel(nextMessage.timestamp)) &&
     !nextShowsNewMessagesMarker;
   const isLastInGroup = !groupedWithNext;
-  const showSenderName = (isGroup || importedName !== null) && !isMine && !groupedWithPrevious;
+  const showSenderName = (isGroup || importedName !== null || showImportedName) && !isMine && !groupedWithPrevious;
   const reserveAvatarSpace = isGroup && !isMine;
   const showAvatar = reserveAvatarSpace && isLastInGroup && importedName === null;
   const showTail = isLastInGroup && !isImage;
