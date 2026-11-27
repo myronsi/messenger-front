@@ -2,6 +2,7 @@ import type { EntityId } from '@/shared/api/entityId';
 import type { SkipReason } from './importRequest';
 import { addImportSticker, FILE_HASH_KEY, fileDigest, STICKER_HASH_KEY, STICKER_KEY, type StickerCalls } from './importStickers';
 import { isLottieSticker, precheck, type uploadImportFile } from './uploadImportFile';
+import { withRetry } from './uploadRetry';
 import type { ParsedAttachment, ParsedChat, ParsedMessage } from './types';
 
 const SAVE_EVERY = 20;
@@ -9,6 +10,7 @@ const SAVE_EVERY = 20;
 export interface FileDeps {
   upload: typeof uploadImportFile;
   readFile: (path: string) => Promise<File>;
+  wait: (ms: number) => Promise<void>;
   stickers?: StickerCalls;
 }
 
@@ -19,6 +21,7 @@ export interface FileOptions {
   uploaded: Record<string, EntityId>;
   stickerPackTitle?: string;
   onUploaded: (uploaded: Record<string, EntityId>) => void;
+  onWait?: (seconds: number) => void;
   signal?: AbortSignal;
 }
 
@@ -48,6 +51,12 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
   const total = distinctAttachments(options.chat.messages.slice(options.fromIndex)).length;
   let sinceSave = 0;
 
+  const retry = { wait: deps.wait, signal: options.signal, onWait: options.onWait };
+  const stickerCalls: StickerCalls | undefined = deps.stickers && {
+    upload: (file, attachment, signal) => withRetry(() => deps.stickers!.upload(file, attachment, signal), retry),
+    createPack: (title) => withRetry(() => deps.stickers!.createPack(title), retry),
+    addSticker: (packId, imageId, emoji) => withRetry(() => deps.stickers!.addSticker(packId, imageId, emoji), retry),
+  };
   const placed = (path: string) => ids.has(path) || ids.has(STICKER_KEY + path);
   const save = () => {
     sinceSave = 0;
@@ -55,9 +64,9 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
   };
 
   const placeSticker = async (file: File, attachment: ParsedAttachment, hash: string | null) => {
-    if (attachment.kind !== 'sticker' || !deps.stickers || !options.stickerPackTitle || captionedPaths(options.chat).has(attachment.path)) return false;
+    if (attachment.kind !== 'sticker' || !stickerCalls || !options.stickerPackTitle || captionedPaths(options.chat).has(attachment.path)) return false;
     const known = hash === null ? undefined : ids.get(STICKER_HASH_KEY + hash);
-    const sticker = known ?? await addImportSticker(file, attachment, ids, options.stickerPackTitle, deps.stickers, options.signal);
+    const sticker = known ?? await addImportSticker(file, attachment, ids, options.stickerPackTitle, stickerCalls, options.signal);
     if (sticker === null) return false;
     ids.set(STICKER_KEY + attachment.path, sticker);
     if (hash !== null) ids.set(STICKER_HASH_KEY + hash, sticker);
@@ -77,7 +86,7 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
       ids.set(attachment.path, known);
       return;
     }
-    const outcome = await deps.upload(file, attachment, options.importId, options.signal);
+    const outcome = await withRetry(() => deps.upload(file, attachment, options.importId, options.signal), retry);
     if ('skipped' in outcome) {
       skipped.set(attachment.path, outcome.skipped);
       return;

@@ -28,6 +28,9 @@ export const ImportProgressStep = ({ progress, result }: ImportProgressStepProps
     <div className="space-y-3">
       <p role="status" className="text-sm">{label}</p>
       <Progress value={percent} aria-label={label} className="h-2" />
+      {!!progress?.waitingSeconds && (
+        <p role="status" className="text-xs text-warning">{fillTemplate(t.progress.waiting, { seconds: String(progress.waitingSeconds) })}</p>
+      )}
       {!!progress?.filesTotal && !finishing && (
         <p className="text-xs text-muted-foreground">{fillTemplate(t.progress.files, { done: count(progress.filesDone), total: count(progress.filesTotal) })}</p>
       )}
