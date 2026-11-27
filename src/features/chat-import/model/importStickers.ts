@@ -13,7 +13,7 @@ const PACK_TITLE_LENGTH = 64;
 export type AddedSticker = EntityId | 'full' | null;
 
 export interface StickerCalls {
-  upload: (file: File, attachment: ParsedAttachment, signal?: AbortSignal) => Promise<EntityId | null>;
+  upload: (file: File, attachment: ParsedAttachment, importId: EntityId, signal?: AbortSignal) => Promise<EntityId | null>;
   createPack: (title: string) => Promise<EntityId | null>;
   addSticker: (packId: EntityId, imageId: EntityId, emoji: string) => Promise<AddedSticker>;
 }
@@ -41,9 +41,9 @@ const openPack = async (ids: Map<string, EntityId>, title: string, calls: Sticke
 };
 
 export const addImportSticker = async (
-  file: File, attachment: ParsedAttachment, ids: Map<string, EntityId>, title: string, calls: StickerCalls, signal?: AbortSignal,
+  file: File, attachment: ParsedAttachment, importId: EntityId, ids: Map<string, EntityId>, title: string, calls: StickerCalls, signal?: AbortSignal,
 ) => {
-  const image = await calls.upload(file, attachment, signal);
+  const image = await calls.upload(file, attachment, importId, signal);
   if (image === null) return null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const pack = await openPack(ids, title, calls);

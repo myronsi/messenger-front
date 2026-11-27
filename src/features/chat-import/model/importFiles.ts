@@ -75,7 +75,7 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
 
   const retry = { wait: deps.wait, signal: options.signal, onWait: options.onWait };
   const stickerCalls: StickerCalls | undefined = deps.stickers && {
-    upload: (file, attachment, signal) => withRetry(() => deps.stickers!.upload(file, attachment, signal), retry),
+    upload: (file, attachment, importId, signal) => withRetry(() => deps.stickers!.upload(file, attachment, importId, signal), retry),
     createPack: (title) => withRetry(() => deps.stickers!.createPack(title), retry),
     addSticker: (packId, imageId, emoji) => withRetry(() => deps.stickers!.addSticker(packId, imageId, emoji), retry),
   };
@@ -90,7 +90,7 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
     const title = options.stickerPackTitle;
     const sticker = await once(hash === null ? null : STICKER_HASH_KEY + hash, () => inStickerLane(async () => {
       const known = hash === null ? undefined : ids.get(STICKER_HASH_KEY + hash);
-      return known ?? addImportSticker(file, attachment, ids, title, stickerCalls, options.signal);
+      return known ?? addImportSticker(file, attachment, options.importId, ids, title, stickerCalls, options.signal);
     }));
     if (sticker === null) return false;
     ids.set(STICKER_KEY + attachment.path, sticker);
