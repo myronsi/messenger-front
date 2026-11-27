@@ -1,9 +1,10 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Progress } from '@/shared/ui/progress';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { localeOf } from '@/shared/lang/languages';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import type { ChatImport } from '../api/importTypes';
-import { importPercent } from '../model/activeImport';
+import { formatImportPercent, importPercent } from '../model/activeImport';
 import type { ImportProgress } from '../model/runImport';
 
 interface ImportProgressStepProps {
@@ -12,7 +13,7 @@ interface ImportProgressStepProps {
 }
 
 export const ImportProgressStep = ({ progress, result }: ImportProgressStepProps) => {
-  const { translations } = useLanguage();
+  const { translations, language } = useLanguage();
   const t = translations.chatImport;
   if (result) {
     return (
@@ -24,12 +25,13 @@ export const ImportProgressStep = ({ progress, result }: ImportProgressStepProps
   const finishing = progress?.phase === 'finishing';
   const count = (value = 0) => value.toLocaleString();
   const label = finishing ? t.progress.finishing : fillTemplate(t.progress.messages, { done: count(progress?.done), total: count(progress?.total) });
-  const percent = progress && progress.total > 0 ? importPercent(progress.done, progress.total) : finishing ? 100 : 0;
+  const [done, total] = progress && progress.total > 0 ? [progress.done, progress.total] : finishing ? [1, 1] : [0, 0];
+  const percent = importPercent(done, total);
   return (
     <div className="space-y-3">
       <p role="status" className="flex items-baseline gap-2 text-sm">
         <span className="min-w-0 flex-1">{label}</span>
-        <span data-testid="import-percent" className="shrink-0 text-base font-semibold tabular-nums">{percent}%</span>
+        <span data-testid="import-percent" className="shrink-0 text-base font-semibold tabular-nums">{formatImportPercent(done, total, localeOf(language))}</span>
       </p>
       <Progress value={percent} aria-label={label} className="h-2" />
       {!!progress?.waitingSeconds && (

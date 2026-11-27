@@ -26,4 +26,7 @@ const subscribe = (listener: () => void) => {
 
 export const useActiveImport = () => useSyncExternalStore(subscribe, () => current, () => null);
 
-export const importPercent = (done: number, total: number) => (total > 0 ? Math.min(100, Math.floor((done / total) * 100)) : 0);
+export const importPercent = (done: number, total: number) => (total > 0 ? Math.min(1000, Math.floor((done * 1000) / total)) / 10 : 0);
+
+export const formatImportPercent = (done: number, total: number, locale: string) =>
+  new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(importPercent(done, total) / 100);

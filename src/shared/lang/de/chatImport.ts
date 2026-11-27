@@ -132,7 +132,7 @@ export const chatImport = {
       continue: 'Fortsetzen',
       remove: 'Entfernen',
       removeTitle: 'Importierten Teil entfernen?',
-      removeHint: 'Die bisher importierten {percent}% verschwinden für alle in diesem Chat.',
+      removeHint: 'Die bisher importierten {percent} verschwinden für alle in diesem Chat.',
       removeFailed: 'Der Import konnte nicht entfernt werden. Versuche es erneut.',
     },
     banner: {
