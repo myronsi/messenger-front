@@ -62,6 +62,7 @@ describe('runImport stickers', () => {
     expect(calls.createPack).toHaveBeenCalledTimes(1);
     expect(calls.createPack).toHaveBeenCalledWith('Imported stickers');
     expect(calls.upload).toHaveBeenCalledTimes(2);
+    expect(calls.upload).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ path: 'a.webp' }), '9', undefined);
     expect(calls.addSticker).toHaveBeenNthCalledWith(1, 'new-1', 'img-a.webp', '😺');
     expect(calls.addSticker).toHaveBeenNthCalledWith(2, 'new-1', 'img-c.webp', '🙂');
     expect(deps.upload).not.toHaveBeenCalled();

@@ -13,7 +13,7 @@ const REFUSED = new Set([409, 413, 415, 422]);
 const refused = (status: unknown) => typeof status === 'number' && REFUSED.has(status);
 
 export const importStickerCalls: StickerCalls = {
-  upload: async (file, attachment, signal) => {
+  upload: async (file, attachment, importId, signal) => {
     const extension = extensionOf(attachment.path);
     const source = extension === 'tgs' ? await tgsToGif(file) : file;
     if (!source) return null;
@@ -22,7 +22,7 @@ export const importStickerCalls: StickerCalls = {
     form.set('purpose', 'sticker');
     form.set('kind', extension === 'webm' ? 'video' : 'image');
     try {
-      const url = `${String(getApiBaseUrl()).replace(/\/$/, '')}/attachments`;
+      const url = `${String(getApiBaseUrl()).replace(/\/$/, '')}/attachments?import_id=${encodeURIComponent(String(importId))}`;
       return (await uploadWithProgress<components['schemas']['Attachment']>({ url, formData: form, signal })).id;
     } catch (error) {
       if (error instanceof UploadError && refused(error.status)) return null;
