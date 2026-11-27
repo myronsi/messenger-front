@@ -60,7 +60,28 @@ describe('runImport', () => {
     expect(batches[0].messages[0]).toMatchObject({ type: 'file', attachment_ids: ['id-photos/p.jpg'] });
     expect(batches[0].messages[2]).toMatchObject({ attachment_ids: ['id-photos/p.jpg'] });
     expect(uploaded).toHaveBeenLastCalledWith(expect.objectContaining({ 'photos/p.jpg': 'id-photos/p.jpg' }));
-    expect(progress.mock.calls.map(([value]) => value.phase)).toEqual(['files', 'files', 'messages', 'messages', 'finishing']);
+    expect(progress.mock.calls.map(([value]) => [value.phase, value.done, value.filesDone, value.filesTotal])).toEqual([
+      ['importing', 0, 0, 1], ['importing', 0, 1, 1], ['importing', 3, 1, 1], ['finishing', 3, 1, 1],
+    ]);
+  });
+
+  it('uploads the files of each batch right before that batch', async () => {
+    const file = (n: number) => ({ path: `f${n}.jpg`, name: `f${n}.jpg`, kind: 'image' as const, size: 10 });
+    const chat = chatOf(1001, { 0: file(0), 600: file(1), 1000: file(2) });
+    const order: string[] = [];
+    const upload: RunDeps['upload'] = vi.fn(async (_file, attachment) => {
+      order.push(`upload:${attachment.path}`);
+      return { id: `id-${attachment.path}` };
+    });
+    const { deps, calls } = setup({}, upload);
+    deps.readFile = vi.fn(async (path: string) => new File([path], path));
+    const addMessages = calls.addMessages as unknown as ReturnType<typeof vi.fn<(id: unknown, body: AddImportMessagesRequest) => Promise<unknown>>>;
+    addMessages.mockImplementation(async (_id: unknown, body: AddImportMessagesRequest) => {
+      order.push(`batch:${body.from_index}`);
+      return { data: { next_index: body.from_index + body.messages.length } };
+    });
+    await runImport(options(chat), deps);
+    expect(order).toEqual(['upload:f0.jpg', 'batch:0', 'upload:f1.jpg', 'batch:500', 'upload:f2.jpg', 'batch:1000']);
   });
 
   it('skips files over the limit and files the server refuses as grey lines', async () => {

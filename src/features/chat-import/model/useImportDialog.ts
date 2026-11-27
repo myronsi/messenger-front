@@ -3,7 +3,8 @@ import type { EntityId } from '@/shared/api/entityId';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { importCalls } from '../api/importApi';
 import type { ChatImport, SenderAssignment } from '../api/importTypes';
-import { limitErrorText, parseErrorText, startErrorText } from './importErrors';
+import { errorStatus, limitErrorText, parseErrorText, startErrorText } from './importErrors';
+import { ImportLockedError, useLeaveWarning, useWakeLock, withImportLock } from './importGuards';
 import { createImportReader, type ImportReader } from './importReader';
 import { startRequest, type ImportTarget } from './importRequest';
 import { noticeText } from './noticeText';
@@ -38,6 +39,20 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [result, setResult] = useState<ChatImport | null>(null);
   const resume = useImportResume(open, chatId);
+
+  const running = step === 'progress' && !result && !error;
+  useLeaveWarning(running);
+  useWakeLock(running);
+
+  const guarded = useCallback(async (run: () => Promise<void>) => {
+    try {
+      await withImportLock(run);
+    } catch (caught) {
+      if (!(caught instanceof ImportLockedError)) throw caught;
+      setBusy(false);
+      setError(t.errors.otherTab);
+    }
+  }, [t.errors.otherTab]);
 
   const reader = useCallback(() => {
     readerRef.current ??= createImportReader();
@@ -98,14 +113,14 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
       else if (pending.record.fileKey !== fileKeyOf(picked)) setError(t.errors.wrongFile);
       else {
         const { record, current } = pending;
-        void execute(parsed, record.importId, current.next_index, record.uploaded, record);
+        void guarded(() => execute(parsed, record.importId, current.next_index, record.uploaded, record));
       }
     } catch (caught) {
       setError(parseErrorText(caught, t));
     } finally {
       setBusy(false);
     }
-  }, [execute, reader, resume.pending, t]);
+  }, [execute, guarded, reader, resume.pending, t]);
 
   const reparse = useCallback(async (order: DateOrder, timeZone?: string) => {
     setBusy(true);
@@ -122,27 +137,29 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
     if (!chat || !target) return;
     setBusy(true);
     setError(null);
-    let chatId = target.kind === 'chat' ? target.chatId : null;
-    if (chatId === null) {
-      const group = await importCalls.createGroup(chat.title.slice(0, 64));
-      if (group.error) {
-        setBusy(false);
-        setError(t.errors.startFailed);
+    await guarded(async () => {
+      let chatId = target.kind === 'chat' ? target.chatId : null;
+      if (chatId === null) {
+        const group = await importCalls.createGroup(chat.title.slice(0, 64));
+        if (group.error) {
+          setBusy(false);
+          setError(t.errors.startFailed);
+          return;
+        }
+        chatId = group.data.id;
+        setTarget({ kind: 'chat', chatId });
+      }
+      const started = await importCalls.start(chatId, startRequest(chat, assignments));
+      setBusy(false);
+      if (started.error) {
+        setError(startErrorText(started.error, t));
         return;
       }
-      chatId = group.data.id;
-      setTarget({ kind: 'chat', chatId });
-    }
-    const started = await importCalls.start(chatId, startRequest(chat, assignments));
-    setBusy(false);
-    if (started.error) {
-      setError(startErrorText(started.error, t));
-      return;
-    }
-    const record = { chatId: started.data.chat_id, fileKey: fileKeyOf(files) };
-    resume.remember({ ...record, importId: started.data.id, title: chat.title, source: chat.source, total: chat.messages.length, uploaded: {} });
-    await execute(chat, started.data.id, 0, {}, record);
-  }, [assignments, chat, execute, files, resume, t, target]);
+      const record = { chatId: started.data.chat_id, fileKey: fileKeyOf(files) };
+      resume.remember({ ...record, importId: started.data.id, title: chat.title, source: chat.source, total: chat.messages.length, uploaded: {} });
+      await execute(chat, started.data.id, 0, {}, record);
+    });
+  }, [assignments, chat, execute, files, guarded, resume, t, target]);
 
   const retry = useCallback(async () => {
     const run = runRef.current;
@@ -154,10 +171,27 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
       return;
     }
     const record = { chatId: current.data.chat_id, fileKey: fileKeyOf(files) };
-    void execute(chat, importId, current.data.next_index, uploaded, record);
-  }, [chat, execute, files, t.errors.stopped]);
+    void guarded(() => execute(chat, importId, current.data.next_index, uploaded, record));
+  }, [chat, execute, files, guarded, t.errors.stopped]);
 
-  const cancel = useCallback(() => abortRef.current?.abort(), []);
+  const pause = useCallback(() => {
+    abortRef.current?.abort();
+    setError(t.stop.paused);
+  }, [t.stop.paused]);
+
+  const stopAndRemove = useCallback(async () => {
+    abortRef.current?.abort();
+    const run = runRef.current;
+    if (run) {
+      const removed = await importCalls.remove(run.importId);
+      if (removed.error && errorStatus(removed.error) !== 404) {
+        setError(t.stop.removeFailed);
+        return false;
+      }
+    }
+    resume.forget();
+    return true;
+  }, [resume, t.stop.removeFailed]);
 
   const toSenders = useCallback((members: readonly ImportMember[]) => {
     if (!chat) return;
@@ -166,7 +200,7 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
   }, [chat, meId]);
 
   return {
-    step, setStep, busy, error, chat, target, setTarget, assignments, setAssignments, progress, result,
-    pending: resume.pending, discardPending: resume.discard, chooseFiles, switchDateOrder, switchTimeZone, toSenders, start, retry, cancel,
+    step, setStep, busy, error, chat, target, setTarget, assignments, setAssignments, progress, result, running,
+    pending: resume.pending, discardPending: resume.discard, chooseFiles, switchDateOrder, switchTimeZone, toSenders, start, retry, pause, stopAndRemove,
   };
 };
