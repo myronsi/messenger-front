@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
-import type { ChatImport } from '../api/importTypes';
 import { ImportChatDialog } from './ImportChatDialog';
+import { chatFile, importChat, importMe, pickFile, runningImport } from './importDialogTestKit';
 
 const calls = vi.hoisted(() => ({ createGroup: vi.fn(), start: vi.fn(), get: vi.fn(), addMessages: vi.fn(), finish: vi.fn(), remove: vi.fn() }));
 
@@ -14,24 +14,9 @@ vi.mock('@/entities/chat', () => ({
   useGetGroupDetailsQuery: () => ({ data: undefined }),
 }));
 
-const at = '2021-03-14T12:00:00.000Z';
-const running: ChatImport = {
-  id: '9', chat_id: '7', source: 'telegram', state: 'running', message_count: 3, file_count: 0, created_at: at, finished_at: null,
-  first_at: at, last_at: at, next_index: 0, imported_by: '1', senders: [],
-};
-const telegramJson = JSON.stringify({
-  name: 'Trip', type: 'personal_chat', id: 1,
-  messages: [
-    { id: 1, type: 'message', date_unixtime: '1615726800', from: 'Anna', from_id: 'user11', text: 'Hi Bob' },
-    { id: 2, type: 'message', date_unixtime: '1615726900', from: 'Bob K.', from_id: 'user22', text: 'Hi Anna' },
-  ],
-});
-const me = { id: '1', username: 'anna', displayName: 'Anna' };
-const chat = { chatId: '7', name: 'Bob K.', isGroup: false, peer: { id: '2', username: 'bobk', displayName: 'Bob K.' } };
-
 const startImport = async (onOpenChange = vi.fn()) => {
-  render(<ImportChatDialog open onOpenChange={onOpenChange} me={me} chat={chat} />);
-  fireEvent.change(screen.getByTestId('import-file-input'), { target: { files: [new File([telegramJson], 'result.json', { type: 'application/json' })] } });
+  render(<ImportChatDialog open onOpenChange={onOpenChange} me={importMe} chat={importChat} />);
+  pickFile(chatFile());
   fireEvent.click(await screen.findByRole('button', { name: en.chatImport.actions.next }));
   fireEvent.click(screen.getByRole('button', { name: en.chatImport.actions.start }));
   return onOpenChange;
@@ -42,7 +27,7 @@ const setLocks = (value: unknown) => Object.defineProperty(navigator, 'locks', {
 beforeEach(() => {
   localStorage.clear();
   Object.values(calls).forEach((call) => call.mockReset());
-  calls.start.mockResolvedValue({ data: running });
+  calls.start.mockResolvedValue({ data: runningImport });
   calls.addMessages.mockImplementation(() => new Promise(() => undefined));
   calls.remove.mockResolvedValue({ data: null });
 });

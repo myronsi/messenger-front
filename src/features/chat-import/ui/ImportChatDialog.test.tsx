@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/shared/lang/en';
-import type { AddImportMessagesRequest, ChatImport } from '../api/importTypes';
+import type { AddImportMessagesRequest } from '../api/importTypes';
 import { fileKeyOf } from '../model/resumeStore';
 import { ImportChatDialog } from './ImportChatDialog';
+import { chatFile, importChat, importMe, pickFile, runningImport } from './importDialogTestKit';
 
 const calls = vi.hoisted(() => ({ createGroup: vi.fn(), start: vi.fn(), get: vi.fn(), addMessages: vi.fn(), finish: vi.fn(), remove: vi.fn() }));
 
@@ -15,25 +16,12 @@ vi.mock('@/entities/chat', () => ({
   useGetGroupDetailsQuery: () => ({ data: undefined }),
 }));
 
-const at = '2021-03-14T12:00:00.000Z';
-const running: ChatImport = {
-  id: '9', chat_id: '7', source: 'telegram', state: 'running', message_count: 3, file_count: 0, created_at: at, finished_at: null,
-  first_at: at, last_at: at, next_index: 0, imported_by: '1', senders: [],
-};
-const telegramJson = JSON.stringify({
-  name: 'Trip', type: 'personal_chat', id: 1,
-  messages: [
-    { id: 1, type: 'message', date_unixtime: '1615726800', from: 'Anna', from_id: 'user11', text: 'Hi Bob' },
-    { id: 2, type: 'message', date_unixtime: '1615726900', from: 'Bob K.', from_id: 'user22', text: 'Hi Anna', reply_to_message_id: 1 },
-    { id: 3, type: 'message', date_unixtime: '1615727000', from: 'Bob K.', from_id: 'user22', text: 'See you' },
-  ],
-});
-const chatFile = () => new File([telegramJson], 'result.json', { type: 'application/json' });
-const me = { id: '1', username: 'anna', displayName: 'Anna' };
-const chat = { chatId: '7', name: 'Bob K.', isGroup: false, peer: { id: '2', username: 'bobk', displayName: 'Bob K.' } };
+const running = runningImport;
+const me = importMe;
+const chat = importChat;
 
 const show = (target: typeof chat | null = chat) => render(<ImportChatDialog open onOpenChange={vi.fn()} me={me} chat={target ?? undefined} />);
-const pick = (file: File) => fireEvent.change(screen.getByTestId('import-file-input'), { target: { files: [file] } });
+const pick = pickFile;
 const resume = (fileKey: string, total = 3) => localStorage.setItem('chat-import:pending', JSON.stringify({
   importId: '9', chatId: '7', title: 'Trip', source: 'telegram', total, fileKey, uploaded: {},
 }));
