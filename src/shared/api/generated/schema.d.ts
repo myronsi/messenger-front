@@ -6103,8 +6103,8 @@ export interface components {
          *     border and stores a WebP (`413` when that is still over 512 KB). Only its uploader can load it until it is
          *     added to a pack.
          *
-         *     A sticker can also be made from a video (`kind: video`: MP4, WebM or MOV) or an animated GIF of at most 15 MB.
-         *     The server keeps at most 3 s of it (from `start_ms` to `end_ms`, or the first 3 s), crops it to the square
+         *     A sticker can also be made from a video (`kind: video`: MP4, WebM or MOV), an animated GIF or an animated WebP
+         *     of at most 15 MB. The server keeps at most 3 s of it (from `start_ms` to `end_ms`, or the first 3 s), crops it to the square
          *     `crop_x`, `crop_y`, `crop_size` when given (otherwise it fits the clip into the square with a transparent
          *     border), drops the sound and stores a looping animated WebP of at most 512 x 512 px (`413` when it is still
          *     over 1 MB at the lowest quality). The sticker then has `is_animated: true`.
@@ -6920,9 +6920,11 @@ export interface components {
         };
         /**
          * @description `note`: a line of the export that is not a message (for example that someone joined), shown as a system message.
+         *     `sticker`: a sticker the importer may send (usually from a pack the importer made from the export's stickers),
+         *     with `sticker_id` and no `content` or `attachment_ids`.
          * @enum {string}
          */
-        ImportedMessageType: "text" | "file" | "voice" | "note";
+        ImportedMessageType: "text" | "file" | "voice" | "note" | "sticker";
         ImportedMessage: {
             /** @description Position in the import, counting from 0 without gaps. */
             index: number;
@@ -6934,6 +6936,8 @@ export interface components {
             content?: string | null;
             /** @description The importer's uploads; two to ten images or videos make an album. */
             attachment_ids?: components["schemas"]["AttachmentRef"][];
+            /** @description The sticker of a `sticker` message; the server sets `content` to the sticker's emoji. */
+            sticker_id?: components["schemas"]["Id"];
             /** @description `index` of an earlier message of the import that this one answers. */
             reply_to_index?: number;
         };

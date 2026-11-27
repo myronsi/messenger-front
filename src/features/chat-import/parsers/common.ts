@@ -1,5 +1,6 @@
 import type { AttachmentKind, DateOrder, ImportSource, ParsedChat, ParsedMessage, ParsedSender } from '../model/types';
 import { ImportParseError } from '../model/types';
+import { limitFiles, maskPhone, maskPhoneMentions, splitLongMessages } from './normalize';
 
 const EXTENSION_KINDS: Record<string, AttachmentKind> = {
   jpg: 'image', jpeg: 'image', png: 'image', gif: 'image', heic: 'image', bmp: 'image',
@@ -60,24 +61,25 @@ export const safeSenderKeys = (source: ImportSource, keys: Iterable<string>) => 
   return safe;
 };
 
-export const buildChat = ({ source, title, messages, names = new Map() }: ChatParts, extra: Partial<ParsedChat> = {}): ParsedChat => {
-  if (messages.length === 0) throw new ImportParseError('emptyChat');
+export const buildChat = ({ source, title, messages: parsed, names = new Map() }: ChatParts, extra: Partial<ParsedChat> = {}): ParsedChat => {
+  if (parsed.length === 0) throw new ImportParseError('emptyChat');
+  const messages = splitLongMessages(parsed);
   const tally = senderTally();
   const keys = safeSenderKeys(source, messages.flatMap((message) => (message.senderKey ? [message.senderKey] : [])));
   let first: string | null = null;
   let last: string | null = null;
-  let files = 0;
   for (const message of messages) {
     const raw = message.senderKey;
     if (raw) {
       message.senderKey = keys.get(raw) ?? raw;
-      tally.add(message.senderKey, names.get(raw) ?? raw);
+      tally.add(message.senderKey, maskPhone(names.get(raw) ?? raw));
     }
-    if (message.attachment) files += 1;
+    if (message.text) message.text = maskPhoneMentions(message.text);
     if (!first || message.originalAt < first) first = message.originalAt;
     if (!last || message.originalAt > last) last = message.originalAt;
   }
-  return { ...extra, source, title, messages, senders: tally.list(), fileCount: files, firstAt: first, lastAt: last };
+  const { fileCount, skippedFiles } = limitFiles(messages);
+  return { ...extra, source, title: maskPhone(title), messages, senders: tally.list(), fileCount, skippedFiles, firstAt: first, lastAt: last };
 };
 
 export const localeDateOrder = (locale?: string): DateOrder => {

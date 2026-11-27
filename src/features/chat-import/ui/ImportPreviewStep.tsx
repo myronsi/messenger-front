@@ -5,6 +5,7 @@ import { localeOf } from '@/shared/lang/languages';
 import { IMPORT_SOURCE_NAMES } from '@/entities/message';
 import type { ImportTarget } from '../model/importRequest';
 import type { DateOrder, ParsedChat } from '../model/types';
+import { timeZoneOptions } from '../parsers/zonedTime';
 
 export interface ImportChatOption {
   chatId: EntityId;
@@ -18,11 +19,12 @@ interface ImportPreviewStepProps {
   chats?: readonly ImportChatOption[];
   onTarget: (target: ImportTarget) => void;
   onDateOrder: (order: DateOrder) => void;
+  onTimeZone: (timeZone: string) => void;
 }
 
 const optionClass = 'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-accent/50';
 
-export const ImportPreviewStep = ({ chat, busy, target, chats, onTarget, onDateOrder }: ImportPreviewStepProps) => {
+export const ImportPreviewStep = ({ chat, busy, target, chats, onTarget, onDateOrder, onTimeZone }: ImportPreviewStepProps) => {
   const { translations, language } = useLanguage();
   const t = translations.chatImport;
   const date = (value: string | null) => (value ? new Date(value).toLocaleDateString(localeOf(language), { dateStyle: 'medium' }) : '');
@@ -37,6 +39,7 @@ export const ImportPreviewStep = ({ chat, busy, target, chats, onTarget, onDateO
         <ul className="mt-2 space-y-0.5 text-sm">
           <li>{count(t.preview.messages, chat.messages.length)}</li>
           <li>{count(t.preview.files, chat.fileCount)}</li>
+          {!!chat.skippedFiles && <li className="text-warning">{count(t.preview.filesOverLimit, chat.skippedFiles)}</li>}
           <li>{count(t.preview.people, chat.senders.length)}</li>
           <li>{fillTemplate(t.preview.range, { from: date(chat.firstAt), to: date(chat.lastAt) })}</li>
         </ul>
@@ -52,6 +55,16 @@ export const ImportPreviewStep = ({ chat, busy, target, chats, onTarget, onDateO
             </label>
           ))}
         </fieldset>
+      )}
+      {chat.source === 'whatsapp' && chat.timeZone && (
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">{t.preview.timeZone}</span>
+          <span className="block text-xs text-muted-foreground">{t.preview.timeZoneHint}</span>
+          <select value={chat.timeZone} disabled={busy} onChange={(event) => onTimeZone(event.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring">
+            {timeZoneOptions().map((zone) => <option key={zone} value={zone}>{zone.replace(/_/g, ' ')}</option>)}
+          </select>
+        </label>
       )}
       {chats && target && (
         <fieldset className="space-y-1">

@@ -64,6 +64,33 @@ describe('parseWhatsApp', () => {
     ]);
   });
 
+  it('reads contact cards as a grey line and Android audio files as audio', () => {
+    const content = [
+      '14/03/2021, 14:08 - Bob: Carla Ruiz.vcf (file attached)',
+      '14/03/2021, 14:09 - Bob: AUD-20210314-WA0003.opus (file attached)',
+      '14/03/2021, 14:10 - Bob: PTT-20210314-WA0004.opus (file attached)',
+    ].join('\n');
+    const chat = parseWhatsApp(content, options());
+    expect(chat.messages[0]).toMatchObject({ notice: { code: 'contact', detail: 'Carla Ruiz' } });
+    expect(chat.messages[0].attachment).toBeUndefined();
+    expect(chat.messages.slice(1).map((message) => message.attachment?.kind)).toEqual(['audio', 'voice']);
+    expect(chat.fileCount).toBe(2);
+  });
+
+  it('reads times in the chosen time zone', () => {
+    const line = '[14.07.21, 09:05:33] Anna: Hi';
+    expect(parseWhatsApp(line, options({ timeZone: 'Europe/Berlin' })).messages[0].originalAt).toBe('2021-07-14T07:05:33.000Z');
+    const chat = parseWhatsApp(line, options({ timeZone: 'America/New_York' }));
+    expect(chat.messages[0].originalAt).toBe('2021-07-14T13:05:33.000Z');
+    expect(chat.timeZone).toBe('America/New_York');
+  });
+
+  it('masks phone numbers of unsaved contacts', () => {
+    const chat = parseWhatsApp('[14.03.21, 09:05:33] ~ +49 151 23456789: Hi @4915123456789', options());
+    expect(chat.senders[0].name).toBe('+49 ••• 789');
+    expect(chat.messages[0].text).toBe('Hi @••• 789');
+  });
+
   it('removes the tilde WhatsApp puts before unsaved numbers', () => {
     const chat = parseWhatsApp('[14.03.21, 09:05:33] ~\u202fBob: Hi', options());
     expect(chat.senders).toEqual([{ key: 's-1', name: 'Bob', messageCount: 1 }]);

@@ -62,6 +62,7 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
       const done = await runImport({
         importId, chat: parsed, fromIndex, uploaded, signal: abortRef.current.signal,
         noticeText: (notice) => noticeText(notice, translations),
+        stickerPackTitle: t.stickerPack,
         onProgress: setProgress,
         onUploaded: (next) => {
           runRef.current = { importId, uploaded: next };
@@ -76,7 +77,7 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
       if (caught instanceof ImportRunError && caught.code === 'cancelled') return;
       setError(t.errors.stopped);
     }
-  }, [onDone, reader, resume, t.errors.stopped, translations]);
+  }, [onDone, reader, resume, t.errors.stopped, t.stickerPack, translations]);
 
   const chooseFiles = useCallback(async (picked: File[]) => {
     if (!picked.length) return;
@@ -106,14 +107,16 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
     }
   }, [execute, reader, resume.pending, t]);
 
-  const switchDateOrder = useCallback(async (order: DateOrder) => {
+  const reparse = useCallback(async (order: DateOrder, timeZone?: string) => {
     setBusy(true);
     try {
-      setChat(await reader().reparse(order));
+      setChat(await reader().reparse(order, timeZone));
     } finally {
       setBusy(false);
     }
   }, [reader]);
+  const switchDateOrder = useCallback((order: DateOrder) => reparse(order, chat?.timeZone), [chat?.timeZone, reparse]);
+  const switchTimeZone = useCallback((timeZone: string) => reparse(chat?.dateOrder ?? 'dmy', timeZone), [chat?.dateOrder, reparse]);
 
   const start = useCallback(async () => {
     if (!chat || !target) return;
@@ -164,6 +167,6 @@ export const useImportDialog = ({ open, chatId, meId, onDone }: ImportDialogOpti
 
   return {
     step, setStep, busy, error, chat, target, setTarget, assignments, setAssignments, progress, result,
-    pending: resume.pending, discardPending: resume.discard, chooseFiles, switchDateOrder, toSenders, start, retry, cancel,
+    pending: resume.pending, discardPending: resume.discard, chooseFiles, switchDateOrder, switchTimeZone, toSenders, start, retry, cancel,
   };
 };

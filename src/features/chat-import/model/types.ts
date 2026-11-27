@@ -7,10 +7,11 @@ export interface ParsedAttachment {
   name: string;
   kind: AttachmentKind;
   size?: number;
+  emoji?: string;
 }
 
 export type NoticeCode = 'poll' | 'location' | 'contact' | 'call' | 'mediaOmitted' | 'fileMissing' | 'fileTooLarge' | 'fileUnsupported' | 'sticker'
-  | 'groupCreated' | 'membersAdded' | 'membersRemoved' | 'memberJoined' | 'messagePinned' | 'titleChanged' | 'photoChanged' | 'service';
+  | 'fileOverLimit' | 'groupCreated' | 'membersAdded' | 'membersRemoved' | 'memberJoined' | 'messagePinned' | 'titleChanged' | 'photoChanged' | 'service';
 
 export interface ParsedNotice {
   code: NoticeCode;
@@ -43,10 +44,12 @@ export interface ParsedChat {
   messages: ParsedMessage[];
   senders: ParsedSender[];
   fileCount: number;
+  skippedFiles?: number;
   firstAt: string | null;
   lastAt: string | null;
   dateOrder?: DateOrder;
   dateOrderCertain?: boolean;
+  timeZone?: string;
 }
 
 export type ParseErrorCode = 'telegramHtml' | 'telegramAccountExport' | 'unknownFormat' | 'noChatFile' | 'emptyChat' | 'brokenFile';

@@ -83,14 +83,15 @@ const mediaOf = (message: TelegramMessage, hasFile: HasFile): MediaResult => {
       ? { attachment: { path: message.photo, name: baseName(message.photo), kind: 'image' } }
       : { notice: { code: 'mediaOmitted', detail: 'image' } };
   }
-  if (message.media_type === 'sticker' && (!included(message.file, hasFile) || extensionOf(message.file) === 'tgs')) {
+  if (message.media_type === 'sticker' && !included(message.file, hasFile)) {
     return { notice: { code: 'sticker', detail: message.sticker_emoji ?? '' } };
   }
   if (message.file === undefined) return {};
   const kind = (message.media_type && MEDIA_KINDS[message.media_type]) || 'file';
-  const sticker = kind === 'sticker' && extensionOf(message.file) !== 'webp' ? 'video' : kind;
+  const sticker = kind === 'sticker' && !['webp', 'webm', 'tgs'].includes(extensionOf(message.file)) ? 'video' : kind;
+  const emoji = sticker === 'sticker' && message.sticker_emoji ? { emoji: message.sticker_emoji } : {};
   return included(message.file, hasFile)
-    ? { attachment: { path: message.file, name: message.file_name || baseName(message.file), kind: sticker } }
+    ? { attachment: { path: message.file, name: message.file_name || baseName(message.file), kind: sticker, ...emoji } }
     : { notice: { code: 'mediaOmitted', detail: message.file_name || sticker } };
 };
 

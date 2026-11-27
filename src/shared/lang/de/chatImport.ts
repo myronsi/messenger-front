@@ -30,12 +30,15 @@ export const chatImport = {
     preview: {
       messages: '{count} Nachrichten',
       files: '{count} Dateien',
+      filesOverLimit: '{count} ältere Dateien liegen über der Grenze von 5.000 und werden nicht importiert.',
       people: '{count} Personen',
       range: '{from} – {to}',
       dateOrder: 'Datumsangaben im Export',
       dayFirst: 'Tag zuerst (31.12.)',
       monthFirst: 'Monat zuerst (12/31)',
       dateOrderUnsure: 'Der Export zeigt nicht, ob Tag oder Monat zuerst steht. Prüfe ein Datum, das du kennst.',
+      timeZone: 'Zeitzone des Exports',
+      timeZoneHint: 'WhatsApp speichert Uhrzeiten ohne Zeitzone. Wähle, wo das Handy beim Export war.',
     },
     target: {
       label: 'Importieren in',
@@ -59,6 +62,7 @@ export const chatImport = {
       keepOpen: 'Lass dieses Fenster offen, bis der Import fertig ist.',
     },
     done: '{count} Nachrichten importiert.',
+    stickerPack: 'Importierte Sticker',
     resume: {
       title: 'Import fortsetzen?',
       hint: 'Der Import von „{name}“ wurde bei Nachricht {index} von {total} unterbrochen. Wähle denselben Export erneut, um fortzufahren.',
@@ -83,6 +87,7 @@ export const chatImport = {
       fileMissing: 'Datei nicht importiert: {detail} (fehlt)',
       fileTooLarge: 'Datei nicht importiert: {detail} (zu groß)',
       fileUnsupported: 'Datei nicht importiert: {detail} (Dateityp nicht unterstützt)',
+      fileOverLimit: 'Datei nicht importiert: {detail} (mehr als 5.000 Dateien)',
       sticker: 'Sticker {detail}',
       groupCreated: '{actor} hat die Gruppe „{detail}“ erstellt',
       membersAdded: '{actor} hat {detail} hinzugefügt',
