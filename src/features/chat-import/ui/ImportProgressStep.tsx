@@ -20,14 +20,17 @@ export const ImportProgressStep = ({ progress, result }: ImportProgressStepProps
       </p>
     );
   }
-  const phase = progress?.phase ?? 'files';
-  const values = { done: (progress?.done ?? 0).toLocaleString(), total: (progress?.total ?? 0).toLocaleString() };
-  const label = phase === 'finishing' ? t.progress.finishing : fillTemplate(phase === 'files' ? t.progress.files : t.progress.messages, values);
-  const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : phase === 'finishing' ? 100 : 0;
+  const finishing = progress?.phase === 'finishing';
+  const count = (value = 0) => value.toLocaleString();
+  const label = finishing ? t.progress.finishing : fillTemplate(t.progress.messages, { done: count(progress?.done), total: count(progress?.total) });
+  const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : finishing ? 100 : 0;
   return (
     <div className="space-y-3">
       <p role="status" className="text-sm">{label}</p>
       <Progress value={percent} aria-label={label} className="h-2" />
+      {!!progress?.filesTotal && !finishing && (
+        <p className="text-xs text-muted-foreground">{fillTemplate(t.progress.files, { done: count(progress.filesDone), total: count(progress.filesTotal) })}</p>
+      )}
       <p className="text-xs text-muted-foreground">{t.progress.keepOpen}</p>
     </div>
   );

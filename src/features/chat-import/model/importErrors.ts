@@ -26,6 +26,7 @@ export const startErrorText = (error: unknown, t: Texts) => {
   if (status !== 409) return t.errors.startFailed;
   const message = problemMessages(error);
   if (/period/i.test(message)) return t.errors.overlap;
+  if (/yours/i.test(message)) return t.errors.busy;
   if (/running/i.test(message)) return t.errors.running;
   return /room/i.test(message) ? t.errors.noRoom : t.errors.startFailed;
 };
