@@ -31,7 +31,7 @@
     "@capacitor/ios": "^8.6.2",
     "@capacitor/push-notifications": "^8.1.3",
     "@hpke/core": "1.10.1",
-    "@myronsi/messenger-api": "2.1.0-alpha.50",
+    "@myronsi/messenger-api": "2.1.0-alpha.52.next.178",
     "@radix-ui/react-accordion": "^1.3.1",
     "@radix-ui/react-alert-dialog": "^1.2.1",
     "@radix-ui/react-aspect-ratio": "^1.2.0",
