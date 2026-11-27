@@ -13,7 +13,7 @@ import { StickerCropper } from './StickerCropper';
 import { StickerEmojiPicker } from './StickerEmojiPicker';
 import { VideoStickerEditor } from './VideoStickerEditor';
 import { ClipPreview } from './ClipPreview';
-import { CLIP_MAX_BYTES, isClipType, type StickerClip } from '../model/clip';
+import { CLIP_MAX_BYTES, clipKindOf, type StickerClip } from '../model/clip';
 
 interface StickerMakerProps {
   sourceUrl: string;
@@ -56,7 +56,8 @@ const uploadClip = async (url: string, type: string, clip: StickerClip) => {
 export const StickerMaker = ({ sourceUrl, sourceType, packId, onClose, onSaved }: StickerMakerProps) => {
   const { translations } = useLanguage();
   const source = useStickerSource(sourceUrl, sourceType);
-  const clipMode = isClipType(source.type);
+  const clipKind = clipKindOf(source.type, source.animated);
+  const clipMode = clipKind !== null;
   const [clip, setClip] = useState<StickerClip | null>(null);
   const lastClip = useRef<StickerClip | null>(null);
   const [image, setImage] = useState<Blob | null>(null);
@@ -136,14 +137,14 @@ export const StickerMaker = ({ sourceUrl, sourceType, packId, onClose, onSaved }
         {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
         {!image && !clip ? (
           source.url ? (clipMode
-            ? <VideoStickerEditor src={source.url} type={source.type} initial={lastClip.current} onCancel={onClose} onError={setError}
+            ? <VideoStickerEditor src={source.url} kind={clipKind} initial={lastClip.current} onCancel={onClose} onError={setError}
               onDone={(next) => { lastClip.current = next; setClip(next); }} />
             : <StickerCropper src={source.url} onCancel={onClose} onDone={setImage} onError={setError} />)
             : <p className="py-8 text-center text-sm text-muted-foreground">{source.failed ? translations.stickerImageUnreadable : translations.loading}</p>
         ) : (
           <div className="flex flex-col gap-4">
             <div className="relative mx-auto aspect-square w-48 rounded-3xl bg-muted/30 p-3 sm:w-52">
-              {clip && source.url && <ClipPreview src={source.url} type={source.type} clip={clip} label={emoji ?? ''} />}
+              {clip && source.url && <ClipPreview src={source.url} kind={clip.kind} clip={clip} label={emoji ?? ''} />}
               {!clip && preview && <img src={preview} alt={emoji ?? ''} className="h-full w-full object-contain" />}
               <div className="absolute bottom-2 right-2 flex gap-1.5">
                 <button type="button" className={overlayButton} disabled={saving} onClick={() => { setImage(null); setClip(null); }}

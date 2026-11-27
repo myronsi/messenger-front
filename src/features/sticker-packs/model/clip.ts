@@ -10,9 +10,10 @@ export interface StickerClip {
   crop: { x: number; y: number; size: number } | null;
 }
 
-export const isClipType = (type: string | undefined) => !!type && (type.startsWith('video/') || type === 'image/gif');
-
-export const clipKind = (type: string): StickerClip['kind'] => (type === 'image/gif' ? 'image' : 'video');
+export const clipKindOf = (type: string | undefined, animated = false): StickerClip['kind'] | null => {
+  if (type?.startsWith('video/')) return 'video';
+  return type === 'image/gif' || (animated && type === 'image/webp') ? 'image' : null;
+};
 
 export const initialTrim = (durationMs: number): [number, number] => [0, Math.min(CLIP_MAX_MS, Math.max(0, durationMs))];
 
@@ -73,6 +74,31 @@ export const gifDurationMs = (buffer: ArrayBuffer): number | null => {
   }
   return frames > 0 ? total : null;
 };
+
+const SHORTEST_WEBP_FRAME_MS = 10, DEFAULT_WEBP_FRAME_MS = 100;
+
+const ascii = (bytes: Uint8Array, start: number) => String.fromCharCode(...bytes.subarray(start, start + 4));
+const uint24 = (bytes: Uint8Array, at: number) => bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16);
+
+export const webpDurationMs = (buffer: ArrayBuffer): number | null => {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length < 12 || ascii(bytes, 0) !== 'RIFF' || ascii(bytes, 8) !== 'WEBP') return null;
+  const view = new DataView(buffer);
+  let total = 0;
+  let frames = 0;
+  for (let at = 12; at + 8 <= bytes.length;) {
+    const size = view.getUint32(at + 4, true);
+    if (ascii(bytes, at) === 'ANMF' && at + 24 <= bytes.length) {
+      const delay = uint24(bytes, at + 20);
+      total += delay <= SHORTEST_WEBP_FRAME_MS ? DEFAULT_WEBP_FRAME_MS : delay;
+      frames += 1;
+    }
+    at += 8 + size + (size & 1);
+  }
+  return frames > 0 ? total : null;
+};
+
+export const animatedImageDurationMs = (buffer: ArrayBuffer) => gifDurationMs(buffer) ?? webpDurationMs(buffer);
 
 export const cropStyle = (size: ImageSize, crop: NonNullable<StickerClip['crop']>) => {
   const side = crop.size * Math.min(size.width, size.height);

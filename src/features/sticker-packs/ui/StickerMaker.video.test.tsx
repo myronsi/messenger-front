@@ -15,7 +15,8 @@ vi.mock('@/entities/sticker', () => ({
   uploadStickerClip: (...args: unknown[]) => uploadClip(...args),
 }));
 vi.mock('@/shared/contexts/LanguageContext', () => ({ useLanguage: () => ({ translations: en }) }));
-vi.mock('../model/useStickerSource', () => ({ useStickerSource: () => ({ url: 'blob:clip', failed: false, type: 'video/mp4' }) }));
+const source = vi.hoisted(() => ({ current: { url: 'blob:clip', failed: false, type: 'video/mp4', animated: false } }));
+vi.mock('../model/useStickerSource', () => ({ useStickerSource: () => source.current }));
 vi.mock('./VideoStickerEditor', () => ({
   VideoStickerEditor: ({ onDone }: { onDone: (value: typeof clip) => void }) => <button type="button" onClick={() => onDone(clip)}>trim</button>,
 }));
@@ -24,6 +25,7 @@ vi.mock('@/shared/ui/drawing', () => ({ DrawingEditor: () => null, flattenDrawin
 const video = new Blob(['clip'], { type: 'video/mp4' });
 
 beforeEach(() => {
+  source.current = { url: 'blob:clip', failed: false, type: 'video/mp4', animated: false };
   addSticker.mockReset();
   uploadClip.mockReset();
   vi.stubGlobal('fetch', vi.fn(async () => ({ blob: async () => video })));
@@ -52,4 +54,18 @@ it('says a clip is too large in words about clips', async () => {
   fireEvent.click(screen.getByRole('option', { name: '😀' }));
   fireEvent.click(screen.getByRole('button', { name: en.addStickerToPack }));
   expect(await screen.findByRole('alert')).toHaveTextContent(en.videoStickers.tooLarge);
+});
+
+it('sends an animated WebP as a clip, not as a still picture', async () => {
+  source.current = { url: 'blob:clip', failed: false, type: 'image/webp', animated: true };
+  addSticker.mockReturnValue({ unwrap: () => Promise.resolve({ id: '1' }) });
+  uploadClip.mockResolvedValue({ id: 'clip' });
+  const onClose = vi.fn();
+  render(<StickerMaker sourceUrl="blob:clip" sourceType="image/webp" packId="3" onClose={onClose} />);
+  expect(screen.getByText(en.videoStickers.title)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'trim' }));
+  fireEvent.click(screen.getByRole('option', { name: '😀' }));
+  fireEvent.click(screen.getByRole('button', { name: en.addStickerToPack }));
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(uploadClip).toHaveBeenCalledWith(expect.any(Blob), { ...clip, fileName: 'sticker.webp' });
 });

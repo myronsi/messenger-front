@@ -4,12 +4,12 @@ import { cropStyle, type StickerClip } from '../model/clip';
 
 interface ClipPreviewProps {
   src: string;
-  type: string;
+  kind: StickerClip['kind'];
   clip: StickerClip;
   label: string;
 }
 
-export const ClipPreview = ({ src, type, clip, label }: ClipPreviewProps) => {
+export const ClipPreview = ({ src, kind, clip, label }: ClipPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [size, setSize] = useState<ImageSize | null>(null);
   const placed = clip.crop && size ? cropStyle(size, clip.crop) : undefined;
@@ -22,7 +22,7 @@ export const ClipPreview = ({ src, type, clip, label }: ClipPreviewProps) => {
   };
   return (
     <span data-testid="clip-preview" className="relative block h-full w-full overflow-hidden rounded-2xl">
-      {type === 'image/gif' ? (
+      {kind === 'image' ? (
         <img src={src} alt={label} className={className} style={placed}
           onLoad={(event) => setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
       ) : (

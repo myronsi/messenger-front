@@ -6,11 +6,11 @@ import { Button } from '@/shared/ui/button';
 import { Slider } from '@/shared/ui/slider';
 import { Switch } from '@/shared/ui/switch';
 import { clampZoom, coverZoom, displayedSize, initialCrop, MAX_ZOOM_OVER_COVER, type CropState, type ImageSize } from '../model/crop';
-import { adjustTrim, clipKind, cropFractions, gifDurationMs, initialTrim, type StickerClip } from '../model/clip';
+import { adjustTrim, animatedImageDurationMs, cropFractions, initialTrim, type StickerClip } from '../model/clip';
 
 interface VideoStickerEditorProps {
   src: string;
-  type: string;
+  kind: StickerClip['kind'];
   initial?: StickerClip | null;
   onCancel: () => void;
   onDone: (clip: StickerClip) => void;
@@ -20,10 +20,10 @@ interface VideoStickerEditorProps {
 const checkerboard = 'repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%) 50% / 20px 20px';
 const seconds = (ms: number) => (ms / 1000).toFixed(1);
 
-export const VideoStickerEditor = ({ src, type, initial, onCancel, onDone, onError }: VideoStickerEditorProps) => {
+export const VideoStickerEditor = ({ src, kind, initial, onCancel, onDone, onError }: VideoStickerEditorProps) => {
   const { translations } = useLanguage();
   const t = translations.videoStickers;
-  const isGif = type === 'image/gif';
+  const isGif = kind === 'image';
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -50,7 +50,7 @@ export const VideoStickerEditor = ({ src, type, initial, onCancel, onDone, onErr
     let cancelled = false;
     void fetch(src).then((response) => response.arrayBuffer()).then((buffer) => {
       if (cancelled) return;
-      const ms = gifDurationMs(buffer) ?? 0;
+      const ms = animatedImageDurationMs(buffer) ?? 0;
       setDuration(ms);
       if (!initial) setTrim(initialTrim(ms));
     }).catch(() => { if (!cancelled) onError(t.unreadable); });
@@ -88,7 +88,7 @@ export const VideoStickerEditor = ({ src, type, initial, onCancel, onDone, onErr
 
   const finish = () => {
     if (duration === null) return;
-    onDone({ kind: clipKind(type), startMs: trim[0], endMs: trim[1] || duration, crop: cropOn && size ? cropFractions(size, crop) : null });
+    onDone({ kind, startMs: trim[0], endMs: trim[1] || duration, crop: cropOn && size ? cropFractions(size, crop) : null });
   };
 
   const zoom = cropOn && size ? Math.max(crop.zoom, coverZoom(size)) : 1;

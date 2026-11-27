@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adjustTrim, clipKind, cropFractions, cropStyle, gifDurationMs, initialTrim, isClipType } from './clip';
+import { adjustTrim, animatedImageDurationMs, clipKindOf, cropFractions, cropStyle, gifDurationMs, initialTrim, webpDurationMs } from './clip';
 import { coverZoom } from './crop';
 
 const gif = (delays: number[]) => {
@@ -12,13 +12,29 @@ const gif = (delays: number[]) => {
   return new Uint8Array(bytes).buffer;
 };
 
+const webp = (delays: number[]) => {
+  const chunk = (fourCC: string, payload: number[]) => {
+    const size = payload.length;
+    return [...fourCC].map((c) => c.charCodeAt(0)).concat([size & 0xff, (size >> 8) & 0xff, 0, 0], payload, size & 1 ? [0] : []);
+  };
+  const frames = delays.flatMap((delay) => chunk('ANMF', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, delay & 0xff, (delay >> 8) & 0xff, 0, 0, 1]));
+  const body = [...chunk('VP8X', [2, 0, 0, 0, 0, 0, 0, 0, 0, 0]), ...chunk('ANIM', [0, 0, 0, 0, 0, 0]), ...frames];
+  const size = body.length + 4;
+  return new Uint8Array([0x52, 0x49, 0x46, 0x46, size & 0xff, (size >> 8) & 0xff, 0, 0, 0x57, 0x45, 0x42, 0x50, ...body]).buffer;
+};
+
 describe('video sticker clips', () => {
   it('treats videos and GIFs as clips and sends a GIF as an image', () => {
-    expect(isClipType('video/mp4')).toBe(true);
-    expect(isClipType('image/gif')).toBe(true);
-    expect(isClipType('image/png')).toBe(false);
-    expect(clipKind('image/gif')).toBe('image');
-    expect(clipKind('video/quicktime')).toBe('video');
+    expect(clipKindOf('video/quicktime')).toBe('video');
+    expect(clipKindOf('image/gif')).toBe('image');
+    expect(clipKindOf('image/png')).toBeNull();
+    expect(clipKindOf(undefined)).toBeNull();
+  });
+
+  it('treats only an animated WebP as a clip', () => {
+    expect(clipKindOf('image/webp', true)).toBe('image');
+    expect(clipKindOf('image/webp')).toBeNull();
+    expect(clipKindOf('image/png', true)).toBeNull();
   });
 
   it('keeps the first 3 seconds by default', () => {
@@ -51,5 +67,12 @@ describe('video sticker clips', () => {
     expect(gifDurationMs(gif([50, 100, 25]))).toBe(1750);
     expect(gifDurationMs(gif([0, 0]))).toBe(200);
     expect(gifDurationMs(new Uint8Array([1, 2, 3]).buffer)).toBeNull();
+  });
+
+  it('reads the length of an animated WebP from its frame durations', () => {
+    expect(webpDurationMs(webp([500, 250, 0]))).toBe(850);
+    expect(animatedImageDurationMs(webp([40, 40]))).toBe(80);
+    expect(animatedImageDurationMs(gif([10]))).toBe(100);
+    expect(webpDurationMs(gif([10]))).toBeNull();
   });
 });
