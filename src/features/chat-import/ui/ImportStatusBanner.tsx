@@ -6,9 +6,10 @@ import { ActionDialog } from '@/shared/ui/ActionDialog';
 import { Button } from '@/shared/ui/button';
 import { Progress } from '@/shared/ui/progress';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { localeOf } from '@/shared/lang/languages';
 import { fillTemplate } from '@/shared/lib/fillTemplate';
 import { useGetChatImportsQuery, useRemoveImportMutation } from '../api/importApi';
-import { importPercent, useActiveImport } from '../model/activeImport';
+import { formatImportPercent, importPercent, useActiveImport } from '../model/activeImport';
 import { importerName, isImporter } from '../model/chatImports';
 import { clearResume, loadResume } from '../model/resumeStore';
 import { useChatMembers } from '../model/useMemberNames';
@@ -21,7 +22,7 @@ const POLL_MS = 15_000;
 const NOBODY: ImportMember = { id: '' };
 
 export const ImportStatusBanner = ({ chat }: { chat: ImportChatTarget }) => {
-  const { translations } = useLanguage();
+  const { translations, language } = useLanguage();
   const t = translations.chatImport.status;
   const me = useImportMe();
   const active = useActiveImport();
@@ -40,8 +41,10 @@ export const ImportStatusBanner = ({ chat }: { chat: ImportChatTarget }) => {
   if (!running || !me) return continuing && me ? <ImportChatDialog open onOpenChange={setContinuing} me={me} chat={chat} /> : null;
 
   const mine = isImporter(running, me.id);
-  const percent = live && active ? importPercent(active.done, active.total) : importPercent(running.next_index, running.message_count);
-  const values = { percent: String(percent), name: importerName(running, nameOf) };
+  const [done, total] = live && active ? [active.done, active.total] : [running.next_index, running.message_count];
+  const percent = importPercent(done, total);
+  const percentText = formatImportPercent(done, total, localeOf(language));
+  const values = { percent: percentText, name: importerName(running, nameOf) };
   const text = live ? (active?.waitingSeconds ? t.waiting : t.importing) : mine ? t.paused : t.other;
   const remove = async () => {
     setRemoveFailed(false);
@@ -60,7 +63,7 @@ export const ImportStatusBanner = ({ chat }: { chat: ImportChatTarget }) => {
       <p className="flex items-center gap-2">
         <History className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
         <span className="min-w-0 flex-1">{fillTemplate(text, values)}</span>
-        <span className="shrink-0 tabular-nums text-muted-foreground">{percent}%</span>
+        <span className="shrink-0 tabular-nums text-muted-foreground">{percentText}</span>
       </p>
       <Progress value={percent} aria-label={fillTemplate(text, values)} className="h-1.5" />
       {mine && !live && (

@@ -132,7 +132,7 @@ export const chatImport = {
       continue: 'Продолжить',
       remove: 'Удалить',
       removeTitle: 'Удалить импортированную часть?',
-      removeHint: 'Уже импортированные {percent}% исчезнут у всех в этом чате.',
+      removeHint: 'Уже импортированные {percent} исчезнут у всех в этом чате.',
       removeFailed: 'Не удалось удалить импорт. Попробуйте ещё раз.',
     },
     banner: {

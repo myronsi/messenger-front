@@ -8,6 +8,14 @@ export const importedSenderName = (message: Pick<Message, 'import'>): string | n
   message.import?.sender_state === 'unconfirmed' ? message.import.sender_name || '?' : null
 );
 
+export const pendingImportIds = (messages: readonly Pick<Message, 'import'>[]): ReadonlySet<string> => {
+  const ids = new Set<string>();
+  for (const message of messages) {
+    if (message.import?.sender_state === 'unconfirmed') ids.add(String(message.import.import_id));
+  }
+  return ids;
+};
+
 export const isConfirmedImport = (message: Pick<Message, 'import'>) => message.import?.sender_state === 'confirmed';
 
 export interface ImportActionRequest {

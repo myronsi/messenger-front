@@ -14,7 +14,7 @@ import { audioQueueFor } from '../model/audioQueue';
 import { TypingBubble } from '@/entities/typing';
 import ScrollToBottomButton from './ScrollToBottomButton';
 import { LoadingPill } from './LoadingPill';
-import { ChatGalleryContext, isVisualMediaMessage, Message, MessageChatContext, MessageItem, useChatGalleryEntries, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
+import { ChatGalleryContext, isVisualMediaMessage, Message, MessageChatContext, MessageItem, pendingImportIds, useChatGalleryEntries, playAudio, ReactionInfo, type MessageSelection } from '@/entities/message';
 import { useFileTypes } from '@/shared/contexts/fileTypesConfig';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { useChatCovered } from '@/shared/contexts/ChatCoveredContext';
@@ -188,6 +188,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
   const stableOnResendMessage = useStableCallback((message: Message) => onResendMessage?.(message));
   const hasResendHandler = !!onResendMessage;
 
+  const pendingImports = useMemo(() => pendingImportIds(messages), [messages]);
   const messagesById = useMemo(() => new Map(allMessages.map((message) => [message.id, message])), [allMessages]);
 
   const lastScrollAtRef = useRef(0);
@@ -241,6 +242,7 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>((props, re
               replyMessage={message.reply_to ? messagesById.get(message.reply_to) ?? message.reply_preview : undefined}
               userId={userId}
               isGroup={isGroup}
+              showImportedName={!!message.import && pendingImports.has(String(message.import.import_id))}
               isImage={fileConfig?.replyText === translations.image || isVisualMediaMessage(message)}
               isMobile={isMobile}
               showNewMessagesMarker={visibleUnreadBoundaryId === message.id && !isOwnMessage(message)}
