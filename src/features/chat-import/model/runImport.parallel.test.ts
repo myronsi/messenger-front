@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AddImportMessagesRequest, ChatImport } from '../api/importTypes';
-import { UPLOAD_CONCURRENCY } from './importFiles';
+import { LOOKAHEAD_BATCHES, PREPARED_BYTES, UPLOAD_CONCURRENCY } from './importFiles';
 import { runImport, type RunDeps, type RunOptions } from './runImport';
 import type { ParsedAttachment, ParsedChat } from './types';
 
@@ -71,13 +71,25 @@ describe('runImport uploads in parallel', () => {
     expect(ids[3]).toBe('id-d.jpg');
   });
 
-  it("uploads the next batch's files while the current batch is sent", async () => {
+  it('refuses a file once when identical copies are seen by several lanes at the same time', async () => {
+    const upload = vi.fn(async () => {
+      await tick();
+      return { skipped: 'fileUnsupported' as const };
+    });
+    const contents = { 'a.jpg': 'same', 'b.jpg': 'same', 'c.jpg': 'same' };
+    await runImport(options(chatOf(3, { 0: photo('a.jpg'), 1: photo('b.jpg'), 2: photo('c.jpg') })), deps(upload as unknown as RunDeps['upload'], undefined, contents));
+    expect(upload).toHaveBeenCalledTimes(1);
+  });
+
+  it(`prepares the files of the next ${LOOKAHEAD_BATCHES} batches while a batch is sent, and no further`, async () => {
     const order: string[] = [];
     let releaseFirstBatch: () => void = () => undefined;
     const firstBatchHeld = new Promise<void>((resolve) => { releaseFirstBatch = resolve; });
+    const ahead = new Set(['f550.jpg', 'f1600.jpg']);
     const upload = vi.fn(async (_file: File, attachment: ParsedAttachment) => {
       order.push(`upload:${attachment.path}`);
-      if (attachment.path === 'late.jpg') releaseFirstBatch();
+      ahead.delete(attachment.path);
+      if (ahead.size === 0) releaseFirstBatch();
       return { id: `id-${attachment.path}` };
     });
     const addMessages = async (body: AddImportMessagesRequest) => {
@@ -85,9 +97,33 @@ describe('runImport uploads in parallel', () => {
       if (body.from_index === 0) await firstBatchHeld;
       order.push(`sent:${body.from_index}`);
     };
-    await runImport(options(chatOf(600, { 0: photo('early.jpg'), 550: photo('late.jpg') })), deps(upload as unknown as RunDeps['upload'], addMessages));
-    expect(order.indexOf('upload:late.jpg')).toBeLessThan(order.indexOf('sent:0'));
-    expect(order.indexOf('upload:late.jpg')).toBeGreaterThan(order.indexOf('send:0'));
-    expect(order.slice(-2)).toEqual(['send:500', 'sent:500']);
+    const files = { 0: photo('f0.jpg'), 550: photo('f550.jpg'), 1600: photo('f1600.jpg'), 2600: photo('f2600.jpg') };
+    await runImport(options(chatOf(3000, files)), deps(upload as unknown as RunDeps['upload'], addMessages));
+    expect(order.indexOf('upload:f1600.jpg')).toBeLessThan(order.indexOf('sent:0'));
+    expect(order.indexOf('upload:f2600.jpg')).toBeGreaterThan(order.indexOf('sent:500'));
+    expect(order.indexOf('upload:f2600.jpg')).toBeLessThan(order.indexOf('send:2500'));
+    expect(order.filter((step) => step.startsWith('sent:'))).toEqual(['sent:0', 'sent:500', 'sent:1000', 'sent:1500', 'sent:2000', 'sent:2500']);
+  });
+
+  it('holds prepared files within the memory budget', async () => {
+    let held = 0;
+    let most = 0;
+    const size = Math.floor(PREPARED_BYTES / 2) - 1;
+    const big = (path: string): ParsedAttachment => ({ path, name: path, kind: 'video', size });
+    const upload = vi.fn(async () => {
+      await tick();
+      held -= 1;
+      return { id: 'x' };
+    });
+    const run = deps(upload as unknown as RunDeps['upload']);
+    run.readFile = vi.fn(async (path: string) => {
+      held += 1;
+      most = Math.max(most, held);
+      return new File([path], path);
+    });
+    const files = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [i * 400, big(`v${i}.mp4`)]));
+    await runImport(options(chatOf(2400, files)), run);
+    expect(upload).toHaveBeenCalledTimes(6);
+    expect(most).toBe(2);
   });
 });

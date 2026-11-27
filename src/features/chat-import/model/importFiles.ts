@@ -1,12 +1,16 @@
 import type { EntityId } from '@/shared/api/entityId';
 import type { SkipReason } from './importRequest';
 import { addImportSticker, FILE_HASH_KEY, fileDigest, STICKER_HASH_KEY, STICKER_KEY, type StickerCalls } from './importStickers';
+import { importTimer } from './importTimings';
 import { isLottieSticker, precheck, type uploadImportFile } from './uploadImportFile';
 import { withRetry } from './uploadRetry';
-import type { ParsedAttachment, ParsedChat, ParsedMessage } from './types';
+import { IMPORT_BATCH_SIZE, type ParsedAttachment, type ParsedChat, type ParsedMessage } from './types';
 
 const SAVE_EVERY = 20;
 export const UPLOAD_CONCURRENCY = 3;
+export const LOOKAHEAD_BATCHES = 3;
+export const PREPARED_BYTES = 64 * 1024 * 1024;
+export const PREPARED_FILES = 32;
 
 export interface FileDeps {
   upload: typeof uploadImportFile;
@@ -22,8 +26,15 @@ export interface FileOptions {
   uploaded: Record<string, EntityId>;
   stickerPackTitle?: string;
   onUploaded: (uploaded: Record<string, EntityId>) => void;
+  onStep?: () => void;
   onWait?: (seconds: number) => void;
   signal?: AbortSignal;
+  timer?: ReturnType<typeof importTimer>;
+}
+
+interface Planned {
+  attachment: ParsedAttachment;
+  at: number;
 }
 
 const captioned = new WeakMap<ParsedChat, Set<string>>();
@@ -37,34 +48,72 @@ const captionedPaths = (chat: ParsedChat) => {
   return paths;
 };
 
-const distinctAttachments = (messages: readonly ParsedMessage[]) => {
-  const byPath = new Map<string, ParsedAttachment>();
-  for (const message of messages) {
-    if (message.attachment && !byPath.has(message.attachment.path)) byPath.set(message.attachment.path, message.attachment);
-  }
+const distinctAttachments = (messages: readonly ParsedMessage[], from = 0): Planned[] => {
+  const byPath = new Map<string, Planned>();
+  messages.forEach((message, offset) => {
+    if (message.attachment && !byPath.has(message.attachment.path)) byPath.set(message.attachment.path, { attachment: message.attachment, at: from + offset });
+  });
   return [...byPath.values()];
+};
+
+const createSlots = (size: number) => {
+  let free = size;
+  const waiting: (() => void)[] = [];
+  return async <T>(run: () => Promise<T>): Promise<T> => {
+    if (free > 0) free -= 1;
+    else await new Promise<void>((resolve) => { waiting.push(resolve); });
+    try {
+      return await run();
+    } finally {
+      const next = waiting.shift();
+      if (next) next();
+      else free += 1;
+    }
+  };
+};
+
+const createSignal = () => {
+  let wake: () => void = () => undefined;
+  let next = new Promise<void>((resolve) => { wake = resolve; });
+  return {
+    changed: () => next,
+    notify: () => {
+      const current = wake;
+      next = new Promise<void>((resolve) => { wake = resolve; });
+      current();
+    },
+  };
 };
 
 export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
   const ids = new Map(Object.entries(options.uploaded));
   const skipped = new Map<string, SkipReason>();
+  const skippedHashes = new Map<string, SkipReason>();
   const seen = new Set<string>();
-  const total = distinctAttachments(options.chat.messages.slice(options.fromIndex)).length;
+  const queue = distinctAttachments(options.chat.messages.slice(options.fromIndex), options.fromIndex);
+  const total = queue.length;
+  const timer = options.timer ?? importTimer(false);
+  const inUploadSlot = createSlots(UPLOAD_CONCURRENCY);
+  const progress = createSignal();
+  const started = new Set<string>();
+  const urgent: Planned[] = [];
+  let cursor = 0;
+  let limit = options.fromIndex + (LOOKAHEAD_BATCHES + 1) * IMPORT_BATCH_SIZE;
+  let heldBytes = 0;
+  let heldFiles = 0;
+  let failure: { error: unknown } | null = null;
+  let closed = false;
   let sinceSave = 0;
   const inflight = new Map<string, Promise<unknown>>();
   let stickerLane: Promise<unknown> = Promise.resolve();
 
-  const once = async <T>(key: string | null, run: () => Promise<T>): Promise<T> => {
+  const once = <T>(key: string | null, run: () => Promise<T>): Promise<T> => {
     if (key === null) return run();
-    const before = inflight.get(key);
-    if (before) await before.catch(() => undefined);
-    const current = run();
+    const current = (inflight.get(key) ?? Promise.resolve()).catch(() => undefined).then(run);
     inflight.set(key, current);
-    try {
-      return await current;
-    } finally {
+    return current.finally(() => {
       if (inflight.get(key) === current) inflight.delete(key);
-    }
+    });
   };
 
   const inStickerLane = <T>(run: () => Promise<T>): Promise<T> => {
@@ -88,31 +137,38 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
   const placeSticker = async (file: File, attachment: ParsedAttachment, hash: string | null) => {
     if (attachment.kind !== 'sticker' || !stickerCalls || !options.stickerPackTitle || captionedPaths(options.chat).has(attachment.path)) return false;
     const title = options.stickerPackTitle;
-    const sticker = await once(hash === null ? null : STICKER_HASH_KEY + hash, () => inStickerLane(async () => {
+    const sticker = await once(hash === null ? null : STICKER_HASH_KEY + hash, () => inStickerLane(() => inUploadSlot(async () => {
       const known = hash === null ? undefined : ids.get(STICKER_HASH_KEY + hash);
-      return known ?? addImportSticker(file, attachment, options.importId, ids, title, stickerCalls, options.signal);
-    }));
+      return known ?? timer('upload', () => addImportSticker(file, attachment, options.importId, ids, title, stickerCalls, options.signal));
+    })));
     if (sticker === null) return false;
     ids.set(STICKER_KEY + attachment.path, sticker);
     if (hash !== null) ids.set(STICKER_HASH_KEY + hash, sticker);
     return true;
   };
 
+  const uploadOnce = (file: File, attachment: ParsedAttachment, hash: string | null) => once(hash === null ? null : FILE_HASH_KEY + hash, async () => {
+    const known = hash === null ? undefined : ids.get(FILE_HASH_KEY + hash);
+    if (known !== undefined) return { id: known };
+    const refused = hash === null ? undefined : skippedHashes.get(hash);
+    if (refused !== undefined) return { skipped: refused };
+    const uploaded = await inUploadSlot(() => timer('upload', () => withRetry(() => deps.upload(file, attachment, options.importId, options.signal), retry)));
+    if (hash !== null) {
+      if ('id' in uploaded) ids.set(FILE_HASH_KEY + hash, uploaded.id);
+      else skippedHashes.set(hash, uploaded.skipped);
+    }
+    return uploaded;
+  });
+
   const placeFile = async (attachment: ParsedAttachment) => {
-    const file = await deps.readFile(attachment.path);
-    const hash = await fileDigest(file);
+    const file = await timer('read', () => deps.readFile(attachment.path));
+    const hash = await timer('hash', () => fileDigest(file));
     if (await placeSticker(file, attachment, hash)) return;
     if (isLottieSticker(attachment)) {
       skipped.set(attachment.path, 'fileUnsupported');
       return;
     }
-    const outcome = await once(hash === null ? null : FILE_HASH_KEY + hash, async () => {
-      const known = hash === null ? undefined : ids.get(FILE_HASH_KEY + hash);
-      if (known !== undefined) return { id: known };
-      const uploaded = await withRetry(() => deps.upload(file, attachment, options.importId, options.signal), retry);
-      if ('id' in uploaded && hash !== null) ids.set(FILE_HASH_KEY + hash, uploaded.id);
-      return uploaded;
-    });
+    const outcome = await uploadOnce(file, attachment, hash);
     if ('skipped' in outcome) {
       skipped.set(attachment.path, outcome.skipped);
       return;
@@ -120,7 +176,7 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
     ids.set(attachment.path, outcome.id);
   };
 
-  const placeOne = async (attachment: ParsedAttachment, onStep: () => void) => {
+  const placeOne = async (attachment: ParsedAttachment) => {
     const reason = placed(attachment.path) ? null : precheck(attachment);
     if (reason) skipped.set(attachment.path, reason);
     else if (!placed(attachment.path)) {
@@ -129,28 +185,68 @@ export const createImportFiles = (options: FileOptions, deps: FileDeps) => {
       if (sinceSave >= SAVE_EVERY) save();
     }
     seen.add(attachment.path);
-    onStep();
+    options.onStep?.();
   };
 
-  const place = async (messages: readonly ParsedMessage[], onStep: () => void, checkAbort: () => void) => {
-    const queue = distinctAttachments(messages).filter((attachment) => !seen.has(attachment.path));
-    let next = 0;
-    let failed = false;
-    const lane = async () => {
-      while (!failed && next < queue.length) {
-        const attachment = queue[next];
-        next += 1;
-        try {
-          checkAbort();
-          await placeOne(attachment, onStep);
-        } catch (error) {
-          failed = true;
-          throw error;
-        }
+  const nextPlanned = () => {
+    while (urgent.length > 0 && started.has(urgent[0].attachment.path)) urgent.shift();
+    if (urgent.length > 0) return urgent[0];
+    while (cursor < queue.length && started.has(queue[cursor].attachment.path)) cursor += 1;
+    return cursor < queue.length && queue[cursor].at < limit ? queue[cursor] : null;
+  };
+
+  const pump = () => {
+    while (!failure && !closed) {
+      const next = nextPlanned();
+      if (!next) return;
+      const bytes = placed(next.attachment.path) || precheck(next.attachment) ? 0 : Math.max(1, next.attachment.size ?? 1);
+      if (heldFiles > 0 && (heldFiles >= PREPARED_FILES || heldBytes + bytes > PREPARED_BYTES)) return;
+      if (options.signal?.aborted) {
+        failure = { error: options.signal.reason };
+        progress.notify();
+        return;
       }
-    };
-    await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, queue.length) }, lane));
+      started.add(next.attachment.path);
+      heldBytes += bytes;
+      heldFiles += 1;
+      placeOne(next.attachment)
+        .catch((error: unknown) => {
+          failure ??= { error };
+        })
+        .finally(() => {
+          heldBytes -= bytes;
+          heldFiles -= 1;
+          progress.notify();
+          pump();
+        });
+    }
   };
 
-  return { ids, skipped, total, done: () => seen.size, place, save };
+  const advance = (index: number) => {
+    limit = Math.max(limit, index + (LOOKAHEAD_BATCHES + 1) * IMPORT_BATCH_SIZE);
+    pump();
+  };
+
+  const ready = async (messages: readonly ParsedMessage[], checkAbort: () => void) => {
+    const needed = distinctAttachments(messages).filter((planned) => !seen.has(planned.attachment.path));
+    urgent.unshift(...needed.filter((planned) => !started.has(planned.attachment.path)));
+    pump();
+    while (needed.some((planned) => !seen.has(planned.attachment.path))) {
+      if (failure) throw failure.error;
+      checkAbort();
+      await progress.changed();
+    }
+    if (failure) throw failure.error;
+  };
+
+  const onAbort = () => progress.notify();
+  options.signal?.addEventListener('abort', onAbort);
+  const close = () => {
+    closed = true;
+    options.signal?.removeEventListener('abort', onAbort);
+    progress.notify();
+  };
+
+  pump();
+  return { ids, skipped, total, done: () => seen.size, advance, ready, close, save };
 };
